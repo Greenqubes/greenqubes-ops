@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Greenqubes — Phase 0 architecture & cost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F1EC;
+    --paper: #FFFFFF;
+    --ink: #1A1815;
+    --ink2: #5C564E;
+    --muted: #8B8478;
+    --line: #E8E2D7;
+    --terracotta: #B5523D;
+    --terracotta-soft: #F5E8E3;
+    --green: #3F7D5C;
+    --green-soft: #E8F0EB;
+    --blue: #3D6FB5;
+    --blue-soft: #E5EEFC;
+    --amber: #C8893D;
+    --amber-soft: #F8EFDF;
+    --display: 'Fraunces', Georgia, serif;
+    --body: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 40px 32px 60px;
+  }
+
+  /* ============ HEADER ============ */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 22px;
+    margin-bottom: 36px;
+  }
+  .brand {
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .brand .dot { color: var(--terracotta); margin: 0 2px; }
+  .brand .phase {
+    margin-left: 10px;
+    font-size: 10px;
+    background: var(--terracotta-soft);
+    color: var(--terracotta);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    vertical-align: 2px;
+  }
+  .meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: 44px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    max-width: 820px;
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--terracotta);
+  }
+  .subtitle {
+    font-size: 15px;
+    color: var(--ink2);
+    line-height: 1.5;
+    max-width: 760px;
+    margin: 0;
+  }
+
+  /* ============ SECTION ============ */
+  section { margin-top: 56px; }
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    width: 18px;
+    height: 1px;
+    background: var(--muted);
+  }
+  h2 {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 22px;
+  }
+
+  /* ============ DIAGRAM ============ */
+  .diagram-wrap {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px;
+    overflow: hidden;
+  }
+  .diagram-wrap svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-size: 11px;
+    color: var(--ink2);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ============ COST TABLE ============ */
+  .cost-table {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-family: var(--body);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  thead th.num { text-align: right; }
+  tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    font-size: 13px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.service {
+    font-family: var(--display);
+    font-size: 16px;
+    color: var(--ink);
+    width: 22%;
+  }
+  td.service .tag {
+    display: block;
+    font-family: var(--body);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+    font-weight: 500;
+  }
+  td.role { color: var(--ink2); width: 38%; }
+  td.cost {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink);
+    width: 18%;
+    white-space: nowrap;
+  }
+  td.cost .free { color: var(--green); font-weight: 500; }
+  td.notes {
+    color: var(--muted);
+    font-size: 12px;
+    width: 22%;
+  }
+
+  .total-row td {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--display);
+    font-size: 18px;
+    padding: 18px;
+    border: none;
+  }
+  .total-row td.cost {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--paper);
+  }
+  .total-row .label {
+    display: block;
+    font-family: var(--body);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 3px;
+  }
+
+  .scale-note {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--terracotta-soft);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--ink2);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .scale-note strong { color: var(--terracotta); font-weight: 600; }
+  .scale-note::before {
+    content: '↗';
+    color: var(--terracotta);
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* ============ SMART GRID — Obsidian + Monday digest ============ */
+  .smart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+  .smart-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 28px;
+  }
+  .smart-eyebrow {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--terracotta);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .smart-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .smart-lead {
+    font-size: 13.5px;
+    color: var(--ink2);
+    line-height: 1.6;
+    margin: 0 0 22px;
+  }
+
+  .examples-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .examples-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink2);
+  }
+  .examples-list strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .examples-list em {
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--display);
+    font-weight: 400;
+  }
+  .ex-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-size: 13px;
+  }
+  .visibility-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    background: var(--terracotta-soft);
+    color: var(--terracotta);
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    vertical-align: 2px;
+    margin-left: 4px;
+  }
+  .visibility-note {
+    background: var(--terracotta-soft);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.55;
+    border-left: 3px solid var(--terracotta);
+  }
+  .visibility-note strong { color: var(--terracotta); font-weight: 600; }
+
+  /* flow steps for Monday digest */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 18px;
+  }
+  .flow-step {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 30px 70px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .flow-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow-day {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .flow-body {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink2);
+  }
+  .flow-body strong { color: var(--ink); display: block; margin-bottom: 2px; font-weight: 600; }
+  .flow-body em { font-style: italic; color: var(--muted); font-family: var(--display); }
+  .flow-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 5px 0;
+  }
+  .flow-decision {
+    border: 1.5px solid var(--terracotta);
+    background: var(--terracotta-soft);
+  }
+  .flow-decision .flow-num { background: var(--terracotta); }
+  .flow-decision .flow-day { color: var(--terracotta); }
+  .flow-arrow-final { color: var(--terracotta); }
+  .flow-result {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .flow-result .flow-num { background: var(--paper); color: var(--ink); }
+  .flow-result .flow-day { color: rgba(255,255,255,0.6); }
+  .flow-result .flow-body { color: rgba(255,255,255,0.85); }
+  .flow-result .flow-body strong { color: var(--paper); }
+  .flow-result .flow-body em { color: rgba(255,255,255,0.6); }
+  .ritual-note {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.55;
+    border-left: 3px solid var(--ink);
+  }
+  .ritual-note strong { color: var(--ink); font-weight: 600; }
+  .ritual-note em { font-style: italic; color: var(--muted); }
+
+  /* ============ FAQ ============ */
+  .faq {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 30px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 30px;
+  }
+  .faq-q {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .faq-q em { font-style: italic; color: var(--terracotta); }
+  .faq-a {
+    font-size: 13.5px;
+    color: var(--ink2);
+    line-height: 1.65;
+  }
+  .faq-a p { margin: 0 0 12px; }
+  .faq-a p:last-child { margin-bottom: 0; }
+  .faq-a strong { color: var(--ink); font-weight: 600; }
+  .examples {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .example {
+    flex: 1;
+    min-width: 160px;
+  }
+  .example-co {
+    font-family: var(--display);
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .example-stack {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    margin-top: 50px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ============ DIAGRAM SVG STYLES ============ */
+  .hub-circle { fill: var(--ink); }
+  .hub-text-1 {
+    font-family: var(--display);
+    font-size: 18px;
+    fill: var(--paper);
+    font-weight: 500;
+  }
+  .hub-text-2 {
+    font-family: var(--body);
+    font-size: 9px;
+    fill: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .node-bubble {
+    fill: var(--paper);
+    stroke-width: 1.5;
+  }
+  .node-title {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 500;
+    fill: var(--ink);
+  }
+  .node-desc {
+    font-family: var(--body);
+    font-size: 10px;
+    fill: var(--ink2);
+  }
+  .node-cost {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .node-icon-bg { fill: var(--paper); }
+
+  .link {
+    fill: none;
+    stroke-width: 1.5;
+    opacity: 0.55;
+  }
+  .link-label {
+    font-family: var(--body);
+    font-size: 9px;
+    fill: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* color categories */
+  .cat-host { stroke: var(--terracotta); }
+  .cat-host .node-cost { fill: var(--terracotta); }
+  .cat-data { stroke: var(--blue); }
+  .cat-data .node-cost { fill: var(--blue); }
+  .cat-storage { stroke: var(--amber); }
+  .cat-storage .node-cost { fill: var(--amber); }
+  .cat-ai { stroke: var(--green); }
+  .cat-ai .node-cost { fill: var(--green); }
+
+  .link.host { stroke: var(--terracotta); }
+  .link.data { stroke: var(--blue); }
+  .link.storage { stroke: var(--amber); }
+  .link.ai { stroke: var(--green); }
+
+  /* ============ PRINT ============ */
+  @media print {
+    body { background: white; }
+    .page { padding: 18px; }
+    section { margin-top: 28px; page-break-inside: avoid; }
+    .diagram-wrap, .cost-table, .faq { box-shadow: none; }
+    h1 { font-size: 32px; }
+  }
+
+  @media (max-width: 720px) {
+    h1 { font-size: 32px; }
+    .faq { grid-template-columns: 1fr; gap: 16px; }
+    .faq-q { font-size: 18px; }
+    .smart-grid { grid-template-columns: 1fr; }
+    .page { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div>
+      <div class="brand">Green<span class="dot">·</span>qubes <span class="phase">PHASE 0</span></div>
+      <h1 style="margin-top: 18px;">A small toolkit of <em>specialist services</em>, working as one app.</h1>
+      <p class="subtitle">
+        Phase 0 of our internal ops platform — schedule, installer chat, AI assistant — runs on nine focused services that each do one job extremely well. Total spend less than a single mid-tier SaaS subscription per month. Plus a "company notebook" that gets smarter every week.
+      </p>
+    </div>
+    <div class="meta">
+      Architecture brief<br/>
+      For internal review<br/>
+      v0.1 · Apr 2026
+    </div>
+  </header>
+
+  <!-- ARCHITECTURE BUBBLE DIAGRAM -->
+  <section>
+    <div class="section-label">Architecture</div>
+    <h2>Everything links to one web app</h2>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1100 760" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+
+        <!-- subtle grid background -->
+        <defs>
+          <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+            <path d="M 44 0 L 0 0 0 44" fill="none" stroke="#E8E2D7" stroke-width="0.5" opacity="0.5" />
+          </pattern>
+          <radialGradient id="hubGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#B5523D" stop-opacity="0.12" />
+            <stop offset="100%" stop-color="#B5523D" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1100" height="760" fill="url(#grid)" />
+
+        <!-- soft halo behind hub -->
+        <circle cx="550" cy="380" r="220" fill="url(#hubGlow)" />
+
+        <!-- ====== CONNECTING LINES (drawn first so they sit behind nodes) ====== -->
+        <!-- Each line uses a quadratic bezier for a gentle organic curve -->
+
+        <!-- 0. Vercel (top) -->
+        <path class="link host" d="M 550 130 Q 540 220 550 295" />
+        <text class="link-label" x="555" y="220" text-anchor="start">hosts</text>
+
+        <!-- 1. Supabase (upper right) -->
+        <path class="link data" d="M 855 175 Q 740 260 615 320" />
+        <text class="link-label" x="745" y="240" text-anchor="middle">reads · writes</text>
+
+        <!-- 2. Cloudflare R2 (right) -->
+        <path class="link storage" d="M 990 340 Q 820 360 638 378" />
+        <text class="link-label" x="820" y="354" text-anchor="middle">files</text>
+
+        <!-- 3. Cloudflare Images (lower right) -->
+        <path class="link storage" d="M 940 540 Q 800 470 632 410" />
+        <text class="link-label" x="800" y="492" text-anchor="middle">resize</text>
+
+        <!-- 4. Telegram (bottom right) -->
+        <path class="link host" d="M 720 670 Q 640 540 580 440" />
+        <text class="link-label" x="668" y="568" text-anchor="middle">push</text>
+
+        <!-- 5. Anthropic Claude (bottom left) -->
+        <path class="link ai" d="M 380 670 Q 460 540 520 440" />
+        <text class="link-label" x="430" y="568" text-anchor="middle">answers</text>
+
+        <!-- 6. OpenAI Embeddings (left) -->
+        <path class="link ai" d="M 110 540 Q 280 470 462 410" />
+        <text class="link-label" x="290" y="492" text-anchor="middle">indexes</text>
+
+        <!-- 7. Obsidian (left) -->
+        <path class="link ai" d="M 60 340 Q 250 350 462 380" />
+        <text class="link-label" x="270" y="354" text-anchor="middle">knowledge</text>
+
+        <!-- 8. Local PC archive (upper left) -->
+        <path class="link storage" d="M 145 175 Q 290 260 482 320" />
+        <text class="link-label" x="280" y="240" text-anchor="middle">cold backup</text>
+
+        <!-- ====== CENTER HUB ====== -->
+        <g>
+          <circle cx="550" cy="380" r="92" class="hub-circle" />
+          <text x="550" y="370" text-anchor="middle" class="hub-text-2">The product</text>
+          <text x="550" y="392" text-anchor="middle" class="hub-text-1">Greenqubes</text>
+          <text x="550" y="412" text-anchor="middle" class="hub-text-1">Web App</text>
+          <text x="550" y="432" text-anchor="middle" class="hub-text-2">Phase 0</text>
+        </g>
+
+        <!-- ====== SERVICE NODES ====== -->
+        <!-- Each node = rounded rect + icon circle + name + role + cost
+             Layout (positions chosen by hand for breathing room):
+             0=Vercel(top) 1=Supabase(UR) 2=R2(R) 3=CFimages(LR) 4=Telegram(BR)
+             5=Claude(BL) 6=Embed(L) 7=Obsidian(UL) 8=LocalPC(TL)
+        -->
+
+        <!-- Node 0: Vercel — top -->
+        <g class="cat-host">
+          <rect x="448" y="40" width="204" height="90" rx="14" class="node-bubble" />
+          <circle cx="478" cy="68" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 478 58 L 488 76 L 468 76 Z" fill="var(--terracotta)" />
+          <text x="504" y="62" class="node-title">Vercel</text>
+          <text x="504" y="76" class="node-desc" font-style="italic" fill="var(--muted)">"the shop space"</text>
+          <text x="504" y="92" class="node-desc">Anyone with the link can use the app</text>
+          <text x="640" y="118" class="node-cost" text-anchor="end">$20 / mo</text>
+        </g>
+
+        <!-- Node 1: Supabase — upper right -->
+        <g class="cat-data">
+          <rect x="840" y="100" width="220" height="100" rx="14" class="node-bubble" />
+          <circle cx="870" cy="132" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 870 122 L 877 132 L 870 132 L 866 142 L 870 132 L 863 122 Z" fill="var(--blue)" stroke="var(--blue)" stroke-width="1.5" stroke-linejoin="round" />
+          <text x="896" y="122" class="node-title">Supabase</text>
+          <text x="896" y="136" class="node-desc" font-style="italic" fill="var(--muted)">"the filing cabinet"</text>
+          <text x="896" y="153" class="node-desc">Schedule, logins, every chat message</text>
+          <text x="896" y="168" class="node-desc">— instantly synced for everyone</text>
+          <text x="1048" y="190" class="node-cost" text-anchor="end">Free → $25 / mo</text>
+        </g>
+
+        <!-- Node 2: Cloudflare R2 — right -->
+        <g class="cat-storage">
+          <rect x="900" y="280" width="190" height="90" rx="14" class="node-bubble" />
+          <circle cx="930" cy="308" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 922 311 Q 920 304 928 302 Q 928 297 934 297 Q 940 297 941 302 Q 945 303 944 308 Q 944 312 940 312 L 924 312 Q 922 312 922 311 Z" fill="var(--amber)" />
+          <text x="956" y="301" class="node-title">Cloudflare R2</text>
+          <text x="956" y="315" class="node-desc" font-style="italic" fill="var(--muted)">"the photo locker"</text>
+          <text x="956" y="332" class="node-desc">Site photos, voice notes, signed DOs</text>
+          <text x="1078" y="358" class="node-cost" text-anchor="end">$0 – 5 / mo</text>
+        </g>
+
+        <!-- Node 3: Cloudflare Images — lower right -->
+        <g class="cat-storage">
+          <rect x="850" y="490" width="200" height="90" rx="14" class="node-bubble" />
+          <circle cx="880" cy="518" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <rect x="872" y="511" width="16" height="14" rx="2" fill="none" stroke="var(--amber)" stroke-width="1.5" />
+          <circle cx="876" cy="516" r="1.5" fill="var(--amber)" />
+          <path d="M 872 522 L 876 518 L 880 521 L 884 516 L 888 522" stroke="var(--amber)" stroke-width="1.5" fill="none" />
+          <text x="906" y="511" class="node-title">Cloudflare Images</text>
+          <text x="906" y="525" class="node-desc" font-style="italic" fill="var(--muted)">"the auto-shrinker"</text>
+          <text x="906" y="542" class="node-desc">8MB phone photo → fast thumbnail</text>
+          <text x="1038" y="568" class="node-cost" text-anchor="end">$5 / mo</text>
+        </g>
+
+        <!-- Node 4: Telegram — bottom right -->
+        <g class="cat-host">
+          <rect x="600" y="640" width="220" height="90" rx="14" class="node-bubble" />
+          <circle cx="630" cy="668" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 622 670 L 638 663 L 634 678 L 631 672 Z" fill="var(--terracotta)" />
+          <text x="656" y="661" class="node-title">Telegram Bot</text>
+          <text x="656" y="675" class="node-desc" font-style="italic" fill="var(--muted)">"the runner"</text>
+          <text x="656" y="692" class="node-desc">Pings the right phone when something</text>
+          <text x="656" y="706" class="node-desc">needs attention</text>
+          <text x="808" y="722" class="node-cost" text-anchor="end">Free</text>
+        </g>
+
+        <!-- Node 5: Anthropic Claude — bottom left -->
+        <g class="cat-ai">
+          <rect x="280" y="640" width="220" height="90" rx="14" class="node-bubble" />
+          <circle cx="310" cy="668" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 310 660 L 312 666 L 318 668 L 312 670 L 310 676 L 308 670 L 302 668 L 308 666 Z" fill="var(--green)" />
+          <text x="336" y="661" class="node-title">Anthropic Claude</text>
+          <text x="336" y="675" class="node-desc" font-style="italic" fill="var(--muted)">"the chatbot's brain"</text>
+          <text x="336" y="692" class="node-desc">Answers questions, drafts schedules,</text>
+          <text x="336" y="706" class="node-desc">searches the web</text>
+          <text x="488" y="722" class="node-cost" text-anchor="end">~$10 – 30 / mo</text>
+        </g>
+
+        <!-- Node 6: OpenAI Embeddings — left -->
+        <g class="cat-ai">
+          <rect x="40" y="490" width="200" height="90" rx="14" class="node-bubble" />
+          <circle cx="70" cy="518" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <text x="70" y="523" text-anchor="middle" font-family="var(--mono)" font-size="14" font-weight="600" fill="var(--green)">{}</text>
+          <text x="96" y="511" class="node-title">Voyage AI</text>
+          <text x="96" y="525" class="node-desc" font-style="italic" fill="var(--muted)">"the librarian"</text>
+          <text x="96" y="542" class="node-desc">Remembers where every idea lives</text>
+          <text x="96" y="556" class="node-desc">so the brain finds it instantly</text>
+          <text x="228" y="572" class="node-cost" text-anchor="end">~$1 – 5 / mo</text>
+        </g>
+
+        <!-- Node 7: Obsidian — left -->
+        <g class="cat-ai">
+          <rect x="0" y="280" width="200" height="100" rx="14" class="node-bubble" />
+          <circle cx="30" cy="312" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <path d="M 23 304 L 23 322 L 37 322 L 37 304 L 32 308 L 30 305 L 28 308 Z" fill="var(--green)" stroke="var(--green)" stroke-width="0.5" stroke-linejoin="round" />
+          <text x="56" y="305" class="node-title">Obsidian Vault</text>
+          <text x="56" y="319" class="node-desc" font-style="italic" fill="var(--muted)">"the company notebook"</text>
+          <text x="56" y="336" class="node-desc">What we've learned — install tricks,</text>
+          <text x="56" y="350" class="node-desc">supplier prices, client preferences,</text>
+          <text x="56" y="364" class="node-desc">lessons from past jobs</text>
+          <text x="188" y="380" class="node-cost" text-anchor="end">Free</text>
+        </g>
+
+        <!-- Node 8: Local PC Archive — top left -->
+        <g class="cat-storage">
+          <rect x="40" y="100" width="220" height="100" rx="14" class="node-bubble" />
+          <circle cx="70" cy="132" r="18" class="node-icon-bg" stroke="currentColor" stroke-width="1.5" />
+          <rect x="62" y="124" width="16" height="5" rx="1" fill="var(--amber)" />
+          <rect x="62" y="131" width="16" height="5" rx="1" fill="var(--amber)" opacity="0.7" />
+          <rect x="62" y="138" width="16" height="5" rx="1" fill="var(--amber)" opacity="0.4" />
+          <text x="96" y="122" class="node-title">Local PC + Drive</text>
+          <text x="96" y="136" class="node-desc" font-style="italic" fill="var(--muted)">"the safety deposit box"</text>
+          <text x="96" y="153" class="node-desc">Offline copy at the office —</text>
+          <text x="96" y="168" class="node-desc">never deleted, no internet needed</text>
+          <text x="248" y="190" class="node-cost" text-anchor="end">~S$150 once</text>
+        </g>
+
+      </svg>
+
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot" style="background: var(--terracotta);"></span>Hosting & messaging</div>
+        <div class="legend-item"><span class="legend-dot" style="background: var(--blue);"></span>Data layer (live state)</div>
+        <div class="legend-item"><span class="legend-dot" style="background: var(--amber);"></span>File storage & archive</div>
+        <div class="legend-item"><span class="legend-dot" style="background: var(--green);"></span>AI assistant + knowledge base</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COST BREAKDOWN -->
+  <section>
+    <div class="section-label">Monthly costs</div>
+    <h2>What we'd pay each month</h2>
+
+    <div class="cost-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>What it does</th>
+            <th class="num">Monthly (USD)</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td class="service">Vercel<span class="tag">Hosting · "the shop"</span></td>
+            <td class="role">Where the website lives. Anyone with the link — sales, scheduler, installer — can use the app from a phone or laptop, in the office or on-site.</td>
+            <td class="cost">$20</td>
+            <td class="notes">Pro plan. Free if we stay tiny.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Supabase<span class="tag">Filing cabinet</span></td>
+            <td class="role">Holds the schedule, login info, every chat message. When one person changes something, everyone else sees it within a second — no refresh needed.</td>
+            <td class="cost"><span class="free">Free</span> → $25</td>
+            <td class="notes">Free tier covers Phase 0. Paid only when team grows.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Cloudflare R2<span class="tag">Photo locker</span></td>
+            <td class="role">Where every photo, voice note, and signed delivery order is kept. Phones upload directly to it — fast even on weak mobile signal.</td>
+            <td class="cost">$0 – 5</td>
+            <td class="notes">First 10GB free. No fees when installers download.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Cloudflare Images<span class="tag">Auto-shrinker</span></td>
+            <td class="role">Phone photos are huge (8MB each). This automatically makes a small version for the app to show, so it loads in seconds even on a job site.</td>
+            <td class="cost">$5</td>
+            <td class="notes">Flat fee for 100k images stored.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Anthropic Claude<span class="tag">Chatbot's brain</span></td>
+            <td class="role">The AI that powers our in-app chatbot. Answers questions, drafts schedule entries, searches the web for things like venue access hours.</td>
+            <td class="cost">~$10 – 30</td>
+            <td class="notes">Pay-per-use. Scales with how often we ask.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Voyage AI<span class="tag">Librarian</span></td>
+            <td class="role">Reads everything we've ever written or said in chats and remembers where each idea lives — so the chatbot's brain can find the right answer in milliseconds. Anthropic's recommended pairing for Claude.</td>
+            <td class="cost">~$1 – 5</td>
+            <td class="notes">Tiny cost at our scale.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Telegram Bot<span class="tag">The runner</span></td>
+            <td class="role">Sends a Telegram message to the right person when something needs attention — a schedule change, an overdue job, an installer's update.</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="notes">Telegram doesn't charge for bots.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Obsidian<span class="tag">Company notebook</span></td>
+            <td class="role">Where we write down what we've learned — install tricks, supplier prices, client preferences, lessons from past jobs. Survives staff turnover.</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="notes">Optional cloud sync at $50/yr.</td>
+          </tr>
+
+          <tr>
+            <td class="service">Local PC + Drive<span class="tag">Safety deposit box</span></td>
+            <td class="role">A copy of every photo and document, sitting offline at the office. If anything online ever disappeared, we'd still have it all.</td>
+            <td class="cost">~S$150 once</td>
+            <td class="notes">One-time external SSD purchase.</td>
+          </tr>
+
+          <tr class="total-row">
+            <td colspan="2">
+              <span class="label">All-in monthly recurring</span>
+              At Phase 0 scale — 6 installers, 4 sales, 1 scheduler
+            </td>
+            <td class="cost">~$36 – 63</td>
+            <td class="cost" style="color: rgba(255,255,255,0.7); font-size: 13px;">≈ S$48 – 84</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scale-note">
+      <div>
+        <strong>If we 3× the team</strong> (say, 18 installers + 12 sales) the bill grows roughly to <strong>$110 – 160 / mo</strong> — driven mostly by Supabase Pro and more AI assistant queries. The architecture itself doesn't change. We never have to migrate.
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW THE SYSTEM GETS SMARTER — Obsidian + Monday digest -->
+  <section>
+    <div class="section-label">How it gets smarter every week</div>
+    <h2>The company notebook + Monday morning ritual</h2>
+
+    <div class="smart-grid">
+      <!-- LEFT: What goes in the notebook -->
+      <div class="smart-card">
+        <div class="smart-eyebrow">What we write in Obsidian</div>
+        <div class="smart-title">The team's notebook</div>
+        <p class="smart-lead">
+          Anything we've figured out that we don't want to forget. The kind of know-how that usually lives in someone's head — until they leave.
+        </p>
+
+        <ul class="examples-list">
+          <li>
+            <span class="ex-icon" style="background: var(--green);">📐</span>
+            <div>
+              <strong>Install how-tos</strong>
+              <em>"How to mount LED on curved walls — Aaron, MBS Hall B"</em>
+            </div>
+          </li>
+          <li>
+            <span class="ex-icon" style="background: var(--blue);">👤</span>
+            <div>
+              <strong>Client profiles</strong>
+              <em>"Uniqlo SG — contact Sarah Chen, prefers IJ180 vinyl, hates last-minute calls"</em>
+            </div>
+          </li>
+          <li>
+            <span class="ex-icon" style="background: var(--terracotta);">💰</span>
+            <div>
+              <strong>Supplier list <span class="visibility-tag">sales-only</span></strong>
+              <em>"Vinyl supplier A — $4.50/sqft, 2-day lead, COD"</em>
+            </div>
+          </li>
+          <li>
+            <span class="ex-icon" style="background: var(--amber);">📋</span>
+            <div>
+              <strong>After-job notes</strong>
+              <em>"Capitaland Plaza — goods lift double-booked, ran 2hr over. Confirm slot 48hr ahead next time."</em>
+            </div>
+          </li>
+          <li>
+            <span class="ex-icon" style="background: var(--ink2);">📞</span>
+            <div>
+              <strong>Internal contacts</strong>
+              <em>"BCA hoarding queries → Mr. Lim, ext. 4421"</em>
+            </div>
+          </li>
+          <li>
+            <span class="ex-icon" style="background: var(--ink);">📄</span>
+            <div>
+              <strong>Templates</strong>
+              <em>"Quote template, PTW template, onboarding checklist"</em>
+            </div>
+          </li>
+        </ul>
+
+        <div class="visibility-note">
+          <strong>Some things are sales-only.</strong> Supplier prices and quotes have a tag at the top of the file that hides them from installers. The chatbot respects this — installers literally cannot get a price answer, even if they ask.
+        </div>
+      </div>
+
+      <!-- RIGHT: Monday digest flow -->
+      <div class="smart-card">
+        <div class="smart-eyebrow">The Monday morning ritual</div>
+        <div class="smart-title">5 minutes a week, smarter forever</div>
+        <p class="smart-lead">
+          Every chat with our chatbot quietly gets tagged. Once a week, the system surfaces the ones worth remembering. One click promotes them into the company notebook.
+        </p>
+
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-day">MON–FRI</div>
+            <div class="flow-body">
+              <strong>Team chats with the bot.</strong>
+              Aaron asks how to install LED on a curved wall. Solves it on-site. Tells the bot what worked.
+            </div>
+          </div>
+
+          <div class="flow-arrow">↓</div>
+
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-day">SAME DAY</div>
+            <div class="flow-body">
+              <strong>The bot quietly tags it.</strong>
+              <em>Topic: install. Importance: 4/5. New technique solved a problem.</em>
+            </div>
+          </div>
+
+          <div class="flow-arrow">↓</div>
+
+          <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-day">MON 9AM</div>
+            <div class="flow-body">
+              <strong>You get a Telegram digest.</strong>
+              <em>"3 chats from last week look worth promoting. Skim?"</em>
+              Each one is a one-paragraph summary.
+            </div>
+          </div>
+
+          <div class="flow-arrow">↓</div>
+
+          <div class="flow-step flow-decision">
+            <div class="flow-num">4</div>
+            <div class="flow-day">YOUR CALL</div>
+            <div class="flow-body">
+              <strong>Promote it — or don't.</strong>
+              One tap turns the chat into a permanent notebook entry. Useless ones stay buried in the chat archive.
+            </div>
+          </div>
+
+          <div class="flow-arrow flow-arrow-final">↓</div>
+
+          <div class="flow-step flow-result">
+            <div class="flow-num">★</div>
+            <div class="flow-day">FOREVER</div>
+            <div class="flow-body">
+              <strong>Now in the notebook.</strong>
+              Next time anyone asks "how do you install LED on curved walls?" — the bot just knows.
+            </div>
+          </div>
+        </div>
+
+        <div class="ritual-note">
+          <strong>The point:</strong> the system doesn't auto-decide what's important. <em>You</em> do, in 5 minutes a week. This is a natural fit for the morning meetings we don't have yet — the digest can become the agenda.
+        </div>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="section-label">Is this normal?</div>
+
+    <div class="faq">
+      <div class="faq-q">Is it <em>normal</em> to use nine different services?</div>
+      <div class="faq-a">
+        <p>
+          Yes — completely normal, and it's how every modern app is built. The thinking is simple: <strong>each service we use is the best in the world at one specific job</strong>. We pick the best photo locker, the best filing cabinet, the best chatbot brain, etc., and stitch them together.
+        </p>
+        <p>
+          The alternative — finding "one big platform that does everything" — sounds simpler but is almost always more expensive, slower, and less reliable. Specialists beat generalists.
+        </p>
+        <p>
+          The trade-off is more accounts to manage. The win is roughly <strong>10× lower cost</strong>, faster app, and the ability to swap any one piece in future without rebuilding everything from scratch.
+        </p>
+
+        <div class="examples">
+          <div class="example">
+            <div class="example-co">Slack</div>
+            <div class="example-stack">~15 services under the hood</div>
+          </div>
+          <div class="example">
+            <div class="example-co">Airbnb</div>
+            <div class="example-stack">50+ services</div>
+          </div>
+          <div class="example">
+            <div class="example-co">Apps like ours</div>
+            <div class="example-stack">5 – 12 services typical</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>Greenqubes Phase 0 · architecture brief</div>
+    <div>Prepared for review · Apr 2026</div>
+  </footer>
+
+</div>
+</body>
+</html>

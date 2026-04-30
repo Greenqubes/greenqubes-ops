@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Greenqubes — Setup Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F1EC;
+    --paper: #FFFFFF;
+    --ink: #1A1815;
+    --ink2: #5C564E;
+    --muted: #8B8478;
+    --line: #E8E2D7;
+    --terracotta: #B5523D;
+    --terracotta-soft: #F5E8E3;
+    --green: #3F7D5C;
+    --green-soft: #E8F0EB;
+    --blue: #3D6FB5;
+    --blue-soft: #E5EEFC;
+    --amber: #C8893D;
+    --amber-soft: #F8EFDF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 22px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .brand .dot { color: var(--terracotta); }
+  .brand .tag {
+    margin-left: 10px;
+    font-size: 9px;
+    background: var(--terracotta-soft);
+    color: var(--terracotta);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    vertical-align: 3px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .meta {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: right;
+    line-height: 1.7;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    margin-bottom: 12px;
+  }
+  h1 em { font-style: italic; color: var(--terracotta); }
+  .subtitle {
+    font-size: 14px;
+    color: var(--ink2);
+    max-width: 680px;
+    line-height: 1.6;
+  }
+
+  /* ── LEGEND BAR ── */
+  .legend-bar {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin: 28px 0 36px;
+    padding: 14px 18px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink2);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── TWO COLUMN GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ── MACHINE CARD ── */
+  .machine {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .machine-header {
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .machine-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .machine-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+  .machine-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .machine-body { padding: 6px 0 16px; }
+
+  /* ── STEP ── */
+  .step {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-content {}
+  .step-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .step-desc {
+    font-size: 12.5px;
+    color: var(--ink2);
+    line-height: 1.55;
+    margin-bottom: 6px;
+  }
+  .step-cmd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--ink);
+    margin-top: 6px;
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+  .step-cmd .comment {
+    color: var(--muted);
+  }
+  .step-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--blue);
+    text-decoration: none;
+    margin-top: 5px;
+    font-weight: 500;
+  }
+  .step-link::after { content: ' →'; }
+
+  /* tags on step names */
+  .tag-free {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--green-soft);
+    color: var(--green);
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .tag-once {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--blue-soft);
+    color: var(--blue);
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .tag-paid {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--amber-soft);
+    color: var(--amber);
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .tag-optional {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--line);
+    color: var(--muted);
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  /* ── SECTION DIVIDER inside machine ── */
+  .step-section {
+    padding: 10px 22px 6px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    font-weight: 600;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+
+  /* ── SUMMARY TABLE ── */
+  section.summary { margin-top: 40px; }
+  .section-eyebrow {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-eyebrow::before {
+    content: '';
+    width: 18px; height: 1px;
+    background: var(--muted);
+  }
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+
+  .summary-table {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  tbody td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.item { font-weight: 500; color: var(--ink); width: 22%; }
+  td.where { color: var(--ink2); width: 18%; }
+  td.why { color: var(--ink2); width: 38%; font-size: 12px; }
+  td.cost { font-family: 'IBM Plex Mono', monospace; font-size: 12px; width: 10%; }
+  td.cost .free { color: var(--green); font-weight: 500; }
+  td.badge { width: 12%; }
+
+  /* ── ORDER OF EVENTS ── */
+  .order-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .order-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .order-num {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    color: var(--line);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .order-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 5px;
+  }
+  .order-desc {
+    font-size: 11.5px;
+    color: var(--ink2);
+    line-height: 1.5;
+  }
+  .order-time {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--terracotta);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; }
+    .order-grid { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 30px; }
+  }
+  @media (max-width: 480px) {
+    .order-grid { grid-template-columns: 1fr; }
+    .page { padding: 24px 16px 60px; }
+  }
+  @media print {
+    body { background: white; }
+    .page { padding: 16px; }
+    .grid { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div>
+      <div class="brand">Green<span class="dot">·</span>qubes <span class="tag">Setup Guide</span></div>
+    </div>
+    <div class="meta">
+      For developer reference<br/>
+      Before first Claude Code session<br/>
+      Apr 2026
+    </div>
+  </header>
+
+  <h1>What to install, <em>where</em> and why.</h1>
+  <p class="subtitle">
+    Everything you need on your Windows workstation (where you develop) and your server PC (where the backup runs). Do workstation first, server second. One-time setup — never repeated.
+  </p>
+
+  <!-- LEGEND -->
+  <div class="legend-bar">
+    <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Free — no cost ever</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>One-time install</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Paid when ready to go live</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span>Optional / nice to have</div>
+  </div>
+
+  <!-- TWO MACHINE COLUMNS -->
+  <div class="grid">
+
+    <!-- ══════════════════════════════════════════
+         WORKSTATION — Windows development machine
+    ══════════════════════════════════════════ -->
+    <div class="machine">
+      <div class="machine-header">
+        <div class="machine-icon" style="background: var(--terracotta-soft); font-size:24px;">💻</div>
+        <div>
+          <div class="machine-title">Workstation</div>
+          <div class="machine-sub">Windows PC · where you develop</div>
+        </div>
+      </div>
+      <div class="machine-body">
+
+        <div class="step-section">Core tools — install in this order</div>
+
+        <!-- 1. Git -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">1</div>
+          <div class="step-content">
+            <div class="step-name">
+              Git
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              The tool that talks to GitHub — saves versions of your code and pushes changes to the cloud. Install with all default settings, nothing to configure.
+            </div>
+            <a class="step-link" href="https://git-scm.com/download/win">git-scm.com/download/win</a>
+            <code class="step-cmd"><span class="comment"># After install, open Command Prompt and verify:</span>
+git --version</code>
+          </div>
+        </div>
+
+        <!-- 2. Node.js -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">2</div>
+          <div class="step-content">
+            <div class="step-name">
+              Node.js (LTS version)
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              The engine that runs JavaScript on your computer. Required for Claude Code and for running the app locally during development. Pick the LTS version — not "Current."
+            </div>
+            <a class="step-link" href="https://nodejs.org">nodejs.org</a>
+            <code class="step-cmd"><span class="comment"># Verify install:</span>
+node --version
+npm --version</code>
+          </div>
+        </div>
+
+        <!-- 3. VS Code -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">3</div>
+          <div class="step-content">
+            <div class="step-name">
+              VS Code
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Your main working environment. A code editor with a proper file browser, terminal, and a Claude Code sidebar — much friendlier than a bare terminal. Download and run the installer, all defaults are fine.
+            </div>
+            <a class="step-link" href="https://code.visualstudio.com">code.visualstudio.com</a>
+          </div>
+        </div>
+
+        <!-- 4. Claude Code extension -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">4</div>
+          <div class="step-content">
+            <div class="step-name">
+              Claude Code
+              <span class="tag-free">Free to install</span>
+            </div>
+            <div class="step-desc">
+              Install two ways — as a VS Code extension (for the sidebar chat panel) AND as a global CLI tool (so it runs in the terminal). Do both.
+            </div>
+            <code class="step-cmd"><span class="comment"># In VS Code: Extensions panel (left sidebar)
+# Search "Claude Code" → Install
+
+# In terminal (installs the CLI globally):</span>
+npm install -g @anthropic-ai/claude-code
+
+<span class="comment"># Verify:</span>
+claude --version</code>
+          </div>
+        </div>
+
+        <div class="step-section">Version control</div>
+
+        <!-- 5. GitHub Desktop -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">5</div>
+          <div class="step-content">
+            <div class="step-name">
+              GitHub Desktop
+              <span class="tag-free">Free</span>
+              <span class="tag-optional">Optional but recommended</span>
+            </div>
+            <div class="step-desc">
+              A visual app for pushing code to GitHub. Makes the "push to GitHub" step a big obvious button instead of a terminal command. Good while you're getting comfortable with the workflow. Sign in with your GitHub account.
+            </div>
+            <a class="step-link" href="https://desktop.github.com">desktop.github.com</a>
+          </div>
+        </div>
+
+        <div class="step-section">Account setup — do these online</div>
+
+        <!-- 6. GitHub account -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">6</div>
+          <div class="step-content">
+            <div class="step-name">
+              GitHub account + repo
+              <span class="tag-free">Free</span>
+            </div>
+            <div class="step-desc">
+              Sign up at github.com with your work email. Create a new private repository called <strong>greenqubes-ops</strong>. Enable 2FA (two-factor authentication) immediately — Settings → Password and authentication.
+            </div>
+            <a class="step-link" href="https://github.com">github.com</a>
+            <code class="step-cmd"><span class="comment"># After creating the repo, clone it locally:</span>
+cd C:\Users\YourName\projects
+git clone https://github.com/yourname/greenqubes-ops.git
+cd greenqubes-ops</code>
+          </div>
+        </div>
+
+        <!-- 7. Vercel -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">7</div>
+          <div class="step-content">
+            <div class="step-name">
+              Vercel account
+              <span class="tag-free">Free to start</span>
+              <span class="tag-paid">$20/mo when live</span>
+            </div>
+            <div class="step-desc">
+              Sign up at vercel.com using your GitHub account — one-click OAuth, no separate password. Connect it to your greenqubes-ops repo. Every push to main branch auto-deploys. Enable 2FA.
+            </div>
+            <a class="step-link" href="https://vercel.com">vercel.com</a>
+          </div>
+        </div>
+
+        <!-- 8. Supabase -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">8</div>
+          <div class="step-content">
+            <div class="step-name">
+              Supabase account + project
+              <span class="tag-free">Free to start</span>
+            </div>
+            <div class="step-desc">
+              Sign up at supabase.com. Create a new project — region: <strong>Southeast Asia (Singapore) ap-southeast-1</strong>. Save the database password in a password manager. Copy your Project URL and anon key — you'll paste these into Vercel's environment variables later.
+            </div>
+            <a class="step-link" href="https://supabase.com">supabase.com</a>
+          </div>
+        </div>
+
+        <!-- 9. Anthropic API -->
+        <div class="step">
+          <div class="step-num" style="background:var(--amber-soft);color:var(--amber);">9</div>
+          <div class="step-content">
+            <div class="step-name">
+              Anthropic API account
+              <span class="tag-paid">Pay-per-use</span>
+            </div>
+            <div class="step-desc">
+              Sign up at console.anthropic.com — separate from your Claude.ai account even though it's the same company. Add a credit card and $10 initial credit for testing. Generate an API key and save it. Enable 2FA.
+            </div>
+            <a class="step-link" href="https://console.anthropic.com">console.anthropic.com</a>
+          </div>
+        </div>
+
+        <!-- 10. Voyage AI -->
+        <div class="step">
+          <div class="step-num" style="background:var(--amber-soft);color:var(--amber);">10</div>
+          <div class="step-content">
+            <div class="step-name">
+              Voyage AI account
+              <span class="tag-paid">~$1–5/mo</span>
+            </div>
+            <div class="step-desc">
+              Sign up at voyageai.com. Add a credit card (negligible cost at our scale — cents per month during development). Generate an API key and save it. Anthropic's recommended embedding partner.
+            </div>
+            <a class="step-link" href="https://www.voyageai.com">voyageai.com</a>
+          </div>
+        </div>
+
+        <!-- 11. Cloudflare -->
+        <div class="step">
+          <div class="step-num" style="background:var(--amber-soft);color:var(--amber);">11</div>
+          <div class="step-content">
+            <div class="step-name">
+              Cloudflare account
+              <span class="tag-free">R2 free up to 10GB</span>
+              <span class="tag-paid">Images $5/mo</span>
+            </div>
+            <div class="step-desc">
+              Sign up at cloudflare.com. Create an R2 bucket named <strong>greenqubes-files</strong>. Separately activate Cloudflare Images. Generate an R2 API token with read/write permissions. Save your Account ID and token. Enable 2FA.
+            </div>
+            <a class="step-link" href="https://cloudflare.com">cloudflare.com</a>
+          </div>
+        </div>
+
+        <!-- 12. Telegram bot -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">12</div>
+          <div class="step-content">
+            <div class="step-name">
+              Telegram Bot
+              <span class="tag-free">Free</span>
+            </div>
+            <div class="step-desc">
+              Open Telegram on your phone. Search <strong>@BotFather</strong>. Send <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:monospace;">/newbot</code> and follow the prompts. Name it something like "Greenqubes Ops." Save the bot token BotFather gives you.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-section">Local tools — knowledge base</div>
+
+        <!-- 13. Obsidian -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">13</div>
+          <div class="step-content">
+            <div class="step-name">
+              Obsidian
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Download and install at obsidian.md. Create a new vault called <strong>greenqubes-kb</strong> — put it in a folder you'll remember, e.g. <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:monospace;">C:\projects\greenqubes-kb</code>. This is where your team writes SOPs, client notes, and supplier info.
+            </div>
+            <a class="step-link" href="https://obsidian.md">obsidian.md</a>
+          </div>
+        </div>
+
+        <!-- 14. Obsidian Git plugin -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">14</div>
+          <div class="step-content">
+            <div class="step-name">
+              Obsidian Git plugin
+              <span class="tag-free">Free</span>
+              <span class="tag-optional">Optional but recommended</span>
+            </div>
+            <div class="step-desc">
+              Inside Obsidian: Settings → Community Plugins → Browse → search "Obsidian Git" → Install → Enable. This auto-syncs your vault to a private GitHub repo every time you save a note. Keeps everything backed up and makes it available to the server for nightly indexing.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-section">Save all your keys</div>
+
+        <!-- 15. env.local -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">15</div>
+          <div class="step-content">
+            <div class="step-name">
+              Create .env.local file
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Once Claude Code has scaffolded the project, I'll create this file for you. You paste your saved keys into it. It never gets pushed to GitHub — git ignores it automatically. Then push a copy to Vercel's environment variables panel.
+            </div>
+            <code class="step-cmd">SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_KEY=eyJ...
+ANTHROPIC_API_KEY=sk-ant-...
+VOYAGE_API_KEY=pa-...
+CLOUDFLARE_ACCOUNT_ID=abc123
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+CLOUDFLARE_IMAGES_TOKEN=...
+TELEGRAM_BOT_TOKEN=123456:ABC...</code>
+          </div>
+        </div>
+
+      </div><!-- end machine-body -->
+    </div><!-- end workstation machine -->
+
+
+    <!-- ══════════════════════════════════════════
+         SERVER PC — backup + nightly scripts only
+    ══════════════════════════════════════════ -->
+    <div class="machine">
+      <div class="machine-header">
+        <div class="machine-icon" style="background: var(--green-soft); font-size:24px;">🖥️</div>
+        <div>
+          <div class="machine-title">Server PC</div>
+          <div class="machine-sub">Office Windows PC · backup only · never for development</div>
+        </div>
+      </div>
+      <div class="machine-body">
+
+        <div class="step-section">Hardware first</div>
+
+        <!-- H1. External drive -->
+        <div class="step">
+          <div class="step-num" style="background:var(--amber-soft);color:var(--amber);">H1</div>
+          <div class="step-content">
+            <div class="step-name">
+              External SSD or HDD
+              <span class="tag-paid">~S$80–150 once</span>
+            </div>
+            <div class="step-desc">
+              Minimum 2TB. Recommended: Samsung T7 (SSD, fast, compact) or WD My Passport (HDD, cheaper, larger). Plug into the server PC via USB. Format as NTFS. Label it physically: <strong>"Greenqubes Backup — Do Not Format."</strong> Assign it drive letter <strong>D:\</strong> in Windows Disk Management.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-section">Software — install in this order</div>
+
+        <!-- S1. rclone -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">S1</div>
+          <div class="step-content">
+            <div class="step-name">
+              rclone
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              The one program that does all the backup work. Downloads a single .exe file — no installer wizard. Drop it in <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:monospace;">C:\rclone\</code> and add that folder to Windows PATH so you can run it from anywhere.
+            </div>
+            <a class="step-link" href="https://rclone.org/downloads/">rclone.org/downloads</a>
+            <code class="step-cmd"><span class="comment"># Verify in Command Prompt:</span>
+rclone --version</code>
+          </div>
+        </div>
+
+        <!-- S2. Configure rclone -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">S2</div>
+          <div class="step-content">
+            <div class="step-name">
+              Configure rclone → Cloudflare R2
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Run the setup wizard and connect rclone to your Cloudflare R2 bucket. I'll walk you through every prompt when we get here — you'll need your R2 Account ID, Access Key and Secret Key from Cloudflare's dashboard. Takes about 10 minutes.
+            </div>
+            <code class="step-cmd"><span class="comment"># Starts the config wizard:</span>
+rclone config
+
+<span class="comment"># When done, test the connection:</span>
+rclone ls r2:greenqubes-files</code>
+          </div>
+        </div>
+
+        <!-- S3. Backup script -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">S3</div>
+          <div class="step-content">
+            <div class="step-name">
+              Backup batch script (.bat)
+              <span class="tag-free">Free</span>
+              <span class="tag-once">I write this for you</span>
+            </div>
+            <div class="step-desc">
+              A simple script file I create during the Claude Code setup session. Save it at <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:monospace;">C:\Scripts\greenqubes-backup.bat</code>. You never need to open or edit it. It does three things every night: copies R2 files to external drive, indexes new Obsidian notes to Supabase, writes a log.
+            </div>
+            <code class="step-cmd"><span class="comment"># What the script does internally (I write this):</span>
+rclone copy r2:greenqubes-files "D:\Greenqubes-Archive" ^
+  --immutable ^
+  --log-file="D:\backup-log.txt"
+
+node C:\Scripts\obsidian-sync.js
+<span class="comment"># (sends new Obsidian notes to Supabase for AI search)</span></code>
+          </div>
+        </div>
+
+        <!-- S4. Task Scheduler -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">S4</div>
+          <div class="step-content">
+            <div class="step-name">
+              Windows Task Scheduler
+              <span class="tag-free">Already on Windows</span>
+              <span class="tag-once">One-time setup</span>
+            </div>
+            <div class="step-desc">
+              Already installed on every Windows PC — no download needed. You open it, point it at the backup script, set it to run at 2am every day. After that, never touch it again. The PC must be left on overnight for this to work.
+            </div>
+            <code class="step-cmd"><span class="comment"># Open Task Scheduler:</span>
+taskschd.msc
+
+<span class="comment"># Create Basic Task → name it "Greenqubes Nightly Backup"
+# Trigger: Daily at 2:00 AM
+# Action: Start a program
+# Program: C:\Scripts\greenqubes-backup.bat
+# Finish. Done forever.</span></code>
+          </div>
+        </div>
+
+        <!-- S5. Node.js for obsidian sync -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">S5</div>
+          <div class="step-content">
+            <div class="step-name">
+              Node.js (LTS)
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Same as workstation — needed to run the Obsidian-to-Supabase sync script. Same download, same installer, same defaults.
+            </div>
+            <a class="step-link" href="https://nodejs.org">nodejs.org</a>
+            <code class="step-cmd"><span class="comment"># Verify:</span>
+node --version</code>
+          </div>
+        </div>
+
+        <div class="step-section">Obsidian vault on the server</div>
+
+        <!-- S6. Git + vault clone -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">S6</div>
+          <div class="step-content">
+            <div class="step-name">
+              Git + clone the vault repo
+              <span class="tag-free">Free</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Install Git on the server PC (same download as workstation). Then clone the private greenqubes-kb repo. The nightly script does a <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:monospace;">git pull</code> before indexing, so it always processes the latest notes you've written on your MacBook or workstation.
+            </div>
+            <code class="step-cmd"><span class="comment"># One-time setup:</span>
+git clone https://github.com/yourname/greenqubes-kb.git C:\greenqubes-kb
+
+<span class="comment"># Nightly (inside backup script, I write this):</span>
+cd C:\greenqubes-kb && git pull</code>
+          </div>
+        </div>
+
+        <div class="step-section">Keep the PC healthy</div>
+
+        <!-- S7. Power settings -->
+        <div class="step">
+          <div class="step-num" style="background:var(--blue-soft);color:var(--blue);">S7</div>
+          <div class="step-content">
+            <div class="step-name">
+              Windows power settings
+              <span class="tag-free">Already on Windows</span>
+              <span class="tag-once">One-time</span>
+            </div>
+            <div class="step-desc">
+              Set the PC to never sleep and never turn off the hard drive automatically. Otherwise Task Scheduler can't run the 2am backup. Control Panel → Power Options → Change plan settings → set all to "Never."
+            </div>
+            <code class="step-cmd"><span class="comment"># Or via PowerShell (run as admin):</span>
+powercfg -change -standby-timeout-ac 0
+powercfg -change -disk-timeout-ac 0</code>
+          </div>
+        </div>
+
+        <!-- S8. Windows Remote Desktop -->
+        <div class="step">
+          <div class="step-num" style="background:var(--muted);color:white;">S8</div>
+          <div class="step-content">
+            <div class="step-name">
+              Windows Remote Desktop
+              <span class="tag-free">Already on Windows</span>
+              <span class="tag-optional">Optional</span>
+            </div>
+            <div class="step-desc">
+              Enable Remote Desktop so you can check or control the server PC from your workstation or MacBook without physically walking over to it. Settings → System → Remote Desktop → Enable. Set a static local IP on the server so the address doesn't change.
+            </div>
+            <code class="step-cmd"><span class="comment"># Enable via PowerShell (run as admin):</span>
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"</code>
+          </div>
+        </div>
+
+        <!-- S9. Monitoring note -->
+        <div class="step">
+          <div class="step-num" style="background:var(--green-soft);color:var(--green);">S9</div>
+          <div class="step-content">
+            <div class="step-name">
+              That's it for the server
+              <span class="tag-free">Nothing else needed</span>
+            </div>
+            <div class="step-desc">
+              The server PC has no other job. No development tools, no code editor, no GitHub Desktop, no Obsidian app (the vault is just a folder of text files — Obsidian app is only needed on machines where people write notes). After setup, you check on it via the infrastructure dashboard in the web app — not by physically touching the machine.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end machine-body -->
+    </div><!-- end server machine -->
+
+  </div><!-- end grid -->
+
+
+  <!-- SUMMARY TABLE -->
+  <section class="summary">
+    <div class="section-eyebrow">Quick reference</div>
+    <h2>Everything at a glance</h2>
+
+    <div class="summary-table">
+      <table>
+        <thead>
+          <tr>
+            <th>What</th>
+            <th>Machine</th>
+            <th>Why it's needed</th>
+            <th>Cost</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="item">Git</td>
+            <td class="where">Both</td>
+            <td class="why">Pushes code / vault notes to GitHub</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">Node.js</td>
+            <td class="where">Both</td>
+            <td class="why">Runs the app locally + the nightly sync script</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">VS Code</td>
+            <td class="where">Workstation</td>
+            <td class="why">Development environment + Claude Code sidebar</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">Claude Code</td>
+            <td class="where">Workstation</td>
+            <td class="why">AI-powered development — builds features for you</td>
+            <td class="cost"><span class="free">Free*</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">GitHub Desktop</td>
+            <td class="where">Workstation</td>
+            <td class="why">Visual "push to GitHub" button — optional but friendly</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-optional">Optional</span></td>
+          </tr>
+          <tr>
+            <td class="item">Obsidian</td>
+            <td class="where">Workstation</td>
+            <td class="why">Write SOPs, client notes, supplier info</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">rclone</td>
+            <td class="where">Server PC</td>
+            <td class="why">Copies R2 files to external drive every night</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-once">One-time</span></td>
+          </tr>
+          <tr>
+            <td class="item">External Drive</td>
+            <td class="where">Server PC</td>
+            <td class="why">Physical permanent archive of all files</td>
+            <td class="cost">S$150</td>
+            <td class="badge"><span class="tag-paid">Hardware</span></td>
+          </tr>
+          <tr>
+            <td class="item">GitHub account</td>
+            <td class="where">Online</td>
+            <td class="why">Stores code + version history + deploys to Vercel</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-free">Account</span></td>
+          </tr>
+          <tr>
+            <td class="item">Vercel account</td>
+            <td class="where">Online</td>
+            <td class="why">Hosts the live web app</td>
+            <td class="cost">$0→$20</td>
+            <td class="badge"><span class="tag-paid">Account</span></td>
+          </tr>
+          <tr>
+            <td class="item">Supabase account</td>
+            <td class="where">Online</td>
+            <td class="why">Database, logins, live sync, AI memory</td>
+            <td class="cost">$0→$25</td>
+            <td class="badge"><span class="tag-paid">Account</span></td>
+          </tr>
+          <tr>
+            <td class="item">Anthropic API</td>
+            <td class="where">Online</td>
+            <td class="why">Powers the AI assistant chatbot</td>
+            <td class="cost">~$10–30</td>
+            <td class="badge"><span class="tag-paid">Usage</span></td>
+          </tr>
+          <tr>
+            <td class="item">Voyage AI</td>
+            <td class="where">Online</td>
+            <td class="why">Indexes conversations for AI memory search</td>
+            <td class="cost">~$1–5</td>
+            <td class="badge"><span class="tag-paid">Usage</span></td>
+          </tr>
+          <tr>
+            <td class="item">Cloudflare</td>
+            <td class="where">Online</td>
+            <td class="why">Photo/file storage (R2) + image resizing</td>
+            <td class="cost">$0→$5</td>
+            <td class="badge"><span class="tag-paid">Account</span></td>
+          </tr>
+          <tr>
+            <td class="item">Telegram bot</td>
+            <td class="where">Online</td>
+            <td class="why">Push notifications to the team</td>
+            <td class="cost"><span class="free">Free</span></td>
+            <td class="badge"><span class="tag-free">Account</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;">
+      * Claude Code itself is free to install. It uses your Anthropic API key when running — costs are minimal during development (typically cents per session).
+    </p>
+  </section>
+
+
+  <!-- ORDER OF EVENTS -->
+  <section class="summary" style="margin-top:44px;">
+    <div class="section-eyebrow">Recommended order</div>
+    <h2>Do these in four sessions, not one sitting</h2>
+
+    <div class="order-grid">
+      <div class="order-card">
+        <div class="order-num">01</div>
+        <div class="order-title">Workstation tools</div>
+        <div class="order-desc">
+          Git, Node.js, VS Code, Claude Code, GitHub Desktop. All free, all simple installers. End goal: Claude Code runs in VS Code on your workstation.
+        </div>
+        <span class="order-time">~45 min</span>
+      </div>
+
+      <div class="order-card">
+        <div class="order-num">02</div>
+        <div class="order-title">Online accounts</div>
+        <div class="order-desc">
+          GitHub repo, Vercel, Supabase, Cloudflare, Anthropic, Voyage AI, Telegram bot. Collect all API keys into a single secure note. Enable 2FA on every account.
+        </div>
+        <span class="order-time">~1.5 hrs</span>
+      </div>
+
+      <div class="order-card">
+        <div class="order-num">03</div>
+        <div class="order-title">First Claude Code session</div>
+        <div class="order-desc">
+          With me guiding you: scaffold the project, wire up environment variables, get the app running locally. Obsidian vault created, first push to GitHub, first Vercel deploy.
+        </div>
+        <span class="order-time">~2 hrs</span>
+      </div>
+
+      <div class="order-card">
+        <div class="order-num">04</div>
+        <div class="order-title">Server PC setup</div>
+        <div class="order-desc">
+          rclone installed and configured, backup script created, Task Scheduler set, power settings adjusted, Remote Desktop enabled. External drive plugged in and labelled.
+        </div>
+        <span class="order-time">~1 hr</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- FOOTER -->
+  <footer>
+    <div>Greenqubes Phase 0 · Setup Guide</div>
+    <div>One-time setup · Apr 2026</div>
+  </footer>
+
+</div>
+</body>
+</html>
