@@ -1,0 +1,46 @@
+import { notFound, redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getJobById, getInstallerUsers, getJobMessages } from '@/lib/supabase/queries/jobs'
+import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
+import type { LangCode } from '@/lib/i18n'
+import type { Role } from '@/lib/supabase/types'
+
+export default async function JobDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  type ProfileRow = { id: string; role: Role; lang: string }
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, role, lang')
+    .eq('auth_id', user.id)
+    .maybeSingle() as { data: ProfileRow | null; error: unknown }
+
+  if (!profile) redirect('/login')
+
+  const [job, installers, messages] = await Promise.all([
+    getJobById(id),
+    profile.role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
+    getJobMessages(id),
+  ])
+
+  if (!job) notFound()
+
+  return (
+    <JobDetailShell
+      job={job}
+      role={profile.role}
+      userId={profile.id}
+      lang={(profile.lang as LangCode) ?? 'en'}
+      installers={installers}
+      initialMessages={messages}
+    />
+  )
+}

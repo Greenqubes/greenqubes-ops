@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ── Brand tokens ── */
+  --bg: #F4F1EC;
+  --paper: #FFFFFF;
+  --ink: #1A1815;
+  --ink2: #5C564E;
+  --muted: #8B8478;
+  --line: #E8E2D7;
+
+  --terracotta: #B5523D;
+  --terracotta-soft: #F5E8E3;
+
+  --green: #3F7D5C;
+  --green-soft: #E8F0EB;
+
+  --blue: #3D6FB5;
+  --blue-soft: #E5EEFC;
+
+  --amber: #C8893D;
+  --amber-soft: #F8EFDF;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-ibm-plex-sans), -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

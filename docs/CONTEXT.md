@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-04-30_
+_Last updated: 2026-05-02 (Session 8)_
 
 ---
 
@@ -261,20 +261,19 @@ greenqubes/
 ## Migration plan
 
 - [x] Prototype built (single-file JSX, ~5,400 lines) — `docs/prototype-archive.jsx`
-- [ ] Project scaffold (Next.js + Supabase + Tailwind)
-- [ ] DB schema + RLS policies
-- [ ] Auth (Supabase magic links)
+- [x] **Session 1** — Project scaffold: Next.js 15 + TypeScript strict + Tailwind, design tokens, fonts, Supabase client/server, i18n stubs, all feature folders. Notes: `docs/plan.md`.
+- [x] **Session 2** — DB schema + RLS: 9 tables, enums, `updated_at` triggers, pgvector extension, RLS policies, `get_my_id()` + `get_my_role()` helpers, indexes (B-tree, GIN, IVFFlat). Seed data applied. Notes: `docs/session2.md`.
+- [x] **Session 3** — Auth: Google OAuth (not magic links), login page, OAuth callback route, middleware, home page, `SignOutButton`. Provisioning flow documented. Notes: `docs/session2.md` (Sessions 2 + 3 done in one sitting).
+- [x] **Session 4** — Shared component library: `Card`, `Pill`, `Btn`, `Field`, `Input`, `Select`, `Toast` (with `ToastProvider` + `useToast` hook), `Modal`, `cn()` utility. Notes: `docs/session4-note.md`.
+- [x] **Session 5** — Schedule feature (read-only): list/week/month views, search, filter chips, role access via RLS. Notes: `docs/session5-note.md`.
+- [x] **Session 6** — `job-detail`: full edit form, assignees, financials, file gallery, status transitions, live chat with file attachments (R2 upload/download), 7-day post-completion chat window. Notes: `docs/session6-note.md`.
+- [x] **Session 7** — `approvals`: workload preview modal (sales), scheduler approvals queue at `/approvals`, approve & schedule, send back with optional note posted to job chat. Approvals badge on schedule page for scheduler. Notes: `docs/session7-note.md`.
+- [x] **Session 8** — `notifications` + Telegram bot webhook: Telegram utility + placeholder templates, approve/send-back API routes with notifications, overdue cron (every 2h, dedup via events), in-app bell + overdue drawer (all roles), webhook handler stub. Notes: `docs/session8-note.md`.
+- [ ] **Session 9** — `installer` features (dashboard, history, job view)
+- [ ] **Session 10** — `chat-thread` (live messages + voice notes)
+- [ ] **Session 11** — `assistant` + retrieval + auto-tagger
+- [ ] **Session 12** — `obsidian-sync` + `monday-digest` cron scripts
 - [ ] R2 signed-URL upload helpers + Cloudflare Images binding
-- [ ] Migrate features one folder at a time, in order:
-  1. Shared components + design tokens (`Card`, `Pill`, `Btn`, `Field`, `Input`, `Select`)
-  2. `schedule` (read-only first, then editable)
-  3. `job-detail` (the big form)
-  4. `approvals` (workflow)
-  5. `notifications` + Telegram bot webhook
-  6. `installer` features (dashboard, history, job view)
-  7. `chat-thread` (live messages + voice notes)
-  8. `assistant` + retrieval + auto-tagger
-  9. `obsidian-sync` + `monday-digest` cron jobs
 - [ ] `backup.sh` rclone cold-archive script + cron
 - [ ] Deploy preview to Vercel
 - [ ] Internal testing with real team
@@ -291,6 +290,8 @@ When I ask you to update something:
 3. Make the smallest possible change that satisfies the request.
 4. Show me the diff. Explain what you changed and why.
 5. Run typecheck/build before suggesting a commit.
+
+**At the end of every session:** create `docs/session{N}-note.md` summarising what was built, key files, architecture decisions, and what's next. Then update the migration plan checkboxes in this file and in `docs/plan.md`.
 
 When you're unsure between options, **ask**. Don't guess on architecture-level decisions — refer back to the "Things NOT to suggest" list and the stack table.
 

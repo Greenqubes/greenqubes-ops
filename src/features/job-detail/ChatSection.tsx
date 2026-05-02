@@ -1,0 +1,310 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Card } from '@/components/Card'
+import { Btn } from '@/components/Btn'
+import { t } from '@/lib/i18n'
+import { useToast } from '@/components/Toast'
+import { Send, Paperclip, Download, FileText, Image as ImageIcon, Lock } from 'lucide-react'
+import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
+
+const CHAT_OPEN_DAYS = 7
+
+function chatCutoff(completedAt: string): Date {
+  const d = new Date(completedAt)
+  d.setDate(d.getDate() + CHAT_OPEN_DAYS)
+  return d
+}
+
+type ChatItem =
+  | { kind: 'message'; id: string; author: string | null; content: string; ts: string }
+  | { kind: 'file';    id: string; author: string | null; r2Key: string; filename: string; ts: string }
+
+function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
+  const items: ChatItem[] = [
+    ...messages
+      .filter(m => m.kind === 'text' && m.content)
+      .map(m => ({
+        kind:    'message' as const,
+        id:      m.id,
+        author:  m.author?.name ?? null,
+        content: m.content!,
+        ts:      m.ts,
+      })),
+    ...files.map(f => ({
+      kind:     'file' as const,
+      id:       f.id,
+      author:   f.uploader?.name ?? null,
+      r2Key:    f.r2_key,
+      filename: f.r2_key.split('/').pop() ?? f.r2_key,
+      ts:       f.ts,
+    })),
+  ]
+  return items.sort((a, b) => a.ts.localeCompare(b.ts))
+}
+
+function FileAttachment({ r2Key, filename, lang }: { r2Key: string; filename: string; lang: LangCode }) {
+  const [loading, setLoading] = useState(false)
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(filename)
+
+  const handleDownload = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/r2/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: r2Key }),
+      })
+      const { url } = await res.json() as { url: string }
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.click()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={loading}
+      className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink hover:bg-line transition-colors disabled:opacity-50"
+    >
+      {isImage ? <ImageIcon size={14} className="text-muted shrink-0" /> : <FileText size={14} className="text-muted shrink-0" />}
+      <span className="truncate max-w-[180px]">{filename}</span>
+      <Download size={12} className="text-muted shrink-0 ml-auto" />
+    </button>
+  )
+}
+
+interface Props {
+  jobId:           string
+  userId:          string
+  lang:            LangCode
+  completedAt:     string | null
+  initialMessages: JobMessage[]
+  chatFiles:       JobFile[]
+}
+
+export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles }: Props) {
+  const { success: showSuccess, error: showError } = useToast()
+  const supabase = createClient()
+  const bottomRef  = useRef<HTMLDivElement>(null)
+  const fileRef    = useRef<HTMLInputElement>(null)
+
+  const [messages,  setMessages]  = useState<JobMessage[]>(initialMessages)
+  const [files,     setFiles]     = useState<JobFile[]>(chatFiles)
+  const [text,      setText]      = useState('')
+  const [sending,   setSending]   = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const cutoff    = completedAt ? chatCutoff(completedAt) : null
+  const chatLocked = cutoff ? new Date() > cutoff : false
+  const inputDisabled = chatLocked || sending || uploading
+
+  // scroll to bottom when items change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, files])
+
+  // realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`job-chat-${jobId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+        payload => {
+          const row = payload.new as JobMessage
+          setMessages(prev =>
+            prev.find(m => m.id === row.id) ? prev : [...prev, row]
+          )
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+        payload => {
+          const row = payload.new as JobFile
+          if (row.kind !== 'attachment') return
+          setFiles(prev =>
+            prev.find(f => f.id === row.id) ? prev : [...prev, row]
+          )
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [jobId, supabase])
+
+  const handleSend = async () => {
+    const trimmed = text.trim()
+    if (!trimmed || inputDisabled) return
+
+    setSending(true)
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/messages`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ content: trimmed }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json() as { error: string }
+        showError(error === 'Chat closed' ? t(lang, 'chatLockedMessage') : t(lang, 'saveError'))
+        return
+      }
+      setText('')
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    setUploading(true)
+    try {
+      const ext  = file.name.split('.').pop() ?? 'bin'
+      const key  = `jobs/${jobId}/attachments/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+
+      // 1. get presigned upload URL
+      const urlRes = await fetch('/api/r2/upload-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ key, contentType: file.type || `application/octet-stream` }),
+      })
+      const { url } = await urlRes.json() as { url: string }
+
+      // 2. PUT directly to R2
+      await fetch(url, {
+        method:  'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body:    file,
+      })
+
+      // 3. insert file record in Supabase
+      await supabase.from('files').insert({
+        job_id:      jobId,
+        kind:        'attachment',
+        r2_key:      key,
+        uploader_id: userId,
+        visibility:  ['public-internal'],
+      } as never).throwOnError()
+
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const items = toItems(messages, files)
+
+  return (
+    <Card className="flex flex-col overflow-hidden">
+      {/* header */}
+      <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+        <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
+        {cutoff && !chatLocked && (
+          <span className="text-xs text-muted">
+            {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
+          </span>
+        )}
+        {chatLocked && (
+          <span className="flex items-center gap-1 text-xs text-muted">
+            <Lock size={11} />
+            {t(lang, 'chatLockedTitle')}
+          </span>
+        )}
+      </div>
+
+      {/* messages */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[200px] max-h-[400px]">
+        {items.length === 0 ? (
+          <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
+        ) : (
+          items.map(item => (
+            <div key={item.id} className="space-y-0.5">
+              {item.author && (
+                <p className="text-xs text-muted">{item.author}</p>
+              )}
+              {item.kind === 'message' ? (
+                <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
+                  {item.content}
+                </p>
+              ) : (
+                <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
+              )}
+              <p className="text-[10px] text-muted">
+                {new Date(item.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* locked banner */}
+      {chatLocked && (
+        <div className="px-5 py-3 bg-bg border-t border-line text-sm text-muted text-center">
+          {t(lang, 'chatLockedMessage')}
+        </div>
+      )}
+
+      {/* input bar */}
+      {!chatLocked && (
+        <div className="px-4 py-3 border-t border-line flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={inputDisabled}
+            className="text-muted hover:text-ink transition-colors disabled:opacity-40"
+            title={t(lang, 'attachFile')}
+          >
+            {uploading ? (
+              <span className="text-xs text-muted">{t(lang, 'uploading')}</span>
+            ) : (
+              <Paperclip size={16} />
+            )}
+          </button>
+
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+            disabled={inputDisabled}
+            placeholder={t(lang, 'messagePlaceholder')}
+            className="flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50"
+          />
+
+          <Btn
+            size="sm"
+            onClick={handleSend}
+            disabled={inputDisabled || !text.trim()}
+          >
+            <Send size={13} />
+            {t(lang, 'sendMessage')}
+          </Btn>
+        </div>
+      )}
+    </Card>
+  )
+}

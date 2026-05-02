@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/notifications/overdue",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}
