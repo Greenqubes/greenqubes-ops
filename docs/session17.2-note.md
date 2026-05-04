@@ -55,13 +55,12 @@ Same root cause as above — `shiftMonth` calls `toISO` at the end, returning th
 
 ---
 
-## Status: still broken at end of session
+## Status: complete ✓
 
-Both bugs (calendar navigation and live schedule) were not confirmed fixed before session ended. Resume as **Session 17.2 (continued)** — diagnose why the fixes didn't take effect on the deployed Vercel build.
+Resolved in follow-up (2026-05-05). Root cause of "not confirmed": Vercel auto-deploy was not wired to GitHub — the code was committed and pushed but Vercel never built it. Confirmed via `npx vercel ls` (latest production build predated the commits by 85 minutes).
 
-### Things to check next session
-- Confirm Vercel actually deployed the latest commit (`fd7db48`)
-- Check browser DevTools: are realtime WebSocket events for `jobs` table being received?
-- Check if `router.refresh()` is firing (add a `console.log` temporarily)
-- Verify migration 0010 applied cleanly (check Supabase dashboard — SQL editor → run `select * from pg_publication_tables where pubname = 'supabase_realtime'` to confirm jobs is listed)
-- For the arrow nav: test whether `toISO()` change is actually in the deployed build (check source in DevTools)
+**Resolution:**
+- Ran `npx vercel --prod` to force-deploy the latest commit (`eed3952`)
+- All three diagnostics confirmed clean: migration 0010 applied, `jobs` in realtime publication, SELECT policy uses `auth.uid()` directly
+- Calendar navigation confirmed fixed by Nic in browser
+- Vercel → GitHub auto-deploy connected via Vercel dashboard

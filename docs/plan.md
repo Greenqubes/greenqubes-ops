@@ -267,9 +267,9 @@ Replaced broken SECURITY DEFINER-based SELECT policies on `messages` + `files` w
 
 ---
 
-## Session 17.2 — Calendar navigation + live schedule _(in progress — resume next session)_
+## Session 17.2 — Calendar navigation + live schedule ✓
 
-Attempted fixes: `toISO()` UTC→local rewrite for arrow navigation, `router.refresh()` realtime subscription for live schedule, migration 0010 (jobs in realtime publication + RLS). Both still broken as of end of session. Resume as Session 17.2 (continued). Notes: `docs/session17.2-note.md`.
+Fixed `toISO()` UTC→local rewrite for arrow navigation, `router.refresh()` realtime subscription for live schedule, migration 0010 (jobs in realtime publication + RLS). Root cause of delayed confirmation: Vercel auto-deploy was not connected to GitHub — force-deployed via CLI, GitHub integration then wired via dashboard. Notes: `docs/session17.2-note.md`.
 
 ---
 

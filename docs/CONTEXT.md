@@ -288,7 +288,7 @@ greenqubes/
 - [x] **Session 16** — R2 signed-URL upload helpers + Cloudflare Images binding; `backup.sh` rclone cold-archive + cron
 - [x] **Session 17** — Deploy preview to Vercel
 - [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
-- [ ] **Session 17.2** — Calendar nav + live schedule — still broken; attempted toISO fix + router.refresh() + migration 0010; resume next session
+- [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
 - [ ] **Session 17.X** — Any further bugs found before design review iterate as 17.3, 17.4, etc.
 - [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes; reserved exclusively for this)
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
