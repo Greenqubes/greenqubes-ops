@@ -162,9 +162,15 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const [sending,     setSending]     = useState(false)
   const [uploading,   setUploading]   = useState(false)
   const [recordState, setRecordState] = useState<RecordState>('idle')
+  const [chatLocked,  setChatLocked]  = useState(false)
 
-  const cutoff       = completedAt ? chatCutoff(completedAt) : null
-  const chatLocked   = cutoff ? new Date() > cutoff : false
+  const cutoff = completedAt ? chatCutoff(completedAt) : null
+
+  // Evaluated client-side only — avoids server/client timezone mismatch (hydration error)
+  useEffect(() => {
+    if (cutoff) setChatLocked(new Date() > cutoff)
+  }, [cutoff])
+
   const inputDisabled = chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {
@@ -176,9 +182,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       .channel(`job-chat-${jobId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         payload => {
           const row = payload.new as JobMessage
+          if (row.job_id !== jobId) return
           setMessages(prev =>
             prev.find(m => m.id === row.id) ? prev : [...prev, row]
           )
@@ -186,16 +193,18 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+        { event: 'INSERT', schema: 'public', table: 'files' },
         payload => {
           const row = payload.new as JobFile
-          if (row.kind !== 'attachment') return
+          if (row.job_id !== jobId || row.kind !== 'attachment') return
           setFiles(prev =>
             prev.find(f => f.id === row.id) ? prev : [...prev, row]
           )
         },
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        if (err) console.error('[chat realtime]', status, err)
+      })
 
     return () => { supabase.removeChannel(channel) }
   }, [jobId, supabase])
@@ -355,8 +364,8 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               ) : (
                 <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
               )}
-              <p className="text-[10px] text-muted">
-                {new Date(item.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <p className="text-[10px] text-muted" suppressHydrationWarning>
+                {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
               </p>
             </div>
           ))
