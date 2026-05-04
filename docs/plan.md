@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-04 (Session 17 — monday-digest cron route, Vercel deploy)_
+_Last updated: 2026-05-04 (Session 17.1 — realtime RLS fix, favicon)_
 
 ---
 
@@ -255,13 +255,23 @@ Activate: `npx supabase db push` then `npx tsx scripts/seed-crash.ts` to seed te
 
 Connect the GitHub repo to Vercel, set all env vars (Supabase, R2, Anthropic, Voyage, Telegram, Cloudflare Images), confirm the build passes, and get a stable preview URL for testing. Telegram webhook re-pointed to the Vercel URL.
 
-**Known bug (fix in Session 18):** Job chat realtime events not delivered — WebSocket connects but Supabase drops events, suspected RLS custom-function incompatibility with the realtime engine. Full diagnosis in `docs/session17(live-chat)-note.md`. Fix options: optimistic updates (quick) + simplified RLS policy (proper). Also add favicon.ico.
+**Known bug (fix in Session 17.1):** Job chat realtime events not delivered — WebSocket connects but Supabase drops events, suspected RLS custom-function incompatibility with the realtime engine. Full diagnosis in `docs/session17(live-chat)-note.md`. Fix options: optimistic updates (quick) + simplified RLS policy (proper). Also add favicon.ico.
+
+---
+
+## Session 17.1 — Live-chat bug ✓
+
+Replaced broken SECURITY DEFINER-based SELECT policies on `messages` + `files` with direct `auth.uid()` subqueries — Supabase Realtime can now evaluate them correctly and delivers events. Added `src/app/icon.tsx` favicon (terracotta "G", 32×32). Notes: `docs/session17.1-note.md`.
+
+> **Naming rule:** Any bug-fix session before the full design review is Session 17.X (X increments per bug). Session 18 is reserved for the full design review only.
 
 ---
 
 ## Session 18 — Full design review _(planned)_
 
 Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. Every screen compared side-by-side. Findings logged and fixed in-session — expect typography, spacing, colour, and interaction regressions from the migration. Notes written to `docs/session18-note.md`.
+
+> Session 18 is reserved exclusively for the design review. All pre-review bug fixes go into 17.X sessions.
 
 ---
 

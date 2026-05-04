@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-04 (Session 17 — Vercel deploy live; known bug: job chat realtime events not delivered)_
+_Last updated: 2026-05-04 (Session 17.1 — live-chat bug fix; Session 18 reserved for full design review only)_
 
 ---
 
@@ -287,7 +287,9 @@ greenqubes/
 - [x] **Session 15** — Crash log: React ErrorBoundary → `/api/crash` → `crash_logs` table + local `.md` file (dev); Admin Crash Log tab with timeline, stack viewer, markdown download, dismiss. Notes: `docs/session15-note.md`.
 - [x] **Session 16** — R2 signed-URL upload helpers + Cloudflare Images binding; `backup.sh` rclone cold-archive + cron
 - [x] **Session 17** — Deploy preview to Vercel
-- [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes)
+- [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
+- [ ] **Session 17.X** — Any further bugs found before design review iterate as 17.2, 17.3, etc.
+- [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes; reserved exclusively for this)
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
