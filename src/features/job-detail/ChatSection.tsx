@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -150,8 +150,7 @@ interface Props {
 
 export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles }: Props) {
   const { success: showSuccess, error: showError } = useToast()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
   const bottomRef        = useRef<HTMLDivElement>(null)
   const fileRef          = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -214,17 +213,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     const trimmed = text.trim()
     if (!trimmed || inputDisabled) return
 
-    const tempId = `temp-${crypto.randomUUID()}`
-    const optimistic: JobMessage = {
-      id: tempId, job_id: jobId, author_id: userId,
-      kind: 'text', content: trimmed, voice_url: null,
-      ts: new Date().toISOString(), author: null,
-    }
-
-    setMessages(prev => [...prev, optimistic])
-    setText('')
     setSending(true)
-
     try {
       const res = await fetch(`/api/jobs/${jobId}/messages`, {
         method:  'POST',
@@ -232,21 +221,12 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         body:    JSON.stringify({ content: trimmed }),
       })
       if (!res.ok) {
-        setMessages(prev => prev.filter(m => m.id !== tempId))
-        setText(trimmed)
         const { error } = await res.json() as { error: string }
         showError(error === 'Chat closed' ? t(lang, 'chatLockedMessage') : t(lang, 'saveError'))
         return
       }
-      const { message } = await res.json() as { message: JobMessage }
-      // Replace temp with real; dedup in case realtime already delivered it
-      setMessages(prev => {
-        const withoutTemp = prev.filter(m => m.id !== tempId)
-        return withoutTemp.find(m => m.id === message.id) ? withoutTemp : [...withoutTemp, message]
-      })
+      setText('')
     } catch {
-      setMessages(prev => prev.filter(m => m.id !== tempId))
-      setText(trimmed)
       showError(t(lang, 'saveError'))
     } finally {
       setSending(false)
