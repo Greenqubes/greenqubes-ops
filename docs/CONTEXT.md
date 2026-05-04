@@ -289,7 +289,7 @@ greenqubes/
 - [x] **Session 17** — Deploy preview to Vercel
 - [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
 - [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
-- [ ] **Session 17.X** — Any further bugs found before design review iterate as 17.3, 17.4, etc.
+- [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
 - [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes; reserved exclusively for this)
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light

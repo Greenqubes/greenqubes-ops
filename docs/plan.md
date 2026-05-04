@@ -273,6 +273,12 @@ Fixed `toISO()` UTC→local rewrite for arrow navigation, `router.refresh()` rea
 
 ---
 
+## Session 17.3 — Schedule polling + hydration crash attempt (force reverted) ✓
+
+Added migration 0011 (`REPLICA IDENTITY FULL` on jobs) and 2-min polling fallback (`setInterval(() => router.refresh())`). Multiple attempts to fix React hydration error #418 on schedule page — did not resolve in production even after disabling SSR. Force reverted to `a3b365a`. Polling and migration kept; hydration fixes discarded. Error remains in console but is not blocking. Notes: `docs/session17.3-note.md`.
+
+---
+
 ## Session 18 — Full design review _(planned)_
 
 Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. Every screen compared side-by-side. Findings logged and fixed in-session — expect typography, spacing, colour, and interaction regressions from the migration. Notes written to `docs/session18-note.md`.
