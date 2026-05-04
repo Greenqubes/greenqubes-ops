@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -31,11 +32,24 @@ interface ScheduleShellProps {
 }
 
 export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleShellProps) {
-  const today = toISO(new Date())
+  const today  = toISO(new Date())
+  const router = useRouter()
 
   const [liveApprovalCount, setLiveApprovalCount] = useState(approvalCount)
 
   useEffect(() => { setLiveApprovalCount(approvalCount) }, [approvalCount])
+
+  // Refresh server data whenever any job changes — live schedule updates for all roles
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('schedule-jobs-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+        router.refresh()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [router])
 
   useEffect(() => {
     if (role !== 'scheduler') return
