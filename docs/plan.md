@@ -255,6 +255,8 @@ Activate: `npx supabase db push` then `npx tsx scripts/seed-crash.ts` to seed te
 
 Connect the GitHub repo to Vercel, set all env vars (Supabase, R2, Anthropic, Voyage, Telegram, Cloudflare Images), confirm the build passes, and get a stable preview URL for testing. Telegram webhook re-pointed to the Vercel URL.
 
+**Known bug (fix in Session 18):** Job chat realtime events not delivered — WebSocket connects but Supabase drops events, suspected RLS custom-function incompatibility with the realtime engine. Full diagnosis in `docs/session17(live-chat)-note.md`. Fix options: optimistic updates (quick) + simplified RLS policy (proper). Also add favicon.ico.
+
 ---
 
 ## Session 18 — Full design review _(planned)_
