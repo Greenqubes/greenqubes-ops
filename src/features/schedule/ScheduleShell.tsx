@@ -39,7 +39,9 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
 
   useEffect(() => { setLiveApprovalCount(approvalCount) }, [approvalCount])
 
-  // Refresh server data whenever any job changes — live schedule updates for all roles
+  // Refresh server data on job changes (realtime) + every 2 min as fallback.
+  // router.refresh() re-fetches server data while preserving all React state
+  // (selected date, view mode, filters) — no visible disruption to the user.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -48,7 +50,11 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
         router.refresh()
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const poll = setInterval(() => router.refresh(), 2 * 60 * 1000)
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
   }, [router])
 
   useEffect(() => {
