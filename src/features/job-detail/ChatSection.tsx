@@ -162,9 +162,15 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const [sending,     setSending]     = useState(false)
   const [uploading,   setUploading]   = useState(false)
   const [recordState, setRecordState] = useState<RecordState>('idle')
+  const [chatLocked,  setChatLocked]  = useState(false)
 
-  const cutoff       = completedAt ? chatCutoff(completedAt) : null
-  const chatLocked   = cutoff ? new Date() > cutoff : false
+  const cutoff = completedAt ? chatCutoff(completedAt) : null
+
+  // Evaluated client-side only — avoids server/client timezone mismatch (hydration error)
+  useEffect(() => {
+    if (cutoff) setChatLocked(new Date() > cutoff)
+  }, [cutoff])
+
   const inputDisabled = chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {
@@ -355,8 +361,8 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               ) : (
                 <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
               )}
-              <p className="text-[10px] text-muted">
-                {new Date(item.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <p className="text-[10px] text-muted" suppressHydrationWarning>
+                {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
               </p>
             </div>
           ))
