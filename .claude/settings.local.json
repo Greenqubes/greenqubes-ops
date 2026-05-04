@@ -17,7 +17,10 @@
       "Bash(npx supabase *)",
       "PowerShell(Stop-Process -Name node -Force -ErrorAction SilentlyContinue)",
       "Bash(npx next *)",
-      "Bash(vercel --version)"
+      "Bash(vercel --version)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"
