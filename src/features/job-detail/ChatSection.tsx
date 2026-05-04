@@ -182,9 +182,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       .channel(`job-chat-${jobId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         payload => {
           const row = payload.new as JobMessage
+          if (row.job_id !== jobId) return
           setMessages(prev =>
             prev.find(m => m.id === row.id) ? prev : [...prev, row]
           )
@@ -192,16 +193,18 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+        { event: 'INSERT', schema: 'public', table: 'files' },
         payload => {
           const row = payload.new as JobFile
-          if (row.kind !== 'attachment') return
+          if (row.job_id !== jobId || row.kind !== 'attachment') return
           setFiles(prev =>
             prev.find(f => f.id === row.id) ? prev : [...prev, row]
           )
         },
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        if (err) console.error('[chat realtime]', status, err)
+      })
 
     return () => { supabase.removeChannel(channel) }
   }, [jobId, supabase])

@@ -46,6 +46,7 @@ export type InstallerUser = {
 
 export type JobFile = {
   id:          string
+  job_id:      string
   kind:        FileKind
   r2_key:      string
   uploader_id: string | null
@@ -55,6 +56,7 @@ export type JobFile = {
 
 export type JobMessage = {
   id:        string
+  job_id:    string
   author_id: string | null
   kind:      'text' | 'voice'
   content:   string | null
