@@ -3,9 +3,10 @@
 --
 -- SECURITY INVOKER means the caller's RLS policies apply automatically,
 -- so visibility filtering is handled by the existing RLS rules on each table.
+-- SET search_path includes extensions so the vector type and <=> operator resolve.
 
 CREATE OR REPLACE FUNCTION match_kb_chunks(
-  query_embedding vector(1024),
+  query_embedding extensions.vector(1024),
   match_threshold float DEFAULT 0.5,
   match_count      int   DEFAULT 5
 )
@@ -19,6 +20,7 @@ RETURNS TABLE (
 LANGUAGE sql
 SECURITY INVOKER
 STABLE
+SET search_path = public, extensions
 AS $$
   SELECT
     id::text,
@@ -34,7 +36,7 @@ AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION match_asst_chats(
-  query_embedding vector(1024),
+  query_embedding extensions.vector(1024),
   match_threshold float DEFAULT 0.5,
   match_count      int   DEFAULT 3
 )
@@ -49,6 +51,7 @@ RETURNS TABLE (
 LANGUAGE sql
 SECURITY INVOKER
 STABLE
+SET search_path = public, extensions
 AS $$
   SELECT
     id::text,
