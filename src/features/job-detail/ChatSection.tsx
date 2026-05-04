@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -150,7 +150,8 @@ interface Props {
 
 export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles }: Props) {
   const { success: showSuccess, error: showError } = useToast()
-  const supabase = createClient()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), [])
   const bottomRef        = useRef<HTMLDivElement>(null)
   const fileRef          = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
