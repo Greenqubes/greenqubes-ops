@@ -5,7 +5,7 @@
 -- so visibility filtering is handled by the existing RLS rules on each table.
 
 CREATE OR REPLACE FUNCTION match_kb_chunks(
-  query_embedding extensions.vector(1024),
+  query_embedding vector(1024),
   match_threshold float DEFAULT 0.5,
   match_count      int   DEFAULT 5
 )
@@ -34,7 +34,7 @@ AS $$
 $$;
 
 CREATE OR REPLACE FUNCTION match_asst_chats(
-  query_embedding extensions.vector(1024),
+  query_embedding vector(1024),
   match_threshold float DEFAULT 0.5,
   match_count      int   DEFAULT 3
 )
