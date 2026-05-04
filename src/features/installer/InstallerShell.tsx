@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { LogOut, Briefcase, Bot } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { UserMenu } from '@/components/UserMenu'
 import { t } from '@/lib/i18n'
-import { toISO } from '@/features/schedule/utils'
+import { toISO, timeToMinutes } from '@/features/schedule/utils'
 import { InstallerJobCard } from './InstallerJobCard'
+import { NowCard } from './NowCard'
+import { Pill } from '@/components/Pill'
+import { BottomNav } from '@/components/BottomNav'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { LangCode } from '@/lib/i18n'
 
@@ -30,7 +31,6 @@ interface Props {
 
 export function InstallerShell({ jobs, lang, userName }: Props) {
   const [tab, setTab] = useState<Tab>('today')
-  const router = useRouter()
 
   const today   = toISO(new Date())
   const weekEnd = getWeekEnd(today)
@@ -64,11 +64,21 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
     [jobs, today],
   )
 
-  async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+  const firstName = userName.split(' ')[0]
+
+  const nowMins = useMemo(() => {
+    const now = new Date()
+    return now.getHours() * 60 + now.getMinutes()
+  }, [])
+
+  const currentJob = useMemo(() => {
+    return todayJobs.find(j => {
+      const s = timeToMinutes(j.time_start)
+      if (s === null || s > nowMins) return false
+      const e = j.time_end ? timeToMinutes(j.time_end) : s + 480
+      return e !== null && nowMins <= e + 60
+    }) ?? null
+  }, [todayJobs, nowMins])
 
   const tabs: { v: Tab; label: string; count: number }[] = [
     { v: 'today', label: t(lang, 'installerToday'),    count: todayJobs.length },
@@ -89,29 +99,14 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">Greenqubes</p>
+          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">Hi, {firstName}</p>
           <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none">
             {userName}
           </h1>
-          <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase bg-green/10 text-green border border-green/20">
-            {t(lang, 'roleInstaller')}
-          </span>
+          <Pill variant="installer" className="mt-1.5" />
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <Link
-            href="/assistant"
-            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
-            aria-label={t(lang, 'assistant')}
-          >
-            <Bot size={15} />
-          </Link>
-          <button
-            onClick={handleSignOut}
-            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
-            aria-label={t(lang, 'signOut')}
-          >
-            <LogOut size={15} />
-          </button>
+          <UserMenu />
         </div>
       </div>
 
@@ -149,18 +144,25 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
       )}
 
       {/* ── Job list ── */}
-      <div className="px-4 space-y-3 pb-10">
+      <div className="px-4 space-y-3 pb-24">
         {visibleJobs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
             <Briefcase size={32} className="text-muted" strokeWidth={1.5} />
             <p className="text-sm text-muted">{t(lang, 'installerNothingToday')}</p>
           </div>
         ) : (
-          visibleJobs.map(job => (
-            <InstallerJobCard key={job.id} job={job} lang={lang} />
-          ))
+          <>
+            {tab === 'today' && currentJob && (
+              <NowCard job={currentJob} lang={lang} nowMins={nowMins} />
+            )}
+            {(tab === 'today' ? visibleJobs.filter(j => j.id !== currentJob?.id) : visibleJobs).map(job => (
+              <InstallerJobCard key={job.id} job={job} lang={lang} />
+            ))}
+          </>
         )}
       </div>
+
+      <BottomNav role="installer" />
     </div>
   )
 }

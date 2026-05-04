@@ -67,7 +67,7 @@ export function ListView({
       )}
 
       {/* Job list for selected date */}
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-24">
         {dayJobs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">
             <Calendar size={28} strokeWidth={1.2} />

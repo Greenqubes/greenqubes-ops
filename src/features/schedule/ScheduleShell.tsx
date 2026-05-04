@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Bot } from 'lucide-react'
+import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
@@ -10,6 +10,8 @@ import { ListView  } from './ListView'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
 import { NotificationDrawer } from '@/features/notifications/NotificationDrawer'
+import { BottomNav } from '@/components/BottomNav'
+import { UserMenu } from '@/components/UserMenu'
 import {
   toISO, shiftDate, shiftMonth,
   getWeekDays, getMonthCells, monthLabel, langToLocale,
@@ -167,6 +169,15 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {(role === 'sales' || role === 'scheduler') && (
+            <Link
+              href="/jobs/new"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg font-medium lowercase tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
+            >
+              <Plus size={12} />
+              {tr(lang, 'newJob')}
+            </Link>
+          )}
           {role === 'scheduler' && (
             <Link
               href="/approvals"
@@ -184,13 +195,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
               )}
             </Link>
           )}
-          <Link
-            href="/assistant"
-            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
-            title={tr(lang, 'assistant')}
-          >
-            <Bot size={15} />
-          </Link>
           <NotificationDrawer jobs={jobs} lang={lang} />
           <button
             onClick={() => setShowSearch(s => !s)}
@@ -204,6 +208,7 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
           >
             <Search size={15} />
           </button>
+          <UserMenu />
         </div>
       </div>
 
@@ -298,6 +303,8 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
           onDrillDown={drillDown}
         />
       )}
+
+      <BottomNav role={role ?? 'sales'} />
     </div>
   )
 }

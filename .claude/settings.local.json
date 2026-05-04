@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(exit 0)",
+      "Bash(grep -n \"^function \\\\|^const.*= \\(\\) =>\\\\|^export default\\\\|^// ===\\\\|^// ---\\\\|^//===\\\\|// ====\\\\|// COMPONENT\\\\|// SCREEN\\\\|// VIEW\\\\|// PAGE\\\\|// SECTION\" \"c:/Greenqubes_GitHub/greenqubes-ops/docs/greenqubes-phase0.jsx\")",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(p.scripts.dev\\)\")",
+      "Bash(node -e \"require\\('fs'\\).existsSync\\('.env.local'\\) ? console.log\\('exists'\\) : console.log\\('missing'\\)\")",
+      "PowerShell(Stop-Process -Id 17720, 7160 -Force)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(cat C:\\\\\\\\Users\\\\\\\\GREENQ~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Greenqubes-GitHub-greenqubes-ops\\\\\\\\03504003-8659-4e42-9e3f-47e4846c14f5\\\\\\\\tasks\\\\\\\\bu5htjmca.output)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/)",
+      "Bash(npx supabase *)",
+      "PowerShell(Stop-Process -Name node -Force -ErrorAction SilentlyContinue)",
+      "Bash(npx next *)",
+      "Bash(vercel --version)"
+    ],
+    "additionalDirectories": [
+      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"
+    ]
+  }
+}

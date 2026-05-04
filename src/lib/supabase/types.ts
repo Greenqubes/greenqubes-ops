@@ -16,15 +16,16 @@ export interface Database {
     Tables: {
       users: {
         Row: {
-          id:               string
-          auth_id:          string | null
-          name:             string
-          role:             Role
-          telegram_chat_id: string | null
-          lang:             LangCode
-          phone:            string | null
-          visibility:       string[]
-          created_at:       string
+          id:                string
+          auth_id:           string | null
+          name:              string
+          role:              Role
+          telegram_chat_id:  string | null
+          lang:              LangCode
+          phone:             string | null
+          digest_subscriber: boolean
+          visibility:        string[]
+          created_at:        string
         }
         Insert: Omit<Database['public']['Tables']['users']['Row'], 'id' | 'created_at'> & {
           id?:         string
@@ -187,6 +188,44 @@ export interface Database {
         Relationships: []
       }
 
+      digest_votes: {
+        Row: {
+          id:       string
+          chat_id:  string
+          voter_id: string
+          vote:     'yes' | 'no'
+          ts:       string
+        }
+        Insert: Omit<Database['public']['Tables']['digest_votes']['Row'], 'id' | 'ts'> & {
+          id?: string
+          ts?: string
+        }
+        Update: Partial<Database['public']['Tables']['digest_votes']['Insert']>
+        Relationships: []
+      }
+
+      api_usage_logs: {
+        Row: {
+          id:             string
+          service:        string
+          endpoint:       string
+          called_by:      string | null
+          job_id:         string | null
+          tokens_in:      number | null
+          tokens_out:     number | null
+          estimated_cost: number | null
+          ip_address:     string | null
+          user_agent:     string | null
+          ts:             string
+        }
+        Insert: Omit<Database['public']['Tables']['api_usage_logs']['Row'], 'id' | 'ts'> & {
+          id?: string
+          ts?: string
+        }
+        Update: Partial<Database['public']['Tables']['api_usage_logs']['Insert']>
+        Relationships: []
+      }
+
       events: {
         Row: {
           id:           string
@@ -203,6 +242,33 @@ export interface Database {
           ts?: string
         }
         Update: Partial<Database['public']['Tables']['events']['Insert']>
+        Relationships: []
+      }
+
+      crash_logs: {
+        Row: {
+          id:              string
+          occurred_at:     string
+          route:           string
+          error_message:   string
+          stack_trace:     string | null
+          component_stack: string | null
+          user_id:         string | null
+          user_email:      string | null
+          user_agent:      string | null
+          markdown_body:   string
+          resolved:        boolean
+        }
+        Insert: Omit<
+          Database['public']['Tables']['crash_logs']['Row'],
+          'id' | 'occurred_at' | 'user_id' | 'resolved'
+        > & {
+          id?:          string
+          occurred_at?: string
+          user_id?:     string | null
+          resolved?:    boolean
+        }
+        Update: Partial<Database['public']['Tables']['crash_logs']['Insert']>
         Relationships: []
       }
     }

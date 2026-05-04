@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, IBM_Plex_Sans } from 'next/font/google'
-import { ToastProvider } from '@/components/Toast'
+import { ToastProvider }   from '@/components/Toast'
+import { ErrorBoundary }   from '@/components/ErrorBoundary'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* CJK + Bengali: system fonts handle these on all target devices */}
       </head>
       <body className="font-body antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <ErrorBoundary>
+          <ToastProvider>{children}</ToastProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

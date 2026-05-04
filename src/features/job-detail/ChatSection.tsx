@@ -246,14 +246,13 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         setRecordState('uploading')
         try {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-          const key  = `jobs/${jobId}/voice/${Date.now()}.webm`
 
           const urlRes = await fetch('/api/r2/upload-url', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ key, contentType: 'audio/webm' }),
+            body:    JSON.stringify({ jobId, kind: 'voice', filename: `${Date.now()}.webm`, contentType: 'audio/webm' }),
           })
-          const { url } = await urlRes.json() as { url: string }
+          const { url, key } = await urlRes.json() as { url: string; key: string }
 
           await fetch(url, {
             method:  'PUT',
@@ -288,14 +287,12 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
     setUploading(true)
     try {
-      const key = `jobs/${jobId}/attachments/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-
       const urlRes = await fetch('/api/r2/upload-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key, contentType: file.type || 'application/octet-stream' }),
+        body:    JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType: file.type || 'application/octet-stream' }),
       })
-      const { url } = await urlRes.json() as { url: string }
+      const { url, key } = await urlRes.json() as { url: string; key: string }
 
       await fetch(url, {
         method:  'PUT',

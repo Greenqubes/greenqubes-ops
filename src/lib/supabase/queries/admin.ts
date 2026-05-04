@@ -1,0 +1,254 @@
+import { createServiceClient } from '@/lib/supabase/service'
+import type { Role, LangCode }  from '@/lib/supabase/types'
+
+// ── User management ────────────────────────────────────────────────────────────
+
+export type AdminUser = {
+  id:                string
+  auth_id:           string | null
+  name:              string
+  role:              Role
+  telegram_chat_id:  string | null
+  lang:              LangCode
+  phone:             string | null
+  digest_subscriber: boolean
+  created_at:        string
+}
+
+export async function getAllUsers(): Promise<AdminUser[]> {
+  const db = createServiceClient()
+  const { data, error } = await db
+    .from('users')
+    .select('id, auth_id, name, role, telegram_chat_id, lang, phone, digest_subscriber, created_at')
+    .order('name')
+  if (error) throw error
+  return (data ?? []) as unknown as AdminUser[]
+}
+
+export async function provisionUser(
+  email: string,
+  name:  string,
+  role:  Role,
+  lang:  LangCode = 'en',
+): Promise<AdminUser> {
+  const db = createServiceClient()
+
+  // Find auth user by email via admin API
+  const { data: authData, error: authErr } = await db.auth.admin.listUsers()
+  if (authErr) throw authErr
+
+  const authUser = authData.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+  if (!authUser) throw new Error(`No Google account found for ${email}. The user must sign in at least once first.`)
+
+  // Prevent duplicate provisioning
+  const { data: existing } = await db
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .maybeSingle()
+  if (existing) throw new Error(`${email} is already provisioned.`)
+
+  const { data, error } = await db
+    .from('users')
+    .insert({
+      auth_id:           authUser.id,
+      name,
+      role,
+      lang,
+      digest_subscriber: false,
+      visibility:        ['public-internal'],
+    } as never)
+    .select()
+    .single()
+  if (error) throw error
+  return data as unknown as AdminUser
+}
+
+export async function updateUser(
+  id:    string,
+  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone'>>,
+): Promise<void> {
+  const db = createServiceClient()
+  const { error } = await db.from('users').update(patch as never).eq('id', id)
+  if (error) throw error
+}
+
+// ── Digest ─────────────────────────────────────────────────────────────────────
+
+export type DigestItem = {
+  id:         string
+  topic:      string | null
+  tags:       string[] | null
+  importance: number | null
+  ts:         string
+  yes_votes:  number
+  no_votes:   number
+  status:     'pending' | 'promoted' | 'dismissed'
+}
+
+export type DigestSubscriber = {
+  id:                string
+  name:              string
+  role:              Role
+  telegram_chat_id:  string
+  digest_subscriber: boolean
+}
+
+export async function getDigestItems(): Promise<DigestItem[]> {
+  const db = createServiceClient()
+
+  const [{ data: chats, error: chatErr }, { data: votes, error: voteErr }] = await Promise.all([
+    db.from('asst_chats')
+      .select('id, topic, tags, importance, ts')
+      .gte('importance', 4)
+      .order('importance', { ascending: false })
+      .order('ts',         { ascending: false }),
+    db.from('digest_votes').select('chat_id, vote'),
+  ])
+  if (chatErr) throw chatErr
+  if (voteErr) throw voteErr
+
+  const voteMap = new Map<string, { yes: number; no: number }>()
+  for (const v of votes ?? []) {
+    const cur = voteMap.get(v.chat_id) ?? { yes: 0, no: 0 }
+    if (v.vote === 'yes') cur.yes++; else cur.no++
+    voteMap.set(v.chat_id, cur)
+  }
+
+  return (chats ?? []).map(c => {
+    const v     = voteMap.get(c.id) ?? { yes: 0, no: 0 }
+    const total = v.yes + v.no
+    let status: DigestItem['status'] = 'pending'
+    if (total > 0) {
+      if (v.yes / total > 0.5)  status = 'promoted'
+      else if (v.no  / total >= 0.5) status = 'dismissed'
+    }
+    return { ...c, yes_votes: v.yes, no_votes: v.no, status }
+  })
+}
+
+export async function getDigestSubscribers(): Promise<DigestSubscriber[]> {
+  const db = createServiceClient()
+  const { data, error } = await db
+    .from('users')
+    .select('id, name, role, telegram_chat_id, digest_subscriber')
+    .not('telegram_chat_id', 'is', null)
+    .order('name')
+  if (error) throw error
+  return (data ?? []) as unknown as DigestSubscriber[]
+}
+
+// ── API usage ──────────────────────────────────────────────────────────────────
+
+export type UsageSummary = {
+  service:          string
+  call_count:       number
+  total_tokens_in:  number
+  total_tokens_out: number
+  estimated_cost:   number
+}
+
+export type UnusualEvent = {
+  id:          string
+  service:     string
+  endpoint:    string
+  ts:          string
+  reason:      string
+  ip_address:  string | null
+  called_by:   string | null
+}
+
+export async function getUsageSummary(days = 30): Promise<UsageSummary[]> {
+  const db    = createServiceClient()
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await db
+    .from('api_usage_logs')
+    .select('service, tokens_in, tokens_out, estimated_cost')
+    .gte('ts', since)
+  if (error) throw error
+
+  const map = new Map<string, UsageSummary>()
+  for (const row of data ?? []) {
+    const cur = map.get(row.service) ?? {
+      service: row.service, call_count: 0,
+      total_tokens_in: 0, total_tokens_out: 0, estimated_cost: 0,
+    }
+    cur.call_count++
+    cur.total_tokens_in  += row.tokens_in  ?? 0
+    cur.total_tokens_out += row.tokens_out ?? 0
+    cur.estimated_cost   += Number(row.estimated_cost ?? 0)
+    map.set(row.service, cur)
+  }
+  return [...map.values()].sort((a, b) => b.estimated_cost - a.estimated_cost)
+}
+
+export async function getUnusualActivity(days = 7): Promise<UnusualEvent[]> {
+  const db    = createServiceClient()
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await db
+    .from('api_usage_logs')
+    .select('id, service, endpoint, ts, ip_address, called_by')
+    .gte('ts', since)
+    .order('ts', { ascending: false })
+    .limit(500)
+  if (error) throw error
+
+  const events: UnusualEvent[] = []
+  for (const row of data ?? []) {
+    // Convert to SGT (UTC+8) and check for off-hours calls (before 7am or after 10pm)
+    const sgt  = new Date(new Date(row.ts).getTime() + 8 * 60 * 60 * 1000)
+    const hour = sgt.getUTCHours()
+    if (hour < 7 || hour >= 22) {
+      events.push({
+        id: row.id, service: row.service, endpoint: row.endpoint,
+        ts: row.ts,
+        reason: `Off-hours call at ${sgt.toUTCString().slice(17, 22)} SGT (before 7 AM or after 10 PM)`,
+        ip_address: row.ip_address, called_by: row.called_by,
+      })
+    }
+  }
+
+  return events.slice(0, 20)
+}
+
+// Shared helper — call from any API route to record usage. Never throws.
+export async function logApiUsage(entry: {
+  service:         string
+  endpoint:        string
+  called_by?:      string | null
+  job_id?:         string | null
+  tokens_in?:      number
+  tokens_out?:     number
+  estimated_cost?: number
+  ip_address?:     string
+  user_agent?:     string
+}): Promise<void> {
+  try {
+    const db = createServiceClient()
+    await db.from('api_usage_logs').insert(entry as never)
+  } catch {
+    // Never let logging errors surface to callers
+  }
+}
+
+// ── System health ──────────────────────────────────────────────────────────────
+
+export type HealthCheck = {
+  label:   string
+  status:  'ok' | 'warn' | 'error' | 'unknown'
+  detail:  string
+}
+
+export async function getLastEventTime(kind: string): Promise<string | null> {
+  const db = createServiceClient()
+  const { data } = await db
+    .from('events')
+    .select('ts')
+    .eq('kind', kind)
+    .order('ts', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.ts ?? null
+}

@@ -17,7 +17,7 @@ import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Inbox } from 'lucide-react'
 import Link from 'next/link'
 
 export type FormValues = {
@@ -63,7 +63,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, control, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       date:                    job.date ?? '',
       time_start:              job.time_start ?? '',
@@ -153,13 +153,13 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* header */}
+      {/* Sticky header — client name + pill + save */}
       <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link href={backHref} className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <span className="text-sm font-medium text-ink truncate">{job.client}</span>
+          <span className="font-display text-sm font-medium text-ink truncate">{job.client}</span>
           <Pill variant={status} />
         </div>
 
@@ -176,22 +176,35 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
-        <StatusSection
-          status={status}
-          role={role}
-          lang={lang}
-          onStatusChange={async (s) => {
-            if (role === 'sales' && s === 'awaiting_approval') {
-              setShowWorkload(true)
-            } else {
-              await handleStatusChange(s)
-            }
-          }}
-        />
+        {/* Page title */}
+        <div>
+          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">
+            {t(lang, 'companySchedule')}
+          </p>
+          <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none">
+            {t(lang, 'editJob')}
+          </h1>
+        </div>
+
+        {/* Awaiting-approval banner */}
+        {status === 'awaiting_approval' && (
+          <div className="rounded-card border border-terracotta bg-terracotta-soft px-4 py-3 flex gap-3 items-start">
+            <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center shrink-0 mt-0.5">
+              <Inbox size={14} className="text-terracotta" />
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-widest font-medium text-terracotta mb-0.5">
+                {t(lang, 'awaitingApproval')}
+              </p>
+              <p className="text-sm text-ink2">{t(lang, 'awaitingApprovalDetail')}</p>
+            </div>
+          </div>
+        )}
 
         <CoreSection
           register={register}
           errors={errors}
+          control={control}
           readOnly={readOnly}
           role={role}
           lang={lang}
@@ -227,6 +240,19 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           completedAt={job.completed_at}
           initialMessages={initialMessages}
           chatFiles={job.files.filter(f => f.kind === 'attachment')}
+        />
+
+        <StatusSection
+          status={status}
+          role={role}
+          lang={lang}
+          onStatusChange={async (s) => {
+            if (role === 'sales' && s === 'awaiting_approval') {
+              setShowWorkload(true)
+            } else {
+              await handleStatusChange(s)
+            }
+          }}
         />
 
       </div>

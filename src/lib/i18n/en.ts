@@ -29,6 +29,7 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
+  createJob: 'Create job',
   date: 'Date',
   client: 'Client',
   jobDescription: 'Job description',
@@ -52,6 +53,7 @@ export const en = {
   sendToScheduler: 'Send to scheduler',
   sentForApproval: 'Sent for approval',
   awaitingApproval: 'Awaiting scheduler approval',
+  awaitingApprovalDetail: 'This job has been sent for review. Recall it to make changes.',
   approvalsTab: 'Approvals',
   approvalsTitle: 'Approvals',
   approveAndSchedule: 'Approve & schedule',
@@ -97,6 +99,10 @@ export const en = {
   installerHistoryTitle: 'Past jobs',
   installerOpenJob: 'Open job',
   installerCallSales: 'Call sales',
+  nowBadge:           'Now',
+  nowOngoing:         'Ongoing',
+  nowOverrunning:     'Overrunning',
+  monthViewHint:      'tap a date to see jobs',
 
   // ── Job chat ───────────────────────────────────────────────────────────────
   jobChatTitle: 'Job chat',
@@ -188,6 +194,25 @@ export const en = {
   copied: 'Copied',
   loading: 'Loading…',
   language: 'Language',
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+  admin: 'Admin',
+  adminUsers: 'Users',
+  adminDigest: 'Digest',
+  adminHealth: 'Health',
+  adminCrashes: 'Crashes',
+  provisionUser: 'Provision new user',
+  digestSubscribers: 'Digest subscribers',
+  digestQueue: 'Digest queue',
+  systemChecks: 'System checks',
+  apiUsage: 'API usage',
+  unusualActivity: 'Unusual activity',
+  noAnomalies: 'No anomalies detected. All clear.',
+  keyRotation: 'Emergency key rotation',
+  crashLog: 'Crash log',
+  crashesNone: 'All clear — no crashes',
+  crashOccurred: 'Something went wrong',
+  reloadPage: 'Reload',
 }
 
 export type Translations = typeof en

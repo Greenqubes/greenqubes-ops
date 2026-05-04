@@ -1,10 +1,17 @@
 /**
- * Monday 9 AM SGT digest.
- * Pulls last week's asst_chats with importance >= 4, summarises each via Claude,
- * and sends to scheduler/owner via Telegram with one-tap "promote to Obsidian" links.
- *
- * Scheduled via: GitHub Actions cron (0 1 * * 1  — 09:00 SGT = 01:00 UTC)
- * Populated in: migration step 9 (obsidian-sync + monday-digest)
+ * Monday digest — manual runner.
+ * Run: npm run monday-digest
+ * On Vercel this runs automatically via GET /api/cron/monday-digest (see vercel.json).
  */
 
-export {}
+import { runDigest } from '../src/lib/digest/run'
+
+runDigest()
+  .then(({ sent, skipped }) => {
+    if (skipped) console.log(`[monday-digest] skipped — ${skipped}`)
+    else         console.log(`[monday-digest] done — sent ${sent} items`)
+  })
+  .catch(err => {
+    console.error('[monday-digest] fatal:', (err as Error).message)
+    process.exit(1)
+  })

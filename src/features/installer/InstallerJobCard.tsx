@@ -22,7 +22,7 @@ export function InstallerJobCard({ job, lang }: Props) {
     .toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })
 
   return (
-    <div className="bg-paper border border-line rounded-2xl overflow-hidden">
+    <div className="bg-paper border border-line rounded-card overflow-hidden">
       <Link
         href={`/jobs/${job.id}?from=installer`}
         className="block p-4 group hover:bg-bg/60 transition-colors"
@@ -33,7 +33,7 @@ export function InstallerJobCard({ job, lang }: Props) {
               <Pill variant={job.status} />
               <span className="text-[11px] text-muted">{dateLabel}</span>
             </div>
-            <p className="font-medium text-ink truncate">{job.client}</p>
+            <p className="font-display font-medium text-ink truncate">{job.client}</p>
             {timeStr && (
               <div className="flex items-center gap-1.5 text-xs text-ink2">
                 <Clock size={11} className="shrink-0" />

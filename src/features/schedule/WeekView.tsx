@@ -1,19 +1,22 @@
+import { cn } from '@/lib/utils/cn'
+import { t } from '@/lib/i18n'
 import { JobRow } from './JobRow'
 import { dayLabel, langToLocale } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
 
 interface WeekViewProps {
   weekDays:   string[]
   jobsByDate: Record<string, ScheduleJob[]>
   today:      string
-  lang:       string
+  lang:       LangCode
 }
 
 export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
   const locale = langToLocale(lang)
 
   return (
-    <div className="px-4 pb-6 space-y-5">
+    <div className="px-4 pb-24 space-y-5">
       {weekDays.map(d => {
         const jobs    = jobsByDate[d] ?? []
         const dayNum  = new Date(d + 'T00:00:00').getDate()
@@ -31,7 +34,9 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
               </span>
               <span className="text-xs text-muted uppercase tracking-wide">{short}</span>
               {isToday && (
-                <span className="text-[10px] font-medium text-terracotta uppercase tracking-wide">today</span>
+                <span className="text-[10px] font-medium text-terracotta uppercase tracking-wide">
+                  {t(lang, 'filterToday')}
+                </span>
               )}
               {jobs.length > 0 && (
                 <span className="ml-auto text-xs text-muted">
@@ -50,8 +55,4 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
       })}
     </div>
   )
-}
-
-function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ')
 }

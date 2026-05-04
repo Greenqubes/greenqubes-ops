@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Send, RotateCcw, Bot, User, Loader2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Send, RotateCcw, Bot, User, Loader2, ExternalLink, Sparkles } from 'lucide-react'
+import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
@@ -28,7 +29,7 @@ function uid() {
   return Math.random().toString(36).slice(2)
 }
 
-export function AssistantShell({ lang, backHref }: Props) {
+export function AssistantShell({ lang, backHref, role }: Props) {
   const [messages,    setMessages]    = useState<Message[]>([])
   const [input,       setInput]       = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -167,7 +168,7 @@ export function AssistantShell({ lang, backHref }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
+    <div className="min-h-screen bg-bg flex flex-col pb-16">
 
       {/* ── Header ── */}
       <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
@@ -179,11 +180,15 @@ export function AssistantShell({ lang, backHref }: Props) {
           <ArrowLeft size={16} />
         </Link>
 
+        <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
+          <Sparkles size={15} className="text-white" />
+        </div>
+
         <div className="flex-1 min-w-0">
-          <h1 className="font-display text-base font-medium text-ink leading-none">
+          <h1 className="font-display text-[15px] font-medium text-ink leading-none">
             {t(lang, 'assistant')}
           </h1>
-          <p className="text-[11px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
+          <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
         </div>
 
         {messages.length > 0 && (
@@ -220,6 +225,8 @@ export function AssistantShell({ lang, backHref }: Props) {
         )}
         <div ref={bottomRef} />
       </div>
+
+      <BottomNav role={role} />
 
       {/* ── Input bar ── */}
       <div className="shrink-0 border-t border-line bg-paper px-4 py-3">

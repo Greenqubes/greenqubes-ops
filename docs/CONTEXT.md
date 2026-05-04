@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-04 (Session 11)_
+_Last updated: 2026-05-04 (Session 17 — monday-digest cron route, vercel.json, Vercel deploy)_
 
 ---
 
@@ -141,7 +141,7 @@ tags: [supplier, costing]
 A nightly script:
 1. Walks the vault
 2. Splits each `.md` file into ~500-token chunks
-3. Embeds each chunk via OpenAI
+3. Embeds each chunk via Voyage AI
 4. Upserts to `kb_chunks` with the file's frontmatter visibility/tags
 
 What goes here:
@@ -228,7 +228,7 @@ greenqubes/
 │   │   ├── notifications/        # alerts, toasts, telegram routing
 │   │   ├── approvals/            # sales→scheduler workflow
 │   │   ├── completion/           # photo-required completion modal
-│   │   └── admin/                # user management, role assignment, Telegram chat ID, system health
+│   │   └── admin/                # user management, role assignment, Telegram chat ID, system health, crash log
 │   ├── components/               # shared: Card, Pill, Btn, Field
 │   ├── lib/
 │   │   ├── i18n/
@@ -273,13 +273,27 @@ greenqubes/
 - [x] **Session 9** — `installer` features (dashboard, history, job view)
 - [x] **Session 10** — `chat-thread`: voice notes (record + playback), back-nav fix for installer, realtime approvals badge; Session 8 TODO wired (`tplJobSubmittedForApproval`)
 - [x] **Session 11** — `assistant` + retrieval + auto-tagger
-- [ ] **Session 12** — `obsidian-sync` + `monday-digest` cron scripts
-- [ ] **Session 13** — `admin` page: user management (provision, role assignment, Telegram chat ID), system health indicators
-- [ ] R2 signed-URL upload helpers + Cloudflare Images binding
-- [ ] `backup.sh` rclone cold-archive script + cron
-- [ ] Deploy preview to Vercel
-- [ ] Internal testing with real team
-- [ ] Production cutover
+- [x] **Session 12** — `obsidian-sync` (nightly vault → `kb_chunks`) + `monday-digest` with Telegram majority voting system (`digest_votes` table, inline keyboard, webhook handler). Notes: `docs/session12-note.md`.
+- [x] **Session 13 (audit)** — Full design audit against `docs/greenqubes-phase0.jsx`. 12 findings across Btn variants, colour token class names, display typography, border-radius, page headers, and installer "Now" card. Broken into sub-sessions below. Notes: `docs/session13(extended)-note.md`.
+- [x] **Session 13.1** — `Btn`: add `accent` (terracotta) variant, fix `primary` → ink-bg; update all call sites
+- [x] **Session 13.2** — Colour token class-name fixes + `Pill` reuse (`InstallerShell`, `ApprovalCard`, `InstallerJobCard` radius + display font)
+- [x] **Session 13.3** — Page header polish: `ApprovalsShell`, `AssistantShell` avatar, `JobDetailShell` sticky header font
+- [x] **Session 13.4** — Installer "Now" card: active-job detection + big-card visual treatment
+- [x] **Session 13.5** — `WeekView` + `MonthView` audit and fixes
+- [x] **Session 13.6** — `InstallerShell` eyebrow greeting (`Hi, firstName`); `BottomNav` full-width web/mobile fix; `UserMenu` avatar component (Google initials + sign-out dropdown). Notes: `docs/session13.6-note.md`.
+- [x] **Session 13.7** — Bottom tab bar: role-aware fixed bottom nav matching prototype layout (`BottomNav.tsx`). Notes: `docs/session13.6-note.md`.
+- [x] **Session 13.8** — Schedule "+ New" button + `/jobs/new` creation route (`NewJobShell.tsx`, `CoreSection` + `FinancialSection` reused). Notes: `docs/session13.8-note.md`.
+- [x] **Session 14** — `admin` page: Users tab (provision + inline edit), Digest tab (subscriber management + per-item send), Health tab (system checks + API usage tracker + anomaly detection + key rotation links). Notes: `docs/session14-note.md`.
+- [x] **Session 15** — Crash log: React ErrorBoundary → `/api/crash` → `crash_logs` table + local `.md` file (dev); Admin Crash Log tab with timeline, stack viewer, markdown download, dismiss. Notes: `docs/session15-note.md`.
+- [x] **Session 16** — R2 signed-URL upload helpers + Cloudflare Images binding; `backup.sh` rclone cold-archive + cron
+- [x] **Session 17** — Deploy preview to Vercel
+- [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes)
+- [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
+- [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
+- [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
+- [ ] **Session 22** (Beta — Management) — Testing with Me + Scheduler + Sales; hotfix; iterate V.0.X.0.0 until green light
+- [ ] **Session 23** (Launch) — Production cutover → V.1.0.0.0 + hotfix
+- [ ] **Session 24** (Post-Launch) — New features (to be defined); versioning V.1.X.0.0
 
 ---
 

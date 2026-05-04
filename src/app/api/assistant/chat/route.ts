@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { retrieveContext, formatContext } from '@/lib/ai/retrieve'
+import { logApiUsage } from '@/lib/supabase/queries/admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -13,13 +14,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  type Profile = { name: string; role: string }
+  type Profile = { id: string; name: string; role: string }
   const { data: profile } = await supabase
     .from('users')
-    .select('name, role')
+    .select('id, name, role')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: Profile | null; error: unknown }
   if (!profile) return new Response('Not provisioned', { status: 403 })
+
+  const ip        = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? undefined
+  const userAgent = req.headers.get('user-agent') ?? undefined
 
   const body = await req.json() as {
     messages: { role: 'user' | 'assistant'; content: string }[]
@@ -64,7 +68,22 @@ export async function POST(req: NextRequest) {
 
         stream.on('text', text => send({ type: 'text', text }))
 
-        await stream.finalMessage()
+        const final      = await stream.finalMessage()
+        const tokensIn   = final.usage.input_tokens
+        const tokensOut  = final.usage.output_tokens
+        // Sonnet 4.6 pricing: $3 / 1M input, $15 / 1M output
+        const cost = (tokensIn / 1_000_000) * 3 + (tokensOut / 1_000_000) * 15
+
+        void logApiUsage({
+          service:         'anthropic',
+          endpoint:        'messages.stream',
+          called_by:       profile.id,
+          tokens_in:       tokensIn,
+          tokens_out:      tokensOut,
+          estimated_cost:  cost,
+          ip_address:      ip,
+          user_agent:      userAgent,
+        })
 
         send({ type: 'done' })
       } catch (err) {

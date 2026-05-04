@@ -39,7 +39,7 @@ export function ApprovalCard({ job, lang, onApprove, onSendBack }: Props) {
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-ink">{job.client}</span>
+            <span className="font-display text-sm font-medium text-ink">{job.client}</span>
             <Pill variant="awaiting_approval" />
             {quote != null && (
               <span className="text-xs text-ink2 font-medium">
@@ -83,7 +83,7 @@ export function ApprovalCard({ job, lang, onApprove, onSendBack }: Props) {
           {assignees.map(a => (
             <span
               key={a.id}
-              className="text-[11px] px-2 py-0.5 rounded-full bg-green-soft text-green font-medium"
+              className="text-[11px] px-2 py-0.5 rounded-full bg-brand-green-soft text-brand-green font-medium"
             >
               {a.name}
             </span>

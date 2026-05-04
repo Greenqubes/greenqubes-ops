@@ -1,3 +1,9 @@
+export function timeToMinutes(t: string | null): number | null {
+  if (!t) return null
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 export function toISO(d: Date): string {
   return d.toISOString().split('T')[0]
 }

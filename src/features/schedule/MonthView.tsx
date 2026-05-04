@@ -1,5 +1,8 @@
+import { cn } from '@/lib/utils/cn'
+import { t } from '@/lib/i18n'
 import { dayLabel, langToLocale } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
 
 const DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] // Sun–Sat
 
@@ -8,7 +11,7 @@ interface MonthViewProps {
   jobsByDate:   Record<string, ScheduleJob[]>
   selectedDate: string
   today:        string
-  lang:         string
+  lang:         LangCode
   onSelectDate: (date: string) => void
   onDrillDown:  (date: string) => void  // select date + switch to list view
 }
@@ -29,7 +32,7 @@ export function MonthView({
   })
 
   return (
-    <div className="px-4 pb-6">
+    <div className="px-4 pb-24">
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dayHeaders.map((h, i) => (
@@ -90,11 +93,7 @@ export function MonthView({
         })}
       </div>
 
-      <p className="text-center text-xs text-muted mt-3">tap any date to see jobs</p>
+      <p className="text-center text-xs text-muted mt-3">{t(lang, 'monthViewHint')}</p>
     </div>
   )
-}
-
-function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ')
 }

@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-04 (Session 11)_
+_Last updated: 2026-05-04 (Session 17 — monday-digest cron route, Vercel deploy)_
 
 ---
 
@@ -178,21 +178,124 @@ _Last updated: 2026-05-04 (Session 11)_
 
 ---
 
-## Sessions 12–13 — Remaining features (in order)
+## Session 12 — Obsidian sync + Monday digest ✓
 
-| Session | Feature |
-|---|---|
-| 12 | `obsidian-sync` + `monday-digest` cron scripts |
-| 13 | `admin` — user management, role assignment, Telegram chat ID, system health |
+- `scripts/obsidian-sync.ts` — walks vault, chunks .md files (~2000 chars ≈ 500 tokens), embeds via Voyage AI, upserts to `kb_chunks` (idempotent on `source_path,chunk_index`), deletes stale chunks
+- `scripts/monday-digest.ts` — majority voting system; sends ✅/❌ inline keyboard buttons per item; includes new items + unvoted old items (re-prompt logic)
+- `src/app/api/digest/promote/[id]/route.ts` — HMAC-verified GET route, re-summarises conversation, returns HTML page with formatted Obsidian note for copy-paste
+- `src/lib/telegram/bot.ts` — extended with `sendTelegramWithKeyboard`, `editTelegramMessage`, `answerCallbackQuery`
+- `src/lib/telegram/templates.ts` — added `tplDigestHeader`, `tplDigestItem`, `tplVoteStatus`
+- `src/app/api/telegram/webhook/route.ts` — implemented `digest_vote` callback handler: records votes, checks majority, edits message, sends promote link on YES majority
+- `supabase/migrations/0005_digest_votes.sql` — `digest_votes` table with RLS
+- `src/lib/supabase/types.ts` — added `digest_votes` types
+- `tsx` added as devDependency; `npm run obsidian-sync` + `npm run monday-digest` scripts added
+- `.env.local.example` — added `OBSIDIAN_VAULT_PATH` + `NEXT_PUBLIC_APP_URL`
 
 ---
 
-## Final stretch
+## Sessions 13–14 — Remaining features (in order)
 
-- `scripts/backup.sh` — rclone cold-archive (server PC setup)
-- R2 signed-URL upload helpers (`src/lib/storage/`)
-- Cloudflare Images binding for photo resize
-- Deploy preview to Vercel → internal testing → production cutover
+### Session 13 — Design cleanup (extended, broken into sub-sessions)
+
+Full audit completed against `docs/greenqubes-phase0.jsx`. See `docs/session13(extended)-note.md` for all findings.
+
+| Sub-session | Scope | Files | Status |
+|---|---|---|---|
+| **13.1** | `Btn`: add `accent` variant (terracotta), fix `primary` → ink-bg; update all call sites | `src/components/Btn.tsx` + feature files | ✓ done |
+| **13.2** | Colour token class-name fixes + `Pill` reuse; `InstallerJobCard` radius + display font | `InstallerShell.tsx`, `ApprovalCard.tsx`, `InstallerJobCard.tsx` | ✓ done |
+| **13.3** | Page header polish: Approvals h1, AssistantShell avatar, JobDetailShell sticky font | `ApprovalsShell.tsx`, `AssistantShell.tsx`, `JobDetailShell.tsx` | ✓ done |
+| **13.4** | Installer "Now" card: active-job detection + big-card visual treatment | `InstallerShell.tsx`, `NowCard.tsx` (new) | ✓ done |
+| **13.5** | `WeekView` + `MonthView` audit and fixes | `WeekView.tsx`, `MonthView.tsx` | ✓ done |
+| **13.6** | Eyebrow greeting (`Hi, firstName`); `BottomNav` web/mobile full-width fix; `UserMenu` avatar + sign-out dropdown | `InstallerShell.tsx`, `BottomNav.tsx`, `UserMenu.tsx` (new), all shells | ✓ done |
+| **13.7** | Bottom tab bar: role-aware fixed nav matching prototype layout | `BottomNav.tsx` (new), all shell files | ✓ done |
+| **13.8** | Schedule "+ New job" button + `/jobs/new` creation route | `ScheduleShell.tsx`, `NewJobShell.tsx` (new), `app/jobs/new/page.tsx` (new) | ✓ done |
+
+### Session 14 — `admin` page ✓
+
+| Tab | What it does |
+|---|---|
+| Users | Provision new user (email → Google auth match → public.users insert), inline role/TG/digest edit |
+| Digest | Subscriber toggles; digest queue with per-item "send to…" subscriber picker + Send now |
+| Health | Supabase/Telegram/sync/cron checks; API usage tracker (30-day per-service); unusual activity (off-hours); key rotation links |
+
+API usage logging wired into `POST /api/assistant/chat` (tokens + cost). `logApiUsage()` helper in `src/lib/supabase/queries/admin.ts` — extend to Voyage/R2 routes next session.
+
+---
+
+## Session 15 — Crash log feature ✓
+
+| What | Where |
+|---|---|
+| `crash_logs` DB table + RLS | `supabase/migrations/0007_crash_logs.sql` |
+| Public POST crash ingestion + local `.md` write (dev) | `src/app/api/crash/route.ts` |
+| React `ErrorBoundary` wrapping entire app | `src/components/ErrorBoundary.tsx`, `src/app/layout.tsx` |
+| Shared error fallback UI | `src/components/ErrorPage.tsx` |
+| Route-level `error.tsx` for `/schedule`, `/jobs/[id]`, `/installer` | `src/app/*/error.tsx` |
+| Admin GET + PATCH (resolve) API | `src/app/api/admin/crashes/route.ts`, `.../[id]/route.ts` |
+| Crashes tab (4th tab in AdminShell) | `src/features/admin/CrashLogTab.tsx` |
+| Seed script for test data | `scripts/seed-crash.ts` |
+
+Activate: `npx supabase db push` then `npx tsx scripts/seed-crash.ts` to seed test entries.
+
+---
+
+## Session 16 — R2 upload helpers + backup ✓
+
+**R2 signed-URL upload helpers**
+- `src/lib/storage/r2.ts` already has `getUploadUrl` / `getDownloadUrl` from Session 6. This session wires proper per-kind signed upload helpers for photos, voice notes, DOs, and completion photos — with correct content-type headers and expiry windows.
+- Cloudflare Images binding: `CF_IMAGES_DELIVERY_URL` (pending from Session 1) gets filled; image upload route auto-pushes to Cloudflare Images for resize before storing the R2 key.
+
+**Cold-archive backup**
+- `scripts/backup.sh` — rclone sync from Cloudflare R2 to local external drive; also backs up the Supabase DB dump.
+- Cron: daily at 3 AM SGT via server PC task scheduler or crontab.
+
+---
+
+## Session 17 — Vercel deploy preview ✓
+
+Connect the GitHub repo to Vercel, set all env vars (Supabase, R2, Anthropic, Voyage, Telegram, Cloudflare Images), confirm the build passes, and get a stable preview URL for testing. Telegram webhook re-pointed to the Vercel URL.
+
+---
+
+## Session 18 — Full design review _(planned)_
+
+Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. Every screen compared side-by-side. Findings logged and fixed in-session — expect typography, spacing, colour, and interaction regressions from the migration. Notes written to `docs/session18-note.md`.
+
+---
+
+## Session 19 — Pre-Alpha Testing (Myself) _(planned)_
+
+Solo end-to-end run through every flow (sales → scheduler → installer → completion) on the Vercel preview. Test on mobile. Versioning starts at **V.0.0.0.1** — each fix increments the last digit.
+
+---
+
+## Session 20 — Pre-Alpha Feedback _(planned)_
+
+Review findings from Session 19, apply hotfixes, and iterate until I give the green light to bring in the scheduler. Version continues at **V.0.0.0.X** (X increments per change). No Session 21 until I'm satisfied.
+
+---
+
+## Session 21 — Alpha Testing (Scheduler) _(planned)_
+
+Real-team test with Me + Scheduler on the Vercel preview using live-ish data. Versioning moves to **V.0.0.X.0** (X increments per change). Hotfix loop until green light to proceed to Beta.
+
+---
+
+## Session 22 — Beta Testing (Management) _(planned)_
+
+Expanded test with Me + Scheduler + Sales. Full approval workflow, financials, Telegram notifications tested with all three roles simultaneously. Versioning at **V.0.X.0.0** (X increments per change). Hotfix loop until green light to launch.
+
+---
+
+## Session 23 — Launch _(planned)_
+
+Production cutover: Supabase project promoted to prod tier (or new org), Vercel deployment promoted, Telegram webhook pointed at prod URL, custom domain (if any) wired. Version becomes **V.1.0.0.0**. Hotfix window open.
+
+---
+
+## Session 24 — Post-Launch _(planned)_
+
+New features to be defined after launch feedback. Versioning continues at **V.1.X.0.0** for minor additions.
 
 ---
 

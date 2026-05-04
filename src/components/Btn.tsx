@@ -3,11 +3,12 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/utils/cn'
 
-type BtnVariant = 'primary' | 'secondary' | 'ghost'
-type BtnSize    = 'sm' | 'md' | 'lg'
+export type BtnVariant = 'primary' | 'accent' | 'secondary' | 'ghost'
+type BtnSize           = 'sm' | 'md' | 'lg'
 
 const variantStyles: Record<BtnVariant, string> = {
-  primary:   'bg-terracotta text-white border border-transparent hover:brightness-90 active:brightness-75',
+  primary:   'bg-ink text-white border border-transparent hover:brightness-90 active:brightness-75',
+  accent:    'bg-terracotta text-white border border-transparent hover:brightness-90 active:brightness-75',
   secondary: 'bg-transparent text-ink border border-line hover:bg-bg active:bg-line',
   ghost:     'bg-transparent text-ink2 border border-transparent hover:text-ink',
 }

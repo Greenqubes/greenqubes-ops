@@ -60,3 +60,48 @@ export function tplJobSubmittedForApproval(p: {
 }): string {
   return `📋 [PLACEHOLDER] Approval needed: <b>${p.jobClient}</b> on ${p.jobDate}\nSubmitted by ${p.salesName}`
 }
+
+// Monday digest — header sent once before the individual conversation items.
+export function tplDigestHeader(p: {
+  weekOf: string
+  count:  number
+}): string {
+  return `📊 <b>Monday Digest — week of ${p.weekOf}</b>\n\n${p.count} important conversation${p.count !== 1 ? 's' : ''} from last week. Tap a link below to promote to Obsidian.`
+}
+
+// Monday digest — one message per high-importance conversation (with voting buttons).
+export function tplDigestItem(p: {
+  index:      number
+  topic:      string
+  date:       string
+  importance: number
+  summary:    string
+}): string {
+  const stars = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
+  return `${p.index}. <b>${p.topic}</b> ${stars}\n<i>${p.date}</i>\n\n${p.summary}`
+}
+
+// Shown below a digest item after votes are cast (replaces original text).
+export function tplVoteStatus(p: {
+  index:       number
+  topic:       string
+  date:        string
+  importance:  number
+  summary:     string
+  yesCount:    number
+  noCount:     number
+  totalVoters: number
+  outcome:     'pending' | 'promoted' | 'dismissed'
+}): string {
+  const stars   = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
+  const header  = `${p.index}. <b>${p.topic}</b> ${stars}\n<i>${p.date}</i>\n\n${p.summary}\n\n`
+  const awaiting = p.totalVoters - p.yesCount - p.noCount
+
+  if (p.outcome === 'promoted') {
+    return `${header}✅ Promoted by majority — Obsidian note sent to all voters.`
+  }
+  if (p.outcome === 'dismissed') {
+    return `${header}❌ Dismissed by majority — skipped.`
+  }
+  return `${header}📊 ${p.yesCount} Yes · ${p.noCount} No · ${awaiting} awaiting (${p.totalVoters} voters)`
+}
