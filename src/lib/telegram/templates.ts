@@ -43,6 +43,15 @@ export function tplJobOverdue(p: {
   return `⏰ [PLACEHOLDER] Overdue: <b>${p.jobClient}</b>\n📍 ${p.location}\nScheduled: ${p.jobDate} until ${p.timeEnd}`
 }
 
+// Triggered when a user posts a voice note in a job's chat thread.
+export function tplJobVoiceNote(p: {
+  jobClient:  string
+  jobDate:    string
+  authorName: string
+}): string {
+  return `🎤 [PLACEHOLDER] Voice note on <b>${p.jobClient}</b> (${p.jobDate})\nFrom: ${p.authorName}`
+}
+
 // Triggered when a sales user submits a job for scheduler approval.
 export function tplJobSubmittedForApproval(p: {
   jobClient: string

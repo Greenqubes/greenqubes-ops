@@ -31,6 +31,7 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Relationships: []
       }
 
       jobs: {
@@ -64,6 +65,7 @@ export interface Database {
           'id' | 'created_at' | 'updated_at'
         > & { id?: string; created_at?: string; updated_at?: string }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
+        Relationships: []
       }
 
       job_financials: {
@@ -76,12 +78,14 @@ export interface Database {
         }
         Insert: Database['public']['Tables']['job_financials']['Row']
         Update: Partial<Database['public']['Tables']['job_financials']['Row']>
+        Relationships: []
       }
 
       job_assignees: {
         Row:    { job_id: string; user_id: string }
         Insert: Database['public']['Tables']['job_assignees']['Row']
         Update: Partial<Database['public']['Tables']['job_assignees']['Row']>
+        Relationships: []
       }
 
       files: {
@@ -99,6 +103,7 @@ export interface Database {
           ts?: string
         }
         Update: Partial<Database['public']['Tables']['files']['Insert']>
+        Relationships: []
       }
 
       messages: {
@@ -117,6 +122,7 @@ export interface Database {
           ts?: string
         }
         Update: Partial<Database['public']['Tables']['messages']['Insert']>
+        Relationships: []
       }
 
       asst_chats: {
@@ -133,11 +139,33 @@ export interface Database {
           ts:         string
           updated_at: string
         }
-        Insert: Omit<
-          Database['public']['Tables']['asst_chats']['Row'],
-          'id' | 'ts' | 'updated_at'
-        > & { id?: string; ts?: string; updated_at?: string }
-        Update: Partial<Database['public']['Tables']['asst_chats']['Insert']>
+        Insert: {
+          id?:         string
+          user_id:     string
+          msgs:        Json
+          embedding?:  string | null
+          topic?:      string | null
+          entities?:   string[] | null
+          tags?:       string[] | null
+          importance?: number | null
+          visibility:  string[]
+          ts?:         string
+          updated_at?: string
+        }
+        Update: {
+          id?:         string
+          user_id?:    string
+          msgs?:       Json
+          embedding?:  string | null
+          topic?:      string | null
+          entities?:   string[] | null
+          tags?:       string[] | null
+          importance?: number | null
+          visibility?: string[]
+          ts?:         string
+          updated_at?: string
+        }
+        Relationships: []
       }
 
       kb_chunks: {
@@ -156,6 +184,7 @@ export interface Database {
           'id' | 'updated_at'
         > & { id?: string; updated_at?: string }
         Update: Partial<Database['public']['Tables']['kb_chunks']['Insert']>
+        Relationships: []
       }
 
       events: {
@@ -174,6 +203,7 @@ export interface Database {
           ts?: string
         }
         Update: Partial<Database['public']['Tables']['events']['Insert']>
+        Relationships: []
       }
     }
 
@@ -182,6 +212,14 @@ export interface Database {
     Functions: {
       get_my_id:   { Args: Record<string, never>; Returns: string }
       get_my_role: { Args: Record<string, never>; Returns: string }
+      match_kb_chunks: {
+        Args: { query_embedding: number[]; match_threshold?: number; match_count?: number }
+        Returns: { id: string; source_path: string; content: string; tags: string[] | null; similarity: number }[]
+      }
+      match_asst_chats: {
+        Args: { query_embedding: number[]; match_threshold?: number; match_count?: number }
+        Returns: { id: string; topic: string | null; msgs: Json; tags: string[] | null; importance: number | null; similarity: number }[]
+      }
     }
 
     Enums: {

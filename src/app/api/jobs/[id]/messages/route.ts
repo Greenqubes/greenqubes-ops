@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getJobById, insertMessage } from '@/lib/supabase/queries/jobs'
+import { getJobById, insertMessage, insertVoiceMessage } from '@/lib/supabase/queries/jobs'
 import { getJobRecipients } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobMessage } from '@/lib/telegram/templates'
+import { tplJobMessage, tplJobVoiceNote } from '@/lib/telegram/templates'
 
 const CHAT_OPEN_DAYS = 7
 
@@ -25,6 +25,8 @@ export async function POST(
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { id: authorId, name: authorName } = profile
+
   const job = await getJobById(jobId)
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -36,32 +38,47 @@ export async function POST(
     }
   }
 
-  const { content } = await req.json() as { content: string }
-  if (!content?.trim()) {
-    return NextResponse.json({ error: 'content required' }, { status: 400 })
+  const body = await req.json() as { content?: string; kind?: string; voice_url?: string }
+  const isVoice = body.kind === 'voice'
+
+  // ── Telegram helpers ──────────────────────────────────────────────────────
+  async function notifyParticipants(tgMessage: string) {
+    const { salesPoc, installers } = await getJobRecipients(jobId)
+    const recipients = [salesPoc, ...installers].filter(
+      (r): r is NonNullable<typeof r> =>
+        r !== null && r.id !== authorId && r.telegram_chat_id !== null,
+    )
+    await Promise.all(recipients.map(r => sendTelegram(r.telegram_chat_id!, tgMessage)))
   }
 
-  const message = await insertMessage(jobId, profile.id, content.trim())
+  // ── Voice note ────────────────────────────────────────────────────────────
+  if (isVoice) {
+    const voiceUrl = body.voice_url?.trim()
+    if (!voiceUrl) return NextResponse.json({ error: 'voice_url required' }, { status: 400 })
 
-  // ── Telegram: notify all job participants except the author ──
-  const { salesPoc, installers } = await getJobRecipients(jobId)
+    const message = await insertVoiceMessage(jobId, authorId, voiceUrl)
 
-  const recipients = [salesPoc, ...installers].filter(
-    (r): r is NonNullable<typeof r> =>
-      r !== null && r.id !== profile.id && r.telegram_chat_id !== null,
-  )
-
-  if (recipients.length > 0) {
-    const msg = tplJobMessage({
+    await notifyParticipants(tplJobVoiceNote({
       jobClient:  job.client,
       jobDate:    job.date,
-      authorName: profile.name,
-      preview:    content.trim().slice(0, 100),
-    })
-    for (const r of recipients) {
-      await sendTelegram(r.telegram_chat_id!, msg)
-    }
+      authorName: authorName,
+    }))
+
+    return NextResponse.json({ message })
   }
+
+  // ── Text message ──────────────────────────────────────────────────────────
+  const content = body.content?.trim() ?? ''
+  if (!content) return NextResponse.json({ error: 'content required' }, { status: 400 })
+
+  const message = await insertMessage(jobId, authorId, content)
+
+  await notifyParticipants(tplJobMessage({
+    jobClient:  job.client,
+    jobDate:    job.date,
+    authorName: authorName,
+    preview:    content.slice(0, 100),
+  }))
 
   return NextResponse.json({ message })
 }

@@ -1,0 +1,166 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { LogOut, Briefcase, Bot } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { cn } from '@/lib/utils/cn'
+import { t } from '@/lib/i18n'
+import { toISO } from '@/features/schedule/utils'
+import { InstallerJobCard } from './InstallerJobCard'
+import type { InstallerJob } from '@/lib/supabase/queries/installer'
+import type { LangCode } from '@/lib/i18n'
+
+type Tab = 'today' | 'next' | 'week' | 'past'
+
+function getWeekEnd(today: string): string {
+  const d = new Date(today + 'T00:00:00')
+  const dayOfWeek = d.getDay()
+  const daysUntilSun = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
+  d.setDate(d.getDate() + daysUntilSun)
+  return toISO(d)
+}
+
+interface Props {
+  jobs:     InstallerJob[]
+  lang:     LangCode
+  userName: string
+}
+
+export function InstallerShell({ jobs, lang, userName }: Props) {
+  const [tab, setTab] = useState<Tab>('today')
+  const router = useRouter()
+
+  const today   = toISO(new Date())
+  const weekEnd = getWeekEnd(today)
+
+  const scheduled = useMemo(
+    () => jobs
+      .filter(j => j.status === 'scheduled')
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.time_start ?? '').localeCompare(b.time_start ?? '')),
+    [jobs],
+  )
+
+  const todayJobs = useMemo(
+    () => scheduled.filter(j => j.date === today),
+    [scheduled, today],
+  )
+
+  const nextJobs = useMemo(
+    () => scheduled.filter(j => j.date > today).slice(0, 5),
+    [scheduled, today],
+  )
+
+  const weekJobs = useMemo(
+    () => scheduled.filter(j => j.date >= today && j.date <= weekEnd),
+    [scheduled, today, weekEnd],
+  )
+
+  const pastJobs = useMemo(
+    () => jobs
+      .filter(j => j.status === 'completed' || j.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [jobs, today],
+  )
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  const tabs: { v: Tab; label: string; count: number }[] = [
+    { v: 'today', label: t(lang, 'installerToday'),    count: todayJobs.length },
+    { v: 'next',  label: t(lang, 'installerUpNext'),   count: nextJobs.length  },
+    { v: 'week',  label: t(lang, 'installerThisWeek'), count: weekJobs.length  },
+    { v: 'past',  label: t(lang, 'installerHistoryTab'), count: 0              },
+  ]
+
+  const visibleJobs =
+    tab === 'today' ? todayJobs :
+    tab === 'next'  ? nextJobs  :
+    tab === 'week'  ? weekJobs  :
+                     pastJobs
+
+  return (
+    <div className="min-h-screen bg-bg">
+
+      {/* ── Header ── */}
+      <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">Greenqubes</p>
+          <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none">
+            {userName}
+          </h1>
+          <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase bg-green/10 text-green border border-green/20">
+            {t(lang, 'roleInstaller')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <Link
+            href="/assistant"
+            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
+            aria-label={t(lang, 'assistant')}
+          >
+            <Bot size={15} />
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
+            aria-label={t(lang, 'signOut')}
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className="px-4 pb-3 flex gap-1.5 overflow-x-auto scrollbar-none">
+        {tabs.map(({ v, label, count }) => (
+          <button
+            key={v}
+            onClick={() => setTab(v)}
+            className={cn(
+              'flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium shrink-0 transition-colors',
+              tab === v
+                ? 'bg-green text-white border-green'
+                : 'bg-paper border-line text-ink2 hover:border-ink2',
+            )}
+          >
+            {label}
+            {count > 0 && (
+              <span className={cn(
+                'inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-bold leading-none',
+                tab === v ? 'bg-white/25 text-white' : 'bg-green/15 text-green',
+              )}>
+                {count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Section label ── */}
+      {tab === 'past' && pastJobs.length > 0 && (
+        <p className="px-4 pb-2 text-[11px] text-muted uppercase tracking-widest">
+          {t(lang, 'installerHistoryTitle')}
+        </p>
+      )}
+
+      {/* ── Job list ── */}
+      <div className="px-4 space-y-3 pb-10">
+        {visibleJobs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <Briefcase size={32} className="text-muted" strokeWidth={1.5} />
+            <p className="text-sm text-muted">{t(lang, 'installerNothingToday')}</p>
+          </div>
+        ) : (
+          visibleJobs.map(job => (
+            <InstallerJobCard key={job.id} job={job} lang={lang} />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}

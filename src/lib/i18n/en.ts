@@ -103,10 +103,15 @@ export const en = {
   jobChatSubtitle: 'Live thread between sales, scheduler & installers',
   sendMessage: 'Send',
   recordVoiceNote: 'Voice note',
+  playVoiceNote: 'Play',
 
   // ── AI assistant ───────────────────────────────────────────────────────────
   askPlaceholder: 'Ask, search, or describe a job…',
   assistantSubtitle: 'with web search',
+  assistantEmpty: 'Ask anything about your jobs, schedule, or team.',
+  assistantSources: 'Sources',
+  assistantError: 'Something went wrong — please try again.',
+  newChat: 'New chat',
   thinking: 'Thinking…',
 
   // ── Telegram notifications ─────────────────────────────────────────────────

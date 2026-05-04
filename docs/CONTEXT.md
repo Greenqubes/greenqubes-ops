@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-02 (Session 8)_
+_Last updated: 2026-05-04 (Session 11)_
 
 ---
 
@@ -227,7 +227,8 @@ greenqubes/
 │   │   ├── assistant/            # AI chatbot panel
 │   │   ├── notifications/        # alerts, toasts, telegram routing
 │   │   ├── approvals/            # sales→scheduler workflow
-│   │   └── completion/           # photo-required completion modal
+│   │   ├── completion/           # photo-required completion modal
+│   │   └── admin/                # user management, role assignment, Telegram chat ID, system health
 │   ├── components/               # shared: Card, Pill, Btn, Field
 │   ├── lib/
 │   │   ├── i18n/
@@ -269,10 +270,11 @@ greenqubes/
 - [x] **Session 6** — `job-detail`: full edit form, assignees, financials, file gallery, status transitions, live chat with file attachments (R2 upload/download), 7-day post-completion chat window. Notes: `docs/session6-note.md`.
 - [x] **Session 7** — `approvals`: workload preview modal (sales), scheduler approvals queue at `/approvals`, approve & schedule, send back with optional note posted to job chat. Approvals badge on schedule page for scheduler. Notes: `docs/session7-note.md`.
 - [x] **Session 8** — `notifications` + Telegram bot webhook: Telegram utility + placeholder templates, approve/send-back API routes with notifications, overdue cron (every 2h, dedup via events), in-app bell + overdue drawer (all roles), webhook handler stub. Notes: `docs/session8-note.md`.
-- [ ] **Session 9** — `installer` features (dashboard, history, job view)
-- [ ] **Session 10** — `chat-thread` (live messages + voice notes)
-- [ ] **Session 11** — `assistant` + retrieval + auto-tagger
+- [x] **Session 9** — `installer` features (dashboard, history, job view)
+- [x] **Session 10** — `chat-thread`: voice notes (record + playback), back-nav fix for installer, realtime approvals badge; Session 8 TODO wired (`tplJobSubmittedForApproval`)
+- [x] **Session 11** — `assistant` + retrieval + auto-tagger
 - [ ] **Session 12** — `obsidian-sync` + `monday-digest` cron scripts
+- [ ] **Session 13** — `admin` page: user management (provision, role assignment, Telegram chat ID), system health indicators
 - [ ] R2 signed-URL upload helpers + Cloudflare Images binding
 - [ ] `backup.sh` rclone cold-archive script + cron
 - [ ] Deploy preview to Vercel

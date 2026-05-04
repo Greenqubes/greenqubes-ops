@@ -7,10 +7,13 @@ import type { Role } from '@/lib/supabase/types'
 
 export default async function JobDetailPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ id: string }>
+  params:       Promise<{ id: string }>
+  searchParams: Promise<{ from?: string }>
 }) {
-  const { id } = await params
+  const [{ id }, sp] = await Promise.all([params, searchParams])
+  const backHref = sp.from === 'installer' ? '/installer' : '/schedule'
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,6 +44,7 @@ export default async function JobDetailPage({
       lang={(profile.lang as LangCode) ?? 'en'}
       installers={installers}
       initialMessages={messages}
+      backHref={backHref}
     />
   )
 }

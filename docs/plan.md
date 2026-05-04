@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-02 (Session 7)_
+_Last updated: 2026-05-04 (Session 11)_
 
 ---
 
@@ -131,14 +131,59 @@ _Last updated: 2026-05-02 (Session 7)_
 
 ---
 
-## Sessions 9–12 — Remaining features (in order)
+## Session 9 — Installer dashboard ✓
+
+- `src/lib/supabase/queries/installer.ts` — `InstallerJob` type + `getInstallerJobs()`, includes sales POC join for "Call sales"
+- `src/app/installer/page.tsx` — server page, role guard (non-installers → `/schedule`)
+- `src/features/installer/InstallerShell.tsx` — 4 tabs (Today / Up next / This week / Past), sign-out, client-side tab bucketing
+- `src/features/installer/InstallerJobCard.tsx` — status pill, date, client, time, location, optional `tel:` call-sales row
+- `src/app/page.tsx` — role-based redirect: installer → `/installer`, sales/scheduler → `/schedule`
+- i18n: 8 installer keys added to zh.ts + bn.ts
+- Back-nav from `/jobs/[id]` to `/installer` deferred to Session 10
+
+---
+
+## Session 10 — Chat-thread + carried Session 8 TODO ✓
+
+- `src/lib/supabase/queries/notifications.ts` — added `getSchedulers()`: fetches all users with `role = 'scheduler'`
+- `src/app/api/jobs/[id]/submit/route.ts` (new) — sales-only POST; sets status to `awaiting_approval` (+ optional date); fires `tplJobSubmittedForApproval` to all schedulers via Telegram
+- `src/features/job-detail/JobDetailShell.tsx` — `handleWorkloadConfirm` now calls `/api/jobs/[id]/submit` instead of direct Supabase; accepts `backHref` prop (default `/schedule`)
+- `src/lib/supabase/queries/jobs.ts` — added `insertVoiceMessage()`
+- `src/lib/telegram/templates.ts` — added `tplJobVoiceNote()`
+- `src/app/api/jobs/[id]/messages/route.ts` — extended to handle `kind: 'voice'` with `voice_url`; refactored Telegram logic into `notifyParticipants()` helper
+- `src/features/job-detail/ChatSection.tsx` — `VoicePlayer` component (lazy signed-URL fetch, native `<audio>`), `MediaRecorder` recording flow (idle → recording → uploading), mic + stop-circle buttons in input bar; `toItems` extended for voice messages
+- `src/features/installer/InstallerJobCard.tsx` — job links now include `?from=installer`
+- `src/app/jobs/[id]/page.tsx` — reads `searchParams.from`; passes `backHref` to `JobDetailShell`
+- `src/features/schedule/ScheduleShell.tsx` — realtime approvals badge via Supabase Realtime subscription on `jobs` table UPDATEs; re-fetches count from DB on each event
+- i18n: added `playVoiceNote` to en/zh/bn
+
+---
+
+## Session 11 — AI assistant ✓
+
+- `supabase/migrations/0004_assistant_search.sql` — `match_kb_chunks` + `match_asst_chats` pgvector RPC functions (SECURITY INVOKER, RLS-filtered)
+- `src/lib/ai/embed.ts` — Voyage AI embedding (voyage-3, 1024 dims)
+- `src/lib/ai/retrieve.ts` — RAG retrieval: embed question → pgvector query on kb_chunks + asst_chats
+- `src/lib/ai/tagger.ts` — conversation auto-classifier (Claude Haiku → topic/entities/tags/importance/visibility)
+- `src/lib/supabase/queries/assistant.ts` — `getRecentChats()` + `saveChat()` (service client)
+- `src/app/api/assistant/chat/route.ts` — streaming SSE chat (Claude Sonnet + web_search_20250305 tool + RAG context)
+- `src/app/api/assistant/save/route.ts` — tag + embed + save conversation to asst_chats
+- `src/app/assistant/page.tsx` — server page with role-based backHref
+- `src/features/assistant/AssistantShell.tsx` — streaming chat UI, message bubbles, source chips, New Chat button
+- `src/lib/supabase/types.ts` — added `Relationships: []` to all tables (fixes GenericTable contract for service client), flat Insert/Update for asst_chats, match_* in Functions
+- Bot icon nav link added to ScheduleShell + InstallerShell headers
+- i18n: `assistantEmpty`, `assistantSources`, `assistantError`, `newChat` added to en/zh/bn
+
+**Note:** `npx supabase db push` must be run to apply the pgvector RPC migration before retrieval works.
+
+---
+
+## Sessions 12–13 — Remaining features (in order)
 
 | Session | Feature |
 |---|---|
-| 9 | `installer` — dashboard, history, job view |
-| 10 | `chat-thread` — live messages + voice notes |
-| 11 | `assistant` — AI chatbot + retrieval + auto-tagger |
 | 12 | `obsidian-sync` + `monday-digest` cron scripts |
+| 13 | `admin` — user management, role assignment, Telegram chat ID, system health |
 
 ---
 

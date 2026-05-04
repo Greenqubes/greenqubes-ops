@@ -46,9 +46,10 @@ interface Props {
   lang:             LangCode
   installers:       InstallerUser[]
   initialMessages:  JobMessage[]
+  backHref?:        string
 }
 
-export function JobDetailShell({ job, role, userId, lang, installers, initialMessages }: Props) {
+export function JobDetailShell({ job, role, userId, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
 
@@ -135,7 +136,19 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
 
   const handleWorkloadConfirm = async (finalDate: string) => {
     setShowWorkload(false)
-    await handleStatusChange('awaiting_approval', finalDate !== job.date ? finalDate : undefined)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/submit`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ date: finalDate }),
+      })
+      if (!res.ok) throw new Error()
+      setStatus('awaiting_approval')
+      if (finalDate !== job.date) setValue('date', finalDate)
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
   }
 
   return (
@@ -143,7 +156,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       {/* header */}
       <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
+          <Link href={backHref} className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
           <span className="text-sm font-medium text-ink truncate">{job.client}</span>

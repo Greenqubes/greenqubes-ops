@@ -22,6 +22,9 @@ export default async function Home() {
     .eq('auth_id', user.id)
     .maybeSingle() as { data: Profile | null; error: unknown }
 
+  if (profile?.role === 'installer') redirect('/installer')
+  if (profile?.role === 'sales' || profile?.role === 'scheduler') redirect('/schedule')
+
   return (
     <main
       className="min-h-screen flex items-center justify-center px-4"

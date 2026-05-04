@@ -6,7 +6,10 @@ import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
-import { Send, Paperclip, Download, FileText, Image as ImageIcon, Lock } from 'lucide-react'
+import {
+  Send, Paperclip, Download, FileText, Image as ImageIcon,
+  Lock, Mic, StopCircle,
+} from 'lucide-react'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -20,6 +23,7 @@ function chatCutoff(completedAt: string): Date {
 
 type ChatItem =
   | { kind: 'message'; id: string; author: string | null; content: string; ts: string }
+  | { kind: 'voice';   id: string; author: string | null; voiceKey: string; ts: string }
   | { kind: 'file';    id: string; author: string | null; r2Key: string; filename: string; ts: string }
 
 function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
@@ -32,6 +36,15 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
         author:  m.author?.name ?? null,
         content: m.content!,
         ts:      m.ts,
+      })),
+    ...messages
+      .filter(m => m.kind === 'voice' && m.voice_url)
+      .map(m => ({
+        kind:     'voice' as const,
+        id:       m.id,
+        author:   m.author?.name ?? null,
+        voiceKey: m.voice_url!,
+        ts:       m.ts,
       })),
     ...files.map(f => ({
       kind:     'file' as const,
@@ -76,12 +89,55 @@ function FileAttachment({ r2Key, filename, lang }: { r2Key: string; filename: st
       disabled={loading}
       className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink hover:bg-line transition-colors disabled:opacity-50"
     >
-      {isImage ? <ImageIcon size={14} className="text-muted shrink-0" /> : <FileText size={14} className="text-muted shrink-0" />}
+      {isImage
+        ? <ImageIcon size={14} className="text-muted shrink-0" />
+        : <FileText  size={14} className="text-muted shrink-0" />}
       <span className="truncate max-w-[180px]">{filename}</span>
       <Download size={12} className="text-muted shrink-0 ml-auto" />
     </button>
   )
 }
+
+function VoicePlayer({ voiceKey, lang }: { voiceKey: string; lang: LangCode }) {
+  const [src,     setSrc]     = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = async () => {
+    if (src || loading) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/r2/download-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ key: voiceKey }),
+      })
+      const { url } = await res.json() as { url: string }
+      setSrc(url)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 min-w-[180px]">
+      <Mic size={13} className="text-muted shrink-0" />
+      {src ? (
+        <audio controls src={src} className="h-7 flex-1 min-w-0" />
+      ) : (
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="text-xs text-ink2 hover:text-ink disabled:opacity-50 transition-colors"
+        >
+          {loading ? t(lang, 'loading') : t(lang, 'playVoiceNote')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+type RecordState = 'idle' | 'recording' | 'uploading'
 
 interface Props {
   jobId:           string
@@ -95,25 +151,26 @@ interface Props {
 export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
-  const bottomRef  = useRef<HTMLDivElement>(null)
-  const fileRef    = useRef<HTMLInputElement>(null)
+  const bottomRef        = useRef<HTMLDivElement>(null)
+  const fileRef          = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef        = useRef<Blob[]>([])
 
-  const [messages,  setMessages]  = useState<JobMessage[]>(initialMessages)
-  const [files,     setFiles]     = useState<JobFile[]>(chatFiles)
-  const [text,      setText]      = useState('')
-  const [sending,   setSending]   = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [messages,    setMessages]    = useState<JobMessage[]>(initialMessages)
+  const [files,       setFiles]       = useState<JobFile[]>(chatFiles)
+  const [text,        setText]        = useState('')
+  const [sending,     setSending]     = useState(false)
+  const [uploading,   setUploading]   = useState(false)
+  const [recordState, setRecordState] = useState<RecordState>('idle')
 
-  const cutoff    = completedAt ? chatCutoff(completedAt) : null
-  const chatLocked = cutoff ? new Date() > cutoff : false
-  const inputDisabled = chatLocked || sending || uploading
+  const cutoff       = completedAt ? chatCutoff(completedAt) : null
+  const chatLocked   = cutoff ? new Date() > cutoff : false
+  const inputDisabled = chatLocked || sending || uploading || recordState !== 'idle'
 
-  // scroll to bottom when items change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, files])
 
-  // realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel(`job-chat-${jobId}`)
@@ -167,6 +224,63 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     }
   }
 
+  const handleRecord = async () => {
+    if (recordState === 'recording') {
+      mediaRecorderRef.current?.stop()
+      return
+    }
+    if (recordState !== 'idle') return
+
+    try {
+      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+      chunksRef.current = []
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+        setRecordState('uploading')
+        try {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const key  = `jobs/${jobId}/voice/${Date.now()}.webm`
+
+          const urlRes = await fetch('/api/r2/upload-url', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ key, contentType: 'audio/webm' }),
+          })
+          const { url } = await urlRes.json() as { url: string }
+
+          await fetch(url, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'audio/webm' },
+            body:    blob,
+          })
+
+          const res = await fetch(`/api/jobs/${jobId}/messages`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ kind: 'voice', voice_url: key }),
+          })
+          if (!res.ok) showError(t(lang, 'saveError'))
+        } catch {
+          showError(t(lang, 'saveError'))
+        } finally {
+          setRecordState('idle')
+        }
+      }
+
+      recorder.start()
+      setRecordState('recording')
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -174,25 +288,21 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
     setUploading(true)
     try {
-      const ext  = file.name.split('.').pop() ?? 'bin'
-      const key  = `jobs/${jobId}/attachments/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const key = `jobs/${jobId}/attachments/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
 
-      // 1. get presigned upload URL
       const urlRes = await fetch('/api/r2/upload-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key, contentType: file.type || `application/octet-stream` }),
+        body:    JSON.stringify({ key, contentType: file.type || 'application/octet-stream' }),
       })
       const { url } = await urlRes.json() as { url: string }
 
-      // 2. PUT directly to R2
       await fetch(url, {
         method:  'PUT',
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
         body:    file,
       })
 
-      // 3. insert file record in Supabase
       await supabase.from('files').insert({
         job_id:      jobId,
         kind:        'attachment',
@@ -243,6 +353,8 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
                 <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
                   {item.content}
                 </p>
+              ) : item.kind === 'voice' ? (
+                <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
               ) : (
                 <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
               )}
@@ -272,18 +384,35 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
             className="hidden"
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
           />
+
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={inputDisabled}
-            className="text-muted hover:text-ink transition-colors disabled:opacity-40"
             title={t(lang, 'attachFile')}
+            className="text-muted hover:text-ink transition-colors disabled:opacity-40 shrink-0"
           >
-            {uploading ? (
-              <span className="text-xs text-muted">{t(lang, 'uploading')}</span>
-            ) : (
-              <Paperclip size={16} />
-            )}
+            {uploading
+              ? <span className="text-xs text-muted">{t(lang, 'uploading')}</span>
+              : <Paperclip size={16} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRecord}
+            disabled={chatLocked || sending || uploading}
+            title={t(lang, 'recordVoiceNote')}
+            className={`shrink-0 transition-colors disabled:opacity-40 ${
+              recordState === 'recording'
+                ? 'text-terracotta animate-pulse'
+                : recordState === 'uploading'
+                  ? 'text-muted'
+                  : 'text-muted hover:text-ink'
+            }`}
+          >
+            {recordState === 'recording'
+              ? <StopCircle size={16} />
+              : <Mic size={16} />}
           </button>
 
           <input

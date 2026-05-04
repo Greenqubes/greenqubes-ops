@@ -40,6 +40,15 @@ export async function getJobRecipients(jobId: string): Promise<JobRecipients> {
   return { salesPoc, installers }
 }
 
+export async function getSchedulers(): Promise<NotifRecipient[]> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, name, telegram_chat_id')
+    .eq('role', 'scheduler')
+  return (data ?? []) as NotifRecipient[]
+}
+
 // ── Overdue alerts ────────────────────────────────────────────────────────────
 
 export type OverdueJob = {

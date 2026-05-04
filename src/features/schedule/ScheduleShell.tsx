@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Bot } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
@@ -29,6 +30,32 @@ interface ScheduleShellProps {
 
 export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleShellProps) {
   const today = toISO(new Date())
+
+  const [liveApprovalCount, setLiveApprovalCount] = useState(approvalCount)
+
+  useEffect(() => { setLiveApprovalCount(approvalCount) }, [approvalCount])
+
+  useEffect(() => {
+    if (role !== 'scheduler') return
+    const supabase = createClient()
+
+    async function refreshCount() {
+      const { count } = await supabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'awaiting_approval')
+      setLiveApprovalCount(count ?? 0)
+    }
+
+    const channel = supabase
+      .channel('schedule-approvals')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs' }, () => {
+        refreshCount()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [role])
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [filter,       setFilter]       = useState<Filter>('all')
@@ -150,13 +177,20 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
                 <path d="M9 11l3 3L22 4"/>
                 <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
               </svg>
-              {approvalCount > 0 && (
+              {liveApprovalCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center bg-terracotta text-white text-[10px] font-bold rounded-full px-1 leading-none">
-                  {approvalCount}
+                  {liveApprovalCount}
                 </span>
               )}
             </Link>
           )}
+          <Link
+            href="/assistant"
+            className="p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
+            title={tr(lang, 'assistant')}
+          >
+            <Bot size={15} />
+          </Link>
           <NotificationDrawer jobs={jobs} lang={lang} />
           <button
             onClick={() => setShowSearch(s => !s)}

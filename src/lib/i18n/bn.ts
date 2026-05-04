@@ -13,6 +13,10 @@ export const bn: Partial<Translations> = {
   companySchedule: 'কোম্পানির সময়সূচি',
   newJob: 'নতুন কাজ',
   noJobs: 'কোনো কাজ নির্ধারিত নেই',
+  assistantEmpty: 'আপনার কাজ, সময়সূচি বা দল সম্পর্কে যেকোনো প্রশ্ন করুন।',
+  assistantSources: 'উৎস',
+  assistantError: 'কিছু ভুল হয়েছে — আবার চেষ্টা করুন।',
+  newChat: 'নতুন কথোপকথন',
   thinking: 'ভাবছি…',
   loading: 'লোড হচ্ছে…',
   language: 'ভাষা',
@@ -62,4 +66,15 @@ export const bn: Partial<Translations> = {
   saveError: 'সংরক্ষণ ব্যর্থ হয়েছে — আবার চেষ্টা করুন',
   notificationsNone: 'সব ঠিক আছে — কোনো বিলম্বিত কাজ নেই',
   overdueCount: 'বিলম্বিত',
+
+  // ── Installer dashboard ────────────────────────────────────────────────────
+  installerToday: 'আজকের কাজ',
+  installerUpNext: 'পরবর্তী',
+  installerThisWeek: 'এই সপ্তাহ',
+  installerNothingToday: 'আজ কোনো কাজ নেই',
+  installerHistoryTab: 'পুরানো',
+  installerHistoryTitle: 'পুরানো কাজ',
+  installerOpenJob: 'কাজ খুলুন',
+  installerCallSales: 'সেলস কল করুন',
+  playVoiceNote: 'চালান',
 }

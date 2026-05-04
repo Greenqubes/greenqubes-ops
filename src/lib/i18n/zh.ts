@@ -13,6 +13,10 @@ export const zh: Partial<Translations> = {
   companySchedule: '公司排程',
   newJob: '新工作',
   noJobs: '暂无工作',
+  assistantEmpty: '询问任何关于工作、排程或团队的问题。',
+  assistantSources: '来源',
+  assistantError: '出错了 — 请重试。',
+  newChat: '新对话',
   thinking: '思考中…',
   loading: '加载中…',
   language: '语言',
@@ -69,4 +73,15 @@ export const zh: Partial<Translations> = {
   saveError: '保存失败，请重试',
   notificationsNone: '一切正常 — 无逾期工作',
   overdueCount: '逾期',
+
+  // ── Installer dashboard ────────────────────────────────────────────────────
+  installerToday: '今日工作',
+  installerUpNext: '即将到来',
+  installerThisWeek: '本周',
+  installerNothingToday: '今日暂无工作',
+  installerHistoryTab: '历史',
+  installerHistoryTitle: '历史工作',
+  installerOpenJob: '查看工作',
+  installerCallSales: '联系销售',
+  playVoiceNote: '播放',
 }

@@ -227,6 +227,27 @@ export async function insertMessage(
   return data as unknown as JobMessage
 }
 
+export async function insertVoiceMessage(
+  jobId:    string,
+  authorId: string,
+  voiceUrl: string,
+): Promise<JobMessage> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      job_id:    jobId,
+      author_id: authorId,
+      kind:      'voice',
+      voice_url: voiceUrl,
+      visibility: ['public-internal'],
+    } as never)
+    .select('id, author_id, kind, content, voice_url, ts, users!messages_author_id_fkey ( name )')
+    .single()
+  if (error) throw error
+  return data as unknown as JobMessage
+}
+
 // ── Files ─────────────────────────────────────────────────────────────────────
 
 export async function insertFile(
