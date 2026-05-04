@@ -267,9 +267,9 @@ Replaced broken SECURITY DEFINER-based SELECT policies on `messages` + `files` w
 
 ---
 
-## Session 17.2 — Calendar navigation + live schedule ✓
+## Session 17.2 — Calendar navigation + live schedule _(in progress — resume next session)_
 
-Fixed `toISO()` UTC timezone bug causing list/month arrow navigation to skip wrong number of days (UTC vs SGT offset). Added realtime jobs subscription in `ScheduleShell` — `router.refresh()` on any job change makes the schedule update live without a page reload. Migration `0010_realtime_jobs.sql` adds `jobs` to the realtime publication and replaces SECURITY DEFINER SELECT policies with direct `auth.uid()` subqueries. Notes: `docs/session17.2-note.md`.
+Attempted fixes: `toISO()` UTC→local rewrite for arrow navigation, `router.refresh()` realtime subscription for live schedule, migration 0010 (jobs in realtime publication + RLS). Both still broken as of end of session. Resume as Session 17.2 (continued). Notes: `docs/session17.2-note.md`.
 
 ---
 

@@ -55,6 +55,13 @@ Same root cause as above — `shiftMonth` calls `toISO` at the end, returning th
 
 ---
 
-## What's next
+## Status: still broken at end of session
 
-Session 18 — full design review (visual pass against `docs/greenqubes-phase0.jsx`).
+Both bugs (calendar navigation and live schedule) were not confirmed fixed before session ended. Resume as **Session 17.2 (continued)** — diagnose why the fixes didn't take effect on the deployed Vercel build.
+
+### Things to check next session
+- Confirm Vercel actually deployed the latest commit (`fd7db48`)
+- Check browser DevTools: are realtime WebSocket events for `jobs` table being received?
+- Check if `router.refresh()` is firing (add a `console.log` temporarily)
+- Verify migration 0010 applied cleanly (check Supabase dashboard — SQL editor → run `select * from pg_publication_tables where pubname = 'supabase_realtime'` to confirm jobs is listed)
+- For the arrow nav: test whether `toISO()` change is actually in the deployed build (check source in DevTools)
