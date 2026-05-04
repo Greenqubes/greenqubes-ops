@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-04 (Session 17.1 — realtime RLS fix, favicon)_
+_Last updated: 2026-05-05 (Session 17.2 — calendar navigation timezone fix, live schedule updates)_
 
 ---
 
@@ -264,6 +264,12 @@ Connect the GitHub repo to Vercel, set all env vars (Supabase, R2, Anthropic, Vo
 Replaced broken SECURITY DEFINER-based SELECT policies on `messages` + `files` with direct `auth.uid()` subqueries — Supabase Realtime can now evaluate them correctly and delivers events. Added `src/app/icon.tsx` favicon (terracotta "G", 32×32). Notes: `docs/session17.1-note.md`.
 
 > **Naming rule:** Any bug-fix session before the full design review is Session 17.X (X increments per bug). Session 18 is reserved for the full design review only.
+
+---
+
+## Session 17.2 — Calendar navigation + live schedule ✓
+
+Fixed `toISO()` UTC→local rewrite for arrow navigation, `router.refresh()` realtime subscription for live schedule, migration 0010 (jobs in realtime publication + RLS). Root cause of delayed confirmation: Vercel auto-deploy was not connected to GitHub — force-deployed via CLI, GitHub integration then wired via dashboard. Notes: `docs/session17.2-note.md`.
 
 ---
 
