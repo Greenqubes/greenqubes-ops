@@ -49,7 +49,7 @@ export function JobRow({ job }: JobRowProps) {
                 {job.client}
               </span>
               {timeRange && (
-                <span className="text-xs font-medium text-ink2 shrink-0">{timeRange}</span>
+                <span className="text-[24px] font-medium text-ink2 shrink-0 leading-none">{timeRange}</span>
               )}
             </div>
 
@@ -75,7 +75,7 @@ export function JobRow({ job }: JobRowProps) {
               )}
 
               {job.production_ready && (
-                <span className="text-xs font-medium text-brand-green">production ✓</span>
+                <span className="text-xs font-medium text-brand-green">Production ✓</span>
               )}
               {job.do_issued && (
                 <span className="text-xs font-medium text-brand-green">DO ✓</span>

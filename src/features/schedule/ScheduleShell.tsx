@@ -157,9 +157,6 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">
-            {tr(lang, 'companySchedule')}
-          </p>
           <div className="flex items-center gap-1">
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
@@ -221,6 +218,11 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
           </div>
         </div>
       )}
+
+      {/* ── Company schedule label ── */}
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pb-2">
+        {tr(lang, 'companySchedule')}
+      </p>
 
       {/* ── View toggle + filter chips ── */}
       <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">

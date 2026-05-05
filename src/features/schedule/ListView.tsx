@@ -56,7 +56,7 @@ export function ListView({
                       : 'bg-paper border-line text-ink2 hover:border-ink2'
                 )}
               >
-                <span className="text-[10px] opacity-70 uppercase tracking-wide">{shortDay}</span>
+                <span className={cn('text-[10px] uppercase tracking-wide', !hasOverdue && 'opacity-70')}>{shortDay}</span>
                 <span className={cn(
                   'font-display text-base leading-none',
                   !active && isToday && !hasOverdue && 'text-terracotta'
