@@ -42,16 +42,16 @@ export function NotificationDrawer({ jobs, lang }: Props) {
         onClick={() => setOpen(true)}
         aria-label={t(lang, 'notifications')}
         className={cn(
-          'relative p-2 rounded-lg border transition-colors',
+          'flex items-center gap-1.5 px-2 py-2 rounded-lg border transition-colors',
           count > 0
-            ? 'bg-bad-soft border-bad text-bad'
+            ? 'bg-bad border-bad text-white'
             : 'bg-paper border-line text-ink2 hover:border-ink2',
         )}
       >
         <Bell size={15} />
         {count > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center bg-bad text-white text-[10px] font-bold rounded-full px-1 leading-none">
-            {count}
+          <span className="text-[10px] font-bold leading-none">
+            {count > 10 ? '10+' : count}
           </span>
         )}
       </button>
