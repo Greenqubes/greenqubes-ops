@@ -51,15 +51,15 @@ export function ListView({
                   'transition-colors text-xs font-medium',
                   active
                     ? 'bg-ink border-ink text-white'
-                    : 'bg-paper border-line text-ink2 hover:border-ink2'
+                    : hasOverdue
+                      ? 'bg-bad-soft border-bad text-bad'
+                      : 'bg-paper border-line text-ink2 hover:border-ink2'
                 )}
               >
                 <span className="text-[10px] opacity-70 uppercase tracking-wide">{shortDay}</span>
                 <span className={cn(
                   'font-display text-base leading-none',
-                  active        ? ''               :
-                  hasOverdue    ? 'text-bad'       :
-                  isToday       ? 'text-terracotta' : ''
+                  !active && isToday && !hasOverdue && 'text-terracotta'
                 )}>
                   {dayNum}
                 </span>
