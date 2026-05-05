@@ -291,7 +291,8 @@ greenqubes/
 - [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
 - [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
 - [x] **Session 18** — Full design review (audit + fix pass done 2026-05-05; 17 of 19 findings fixed; notes: `docs/session18-note.md`)
-- [ ] **Session 18.1** — Additional design edits from owner review of Session 18 preview
+- [x] **Session 18.1** — Additional design edits from owner review of Session 18 preview (notes: `docs/session18.1-note.md`)
+- [ ] **Session 18.2** — Continuing owner design review pass
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
