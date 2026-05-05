@@ -25,19 +25,14 @@ type ViewMode = 'list' | 'week' | 'month'
 type Filter   = 'all' | 'today' | 'week' | 'upcoming'
 
 interface ScheduleShellProps {
-  jobs:          ScheduleJob[]
-  lang:          LangCode
-  role?:         Role
-  approvalCount?: number
+  jobs:  ScheduleJob[]
+  lang:  LangCode
+  role?: Role
 }
 
-export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
-
-  const [liveApprovalCount, setLiveApprovalCount] = useState(approvalCount)
-
-  useEffect(() => { setLiveApprovalCount(approvalCount) }, [approvalCount])
 
   // Refresh server data on job changes (realtime) + every 2 min as fallback.
   // router.refresh() re-fetches server data while preserving all React state
@@ -56,28 +51,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
       clearInterval(poll)
     }
   }, [router])
-
-  useEffect(() => {
-    if (role !== 'scheduler') return
-    const supabase = createClient()
-
-    async function refreshCount() {
-      const { count } = await supabase
-        .from('jobs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'awaiting_approval')
-      setLiveApprovalCount(count ?? 0)
-    }
-
-    const channel = supabase
-      .channel('schedule-approvals')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs' }, () => {
-        refreshCount()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [role])
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [filter,       setFilter]       = useState<Filter>('all')
@@ -201,32 +174,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {(role === 'sales' || role === 'scheduler') && (
-            <Link
-              href="/jobs/new"
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg font-medium lowercase tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
-            >
-              <Plus size={12} />
-              {tr(lang, 'newJob')}
-            </Link>
-          )}
-          {role === 'scheduler' && (
-            <Link
-              href="/approvals"
-              className="relative p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
-              title={tr(lang, 'approvalsTab')}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-              </svg>
-              {liveApprovalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center bg-terracotta text-white text-[10px] font-bold rounded-full px-1 leading-none">
-                  {liveApprovalCount}
-                </span>
-              )}
-            </Link>
-          )}
           <button
             onClick={() => setShowSearch(s => !s)}
             aria-label="Toggle search"
@@ -239,6 +186,15 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
           >
             <Search size={15} />
           </button>
+          {(role === 'sales' || role === 'scheduler') && (
+            <Link
+              href="/jobs/new"
+              className="inline-flex items-center gap-1 px-3 py-[9px] text-xs rounded-lg font-medium lowercase tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
+            >
+              <Plus size={12} />
+              New
+            </Link>
+          )}
         </div>
       </div>
 
