@@ -63,7 +63,7 @@ export function ApprovalsShell({ queue: initialQueue, userId: _userId, lang }: P
             <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
             <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
           </div>
-          <UserMenu />
+          <UserMenu lang={lang} />
         </div>
         {/* ── Page title ── */}
         <div className="px-4 pt-3 pb-3 flex items-center gap-3">

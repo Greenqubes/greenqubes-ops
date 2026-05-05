@@ -44,12 +44,15 @@ export function JobRow({ job }: JobRowProps) {
 
           <div className="flex-1 min-w-0">
             {/* Client + time */}
-            <div className="flex justify-between items-baseline gap-2 mb-1">
+            <div className="flex justify-between items-start gap-2 mb-1">
               <span className="font-display text-base font-medium text-ink truncate leading-snug">
                 {job.client}
               </span>
               {timeRange && (
-                <span className="text-[24px] font-medium text-ink2 shrink-0 leading-none">{timeRange}</span>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-[9px] text-muted uppercase tracking-wide leading-none mb-0.5">Job Time:</span>
+                  <span className="text-[12px] font-medium text-ink2 leading-none">{timeRange}</span>
+                </div>
               )}
             </div>
 

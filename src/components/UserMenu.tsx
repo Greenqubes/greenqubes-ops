@@ -2,11 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
+import type { LangCode } from '@/lib/i18n'
 
 const ADMIN_EMAIL = 'ai@greenqubes.com'
+
+const LANG_OPTIONS: { code: LangCode; label: string }[] = [
+  { code: 'en', label: 'EN'   },
+  { code: 'zh', label: '中文' },
+  { code: 'bn', label: 'বাং'  },
+]
 
 // Deterministic avatar colour — Tailwind must see these full strings at build time
 const AVATAR_COLORS = [
@@ -29,23 +36,42 @@ function avatarColor(name: string): string {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
 
-export function UserMenu() {
+interface Props {
+  lang?: LangCode
+}
+
+export function UserMenu({ lang: initialLang }: Props) {
   const [open,     setOpen]     = useState(false)
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
   const [isAdmin,  setIsAdmin]  = useState(false)
+  const [lang,     setLang]     = useState<LangCode>(initialLang ?? 'en')
+  const [changingLang, setChangingLang] = useState(false)
   const ref      = useRef<HTMLDivElement>(null)
   const router   = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       const userEmail = user?.email ?? ''
       setName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
       setEmail(userEmail)
       setIsAdmin(userEmail === ADMIN_EMAIL)
+      if (user) {
+        const { data } = await supabase
+          .from('users')
+          .select('lang')
+          .eq('auth_id', user.id)
+          .maybeSingle() as { data: { lang: string } | null; error: unknown }
+        if (data?.lang) setLang(data.lang as LangCode)
+      }
     })
   }, [])
+
+  useEffect(() => {
+    if (initialLang) setLang(initialLang)
+  }, [initialLang])
 
   // Close on outside click
   useEffect(() => {
@@ -65,6 +91,20 @@ export function UserMenu() {
   function handleAdmin() {
     setOpen(false)
     router.push('/admin')
+  }
+
+  async function handleLangChange(code: LangCode) {
+    if (code === lang || changingLang) return
+    setChangingLang(true)
+    setLang(code)
+    await fetch('/api/user/lang', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ lang: code }),
+    })
+    setChangingLang(false)
+    setOpen(false)
+    router.refresh()
   }
 
   const bg  = name ? avatarColor(name) : 'bg-ink2'
@@ -104,6 +144,31 @@ export function UserMenu() {
                 <p className="text-sm font-medium text-ink truncate">{name || '—'}</p>
                 {email && <p className="text-[11px] text-muted truncate">{email}</p>}
               </div>
+            </div>
+          </div>
+
+          {/* Language switcher */}
+          <div className="px-4 py-2.5 border-b border-line">
+            <div className="flex items-center gap-2 mb-2">
+              <Languages size={13} className="text-muted" strokeWidth={1.8} />
+              <span className="text-[11px] text-muted uppercase tracking-widest">Language</span>
+            </div>
+            <div className="flex gap-1.5">
+              {LANG_OPTIONS.map(({ code, label }) => (
+                <button
+                  key={code}
+                  onClick={() => handleLangChange(code)}
+                  disabled={changingLang}
+                  className={cn(
+                    'flex-1 py-1 rounded-md text-xs font-medium border transition-colors',
+                    lang === code
+                      ? 'bg-ink text-white border-ink'
+                      : 'bg-bg border-line text-ink2 hover:border-ink2',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 

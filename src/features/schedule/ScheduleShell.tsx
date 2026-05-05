@@ -150,9 +150,14 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
         </div>
         <div className="flex items-center gap-2">
           <NotificationDrawer jobs={jobs} lang={lang} />
-          <UserMenu />
+          <UserMenu lang={lang} />
         </div>
       </div>
+
+      {/* ── Company schedule label ── */}
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
+        {tr(lang, 'companySchedule')}
+      </p>
 
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
@@ -218,11 +223,6 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
           </div>
         </div>
       )}
-
-      {/* ── Company schedule label ── */}
-      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pb-2">
-        {tr(lang, 'companySchedule')}
-      </p>
 
       {/* ── View toggle + filter chips ── */}
       <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
