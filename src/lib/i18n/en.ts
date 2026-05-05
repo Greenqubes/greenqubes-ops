@@ -56,6 +56,7 @@ export const en = {
   awaitingApprovalDetail: 'This job has been sent for review. Recall it to make changes.',
   approvalsTab: 'Approvals',
   approvalsTitle: 'Approvals',
+  approvalsSubtitle: 'Pending requests from sales',
   approveAndSchedule: 'Approve & schedule',
   approvedSuccess: 'Approved & scheduled',
   sendBack: 'Send back',
@@ -91,6 +92,7 @@ export const en = {
   overduePastEnd: 'Past scheduled end time',
 
   // ── Installer dashboard ────────────────────────────────────────────────────
+  installerHi: 'Hi',
   installerToday: "Today's run",
   installerUpNext: 'Up next',
   installerThisWeek: 'This week',

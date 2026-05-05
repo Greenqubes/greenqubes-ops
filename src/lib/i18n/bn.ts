@@ -55,6 +55,7 @@ export const bn: Partial<Translations> = {
   recallApproval: 'প্রত্যাহার',
   markComplete: 'সম্পন্ন চিহ্নিত করুন',
   approvalsTitle: 'অনুমোদন',
+  approvalsSubtitle: 'বিক্রয় থেকে অনুমোদনের অনুরোধ',
   approvedSuccess: 'অনুমোদিত ও নির্ধারিত',
   sentBack: 'সেলসে ফেরত পাঠানো হয়েছে',
   sendBackHeading: 'সেলসে ফেরত পাঠান',
@@ -82,6 +83,7 @@ export const bn: Partial<Translations> = {
   overdueCount: 'বিলম্বিত',
 
   // ── Installer dashboard ────────────────────────────────────────────────────
+  installerHi: 'হ্যালো',
   installerToday: 'আজকের কাজ',
   installerUpNext: 'পরবর্তী',
   installerThisWeek: 'এই সপ্তাহ',

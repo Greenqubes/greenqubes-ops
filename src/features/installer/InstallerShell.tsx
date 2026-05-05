@@ -99,9 +99,9 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">Hi, {firstName}</p>
-          <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none">
-            {userName}
+          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">{t(lang, 'installerHi')}, {firstName}</p>
+          <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
+            {t(lang, 'installerToday')}
           </h1>
           <Pill variant="installer" className="mt-1.5" />
         </div>
@@ -119,7 +119,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
             className={cn(
               'flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium shrink-0 transition-colors',
               tab === v
-                ? 'bg-green text-white border-green'
+                ? 'bg-brand-green text-white border-brand-green'
                 : 'bg-paper border-line text-ink2 hover:border-ink2',
             )}
           >
@@ -127,7 +127,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
             {count > 0 && (
               <span className={cn(
                 'inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-bold leading-none',
-                tab === v ? 'bg-white/25 text-white' : 'bg-green/15 text-green',
+                tab === v ? 'bg-white/25 text-white' : 'bg-brand-green/15 text-brand-green',
               )}>
                 {count}
               </span>

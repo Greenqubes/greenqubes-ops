@@ -62,6 +62,7 @@ export const zh: Partial<Translations> = {
   recallApproval: '撤回',
   markComplete: '标记完成',
   approvalsTitle: '审批',
+  approvalsSubtitle: '销售发来的待审请求',
   approvedSuccess: '已批准并排程',
   sentBack: '已退回销售',
   sendBackHeading: '退回销售',
@@ -89,6 +90,7 @@ export const zh: Partial<Translations> = {
   overdueCount: '逾期',
 
   // ── Installer dashboard ────────────────────────────────────────────────────
+  installerHi: '你好',
   installerToday: '今日工作',
   installerUpNext: '即将到来',
   installerThisWeek: '本周',

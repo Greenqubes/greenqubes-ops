@@ -142,7 +142,7 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
   const headingLabel = useMemo(() => {
     if (viewMode === 'list') {
       return new Date(selectedDate + 'T00:00:00')
-        .toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })
+        .toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
     }
     return monthLabel(selectedDate, locale)
   }, [viewMode, selectedDate, locale])
@@ -179,7 +179,7 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
             </button>
-            <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none px-1">
+            <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
               {headingLabel}
             </h1>
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
