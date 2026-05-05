@@ -285,9 +285,15 @@ Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 find
 
 ---
 
-## Session 18.1 — Additional design edits _(planned)_
+## Session 18.1 — Additional design edits ✓
 
-Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Same rules as Session 18 — visual only, no feature work. Notes to be written to `docs/session18.1-note.md`.
+Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Company bar branding, notification bell redesign, overdue styling (pill, date strip, drawer), language switcher in UserMenu, Completed/Pending pages + bottom nav tabs, JobRow time label. Notes: `docs/session18.1-note.md`.
+
+---
+
+## Session 18.2 — Additional design edits _(planned)_
+
+Continuing owner review pass. Same rules as Session 18 — visual only, no feature work. Notes to be written to `docs/session18.2-note.md`.
 
 ---
 
