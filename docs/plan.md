@@ -281,7 +281,13 @@ Added migration 0011 (`REPLICA IDENTITY FULL` on jobs) and 2-min polling fallbac
 
 ## Session 18 — Full design review ✓
 
-Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Notes: `docs/session18-note.md`.
+Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Also fixed Supabase OAuth redirect URLs (added Vercel wildcard + localhost to allowed list; Site URL updated to production). Notes: `docs/session18-note.md`.
+
+---
+
+## Session 18.1 — Additional design edits _(planned)_
+
+Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Same rules as Session 18 — visual only, no feature work. Notes to be written to `docs/session18.1-note.md`.
 
 ---
 
