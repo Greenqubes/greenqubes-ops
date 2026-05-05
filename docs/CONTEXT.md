@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-05 (Session 17.2 — calendar timezone fix, live schedule updates)_
+_Last updated: 2026-05-05 (Session 18 audit — 19 visual findings logged, fix pass pending)_
 
 ---
 
@@ -290,7 +290,7 @@ greenqubes/
 - [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
 - [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
 - [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
-- [ ] **Session 18** — Full design review (visual pass against prototype — expect many changes; reserved exclusively for this)
+- [ ] **Session 18** — Full design review (audit done 2026-05-05; 19 findings in `docs/session18(summary).md`; fix pass pending)
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light

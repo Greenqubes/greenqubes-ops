@@ -19,6 +19,12 @@ Multiple fix attempts were made in Session 17.3 — NotificationDrawer, JobRow, 
 
 ---
 
+## Deployment workflow — dev branch first
+
+All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
+
+---
+
 ## Hard rules
 
 - Session 18 is exclusively for the full visual design review against `docs/greenqubes-phase0.jsx`. No feature work, no refactoring. New bugs found during Session 18 go to Session 17.4+.
