@@ -172,7 +172,7 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
       {/* ── Company bar ── */}
       <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
         <div className="flex items-center gap-2">
-          <span className="font-display font-semibold text-[15px] text-ink tracking-tight leading-none">GreenQubes</span>
+          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
           <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
         </div>
         <div className="flex items-center gap-2">
