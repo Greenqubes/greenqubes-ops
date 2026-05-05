@@ -169,6 +169,18 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
   return (
     <div className="min-h-screen bg-bg">
 
+      {/* ── Company bar ── */}
+      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
+        <div className="flex items-center gap-2">
+          <span className="font-display font-semibold text-[15px] text-ink tracking-tight leading-none">GreenQubes</span>
+          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <NotificationDrawer jobs={jobs} lang={lang} />
+          <UserMenu />
+        </div>
+      </div>
+
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -215,7 +227,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
               )}
             </Link>
           )}
-          <NotificationDrawer jobs={jobs} lang={lang} />
           <button
             onClick={() => setShowSearch(s => !s)}
             aria-label="Toggle search"
@@ -228,7 +239,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
           >
             <Search size={15} />
           </button>
-          <UserMenu />
         </div>
       </div>
 
