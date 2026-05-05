@@ -96,18 +96,22 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
   return (
     <div className="min-h-screen bg-bg">
 
+      {/* ── Company bar ── */}
+      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
+        <div className="flex items-center gap-2">
+          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
+          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
+        </div>
+        <UserMenu lang={lang} />
+      </div>
+
       {/* ── Header ── */}
-      <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">{t(lang, 'installerHi')}, {firstName}</p>
-          <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
-            {t(lang, 'installerToday')}
-          </h1>
-          <Pill variant="installer" className="mt-1.5" />
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <UserMenu />
-        </div>
+      <div className="px-4 pt-5 pb-4">
+        <p className="text-[11px] text-muted uppercase tracking-widest mb-1">{t(lang, 'installerHi')}, {firstName}</p>
+        <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
+          {t(lang, 'installerToday')}
+        </h1>
+        <Pill variant="installer" className="mt-1.5" />
       </div>
 
       {/* ── Tabs ── */}

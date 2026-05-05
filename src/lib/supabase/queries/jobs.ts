@@ -18,20 +18,44 @@ export type ScheduleJob = {
   job_assignees:    Array<{ users: { id: string; name: string } | null }>
 }
 
+const SCHEDULE_SELECT = `
+  id, status, date, time_start, time_end,
+  client, location, description, punctuality,
+  production_ready, do_issued,
+  job_assignees ( users ( id, name ) )
+`
+
 export async function getScheduleJobs(): Promise<ScheduleJob[]> {
   const supabase = await createClient()
-
   const { data, error } = await supabase
     .from('jobs')
-    .select(`
-      id, status, date, time_start, time_end,
-      client, location, description, punctuality,
-      production_ready, do_issued,
-      job_assignees ( users ( id, name ) )
-    `)
+    .select(SCHEDULE_SELECT)
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as unknown as ScheduleJob[]
+}
 
+export async function getCompletedJobs(): Promise<ScheduleJob[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(SCHEDULE_SELECT)
+    .eq('status', 'completed')
+    .order('date',       { ascending: false })
+    .order('time_start', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as unknown as ScheduleJob[]
+}
+
+export async function getPendingJobs(): Promise<ScheduleJob[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(SCHEDULE_SELECT)
+    .in('status', ['pending', 'awaiting_approval'])
+    .order('date',       { ascending: true })
+    .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
   return (data ?? []) as unknown as ScheduleJob[]
 }

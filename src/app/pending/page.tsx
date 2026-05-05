@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getScheduleJobs } from '@/lib/supabase/queries/jobs'
+import { getPendingJobs } from '@/lib/supabase/queries/jobs'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
-export default async function SchedulePage() {
+export default async function PendingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,13 +19,12 @@ export default async function SchedulePage() {
 
   if (!profile) redirect('/login')
 
-  const jobs = await getScheduleJobs()
+  const jobs = await getPendingJobs()
 
   return (
     <ScheduleShell
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
-      role={profile.role}
     />
   )
 }
