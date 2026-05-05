@@ -32,6 +32,10 @@ const config: Config = {
           DEFAULT: 'var(--amber)',
           soft: 'var(--amber-soft)',
         },
+        bad: {
+          DEFAULT: 'var(--bad)',
+          soft: 'var(--bad-soft)',
+        },
       },
       fontFamily: {
         display: ['var(--font-fraunces)', ...defaultTheme.fontFamily.serif],

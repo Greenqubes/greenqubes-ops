@@ -22,6 +22,9 @@
 
   --amber: #C8893D;
   --amber-soft: #F8EFDF;
+
+  --bad: #A83D3D;
+  --bad-soft: #F5E0E0;
 }
 
 @layer base {

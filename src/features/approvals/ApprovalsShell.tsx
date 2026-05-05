@@ -58,8 +58,8 @@ export function ApprovalsShell({ queue: initialQueue, userId: _userId, lang }: P
     <div className="min-h-screen bg-bg">
       <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 pt-4 pb-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-0.5">Greenqubes</p>
-          <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none">
+          <p className="text-[11px] text-muted uppercase tracking-widest mb-0.5">{t(lang, 'approvalsSubtitle')}</p>
+          <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
             {t(lang, 'approvalsTitle')}
           </h1>
         </div>

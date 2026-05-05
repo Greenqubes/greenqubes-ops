@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-05 (Session 18 audit — visual design review pre-work complete, 19 findings logged)_
+_Last updated: 2026-05-05 (Session 18 fix pass complete — all 15 visual findings fixed, typecheck clean)_
 
 ---
 
@@ -279,13 +279,9 @@ Added migration 0011 (`REPLICA IDENTITY FULL` on jobs) and 2-min polling fallbac
 
 ---
 
-## Session 18 — Full design review _(in progress)_
+## Session 18 — Full design review ✓
 
-Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. Every screen compared side-by-side. Findings logged and fixed in-session — expect typography, spacing, colour, and interaction regressions from the migration. Notes written to `docs/session18-note.md`.
-
-**Audit complete (2026-05-05).** 19 findings across all 9 screens documented in `docs/session18(summary).md`. Fix pass is next — no code changes made yet. Known functional bugs (BottomNav/input-bar overlap in Assistant; `bg-green` token collision) logged in `docs/session18-knownbugs-note.md` for Session 17.4.
-
-> Session 18 is reserved exclusively for the design review. All pre-review bug fixes go into 17.X sessions.
+Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Notes: `docs/session18-note.md`.
 
 ---
 

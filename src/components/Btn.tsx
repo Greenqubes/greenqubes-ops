@@ -31,7 +31,7 @@ export function Btn({ variant = 'primary', size = 'md', className, children, ...
       {...props}
       className={cn(
         'inline-flex items-center justify-center gap-1.5',
-        'rounded-lg font-medium lowercase tracking-wide',
+        'rounded-[10px] font-medium lowercase tracking-wide',
         'transition-colors duration-150',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         variantStyles[variant],

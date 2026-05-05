@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Clock, ExternalLink } from 'lucide-react'
+import { MapPin, Users, ExternalLink } from 'lucide-react'
 import { Card } from '@/components/Card'
 import { Pill } from '@/components/Pill'
 import { Btn } from '@/components/Btn'
@@ -79,7 +79,7 @@ export function ApprovalCard({ job, lang, onApprove, onSendBack }: Props) {
       {/* assignees */}
       {assignees.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Clock size={11} className="text-muted shrink-0" />
+          <Users size={11} className="text-muted shrink-0" />
           {assignees.map(a => (
             <span
               key={a.id}
@@ -93,7 +93,7 @@ export function ApprovalCard({ job, lang, onApprove, onSendBack }: Props) {
 
       {/* actions */}
       <div className="flex gap-2 pt-1 border-t border-line">
-        <Btn variant="primary" size="sm" onClick={onApprove}>
+        <Btn variant="accent" size="sm" onClick={onApprove}>
           {t(lang, 'approveAndSchedule')}
         </Btn>
         <Btn variant="secondary" size="sm" onClick={onSendBack}>

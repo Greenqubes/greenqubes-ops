@@ -29,7 +29,7 @@ export function JobRow({ job }: JobRowProps) {
         className={cn(
           'rounded-card border p-4 transition-all group-hover:brightness-95',
           isDraft    ? 'border-dashed'           : 'border-line',
-          overdue    ? 'border-terracotta bg-terracotta-soft'
+          overdue    ? 'border-bad bg-bad-soft'
                      : isCompleted ? 'bg-paper opacity-70'
                                    : 'bg-paper',
           overdue && 'border-solid'
@@ -39,7 +39,7 @@ export function JobRow({ job }: JobRowProps) {
           {/* Punctuality bar */}
           <div className={cn(
             'w-1.5 shrink-0 rounded-full self-stretch',
-            job.punctuality === 'strict' ? 'bg-terracotta' : 'bg-brand-blue'
+            job.punctuality === 'strict' ? 'bg-[#D14545]' : 'bg-brand-blue'
           )} />
 
           <div className="flex-1 min-w-0">
@@ -55,20 +55,20 @@ export function JobRow({ job }: JobRowProps) {
 
             {/* Description */}
             {job.description && (
-              <p className="text-sm text-ink2 leading-snug mb-2 line-clamp-1">
+              <p className="text-[13px] text-ink2 leading-snug mb-2 line-clamp-1">
                 {job.description}
               </p>
             )}
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="flex items-center gap-1 text-xs text-muted">
+              <span className="flex items-center gap-1 text-[11px] text-muted">
                 <MapPin size={11} />
                 <span className="truncate max-w-[150px]">{job.location}</span>
               </span>
 
               {installerNames && (
-                <span className="flex items-center gap-1 text-xs text-muted">
+                <span className="flex items-center gap-1 text-[11px] text-muted">
                   <Users size={11} />
                   {installerNames}
                 </span>
