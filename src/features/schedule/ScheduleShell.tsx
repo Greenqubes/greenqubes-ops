@@ -189,7 +189,7 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
           {(role === 'sales' || role === 'scheduler') && (
             <Link
               href="/jobs/new"
-              className="inline-flex items-center gap-1 px-3 py-[9px] text-xs rounded-lg font-semibold tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
+              className="inline-flex items-center gap-1 px-3 py-[11px] text-xs rounded-lg font-semibold tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
             >
               <Plus size={12} />
               New
