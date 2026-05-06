@@ -309,6 +309,16 @@ Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages
 
 ---
 
+## Session 17.6 — New job form + schedule filter improvements _(planned)_
+
+1. **Project title field** — add a "Project title" text input above the date box in `/jobs/new` (`NewJobShell`). Display project title on the calendar/schedule instead of client name. Requires DB column on `jobs` table (new migration) and query updates.
+2. **Create Job button** — rename "create job" → "Create Job". New jobs (status `pending`) must not appear in the Schedule tab — only in the Pending tab. Extend the `ScheduleShell` filter to also exclude `pending` and `awaiting_approval` statuses.
+3. **Pending tab — sales only** — hide the Pending bottom nav tab from non-sales users. Update `BottomNav` role-gating logic.
+4. **Time picker — 15-min intervals** — constrain time_start and time_end minute options to 00 / 15 / 30 / 45 in the job form (new and edit).
+5. **Production ready instructions attachment** — add a new row above the existing Production instructions section in job detail: allows a comment + photo/video file attachments labelled "Production ready instructions". Reuses existing R2 upload flow and `files` table (`kind = 'production_instructions'`).
+
+---
+
 ## Session 19 — Pre-Alpha Testing (Myself) _(planned)_
 
 Solo end-to-end run through every flow (sales → scheduler → installer → completion) on the Vercel preview. Test on mobile. Versioning starts at **V.0.0.0.1** — each fix increments the last digit.
