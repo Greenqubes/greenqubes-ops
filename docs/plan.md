@@ -303,6 +303,12 @@ For `ai@greenqubes.com` (admin account) only: add a button in the header/company
 
 ---
 
+## Session 17.5 — Persistent floating AI chatbot _(planned)_
+
+Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages except `/assistant`. Tapping opens a compact chat panel. Uses the existing `/api/assistant/chat` streaming SSE endpoint — full RAG retrieval + web search, same as the assistant page. Chat state resets on close (no cross-page persistence needed). Must not render on `/assistant` to avoid duplication.
+
+---
+
 ## Session 19 — Pre-Alpha Testing (Myself) _(planned)_
 
 Solo end-to-end run through every flow (sales → scheduler → installer → completion) on the Vercel preview. Test on mobile. Versioning starts at **V.0.0.0.1** — each fix increments the last digit.
