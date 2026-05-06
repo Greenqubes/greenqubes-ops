@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-06 (Session 18.2 complete — pill casing, completed job filter, legend colour, 17.4 logged)_
+_Last updated: 2026-05-06 (Session 18.2 complete — pill casing, completed job filter, legend colour; Sessions 17.4, 17.5, 17.6 logged)_
 
 ---
 
