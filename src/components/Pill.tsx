@@ -16,9 +16,9 @@ const styles: Record<PillVariant, string> = {
 
 const label: Record<PillVariant, string> = {
   scheduled:         'scheduled',
-  pending:           'pending',
+  pending:           'Pending',
   awaiting_approval: 'awaiting approval',
-  completed:         'completed',
+  completed:         'Completed',
   overdue:           'Overdue',
   sales:             'sales',
   scheduler:         'scheduler',
@@ -34,7 +34,7 @@ export function Pill({ variant, className }: PillProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium lowercase',
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
         styles[variant],
         className
       )}

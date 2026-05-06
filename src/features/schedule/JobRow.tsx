@@ -51,7 +51,7 @@ export function JobRow({ job }: JobRowProps) {
               {timeRange && (
                 <div className="flex flex-col items-end shrink-0">
                   <span className="text-[9px] text-muted uppercase tracking-wide leading-none mb-0.5">Job Time:</span>
-                  <span className="text-[12px] font-medium text-ink2 leading-none">{timeRange}</span>
+                  <span className="text-[15px] font-medium text-ink2 leading-none">{timeRange}</span>
                 </div>
               )}
             </div>

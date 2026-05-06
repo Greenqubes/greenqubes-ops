@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-05 (Session 18 fix pass complete — all 15 visual findings fixed, typecheck clean)_
+_Last updated: 2026-05-06 (Session 18.2 complete — pill casing, completed job filter, legend colour; Sessions 17.4, 17.5, 17.6 logged)_
 
 ---
 
@@ -291,9 +291,31 @@ Follow-up visual pass based on owner's own design input after reviewing the Sess
 
 ---
 
-## Session 18.2 — Additional design edits _(planned)_
+## Session 18.2 — Additional design edits ✓
 
-Continuing owner review pass. Same rules as Session 18 — visual only, no feature work. Notes to be written to `docs/session18.2-note.md`.
+Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed `lowercase` CSS override, capitalized Pending / Completed / Overdue labels. Schedule tab now hides completed jobs (visible in Completed tab only). Strict on-time legend box colour fixed to `#D14545`. Admin role-switcher feature deferred to Session 17.4. Notes: `docs/session18.2-note.md`.
+
+---
+
+## Session 17.4 — Admin role-switcher view _(planned)_
+
+For `ai@greenqubes.com` (admin account) only: add a button in the header/company bar that lets the admin preview the UI as Sales, Scheduler, or Installer. Requires server-side email check, role-override state passed through shells, no DB writes. Scope: functional feature, not design.
+
+---
+
+## Session 17.5 — Persistent floating AI chatbot _(planned)_
+
+Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages except `/assistant`. Tapping opens a compact chat panel. Uses the existing `/api/assistant/chat` streaming SSE endpoint — full RAG retrieval + web search, same as the assistant page. Chat state resets on close (no cross-page persistence needed). Must not render on `/assistant` to avoid duplication.
+
+---
+
+## Session 17.6 — New job form + schedule filter improvements _(planned)_
+
+1. **Project title field** — add a "Project title" text input above the date box in `/jobs/new` (`NewJobShell`). Display project title on the calendar/schedule instead of client name. Requires DB column on `jobs` table (new migration) and query updates.
+2. **Create Job button** — rename "create job" → "Create Job". New jobs (status `pending`) must not appear in the Schedule tab — only in the Pending tab. Extend the `ScheduleShell` filter to also exclude `pending` and `awaiting_approval` statuses.
+3. **Pending tab — sales only** — hide the Pending bottom nav tab from non-sales users. Update `BottomNav` role-gating logic.
+4. **Time picker — 15-min intervals** — constrain time_start and time_end minute options to 00 / 15 / 30 / 45 in the job form (new and edit).
+5. **Production ready instructions attachment** — add a new row above the existing Production instructions section in job detail: allows a comment + photo/video file attachments labelled "Production ready instructions". Reuses existing R2 upload flow and `files` table (`kind = 'production_instructions'`).
 
 ---
 
