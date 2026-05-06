@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-05 (Session 18 fix pass complete — all 15 visual findings fixed, typecheck clean)_
+_Last updated: 2026-05-06 (Session 18.2 complete — pill casing, completed job filter, legend colour, 17.4 logged)_
 
 ---
 
@@ -291,9 +291,15 @@ Follow-up visual pass based on owner's own design input after reviewing the Sess
 
 ---
 
-## Session 18.2 — Additional design edits _(planned)_
+## Session 18.2 — Additional design edits ✓
 
-Continuing owner review pass. Same rules as Session 18 — visual only, no feature work. Notes to be written to `docs/session18.2-note.md`.
+Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed `lowercase` CSS override, capitalized Pending / Completed / Overdue labels. Schedule tab now hides completed jobs (visible in Completed tab only). Strict on-time legend box colour fixed to `#D14545`. Admin role-switcher feature deferred to Session 17.4. Notes: `docs/session18.2-note.md`.
+
+---
+
+## Session 17.4 — Admin role-switcher view _(planned)_
+
+For `ai@greenqubes.com` (admin account) only: add a button in the header/company bar that lets the admin preview the UI as Sales, Scheduler, or Installer. Requires server-side email check, role-override state passed through shells, no DB writes. Scope: functional feature, not design.
 
 ---
 

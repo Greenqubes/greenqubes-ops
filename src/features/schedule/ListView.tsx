@@ -99,7 +99,7 @@ export function ListView({
             {/* Punctuality legend */}
             <div className="flex gap-4 mb-3">
               <span className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="w-2 h-2 rounded-sm bg-terracotta inline-block" />
+                <span className="w-2 h-2 rounded-sm bg-[#D14545] inline-block" />
                 {strings.strictOnTime}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-muted">
