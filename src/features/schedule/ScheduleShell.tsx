@@ -62,7 +62,7 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
 
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
-    if (j.status === 'completed') return false
+    if (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval') return false
     if (filter === 'today'    && j.date !== today) return false
     if (filter === 'upcoming' && j.date <  today)  return false
     if (filter === 'week') {

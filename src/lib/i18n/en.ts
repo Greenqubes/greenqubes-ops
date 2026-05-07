@@ -18,7 +18,7 @@ export const en = {
   companySchedule: 'Company schedule',
   newJob: 'New job',
   noJobs: 'No jobs scheduled',
-  searchJobs: 'Search jobs, clients, locations…',
+  searchJobs: 'Search jobs, customers, locations…',
   filterAll: 'All',
   filterToday: 'Today',
   filterWeek: 'This week',
@@ -29,11 +29,12 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
-  createJob: 'Create job',
+  createJob: 'Create Job',
+  projectTitle: 'Project Title',
   date: 'Date',
-  client: 'Client',
-  jobDescription: 'Job description',
-  locationAddress: 'Location / address',
+  client: 'Customer',
+  jobDescription: 'Job Description',
+  locationAddress: 'Location / Address',
   timeStart: 'Time start',
   timeEnd: 'Time end (optional)',
   punctuality: 'Punctuality',
@@ -67,7 +68,7 @@ export const en = {
   sendBackConfirm: 'Send back',
   noApprovals: 'No requests awaiting approval',
   approvalsEmpty: 'All clear — nothing awaiting approval',
-  pushToSchedule: 'Push to schedule',
+  pushToSchedule: 'Push for Approval',
 
   // ── Workload preview ───────────────────────────────────────────────────────
   workloadTitle: 'Team workload',
@@ -107,8 +108,11 @@ export const en = {
   monthViewHint:      'tap a date to see jobs',
 
   // ── Job chat ───────────────────────────────────────────────────────────────
-  jobChatTitle: 'Job chat',
+  jobChatTitle: 'Job Chat',
+  jobChatTitleLocked: 'Job Chat (Locked)',
   jobChatSubtitle: 'Live thread between sales, scheduler & installers',
+  chatLive: 'Live',
+  chatSyncing: 'Syncing',
   sendMessage: 'Send',
   recordVoiceNote: 'Voice note',
   playVoiceNote: 'Play',
@@ -143,8 +147,8 @@ export const en = {
 
   // ── Job detail ─────────────────────────────────────────────────────────────
   jobDetail: 'Job detail',
-  clientPOCName: 'Client contact name',
-  clientPOCPhone: 'Client contact phone',
+  clientPOCName: 'Client Name',
+  clientPOCPhone: 'Client Contact No. (Optional)',
   productionInstructions: 'Production instructions',
   notes: 'Notes',
 
@@ -161,13 +165,19 @@ export const en = {
   selectInstaller: 'Select installer…',
 
   // ── Files ──────────────────────────────────────────────────────────────────
-  jobFiles: 'Files',
+  jobFiles: 'Files / URL',
   noFiles: 'No files attached',
   downloadFile: 'Download',
   uploading: 'Uploading…',
+  pendingFiles: 'Attachments',
+  attachFiles: 'Attach Files',
+  urlLinks: 'URL Links',
+  urlLinksPlaceholder: 'Paste links, one per line (e.g. WeTransfer, SharePoint)…',
+  saveLinks: 'Save Links',
+  openLink: 'Open',
 
   // ── Status actions ─────────────────────────────────────────────────────────
-  submitForApproval: 'Submit for approval',
+  submitForApproval: 'Submit for Approval',
   recallApproval: 'Recall',
   markComplete: 'Mark complete',
   statusOverride: 'Override status',

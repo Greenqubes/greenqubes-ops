@@ -9,6 +9,7 @@ export type ScheduleJob = {
   date:             string
   time_start:       string | null
   time_end:         string | null
+  project_title:    string | null
   client:           string
   location:         string
   description:      string | null
@@ -20,7 +21,7 @@ export type ScheduleJob = {
 
 const SCHEDULE_SELECT = `
   id, status, date, time_start, time_end,
-  client, location, description, punctuality,
+  project_title, client, location, description, punctuality,
   production_ready, do_issued,
   job_assignees ( users ( id, name ) )
 `
@@ -95,6 +96,7 @@ export type JobDetail = {
   date:                    string
   time_start:              string | null
   time_end:                string | null
+  project_title:           string | null
   client:                  string
   location:                string
   description:             string | null
@@ -125,6 +127,7 @@ export type CoreFieldsPatch = {
   date?:                    string
   time_start?:              string | null
   time_end?:                string | null
+  project_title?:           string | null
   client?:                  string
   location?:                string
   description?:             string | null

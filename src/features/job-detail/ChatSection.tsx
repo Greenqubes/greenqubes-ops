@@ -8,8 +8,9 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import {
   Send, Paperclip, Download, FileText, Image as ImageIcon,
-  Lock, Mic, StopCircle,
+  Mic, StopCircle,
 } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -156,13 +157,14 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef        = useRef<Blob[]>([])
 
-  const [messages,    setMessages]    = useState<JobMessage[]>(initialMessages)
-  const [files,       setFiles]       = useState<JobFile[]>(chatFiles)
-  const [text,        setText]        = useState('')
-  const [sending,     setSending]     = useState(false)
-  const [uploading,   setUploading]   = useState(false)
-  const [recordState, setRecordState] = useState<RecordState>('idle')
-  const [chatLocked,  setChatLocked]  = useState(false)
+  const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
+  const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
+  const [text,           setText]           = useState('')
+  const [sending,        setSending]        = useState(false)
+  const [uploading,      setUploading]      = useState(false)
+  const [recordState,    setRecordState]    = useState<RecordState>('idle')
+  const [chatLocked,     setChatLocked]     = useState(false)
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting')
 
   const cutoff = completedAt ? chatCutoff(completedAt) : null
 
@@ -203,7 +205,8 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         },
       )
       .subscribe((status, err) => {
-        if (err) console.error('[chat realtime]', status, err)
+        if (status === 'SUBSCRIBED') setRealtimeStatus('live')
+        else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
       })
 
     return () => { supabase.removeChannel(channel) }
@@ -331,18 +334,35 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     <Card className="flex flex-col overflow-hidden">
       {/* header */}
       <div className="px-5 py-3 border-b border-line flex items-center justify-between">
-        <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
-        {cutoff && !chatLocked && (
-          <span className="text-xs text-muted">
-            {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
-          </span>
-        )}
-        {chatLocked && (
-          <span className="flex items-center gap-1 text-xs text-muted">
-            <Lock size={11} />
-            {t(lang, 'chatLockedTitle')}
-          </span>
-        )}
+        <h3 className="text-sm font-medium text-ink">
+          {chatLocked ? t(lang, 'jobChatTitleLocked') : t(lang, 'jobChatTitle')}
+        </h3>
+        <div className="flex items-center gap-3">
+          {cutoff && !chatLocked && (
+            <span className="text-xs text-muted">
+              {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
+            </span>
+          )}
+          {!chatLocked && (
+            <span className="flex items-center gap-1.5">
+              <span className={cn(
+                'w-1.5 h-1.5 rounded-full shrink-0',
+                realtimeStatus === 'live'  ? 'bg-brand-green' :
+                realtimeStatus === 'error' ? 'bg-bad animate-pulse' :
+                'bg-muted animate-pulse'
+              )} />
+              <span className={cn(
+                'text-xs font-medium',
+                realtimeStatus === 'live'  ? 'text-brand-green' :
+                realtimeStatus === 'error' ? 'text-bad' :
+                'text-muted'
+              )}>
+                {realtimeStatus === 'live'  ? t(lang, 'chatLive') :
+                 realtimeStatus === 'error' ? t(lang, 'chatSyncing') : '…'}
+              </span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* messages */}

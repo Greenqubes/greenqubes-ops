@@ -46,7 +46,7 @@ export function JobRow({ job }: JobRowProps) {
             {/* Client + time */}
             <div className="flex justify-between items-start gap-2 mb-1">
               <span className="font-display text-base font-medium text-ink truncate leading-snug">
-                {job.client}
+                {job.project_title || job.client}
               </span>
               {timeRange && (
                 <div className="flex flex-col items-end shrink-0">

@@ -27,6 +27,15 @@ export function CoreSection({ register, errors, control, readOnly, role, lang }:
   return (
     <Card className="p-5 space-y-4">
 
+      {/* Project Title */}
+      <Field label={t(lang, 'projectTitle')}>
+        <Input
+          {...register('project_title')}
+          placeholder="e.g. Vivienne Westwood Installation"
+          disabled={readOnly}
+        />
+      </Field>
+
       {/* Date */}
       <Field label={t(lang, 'date')} error={errors.date?.message}>
         <Input

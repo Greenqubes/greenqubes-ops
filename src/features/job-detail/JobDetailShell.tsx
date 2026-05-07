@@ -13,6 +13,7 @@ import { FinancialSection } from './FinancialSection'
 import { AttachmentSection } from './AttachmentSection'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
+import { PendingFilesSection } from './PendingFilesSection'
 import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -21,6 +22,7 @@ import { ArrowLeft, Inbox } from 'lucide-react'
 import Link from 'next/link'
 
 export type FormValues = {
+  project_title:           string
   date:                    string
   time_start:              string
   time_end:                string
@@ -65,6 +67,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
 
   const { register, handleSubmit, setValue, control, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
+      project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
       time_start:              job.time_start ?? '',
       time_end:                job.time_end ?? '',
@@ -88,6 +91,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     setSaving(true)
     try {
       await supabase.from('jobs').update({
+        project_title:           values.project_title || null,
         date:                    values.date,
         time_start:              values.time_start || null,
         time_end:                values.time_end || null,
@@ -217,13 +221,22 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           assignees={assignees}
           allInstallers={installers}
           onAssigneesChange={setAssignees}
+          readOnly={readOnly}
         />
 
-        {role !== 'installer' && (
+        {role !== 'installer' && status !== 'pending' && status !== 'awaiting_approval' && (
           <FinancialSection
             register={register}
             errors={errors}
             readOnly={readOnly}
+            lang={lang}
+          />
+        )}
+
+        {status === 'pending' && (
+          <PendingFilesSection
+            jobId={job.id}
+            userId={userId}
             lang={lang}
           />
         )}

@@ -8,7 +8,6 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
 import { CoreSection } from './CoreSection'
-import { FinancialSection } from './FinancialSection'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
@@ -30,6 +29,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
+      project_title:           '',
       date:                    today,
       time_start:              '',
       time_end:                '',
@@ -58,6 +58,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
         .insert({
           status:                  'pending',
           sales_poc_id:            userId,
+          project_title:           values.project_title || null,
           date:                    values.date,
           time_start:              values.time_start  || null,
           time_end:                values.time_end    || null,
@@ -131,15 +132,6 @@ export function NewJobShell({ role, userId, lang }: Props) {
           role={role}
           lang={lang}
         />
-
-        {role !== 'installer' && (
-          <FinancialSection
-            register={register}
-            errors={errors}
-            readOnly={false}
-            lang={lang}
-          />
-        )}
       </div>
     </div>
   )

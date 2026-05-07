@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
 import { t } from '@/lib/i18n'
-import { Download, FileText, Image } from 'lucide-react'
+import { Download, FileText, Image, Link as LinkIcon } from 'lucide-react'
 import type { JobFile } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -18,10 +18,12 @@ const kindLabel: Record<string, string> = {
   do:         'DO',
   completion: 'Completion photo',
   attachment: 'Attachment',
+  url_link:   'Link',
 }
 
 function FileIcon({ kind }: { kind: string }) {
-  if (kind === 'photo' || kind === 'completion') return <Image size={14} className="text-muted shrink-0" />
+  if (kind === 'photo' || kind === 'completion') return <Image    size={14} className="text-muted shrink-0" />
+  if (kind === 'url_link')                        return <LinkIcon size={14} className="text-muted shrink-0" />
   return <FileText size={14} className="text-muted shrink-0" />
 }
 
@@ -66,7 +68,8 @@ export function AttachmentSection({ files, lang }: Props) {
       <h3 className="text-sm font-medium text-ink">{t(lang, 'jobFiles')}</h3>
       <ul className="divide-y divide-line">
         {files.map(file => {
-          const filename = file.r2_key.split('/').pop() ?? file.r2_key
+          const isUrl    = file.kind === 'url_link'
+          const filename = isUrl ? file.r2_key : (file.r2_key.split('/').pop() ?? file.r2_key)
           return (
             <li key={file.id} className="flex items-center gap-3 py-2.5">
               <FileIcon kind={file.kind} />
@@ -74,7 +77,19 @@ export function AttachmentSection({ files, lang }: Props) {
                 <p className="text-sm text-ink truncate">{filename}</p>
                 <p className="text-xs text-muted">{kindLabel[file.kind] ?? file.kind}</p>
               </div>
-              <DownloadButton r2Key={file.r2_key} lang={lang} />
+              {isUrl ? (
+                <a
+                  href={file.r2_key}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-terracotta hover:underline shrink-0"
+                >
+                  <LinkIcon size={11} />
+                  {t(lang, 'openLink')}
+                </a>
+              ) : (
+                <DownloadButton r2Key={file.r2_key} lang={lang} />
+              )}
             </li>
           )
         })}
