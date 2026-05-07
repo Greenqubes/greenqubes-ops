@@ -13,6 +13,7 @@ import { FinancialSection } from './FinancialSection'
 import { AttachmentSection } from './AttachmentSection'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
+import { PendingFilesSection } from './PendingFilesSection'
 import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -232,6 +233,14 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment')}
           lang={lang}
         />
+
+        {status === 'pending' && (
+          <PendingFilesSection
+            jobId={job.id}
+            userId={userId}
+            lang={lang}
+          />
+        )}
 
         <ChatSection
           jobId={job.id}

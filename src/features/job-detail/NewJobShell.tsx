@@ -8,7 +8,6 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
 import { CoreSection } from './CoreSection'
-import { FinancialSection } from './FinancialSection'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
@@ -131,15 +130,6 @@ export function NewJobShell({ role, userId, lang }: Props) {
           role={role}
           lang={lang}
         />
-
-        {role !== 'installer' && (
-          <FinancialSection
-            register={register}
-            errors={errors}
-            readOnly={false}
-            lang={lang}
-          />
-        )}
       </div>
     </div>
   )
