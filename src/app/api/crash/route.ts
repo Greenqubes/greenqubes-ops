@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Dev only: write .md file when CRASH_LOG_DIR is set
     const dir = process.env.CRASH_LOG_DIR
     if (dir) {
-      const name = `crash-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.md`
+      const name = `crash-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.txt`
       await mkdir(dir, { recursive: true })
       await writeFile(path.join(dir, name), markdown, 'utf8')
     }
