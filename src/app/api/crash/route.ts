@@ -9,6 +9,7 @@ type CrashPayload = {
   stackTrace?:     string
   componentStack?: string
   userEmail?:      string
+  digest?:         string
 }
 
 function buildMarkdown(p: CrashPayload, ua: string): string {
@@ -21,10 +22,13 @@ function buildMarkdown(p: CrashPayload, ua: string): string {
     `**Route:** ${p.route}`,
     `**User:** ${p.userEmail ?? 'unknown'}`,
     `**UA:** ${ua.slice(0, 120)}`,
-    '',
-    '## Error',
-    p.errorMessage,
   ]
+
+  if (p.digest) {
+    lines.push(`**Digest:** \`${p.digest}\``)
+  }
+
+  lines.push('', '## Error', p.errorMessage)
 
   if (p.stackTrace) {
     lines.push('', '## Stack', '```', p.stackTrace.slice(0, 3000), '```')

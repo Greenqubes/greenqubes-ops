@@ -10,8 +10,12 @@ export async function getEffectiveRole(
   userEmail: string | undefined,
 ): Promise<Role> {
   if (userEmail !== ADMIN_EMAIL) return realRole
-  const cookieStore = await cookies()
-  const override = cookieStore.get('role_override')?.value as Role | undefined
-  if (override && VALID_ROLES.has(override)) return override
+  try {
+    const cookieStore = await cookies()
+    const override = cookieStore.get('role_override')?.value as Role | undefined
+    if (override && VALID_ROLES.has(override)) return override
+  } catch {
+    // cookies() unavailable in this context — fall back to real role
+  }
   return realRole
 }
