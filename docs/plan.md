@@ -303,9 +303,9 @@ Label renames (Client → Customer, Job Description, Location / Address, Client 
 
 ---
 
-## Session 17.4 — Admin role-switcher view _(planned)_
+## Session 17.4 — Admin role-switcher view ✓
 
-For `ai@greenqubes.com` (admin account) only: add a button in the header/company bar that lets the admin preview the UI as Sales, Scheduler, or Installer. Requires server-side email check, role-override state passed through shells, no DB writes. Scope: functional feature, not design.
+For `ai@greenqubes.com` (admin account) only: "Preview as" section in UserMenu with Sales / Scheduler / Installer buttons. Cookie-based override (`role_override`), server-side only, no DB writes. Amber chip on avatar when active. Notes: `docs/session17.4-note.md`.
 
 ---
 
