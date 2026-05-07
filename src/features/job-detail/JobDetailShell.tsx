@@ -24,6 +24,7 @@ import Link from 'next/link'
 export type FormValues = {
   project_title:           string
   date:                    string
+  date_end:                string
   time_start:              string
   time_end:                string
   client:                  string
@@ -69,6 +70,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
+      date_end:                job.date_end ?? '',
       time_start:              job.time_start ?? '',
       time_end:                job.time_end ?? '',
       client:                  job.client ?? '',
@@ -93,6 +95,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       await supabase.from('jobs').update({
         project_title:           values.project_title || null,
         date:                    values.date,
+        date_end:                values.date_end || null,
         time_start:              values.time_start || null,
         time_end:                values.time_end || null,
         client:                  values.client,

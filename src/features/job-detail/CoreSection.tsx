@@ -10,45 +10,98 @@ import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 
 interface Props {
-  register: UseFormRegister<FormValues>
-  errors:   FieldErrors<FormValues>
-  control:  Control<FormValues>
-  readOnly: boolean
-  lang:     LangCode
+  register:    UseFormRegister<FormValues>
+  errors:      FieldErrors<FormValues>
+  control:     Control<FormValues>
+  readOnly:    boolean
+  lang:        LangCode
+  showRequired?: boolean
 }
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
+const SELECT   = 'w-full rounded-lg border bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150'
 
-export function CoreSection({ register, errors, control, readOnly, lang }: Props) {
+// 96 time slots: 12:00am → 11:45pm, 15-min intervals
+const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
+  const h  = Math.floor(i / 4)
+  const m  = (i % 4) * 15
+  const hh = String(h).padStart(2, '0')
+  const mm = String(m).padStart(2, '0')
+  const period = h < 12 ? 'am' : 'pm'
+  const h12    = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return { value: `${hh}:${mm}`, label: `${h12}:${mm}${period}` }
+})
+
+export function CoreSection({ register, errors, control, readOnly, lang, showRequired = false }: Props) {
+  const req = showRequired ? { required: 'Required' } : {}
+
   return (
     <Card className="p-5 space-y-4">
 
       {/* Project Title */}
-      <Field label={t(lang, 'projectTitle')}>
+      <Field label={t(lang, 'projectTitle')} error={errors.project_title?.message}>
         <Input
-          {...register('project_title')}
+          {...register('project_title', req)}
           placeholder="e.g. Vivienne Westwood Installation"
           disabled={readOnly}
+          error={!!errors.project_title}
         />
       </Field>
 
-      {/* Date */}
-      <Field label={t(lang, 'date')} error={errors.date?.message}>
-        <Input
-          type="date"
-          {...register('date', { required: true })}
-          error={!!errors.date}
-          disabled={readOnly}
-        />
-      </Field>
-
-      {/* Times */}
+      {/* Date + End Date */}
       <div className="grid grid-cols-2 gap-4">
-        <Field label={t(lang, 'timeStart')}>
-          <Input type="time" step={900} {...register('time_start')} disabled={readOnly} />
+        <Field label={t(lang, 'date')} error={errors.date?.message}>
+          <Input
+            type="date"
+            {...register('date', { required: true })}
+            error={!!errors.date}
+            disabled={readOnly}
+          />
         </Field>
-        <Field label={t(lang, 'timeEnd')}>
-          <Input type="time" step={900} {...register('time_end')} disabled={readOnly} />
+        <Field label={t(lang, 'dateEnd')} error={errors.date_end?.message}>
+          <Input
+            type="date"
+            {...register('date_end')}
+            disabled={readOnly}
+          />
+        </Field>
+      </div>
+
+      {/* Times — 15-min interval selects */}
+      <div className="grid grid-cols-2 gap-4">
+        <Field label={t(lang, 'timeStart')} error={errors.time_start?.message}>
+          <select
+            {...register('time_start', req)}
+            disabled={readOnly}
+            className={cn(
+              SELECT,
+              errors.time_start
+                ? 'border-terracotta focus:ring-terracotta/20'
+                : 'border-line focus:border-terracotta focus:ring-terracotta/20'
+            )}
+          >
+            <option value="">— select —</option>
+            {TIME_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t(lang, 'timeEnd')} error={errors.time_end?.message}>
+          <select
+            {...register('time_end', req)}
+            disabled={readOnly}
+            className={cn(
+              SELECT,
+              errors.time_end
+                ? 'border-terracotta focus:ring-terracotta/20'
+                : 'border-line focus:border-terracotta focus:ring-terracotta/20'
+            )}
+          >
+            <option value="">— select —</option>
+            {TIME_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </Field>
       </div>
 
@@ -63,22 +116,40 @@ export function CoreSection({ register, errors, control, readOnly, lang }: Props
 
       {/* Client contact */}
       <div className="grid grid-cols-2 gap-4">
-        <Field label={t(lang, 'clientPOCName')}>
-          <Input {...register('client_poc_name')} disabled={readOnly} />
+        <Field label={t(lang, 'clientPOCName')} error={errors.client_poc_name?.message}>
+          <Input
+            {...register('client_poc_name', req)}
+            disabled={readOnly}
+            error={!!errors.client_poc_name}
+          />
         </Field>
-        <Field label={t(lang, 'clientPOCPhone')}>
-          <Input type="tel" {...register('client_poc_phone')} disabled={readOnly} />
+        <Field label={t(lang, 'clientPOCPhone')} error={errors.client_poc_phone?.message}>
+          <Input
+            type="tel"
+            {...register('client_poc_phone', req)}
+            disabled={readOnly}
+            error={!!errors.client_poc_phone}
+          />
         </Field>
       </div>
 
       {/* Location */}
-      <Field label={t(lang, 'locationAddress')}>
-        <Input {...register('location')} disabled={readOnly} />
+      <Field label={t(lang, 'locationAddress')} error={errors.location?.message}>
+        <Input
+          {...register('location', req)}
+          disabled={readOnly}
+          error={!!errors.location}
+        />
       </Field>
 
       {/* Description */}
-      <Field label={t(lang, 'jobDescription')}>
-        <textarea {...register('description')} disabled={readOnly} rows={3} className={TEXTAREA} />
+      <Field label={t(lang, 'jobDescription')} error={errors.description?.message}>
+        <textarea
+          {...register('description', req)}
+          disabled={readOnly}
+          rows={3}
+          className={cn(TEXTAREA, errors.description && 'border-terracotta')}
+        />
       </Field>
 
       {/* Notes */}

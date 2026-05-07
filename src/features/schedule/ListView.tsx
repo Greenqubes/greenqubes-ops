@@ -107,7 +107,7 @@ export function ListView({
                 {strings.flexibleWindow}
               </span>
             </div>
-            {dayJobs.map(job => <JobRow key={job.id} job={job} />)}
+            {dayJobs.map(job => <JobRow key={job.id} job={job} currentDate={selectedDate} />)}
           </>
         )}
       </div>

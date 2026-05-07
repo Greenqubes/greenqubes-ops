@@ -6,10 +6,17 @@ import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import { fmtTime, isOverdue } from './utils'
 
 interface JobRowProps {
-  job: ScheduleJob
+  job:         ScheduleJob
+  currentDate?: string
 }
 
-export function JobRow({ job }: JobRowProps) {
+function daysBetween(a: string, b: string): number {
+  return Math.round(
+    (new Date(b + 'T00:00:00').getTime() - new Date(a + 'T00:00:00').getTime()) / 86_400_000
+  )
+}
+
+export function JobRow({ job, currentDate }: JobRowProps) {
   const overdue       = isOverdue(job.status, job.date)
   const isDraft       = job.status === 'pending' || job.status === 'awaiting_approval'
   const isCompleted   = job.status === 'completed'
@@ -22,6 +29,13 @@ export function JobRow({ job }: JobRowProps) {
   const timeRange = [fmtTime(job.time_start), fmtTime(job.time_end)]
     .filter(Boolean)
     .join(' – ')
+
+  const jobDayLabel = (() => {
+    if (!job.date_end || job.date_end <= job.date || !currentDate) return null
+    const total = daysBetween(job.date, job.date_end) + 1
+    const day   = daysBetween(job.date, currentDate) + 1
+    return `${day}/${total}`
+  })()
 
   return (
     <Link href={`/jobs/${job.id}`} className="block mb-2 group">
@@ -43,15 +57,25 @@ export function JobRow({ job }: JobRowProps) {
           )} />
 
           <div className="flex-1 min-w-0">
-            {/* Client + time */}
+            {/* Client + time / job day */}
             <div className="flex justify-between items-start gap-2 mb-1">
               <span className="font-display text-base font-medium text-ink truncate leading-snug">
                 {job.project_title || job.client}
               </span>
-              {timeRange && (
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="text-[9px] text-muted uppercase tracking-wide leading-none mb-0.5">Job Time:</span>
-                  <span className="text-[15px] font-medium text-ink2 leading-none">{timeRange}</span>
+              {(timeRange || jobDayLabel) && (
+                <div className="flex flex-col items-end shrink-0 gap-0.5">
+                  {timeRange && (
+                    <>
+                      <span className="text-[9px] text-muted uppercase tracking-wide leading-none">Job Time:</span>
+                      <span className="text-[15px] font-medium text-ink2 leading-none">{timeRange}</span>
+                    </>
+                  )}
+                  {jobDayLabel && (
+                    <>
+                      <span className="text-[9px] text-muted uppercase tracking-wide leading-none mt-1">Job Day:</span>
+                      <span className="text-[15px] font-medium text-ink2 leading-none">{jobDayLabel}</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -66,11 +66,13 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
     if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
     if (pageMode === 'completed' &&  j.status !== 'completed') return false
-    if (filter === 'today'    && j.date !== today) return false
-    if (filter === 'upcoming' && j.date <  today)  return false
+    const endDate = j.date_end ?? j.date
+    if (filter === 'today'    && (today < j.date || today > endDate)) return false
+    if (filter === 'upcoming' && endDate < today)  return false
     if (filter === 'week') {
-      const diff = (new Date(j.date).getTime() - new Date(today).getTime()) / 86_400_000
-      if (diff < 0 || diff > 7) return false
+      const startDiff = (new Date(j.date).getTime()    - new Date(today).getTime()) / 86_400_000
+      const endDiff   = (new Date(endDate).getTime()   - new Date(today).getTime()) / 86_400_000
+      if (endDiff < 0 || startDiff > 7) return false
     }
     if (query.trim()) {
       const q   = query.toLowerCase()
@@ -83,17 +85,26 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     return true
   }), [jobs, filter, query, today])
 
-  const dates = useMemo(
-    () => [...new Set(filtered.map(j => j.date))].sort(),
-    [filtered]
-  )
-
+  // Expand multi-day jobs so they appear on every date in their range
   const jobsByDate = useMemo(() =>
     filtered.reduce<Record<string, ScheduleJob[]>>((acc, j) => {
-      ;(acc[j.date] ??= []).push(j)
+      if (j.date_end && j.date_end > j.date) {
+        let cur = j.date
+        while (cur <= j.date_end) {
+          ;(acc[cur] ??= []).push(j)
+          cur = shiftDate(cur, 1)
+        }
+      } else {
+        ;(acc[j.date] ??= []).push(j)
+      }
       return acc
     }, {}),
     [filtered]
+  )
+
+  const dates = useMemo(
+    () => Object.keys(jobsByDate).sort(),
+    [jobsByDate]
   )
 
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])

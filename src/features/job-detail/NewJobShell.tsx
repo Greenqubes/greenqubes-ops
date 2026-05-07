@@ -31,6 +31,7 @@ export function NewJobShell({ userId, lang }: Props) {
     defaultValues: {
       project_title:           '',
       date:                    today,
+      date_end:                '',
       time_start:              '',
       time_end:                '',
       client:                  '',
@@ -60,6 +61,7 @@ export function NewJobShell({ userId, lang }: Props) {
           sales_poc_id:            userId,
           project_title:           values.project_title || null,
           date:                    values.date,
+          date_end:                values.date_end || null,
           time_start:              values.time_start  || null,
           time_end:                values.time_end    || null,
           client:                  values.client,
@@ -120,6 +122,7 @@ export function NewJobShell({ userId, lang }: Props) {
           control={control}
           readOnly={false}
           lang={lang}
+          showRequired
         />
 
         {/* Locked pre-schedule — mirrors pending job detail layout */}
