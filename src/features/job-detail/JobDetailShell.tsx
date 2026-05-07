@@ -221,7 +221,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           readOnly={readOnly}
         />
 
-        {role !== 'installer' && (
+        {role !== 'installer' && status !== 'pending' && status !== 'awaiting_approval' && (
           <FinancialSection
             register={register}
             errors={errors}
