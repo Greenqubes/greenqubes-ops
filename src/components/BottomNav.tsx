@@ -13,7 +13,6 @@ const TABS: Record<Role, Tab[]> = {
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
     { href: '/approvals', label: 'Approvals', Icon: Inbox         },
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/pending',   label: 'Pending',   Icon: Clock         },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
   sales: [

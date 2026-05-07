@@ -129,7 +129,6 @@ export function NewJobShell({ role, userId, lang }: Props) {
           errors={errors}
           control={control}
           readOnly={false}
-          role={role}
           lang={lang}
         />
       </div>

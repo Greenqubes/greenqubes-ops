@@ -149,7 +149,8 @@ export const en = {
   jobDetail: 'Job detail',
   clientPOCName: 'Client Name',
   clientPOCPhone: 'Client Contact No. (Optional)',
-  productionInstructions: 'Production instructions',
+  productionInstructions:       'Production instructions',
+  productionReadyInstructions:  'Production ready instructions',
   notes: 'Notes',
 
   // ── Financials ─────────────────────────────────────────────────────────────

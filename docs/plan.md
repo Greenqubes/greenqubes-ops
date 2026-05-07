@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-07 (Session 17.5 complete — persistent floating AI chatbot on all pages except /assistant)_
+_Last updated: 2026-05-07 (Session 17.6 complete — Pending tab sales-only, 15-min time picker, ProductionReadySection, floating chat handoff to /assistant)_
 
 ---
 
@@ -315,15 +315,15 @@ Floating chat bubble (bottom-right, above bottom nav) on all pages except `/assi
 
 ---
 
-## Session 17.6 — New job form + schedule filter improvements _(partial — remainder planned)_
+## Session 17.6 — New job form + schedule filter improvements ✓
 
-Items 1 and 2 were completed in Session 18.3. Remaining:
+All items complete. Notes: `docs/session17.6-note.md`.
 
-1. ~~**Project title field**~~ ✓ done in Session 18.3 (migration 0012, CoreSection, schedule display)
+1. ~~**Project title field**~~ ✓ done in Session 18.3
 2. ~~**Create Job button + pending filter**~~ ✓ done in Session 18.3
-3. **Pending tab — sales only** — hide the Pending bottom nav tab from non-sales users. Update `BottomNav` role-gating logic.
-4. **Time picker — 15-min intervals** — constrain time_start and time_end minute options to 00 / 15 / 30 / 45 in the job form (new and edit).
-5. **Production ready instructions attachment** — add a new row above the existing Production instructions section in job detail: allows a comment + photo/video file attachments labelled "Production ready instructions". Reuses existing R2 upload flow and `files` table (`kind = 'production_instructions'`).
+3. ~~**Pending tab — sales only**~~ ✓ done this session
+4. ~~**Time picker — 15-min intervals**~~ ✓ `step={900}` on time_start and time_end
+5. ~~**Production ready instructions attachment**~~ ✓ `ProductionReadySection` with text + photo/video upload (kind = `production_instructions`)
 
 ---
 

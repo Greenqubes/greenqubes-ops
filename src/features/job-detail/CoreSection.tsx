@@ -6,7 +6,6 @@ import { Field } from '@/components/Field'
 import { Input } from '@/components/Input'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
-import type { Role } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 
@@ -15,15 +14,12 @@ interface Props {
   errors:   FieldErrors<FormValues>
   control:  Control<FormValues>
   readOnly: boolean
-  role:     Role
   lang:     LangCode
 }
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
-export function CoreSection({ register, errors, control, readOnly, role, lang }: Props) {
-  const salesOrScheduler = role === 'sales' || role === 'scheduler'
-
+export function CoreSection({ register, errors, control, readOnly, lang }: Props) {
   return (
     <Card className="p-5 space-y-4">
 
@@ -49,10 +45,10 @@ export function CoreSection({ register, errors, control, readOnly, role, lang }:
       {/* Times */}
       <div className="grid grid-cols-2 gap-4">
         <Field label={t(lang, 'timeStart')}>
-          <Input type="time" {...register('time_start')} disabled={readOnly} />
+          <Input type="time" step={900} {...register('time_start')} disabled={readOnly} />
         </Field>
         <Field label={t(lang, 'timeEnd')}>
-          <Input type="time" {...register('time_end')} disabled={readOnly} />
+          <Input type="time" step={900} {...register('time_end')} disabled={readOnly} />
         </Field>
       </div>
 
@@ -84,13 +80,6 @@ export function CoreSection({ register, errors, control, readOnly, role, lang }:
       <Field label={t(lang, 'jobDescription')}>
         <textarea {...register('description')} disabled={readOnly} rows={3} className={TEXTAREA} />
       </Field>
-
-      {/* Production instructions — sales/scheduler only */}
-      {salesOrScheduler && (
-        <Field label={t(lang, 'productionInstructions')}>
-          <textarea {...register('production_instructions')} disabled={readOnly} rows={2} className={TEXTAREA} />
-        </Field>
-      )}
 
       {/* Notes */}
       <Field label={t(lang, 'notes')}>

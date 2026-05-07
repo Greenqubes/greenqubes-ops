@@ -41,6 +41,15 @@ export function FloatingChatPanel({ lang }: Props) {
     if (isOpen) inputRef.current?.focus()
   }, [isOpen])
 
+  // Keep sessionStorage in sync so AssistantShell can pick up the conversation
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('floating_chat_handoff', JSON.stringify(messages))
+    } else {
+      sessionStorage.removeItem('floating_chat_handoff')
+    }
+  }, [messages])
+
   const saveConversation = useCallback(async (msgs: Message[]) => {
     const payload = msgs
       .filter(m => !m.streaming && !m.error)
@@ -56,6 +65,7 @@ export function FloatingChatPanel({ lang }: Props) {
 
   function handleClose() {
     if (messages.length >= 2) saveConversation(messages)
+    sessionStorage.removeItem('floating_chat_handoff')
     setIsOpen(false)
     setMessages([])
     setInput('')
@@ -63,6 +73,7 @@ export function FloatingChatPanel({ lang }: Props) {
 
   function handleNewChat() {
     if (messages.length >= 2) saveConversation(messages)
+    sessionStorage.removeItem('floating_chat_handoff')
     setMessages([])
     setInput('')
     setTimeout(() => inputRef.current?.focus(), 50)

@@ -14,6 +14,7 @@ import { AttachmentSection } from './AttachmentSection'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
+import { ProductionReadySection } from './ProductionReadySection'
 import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -210,9 +211,19 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           errors={errors}
           control={control}
           readOnly={readOnly}
-          role={role}
           lang={lang}
         />
+
+        {role !== 'installer' && (
+          <ProductionReadySection
+            register={register}
+            readOnly={readOnly}
+            lang={lang}
+            jobId={job.id}
+            userId={userId}
+            files={job.files.filter(f => f.kind === 'production_instructions')}
+          />
+        )}
 
         <AssigneeSection
           jobId={job.id}
@@ -242,7 +253,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         )}
 
         <AttachmentSection
-          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment')}
+          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment' && f.kind !== 'production_instructions')}
           lang={lang}
         />
 

@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-07 (Session 17.5 complete — persistent floating AI chatbot on all pages except /assistant)_
+_Last updated: 2026-05-07 (Session 17.6 complete — Pending tab sales-only, 15-min time picker, ProductionReadySection, floating chat handoff)_
 
 ---
 
@@ -296,7 +296,7 @@ greenqubes/
 - [x] **Session 18.3** — Label renames (Customer, Job Description, etc.), Push for Approval flow, schedule filter (pending/awaiting_approval hidden), financials gated, Job Chat Live indicator + locked title, whole-job lock, PendingFilesSection (multi-file + URL links as url_link files), Files/URL section, Project Title field + migration 0012
 - [x] **Session 17.4** — Admin role-switcher: ai@greenqubes.com can preview UI as Sales / Scheduler / Installer. Notes: `docs/session17.4-note.md`.
 - [x] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint. Notes: `docs/session17.5-note.md`.
-- [ ] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions attachment row
+- [x] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions attachment row. Notes: `docs/session17.6-note.md`.
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
