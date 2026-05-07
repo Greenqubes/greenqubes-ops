@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-07 (Session 18.3 complete — label renames, pending flow, chat indicator, Files/URL, Project Title field; 17.6 items 1–2 done)_
+_Last updated: 2026-05-07 (Session 17.5 complete — persistent floating AI chatbot on all pages except /assistant)_
 
 ---
 
@@ -309,9 +309,9 @@ For `ai@greenqubes.com` (admin account) only: "Preview as" section in UserMenu w
 
 ---
 
-## Session 17.5 — Persistent floating AI chatbot _(planned)_
+## Session 17.5 — Persistent floating AI chatbot ✓
 
-Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages except `/assistant`. Tapping opens a compact chat panel. Uses the existing `/api/assistant/chat` streaming SSE endpoint — full RAG retrieval + web search, same as the assistant page. Chat state resets on close (no cross-page persistence needed). Must not render on `/assistant` to avoid duplication.
+Floating chat bubble (bottom-right, above bottom nav) on all pages except `/assistant`. Full RAG + web search via existing `/api/assistant/chat` SSE endpoint. Chat resets on close; auto-saved to `asst_chats`. Notes: `docs/session17.5-note.md`.
 
 ---
 
