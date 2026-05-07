@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-06 (Session 18.2 complete — pill casing, completed job filter, legend colour; Sessions 17.4, 17.5, 17.6 logged)_
+_Last updated: 2026-05-07 (Session 18.3 complete — label renames, pending flow, chat indicator, Files/URL, Project Title field; 17.6 items 1–2 done)_
 
 ---
 
@@ -297,6 +297,12 @@ Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed
 
 ---
 
+## Session 18.3 — Additional design edits + 17.6 partial pull-forward ✓
+
+Label renames (Client → Customer, Job Description, Location / Address, Client Name, Client Contact No.), button casing (Create Job, Submit for Approval, Push for Approval). Scheduler "Push for Approval" now routes to awaiting_approval (no bypass). Schedule tab hides pending + awaiting_approval. Financials hidden on pending/awaiting_approval jobs. Job Chat Live/Syncing realtime dot indicator; locked title "Job Chat (Locked)" after 7-day window. Whole job locked on completion (including assignees). New PendingFilesSection: multi-file upload + URL links (saved as url_link files, shown in Files/URL section). Files renamed Files/URL. Project Title field above Date on all job forms; schedule shows project_title with client fallback. Migration 0012 (project_title column). **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session18.3-note.md`.
+
+---
+
 ## Session 17.4 — Admin role-switcher view _(planned)_
 
 For `ai@greenqubes.com` (admin account) only: add a button in the header/company bar that lets the admin preview the UI as Sales, Scheduler, or Installer. Requires server-side email check, role-override state passed through shells, no DB writes. Scope: functional feature, not design.
@@ -309,10 +315,12 @@ Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages
 
 ---
 
-## Session 17.6 — New job form + schedule filter improvements _(planned)_
+## Session 17.6 — New job form + schedule filter improvements _(partial — remainder planned)_
 
-1. **Project title field** — add a "Project title" text input above the date box in `/jobs/new` (`NewJobShell`). Display project title on the calendar/schedule instead of client name. Requires DB column on `jobs` table (new migration) and query updates.
-2. **Create Job button** — rename "create job" → "Create Job". New jobs (status `pending`) must not appear in the Schedule tab — only in the Pending tab. Extend the `ScheduleShell` filter to also exclude `pending` and `awaiting_approval` statuses.
+Items 1 and 2 were completed in Session 18.3. Remaining:
+
+1. ~~**Project title field**~~ ✓ done in Session 18.3 (migration 0012, CoreSection, schedule display)
+2. ~~**Create Job button + pending filter**~~ ✓ done in Session 18.3
 3. **Pending tab — sales only** — hide the Pending bottom nav tab from non-sales users. Update `BottomNav` role-gating logic.
 4. **Time picker — 15-min intervals** — constrain time_start and time_end minute options to 00 / 15 / 30 / 45 in the job form (new and edit).
 5. **Production ready instructions attachment** — add a new row above the existing Production instructions section in job detail: allows a comment + photo/video file attachments labelled "Production ready instructions". Reuses existing R2 upload flow and `files` table (`kind = 'production_instructions'`).
