@@ -20,6 +20,7 @@ const KIND_FOLDER: Record<FileKind, string> = {
   voice:      'voice',
   do:         'do',
   attachment: 'attachments',
+  url_link:   'links',
 }
 
 export function generateKey(jobId: string, kind: FileKind, originalName: string): string {

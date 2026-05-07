@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Role        = 'sales' | 'scheduler' | 'installer'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
-export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion'
+export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
 export type Punctuality = 'strict' | 'flexible'

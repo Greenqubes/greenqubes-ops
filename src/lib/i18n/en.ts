@@ -164,18 +164,19 @@ export const en = {
   selectInstaller: 'Select installer…',
 
   // ── Files ──────────────────────────────────────────────────────────────────
-  jobFiles: 'Files',
+  jobFiles: 'Files / URL',
   noFiles: 'No files attached',
   downloadFile: 'Download',
   uploading: 'Uploading…',
   pendingFiles: 'Attachments',
-  attachFiles: 'Attach files',
+  attachFiles: 'Attach Files',
   urlLinks: 'URL Links',
   urlLinksPlaceholder: 'Paste links, one per line (e.g. WeTransfer, SharePoint)…',
-  saveLinks: 'Save links',
+  saveLinks: 'Save Links',
+  openLink: 'Open',
 
   // ── Status actions ─────────────────────────────────────────────────────────
-  submitForApproval: 'Submit for approval',
+  submitForApproval: 'Submit for Approval',
   recallApproval: 'Recall',
   markComplete: 'Mark complete',
   statusOverride: 'Override status',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -20,7 +21,8 @@ interface Props {
 export function PendingFilesSection({ jobId, userId, lang }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const router   = useRouter()
+  const fileRef  = useRef<HTMLInputElement>(null)
 
   const [uploading,  setUploading]  = useState(false)
   const [urls,       setUrls]       = useState('')
@@ -64,17 +66,21 @@ export function PendingFilesSection({ jobId, userId, lang }: Props) {
   }
 
   const handleSaveUrls = async () => {
-    const trimmed = urls.trim()
-    if (!trimmed) return
+    const lines = urls.split('\n').map(l => l.trim()).filter(Boolean)
+    if (!lines.length) return
     setSavingUrls(true)
     try {
-      const res = await fetch(`/api/jobs/${jobId}/messages`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ content: `🔗 Links:\n${trimmed}` }),
-      })
-      if (!res.ok) throw new Error()
+      for (const url of lines) {
+        await supabase.from('files').insert({
+          job_id:      jobId,
+          kind:        'url_link',
+          r2_key:      url,
+          uploader_id: userId,
+          visibility:  ['public-internal'],
+        } as never).throwOnError()
+      }
       setUrls('')
+      router.refresh()
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
       showError(t(lang, 'saveError'))

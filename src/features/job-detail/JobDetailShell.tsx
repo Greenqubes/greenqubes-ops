@@ -230,11 +230,6 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           />
         )}
 
-        <AttachmentSection
-          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment')}
-          lang={lang}
-        />
-
         {status === 'pending' && (
           <PendingFilesSection
             jobId={job.id}
@@ -242,6 +237,11 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
             lang={lang}
           />
         )}
+
+        <AttachmentSection
+          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment')}
+          lang={lang}
+        />
 
         <ChatSection
           jobId={job.id}
