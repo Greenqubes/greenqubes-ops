@@ -60,7 +60,7 @@ log "R2 sync complete"
 # ── Supabase DB dump ──────────────────────────────────────────────────────────
 DB_FILE="$BACKUP_ROOT/db/greenqubes-$TIMESTAMP.sql.gz"
 log "Dumping DB → $DB_FILE"
-pg_dump "$SUPABASE_DB_URL" \
+"/c/Program Files/PostgreSQL/18/bin/pg_dump.exe" "$SUPABASE_DB_URL" \
   --no-owner \
   --no-acl \
   --schema=public \

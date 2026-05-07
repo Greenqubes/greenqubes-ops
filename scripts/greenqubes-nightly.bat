@@ -24,7 +24,7 @@ REM ─────────────────────────�
 
 set REPO=C:\greenqubes-ops
 set VAULT=E:\greenqubes-kb
-set BASH=C:\Program Files\Git\bin\bash.exe
+set BASH=C:\Git\bin\bash.exe
 set LOG_DIR=E:\Greenqubes-Archive\logs
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
