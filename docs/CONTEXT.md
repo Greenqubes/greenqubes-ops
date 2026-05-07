@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-05 (Session 18 fix pass complete — 17 of 19 visual findings fixed, typecheck clean)_
+_Last updated: 2026-05-07 (Session 18.3 complete — label renames, pending flow, chat indicator, Files/URL, Project Title field; 17.6 items 1–2 done)_
 
 ---
 
@@ -292,7 +292,11 @@ greenqubes/
 - [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
 - [x] **Session 18** — Full design review (audit + fix pass done 2026-05-05; 17 of 19 findings fixed; notes: `docs/session18-note.md`)
 - [x] **Session 18.1** — Additional design edits from owner review of Session 18 preview (notes: `docs/session18.1-note.md`)
-- [ ] **Session 18.2** — Continuing owner design review pass
+- [x] **Session 18.2** — Pill casing (Pending/Completed/Overdue), completed jobs hidden from schedule tab, Strict on-time legend colour #D14545, admin role-switcher deferred to 17.4
+- [x] **Session 18.3** — Label renames (Customer, Job Description, etc.), Push for Approval flow, schedule filter (pending/awaiting_approval hidden), financials gated, Job Chat Live indicator + locked title, whole-job lock, PendingFilesSection (multi-file + URL links as url_link files), Files/URL section, Project Title field + migration 0012
+- [ ] **Session 17.4** — Admin role-switcher: ai@greenqubes.com can preview UI as Sales / Scheduler / Installer
+- [ ] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint
+- [ ] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions attachment row
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light

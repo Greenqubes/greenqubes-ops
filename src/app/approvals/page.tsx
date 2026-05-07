@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getApprovalQueue } from '@/lib/supabase/queries/approvals'
 import { ApprovalsShell } from '@/features/approvals/ApprovalsShell'
+import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -18,7 +19,9 @@ export default async function ApprovalsPage() {
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
 
   if (!profile) redirect('/login')
-  if (profile.role !== 'scheduler') redirect('/schedule')
+
+  const effectiveRole = await getEffectiveRole(profile.role, user.email)
+  if (effectiveRole !== 'scheduler') redirect('/schedule')
 
   const queue = await getApprovalQueue()
 
