@@ -63,7 +63,7 @@ if errorlevel 1 (
 REM ── Step 3: R2 cold archive + Supabase DB dump ────────────────────────────
 :step3
 call :log "[3/3] Running backup (R2 sync + DB dump)..."
-"%BASH%" "%REPO%\scripts\backup.sh" >> "%LOG%" 2>&1
+"%BASH%" -c "export SUPABASE_DB_URL='%SUPABASE_DB_URL%'; export BACKUP_ROOT='E:/Greenqubes-Archive'; %REPO%/scripts/backup.sh" >> "%LOG%" 2>&1
 if errorlevel 1 (
   call :log "ERROR: backup.sh failed - check log above"
 ) else (
