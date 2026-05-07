@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPendingJobs } from '@/lib/supabase/queries/jobs'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
+import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -19,12 +20,14 @@ export default async function PendingPage() {
 
   if (!profile) redirect('/login')
 
+  const effectiveRole = await getEffectiveRole(profile.role, user.email)
   const jobs = await getPendingJobs()
 
   return (
     <ScheduleShell
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
+      role={effectiveRole}
     />
   )
 }
