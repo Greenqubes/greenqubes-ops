@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-07 (Session 17.6 complete — Pending tab sales-only, 15-min time picker, ProductionReadySection, floating chat handoff to /assistant)_
+_Last updated: 2026-05-07 (Session 17.6 complete — 17.6 items + pending/completed tab fix, pre-schedule locks, financials removed)_
 
 ---
 
@@ -324,6 +324,17 @@ All items complete. Notes: `docs/session17.6-note.md`.
 3. ~~**Pending tab — sales only**~~ ✓ done this session
 4. ~~**Time picker — 15-min intervals**~~ ✓ `step={900}` on time_start and time_end
 5. ~~**Production ready instructions attachment**~~ ✓ `ProductionReadySection` with text + photo/video upload (kind = `production_instructions`)
+
+Also done this session (post-commit fixes):
+- Floating chat → `/assistant` conversation handoff via `sessionStorage`
+- Pending + Completed tabs showing no jobs — fixed via `pageMode` prop on `ScheduleShell`
+- Chat + Production Ready Instructions locked pre-schedule (`preScheduleLocked` prop on `ChatSection`)
+- New job form mirrors pending job layout with both sections visible but locked
+- `FinancialSection` removed from all pages and all DB save logic stripped
+
+---
+
+## Session 17.7 — TBD _(planned)_
 
 ---
 
