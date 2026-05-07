@@ -334,7 +334,9 @@ Also done this session (post-commit fixes):
 
 ---
 
-## Session 17.7 — TBD _(planned)_
+## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar ✓
+
+Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session17.7-note.md`.
 
 ---
 
