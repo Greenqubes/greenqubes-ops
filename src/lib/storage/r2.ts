@@ -15,12 +15,13 @@ const r2 = new S3Client({
 const BUCKET = process.env.R2_BUCKET_NAME!
 
 const KIND_FOLDER: Record<FileKind, string> = {
-  photo:      'photos',
-  completion: 'completion',
-  voice:      'voice',
-  do:         'do',
-  attachment: 'attachments',
-  url_link:   'links',
+  photo:                   'photos',
+  completion:              'completion',
+  voice:                   'voice',
+  do:                      'do',
+  attachment:              'attachments',
+  url_link:                'links',
+  production_instructions: 'production-instructions',
 }
 
 export function generateKey(jobId: string, kind: FileKind, originalName: string): string {

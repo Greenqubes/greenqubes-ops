@@ -28,6 +28,7 @@ export default async function CompletedPage() {
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
+      pageMode="completed"
     />
   )
 }

@@ -149,7 +149,8 @@ export const en = {
   jobDetail: 'Job detail',
   clientPOCName: 'Client Name',
   clientPOCPhone: 'Client Contact No. (Optional)',
-  productionInstructions: 'Production instructions',
+  productionInstructions:       'Production instructions',
+  productionReadyInstructions:  'Production ready instructions',
   notes: 'Notes',
 
   // ── Financials ─────────────────────────────────────────────────────────────
@@ -185,7 +186,8 @@ export const en = {
 
   // ── Chat ───────────────────────────────────────────────────────────────────
   chatLockedTitle: 'Chat closed',
-  chatLockedMessage: 'This job was completed more than 7 days ago.',
+  chatLockedMessage:          'This job was completed more than 7 days ago.',
+  chatPreScheduleMessage:     'Chat will be available once this job is scheduled.',
   chatOpenUntil: 'Chat open until',
   attachFile: 'Attach file',
   messagePlaceholder: 'Type a message…',
