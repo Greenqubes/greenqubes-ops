@@ -30,6 +30,7 @@ export const en = {
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
   createJob: 'Create Job',
+  projectTitle: 'Project Title',
   date: 'Date',
   client: 'Customer',
   jobDescription: 'Job Description',

@@ -29,6 +29,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
+      project_title:           '',
       date:                    today,
       time_start:              '',
       time_end:                '',
@@ -57,6 +58,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
         .insert({
           status:                  'pending',
           sales_poc_id:            userId,
+          project_title:           values.project_title || null,
           date:                    values.date,
           time_start:              values.time_start  || null,
           time_end:                values.time_end    || null,
