@@ -25,12 +25,13 @@ type ViewMode = 'list' | 'week' | 'month'
 type Filter   = 'all' | 'today' | 'week' | 'upcoming'
 
 interface ScheduleShellProps {
-  jobs:  ScheduleJob[]
-  lang:  LangCode
-  role?: Role
+  jobs:     ScheduleJob[]
+  lang:     LangCode
+  role?:    Role
+  pageMode?: 'schedule' | 'pending' | 'completed'
 }
 
-export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
 
@@ -62,7 +63,9 @@ export function ScheduleShell({ jobs, lang, role }: ScheduleShellProps) {
 
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
-    if (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval') return false
+    if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
+    if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
+    if (pageMode === 'completed' &&  j.status !== 'completed') return false
     if (filter === 'today'    && j.date !== today) return false
     if (filter === 'upcoming' && j.date <  today)  return false
     if (filter === 'week') {

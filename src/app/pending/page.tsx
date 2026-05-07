@@ -28,6 +28,7 @@ export default async function PendingPage() {
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
+      pageMode="pending"
     />
   )
 }
