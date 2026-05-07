@@ -7,20 +7,20 @@ import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
+import { Card } from '@/components/Card'
 import { CoreSection } from './CoreSection'
-import { ArrowLeft } from 'lucide-react'
+import { ProductionReadySection } from './ProductionReadySection'
+import { ArrowLeft, Lock } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
-import type { Role } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
-  role:   Role
   userId: string
   lang:   LangCode
 }
 
-export function NewJobShell({ role, userId, lang }: Props) {
+export function NewJobShell({ userId, lang }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
   const [saving, setSaving] = useState(false)
@@ -78,18 +78,8 @@ export function NewJobShell({ role, userId, lang }: Props) {
         .single() as unknown as Promise<{ data: { id: string } | null; error: Error | null }>)
 
       if (insertError || !job) throw insertError
-      const jobId = job.id
 
-      if (values.quote_amount || values.supplier_cost || values.margin_notes) {
-        await supabase.from('job_financials').insert({
-          job_id:        jobId,
-          quote_amount:  values.quote_amount  ? parseFloat(values.quote_amount)  : null,
-          supplier_cost: values.supplier_cost ? parseFloat(values.supplier_cost) : null,
-          margin_notes:  values.margin_notes || null,
-        } as never)
-      }
-
-      router.push(`/jobs/${jobId}`)
+      router.push(`/jobs/${job.id}`)
     } catch {
       showError(t(lang, 'saveError'))
       setSaving(false)
@@ -131,6 +121,24 @@ export function NewJobShell({ role, userId, lang }: Props) {
           readOnly={false}
           lang={lang}
         />
+
+        {/* Locked pre-schedule — mirrors pending job detail layout */}
+        <ProductionReadySection
+          register={register}
+          readOnly
+          lang={lang}
+          jobId=""
+          userId=""
+          files={[]}
+        />
+
+        <Card className="p-5 space-y-3 opacity-50 pointer-events-none select-none">
+          <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
+          <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
+            <Lock size={14} />
+            {t(lang, 'chatPreScheduleMessage')}
+          </div>
+        </Card>
       </div>
     </div>
   )

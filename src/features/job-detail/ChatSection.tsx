@@ -141,15 +141,16 @@ function VoicePlayer({ voiceKey, lang }: { voiceKey: string; lang: LangCode }) {
 type RecordState = 'idle' | 'recording' | 'uploading'
 
 interface Props {
-  jobId:           string
-  userId:          string
-  lang:            LangCode
-  completedAt:     string | null
-  initialMessages: JobMessage[]
-  chatFiles:       JobFile[]
+  jobId:              string
+  userId:             string
+  lang:               LangCode
+  completedAt:        string | null
+  initialMessages:    JobMessage[]
+  chatFiles:          JobFile[]
+  preScheduleLocked?: boolean
 }
 
-export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles }: Props) {
+export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
   const bottomRef        = useRef<HTMLDivElement>(null)
@@ -173,7 +174,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     if (cutoff) setChatLocked(new Date() > cutoff)
   }, [cutoff])
 
-  const inputDisabled = chatLocked || sending || uploading || recordState !== 'idle'
+  const inputDisabled = preScheduleLocked || chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -393,15 +394,22 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         <div ref={bottomRef} />
       </div>
 
-      {/* locked banner */}
-      {chatLocked && (
+      {/* pre-schedule locked banner */}
+      {preScheduleLocked && (
+        <div className="px-5 py-3 bg-bg border-t border-line text-sm text-muted text-center">
+          {t(lang, 'chatPreScheduleMessage')}
+        </div>
+      )}
+
+      {/* post-completion locked banner */}
+      {!preScheduleLocked && chatLocked && (
         <div className="px-5 py-3 bg-bg border-t border-line text-sm text-muted text-center">
           {t(lang, 'chatLockedMessage')}
         </div>
       )}
 
       {/* input bar */}
-      {!chatLocked && (
+      {!preScheduleLocked && !chatLocked && (
         <div className="px-4 py-3 border-t border-line flex items-center gap-2">
           <input
             type="file"

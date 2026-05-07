@@ -9,7 +9,6 @@ import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
 import { CoreSection } from './CoreSection'
 import { AssigneeSection } from './AssigneeSection'
-import { FinancialSection } from './FinancialSection'
 import { AttachmentSection } from './AttachmentSection'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
@@ -107,15 +106,6 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         production_instructions: values.production_instructions || null,
         notes:                   values.notes || null,
       } as never).eq('id', job.id).throwOnError()
-
-      if (role !== 'installer') {
-        await supabase.from('job_financials').upsert({
-          job_id:        job.id,
-          quote_amount:  values.quote_amount  ? parseFloat(values.quote_amount)  : null,
-          supplier_cost: values.supplier_cost ? parseFloat(values.supplier_cost) : null,
-          margin_notes:  values.margin_notes || null,
-        } as never, { onConflict: 'job_id' }).throwOnError()
-      }
 
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
@@ -217,7 +207,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         {role !== 'installer' && (
           <ProductionReadySection
             register={register}
-            readOnly={readOnly}
+            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval'}
             lang={lang}
             jobId={job.id}
             userId={userId}
@@ -234,15 +224,6 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           onAssigneesChange={setAssignees}
           readOnly={readOnly}
         />
-
-        {role !== 'installer' && status !== 'pending' && status !== 'awaiting_approval' && (
-          <FinancialSection
-            register={register}
-            errors={errors}
-            readOnly={readOnly}
-            lang={lang}
-          />
-        )}
 
         {status === 'pending' && (
           <PendingFilesSection
@@ -264,6 +245,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           completedAt={job.completed_at}
           initialMessages={initialMessages}
           chatFiles={job.files.filter(f => f.kind === 'attachment')}
+          preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
         />
 
         <StatusSection
