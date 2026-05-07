@@ -12,15 +12,16 @@ import type { Role } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
-  jobId:            string
-  role:             Role
-  lang:             LangCode
-  assignees:        InstallerUser[]
-  allInstallers:    InstallerUser[]
+  jobId:             string
+  role:              Role
+  lang:              LangCode
+  assignees:         InstallerUser[]
+  allInstallers:     InstallerUser[]
   onAssigneesChange: (next: InstallerUser[]) => void
+  readOnly?:         boolean
 }
 
-export function AssigneeSection({ jobId, role, lang, assignees, allInstallers, onAssigneesChange }: Props) {
+export function AssigneeSection({ jobId, role, lang, assignees, allInstallers, onAssigneesChange, readOnly = false }: Props) {
   const { error: showError } = useToast()
   const supabase = createClient()
   const [adding, setAdding] = useState(false)
@@ -63,7 +64,7 @@ export function AssigneeSection({ jobId, role, lang, assignees, allInstallers, o
     }
   }
 
-  const canEdit = role === 'scheduler'
+  const canEdit = role === 'scheduler' && !readOnly
 
   return (
     <Card className="p-5 space-y-3">

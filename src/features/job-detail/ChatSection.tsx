@@ -8,7 +8,7 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import {
   Send, Paperclip, Download, FileText, Image as ImageIcon,
-  Lock, Mic, StopCircle,
+  Mic, StopCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
@@ -334,19 +334,16 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     <Card className="flex flex-col overflow-hidden">
       {/* header */}
       <div className="px-5 py-3 border-b border-line flex items-center justify-between">
-        <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
+        <h3 className="text-sm font-medium text-ink">
+          {chatLocked ? t(lang, 'jobChatTitleLocked') : t(lang, 'jobChatTitle')}
+        </h3>
         <div className="flex items-center gap-3">
           {cutoff && !chatLocked && (
             <span className="text-xs text-muted">
               {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
             </span>
           )}
-          {chatLocked ? (
-            <span className="flex items-center gap-1 text-xs text-muted">
-              <Lock size={11} />
-              {t(lang, 'chatLockedTitle')}
-            </span>
-          ) : (
+          {!chatLocked && (
             <span className="flex items-center gap-1.5">
               <span className={cn(
                 'w-1.5 h-1.5 rounded-full shrink-0',

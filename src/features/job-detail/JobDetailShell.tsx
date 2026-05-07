@@ -218,6 +218,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           assignees={assignees}
           allInstallers={installers}
           onAssigneesChange={setAssignees}
+          readOnly={readOnly}
         />
 
         {role !== 'installer' && (

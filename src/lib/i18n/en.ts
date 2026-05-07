@@ -107,7 +107,8 @@ export const en = {
   monthViewHint:      'tap a date to see jobs',
 
   // ── Job chat ───────────────────────────────────────────────────────────────
-  jobChatTitle: 'Job chat',
+  jobChatTitle: 'Job Chat',
+  jobChatTitleLocked: 'Job Chat (Locked)',
   jobChatSubtitle: 'Live thread between sales, scheduler & installers',
   chatLive: 'Live',
   chatSyncing: 'Syncing',
