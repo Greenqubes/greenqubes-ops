@@ -7,6 +7,7 @@ export type ScheduleJob = {
   id:               string
   status:           JobStatus
   date:             string
+  date_end:         string | null
   time_start:       string | null
   time_end:         string | null
   project_title:    string | null
@@ -20,7 +21,7 @@ export type ScheduleJob = {
 }
 
 const SCHEDULE_SELECT = `
-  id, status, date, time_start, time_end,
+  id, status, date, date_end, time_start, time_end,
   project_title, client, location, description, punctuality,
   production_ready, do_issued,
   job_assignees ( users ( id, name ) )
@@ -94,6 +95,7 @@ export type JobDetail = {
   id:                      string
   status:                  JobStatus
   date:                    string
+  date_end:                string | null
   time_start:              string | null
   time_end:                string | null
   project_title:           string | null
@@ -125,6 +127,7 @@ export type JobDetail = {
 
 export type CoreFieldsPatch = {
   date?:                    string
+  date_end?:                string | null
   time_start?:              string | null
   time_end?:                string | null
   project_title?:           string | null
@@ -152,8 +155,8 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
   const { data, error } = await supabase
     .from('jobs')
     .select(`
-      id, status, date, time_start, time_end,
-      client, location, description, client_poc_name, client_poc_phone,
+      id, status, date, date_end, time_start, time_end,
+      project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override, created_at, updated_at,

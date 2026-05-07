@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
@@ -24,6 +25,7 @@ import Link from 'next/link'
 export type FormValues = {
   project_title:           string
   date:                    string
+  date_end:                string
   time_start:              string
   time_end:                string
   client:                  string
@@ -53,6 +55,7 @@ interface Props {
 
 export function JobDetailShell({ job, role, userId, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+  const router = useRouter()
   const supabase = createClient()
 
   const completed = job.status === 'completed'
@@ -65,10 +68,11 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, control, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
+      date_end:                job.date_end ?? '',
       time_start:              job.time_start ?? '',
       time_end:                job.time_end ?? '',
       client:                  job.client ?? '',
@@ -93,6 +97,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       await supabase.from('jobs').update({
         project_title:           values.project_title || null,
         date:                    values.date,
+        date_end:                values.date_end || null,
         time_start:              values.time_start || null,
         time_end:                values.time_end || null,
         client:                  values.client,
@@ -108,6 +113,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       } as never).eq('id', job.id).throwOnError()
 
       showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
     } catch {
       showError(t(lang, 'saveError'))
     } finally {
@@ -154,7 +160,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           <Link href={backHref} className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <span className="font-display text-sm font-medium text-ink truncate">{job.client}</span>
+          <span className="font-display text-sm font-medium text-ink truncate">{watch('project_title') || job.client}</span>
           <Pill variant={status} />
         </div>
 
@@ -207,7 +213,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         {role !== 'installer' && (
           <ProductionReadySection
             register={register}
-            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval'}
+            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
             lang={lang}
             jobId={job.id}
             userId={userId}
@@ -225,7 +231,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           readOnly={readOnly}
         />
 
-        {status === 'pending' && (
+        {(status === 'pending' || status === 'scheduled') && (
           <PendingFilesSection
             jobId={job.id}
             userId={userId}

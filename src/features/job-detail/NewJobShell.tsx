@@ -31,6 +31,7 @@ export function NewJobShell({ userId, lang }: Props) {
     defaultValues: {
       project_title:           '',
       date:                    today,
+      date_end:                '',
       time_start:              '',
       time_end:                '',
       client:                  '',
@@ -60,6 +61,7 @@ export function NewJobShell({ userId, lang }: Props) {
           sales_poc_id:            userId,
           project_title:           values.project_title || null,
           date:                    values.date,
+          date_end:                values.date_end || null,
           time_start:              values.time_start  || null,
           time_end:                values.time_end    || null,
           client:                  values.client,
@@ -88,6 +90,7 @@ export function NewJobShell({ userId, lang }: Props) {
 
   return (
     <div className="min-h-screen bg-bg">
+      {/* Header — sits outside the form so sticky positioning works */}
       <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
@@ -103,23 +106,26 @@ export function NewJobShell({ userId, lang }: Props) {
           </div>
         </div>
 
-        <Btn
-          variant="accent"
-          size="sm"
-          onClick={handleSubmit(onSubmit)}
-          disabled={saving}
-        >
+        {/* type="submit" form[id] lets this button outside the <form> still submit it */}
+        <Btn variant="accent" size="sm" type="submit" form="new-job-form" disabled={saving}>
           {saving ? t(lang, 'loading') : t(lang, 'createJob')}
         </Btn>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-16">
+      {/* Native <form> ensures react-hook-form validation fires correctly */}
+      <form
+        id="new-job-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-16"
+      >
         <CoreSection
           register={register}
           errors={errors}
           control={control}
           readOnly={false}
           lang={lang}
+          validateRequired
         />
 
         {/* Locked pre-schedule — mirrors pending job detail layout */}
@@ -139,7 +145,7 @@ export function NewJobShell({ userId, lang }: Props) {
             {t(lang, 'chatPreScheduleMessage')}
           </div>
         </Card>
-      </div>
+      </form>
     </div>
   )
 }

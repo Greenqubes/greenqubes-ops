@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-07 (Session 17.6 complete — 17.6 items + pending/completed tab fix, pre-schedule locks, financials removed; 17.7 next)_
+_Last updated: 2026-05-08 (Session 17.7 complete — required fields, end date, custom time picker, multi-day calendar, optional contact fields, scheduled job layout, project_title save fix, router.refresh cache bust; 19 next)_
 
 ---
 
@@ -297,7 +297,7 @@ greenqubes/
 - [x] **Session 17.4** — Admin role-switcher: ai@greenqubes.com can preview UI as Sales / Scheduler / Installer. Notes: `docs/session17.4-note.md`.
 - [x] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint. Notes: `docs/session17.5-note.md`.
 - [x] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions, floating chat handoff, pending/completed tab fix, pre-schedule locks, financials removed. Notes: `docs/session17.6-note.md`.
-- [ ] **Session 17.7** — TBD
+- [x] **Session 17.7** — Required fields, end date, custom TimeSelect, multi-day calendar, optional contact fields, scheduled job layout matches pending (chat open), project_title SELECT fix, reactive header, router.refresh after save. Notes: `docs/session17.7-note.md`.
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
