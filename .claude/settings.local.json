@@ -36,7 +36,9 @@
       "WebSearch",
       "Bash(claude plugin *)",
       "Bash(claude /plugin)",
-      "Read(//Users/Nic/.claude/**)"
+      "Read(//Users/Nic/.claude/**)",
+      "Bash(npx uipro-cli *)",
+      "Bash(git rm *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"
