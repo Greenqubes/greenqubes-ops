@@ -210,7 +210,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         {role !== 'installer' && (
           <ProductionReadySection
             register={register}
-            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval'}
+            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
             lang={lang}
             jobId={job.id}
             userId={userId}
@@ -228,7 +228,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           readOnly={readOnly}
         />
 
-        {status === 'pending' && (
+        {(status === 'pending' || status === 'scheduled') && (
           <PendingFilesSection
             jobId={job.id}
             userId={userId}
