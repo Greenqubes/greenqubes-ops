@@ -93,6 +93,7 @@ export const zh: Partial<Translations> = {
 
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: '你好',
+  installerMyJobs: '我的工作',
   installerToday: '今日工作',
   installerUpNext: '即将到来',
   installerThisWeek: '本周',

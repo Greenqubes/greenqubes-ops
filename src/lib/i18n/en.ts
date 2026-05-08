@@ -95,6 +95,7 @@ export const en = {
 
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: 'Hi',
+  installerMyJobs: 'My Jobs',
   installerToday: "Today's run",
   installerUpNext: 'Up next',
   installerThisWeek: 'This week',

@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-08 (Session 17.7 complete — required fields, end date, custom time picker, multi-day calendar, optional contact fields, scheduled job layout, project_title save fix, router.refresh cache bust)_
+_Last updated: 2026-05-08 (Session 17.8 complete — installer Completed tab, My Jobs page redesign, list/week/month view toggle)_
 
 ---
 
@@ -337,6 +337,12 @@ Also done this session (post-commit fixes):
 ## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar + bug fixes ✓
 
 Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Also: client contact fields made optional; scheduled job page matches pending layout (chat open); fixed `project_title` missing from `getJobById` SELECT; reactive header (`project_title || client`); `router.refresh()` after save to bust Next.js cache. Notes: `docs/session17.7-note.md`.
+
+---
+
+## Session 17.8 — Installer UI: Completed Tab + My Jobs Redesign + View Toggle ✓
+
+Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My Jobs page redesigned to match ScheduleShell: "Hi, [name]" eyebrow, "My Jobs" h1, search toggle, terracotta filter chips (Today's run / Up next / This week), Past tab removed. List/Week/Month view toggle added — list mode keeps InstallerJobCard + NowCard; week/month modes use shared WeekView/MonthView with date nav. `InstallerJob` extended with `project_title` + `date_end` for correct JobRow rendering. Notes: `docs/session17.8-note.md`.
 
 ---
 
