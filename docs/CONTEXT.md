@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-09 (chore-docs — docs cleanup + workflow reset; next: Session 19 pre-alpha testing)_
+_Last updated: 2026-05-09 (chore-assistant — permissions audit, .gitkeep cleanup, assistant flow review; next: fix duplicate asst_chats saves + pre-alpha testing)_
 
 ---
 
