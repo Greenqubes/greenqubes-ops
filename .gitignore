@@ -17,6 +17,9 @@ build/
 .env.test.local
 .env.production.local
 
+# claude code skills (local dev tool, reinstall with: npx uipro-cli init --ai claude)
+.claude/skills/
+
 # misc
 .DS_Store
 *.pem
