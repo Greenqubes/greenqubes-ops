@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-08 (Session 17.8 complete — installer Completed tab, My Jobs page redesign, list/week/month view toggle)_
+_Last updated: 2026-05-08 (Session 17.9 design complete — report a bug feature; implementation next session)_
 
 ---
 
@@ -343,6 +343,14 @@ Required fields enforced on new job creation (all except Notes & Punctuality). C
 ## Session 17.8 — Installer UI: Completed Tab + My Jobs Redesign + View Toggle ✓
 
 Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My Jobs page redesigned to match ScheduleShell: "Hi, [name]" eyebrow, "My Jobs" h1, search toggle, terracotta filter chips (Today's run / Up next / This week), Past tab removed. List/Week/Month view toggle added — list mode keeps InstallerJobCard + NowCard; week/month modes use shared WeekView/MonthView with date nav. `InstallerJob` extended with `project_title` + `date_end` for correct JobRow rendering. Notes: `docs/session17.8-note.md`.
+
+---
+
+## Session 17.9 — Report a Bug Feature _(design complete — implementation pending)_
+
+Floating bug button (bottom-right, below AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Writes markdown file to `bugs_reported/bugs_[role]_[date]_[N].md`; fixed bugs move to `bugs_reported/bugs_fixed/`. Fires Telegram to a dedicated bug-only bot. New "Bug Reports" tab in AdminShell with open/fixed list and "Mark Fixed" action. Notes: `docs/session17.9-note.md`.
+
+**Owner pre-work:** Create bug Telegram bot via `@BotFather`, add `TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID` to `.env.local` and Vercel before next session.
 
 ---
 
