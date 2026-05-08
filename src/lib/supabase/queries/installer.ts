@@ -5,8 +5,10 @@ export type InstallerJob = {
   id:               string
   status:           JobStatus
   date:             string
+  date_end:         string | null
   time_start:       string | null
   time_end:         string | null
+  project_title:    string | null
   client:           string
   location:         string
   description:      string | null
@@ -26,8 +28,8 @@ export async function getInstallerJobs(): Promise<InstallerJob[]> {
   const { data, error } = await supabase
     .from('jobs')
     .select(`
-      id, status, date, time_start, time_end,
-      client, location, description, client_poc_name, client_poc_phone,
+      id, status, date, date_end, time_start, time_end,
+      project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, punctuality, production_ready, do_issued,
       job_assignees ( users ( id, name ) ),
       sales_poc:users!jobs_sales_poc_id_fkey ( name, phone )
