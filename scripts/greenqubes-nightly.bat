@@ -36,7 +36,7 @@ call :log "Greenqubes nightly — START"
 call :log "========================================"
 
 REM ── Step 1: Pull latest vault notes from GitHub ───────────────────────────
-call :log "[1/3] Pulling vault from GitHub..."
+call :log "[1/4] Pulling vault from GitHub..."
 cd /d "%VAULT%"
 if errorlevel 1 (
   call :log "ERROR: vault folder not found at %VAULT% - skipping obsidian-sync"
@@ -51,7 +51,7 @@ if errorlevel 1 (
 
 REM ── Step 2: Index vault notes to Supabase ─────────────────────────────────
 :step2
-call :log "[2/3] Running obsidian-sync..."
+call :log "[2/4] Running obsidian-sync..."
 cd /d "%REPO%"
 call npm run obsidian-sync >> "%LOG%" 2>&1
 if errorlevel 1 (
@@ -62,7 +62,7 @@ if errorlevel 1 (
 
 REM ── Step 3: R2 cold archive + Supabase DB dump ────────────────────────────
 :step3
-call :log "[3/3] Running backup (R2 sync + DB dump)..."
+call :log "[3/4] Running backup (R2 sync + DB dump)..."
 "%BASH%" -c "export SUPABASE_DB_URL='%SUPABASE_DB_URL%'; export BACKUP_ROOT='E:/Greenqubes-Archive'; %REPO%/scripts/backup.sh" >> "%LOG%" 2>&1
 if errorlevel 1 (
   call :log "ERROR: backup.sh failed - check log above"
@@ -70,6 +70,34 @@ if errorlevel 1 (
   call :log "       Backup OK"
 )
 
+REM ── Step 4: Sync bug reports from Supabase → local markdown → git push ─────
+:step4
+call :log "[4/4] Syncing bug reports..."
+cd /d "%REPO%"
+call npm run sync-bugs >> "%LOG%" 2>&1
+if errorlevel 1 (
+  call :log "WARNING: sync-bugs exited with errors - check log above"
+  goto done
+)
+call :log "       sync-bugs OK"
+
+REM Commit and push any new bug report files
+git add bugs_reported\ >> "%LOG%" 2>&1
+git diff --cached --quiet
+if errorlevel 1 (
+  call :log "       Committing new bug reports..."
+  git commit -m "chore: nightly bug report sync [skip ci]" >> "%LOG%" 2>&1
+  git push origin dev >> "%LOG%" 2>&1
+  if errorlevel 1 (
+    call :log "WARNING: git push failed - check log above"
+  ) else (
+    call :log "       Bug reports pushed to dev"
+  )
+) else (
+  call :log "       No new bug reports to commit"
+)
+
+:done
 call :log "========================================"
 call :log "Greenqubes nightly — DONE"
 call :log "========================================"

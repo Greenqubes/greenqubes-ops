@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature; Session 17.10 planned for backend performance review)_
+_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature + nightly sync-bugs auto-commit; Session 17.10 planned for backend performance review)_
 
 ---
 
@@ -348,7 +348,7 @@ Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My
 
 ## Session 17.9 — Report a Bug Feature ✓
 
-Floating bug button (bottom-right, above AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Writes markdown file to `bugs_reported/bugs_[role]_[date]_[N].md` (when `BUG_LOG_DIR` env var is set); fixed bugs move to `bugs_reported/bugs_fixed/`. Fires Telegram to a dedicated bug-only bot (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`). New "Bugs" tab in AdminShell with open/fixed list and "Mark Fixed" action. Notes: `docs/session17.9-note.md`.
+Floating bug button (bottom-right, above AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Version-scoped markdown files in `bugs_reported/{version}/` (open) and `bugs_reported/{version}/fixed/` (fixed). Fires Telegram to a dedicated bug-only bot (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`). New "Bugs" tab in AdminShell with open/fixed list and "Mark Fixed" action. `scripts/sync-bugs.ts` pulls all reports from Supabase to local markdown files (`npm run sync-bugs`). Nightly bat (Step 4) runs sync-bugs and auto-commits + pushes new files to `dev` every morning. Notes: `docs/session17.9-note.md`.
 
 ---
 
