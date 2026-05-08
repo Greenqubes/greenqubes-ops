@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import { Fraunces, IBM_Plex_Sans } from 'next/font/google'
-import { ToastProvider }   from '@/components/Toast'
-import { ErrorBoundary }   from '@/components/ErrorBoundary'
+import { Suspense } from 'react'
+import { ToastProvider }       from '@/components/Toast'
+import { ErrorBoundary }       from '@/components/ErrorBoundary'
+import { FloatingChatWrapper } from '@/components/FloatingChatWrapper'
+import { BugReportButton }     from '@/components/BugReportButton'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -31,7 +34,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-body antialiased">
         <ErrorBoundary>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <BugReportButton />
+          </ToastProvider>
+          <Suspense fallback={null}>
+            <FloatingChatWrapper />
+          </Suspense>
         </ErrorBoundary>
       </body>
     </html>

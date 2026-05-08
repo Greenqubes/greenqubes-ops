@@ -61,6 +61,38 @@ export function tplJobSubmittedForApproval(p: {
   return `📋 [PLACEHOLDER] Approval needed: <b>${p.jobClient}</b> on ${p.jobDate}\nSubmitted by ${p.salesName}`
 }
 
+// Sent to the dedicated bug bot when a user submits a bug report.
+export function tplBugReport(p: {
+  priority:    string
+  sgtTime:     string
+  platform:    string
+  os:          string
+  screen:      string
+  ip:          string
+  userEmail:   string
+  userRole:    string
+  route:       string
+  message:     string
+  screenshotUrl?: string
+}): string {
+  const priorityEmoji = p.priority === 'urgent' ? '🚨' : p.priority === 'high' ? '🔴' : p.priority === 'medium' ? '🟡' : '🟢'
+  const screenshotLine = p.screenshotUrl
+    ? `\nScreenshot: <a href="${p.screenshotUrl}">View ↗</a>`
+    : ''
+  return (
+    `${priorityEmoji} <b>Bug Report — ${p.priority.toUpperCase()}</b>\n` +
+    `Time: ${p.sgtTime}\n` +
+    `Platform: ${p.platform}\n` +
+    `OS: ${p.os}\n` +
+    `Screen: ${p.screen}\n` +
+    `IP: ${p.ip}\n` +
+    `User: ${p.userEmail} (${p.userRole})\n` +
+    `Page: ${p.route}` +
+    screenshotLine +
+    `\n---\n${p.message}`
+  )
+}
+
 // Monday digest — header sent once before the individual conversation items.
 export function tplDigestHeader(p: {
   weekOf: string

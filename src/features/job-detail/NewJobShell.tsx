@@ -7,20 +7,20 @@ import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
+import { Card } from '@/components/Card'
 import { CoreSection } from './CoreSection'
-import { ArrowLeft } from 'lucide-react'
+import { ProductionReadySection } from './ProductionReadySection'
+import { ArrowLeft, Lock } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
-import type { Role } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
-  role:   Role
   userId: string
   lang:   LangCode
 }
 
-export function NewJobShell({ role, userId, lang }: Props) {
+export function NewJobShell({ userId, lang }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
   const [saving, setSaving] = useState(false)
@@ -31,6 +31,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
     defaultValues: {
       project_title:           '',
       date:                    today,
+      date_end:                '',
       time_start:              '',
       time_end:                '',
       client:                  '',
@@ -60,6 +61,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
           sales_poc_id:            userId,
           project_title:           values.project_title || null,
           date:                    values.date,
+          date_end:                values.date_end || null,
           time_start:              values.time_start  || null,
           time_end:                values.time_end    || null,
           client:                  values.client,
@@ -78,18 +80,8 @@ export function NewJobShell({ role, userId, lang }: Props) {
         .single() as unknown as Promise<{ data: { id: string } | null; error: Error | null }>)
 
       if (insertError || !job) throw insertError
-      const jobId = job.id
 
-      if (values.quote_amount || values.supplier_cost || values.margin_notes) {
-        await supabase.from('job_financials').insert({
-          job_id:        jobId,
-          quote_amount:  values.quote_amount  ? parseFloat(values.quote_amount)  : null,
-          supplier_cost: values.supplier_cost ? parseFloat(values.supplier_cost) : null,
-          margin_notes:  values.margin_notes || null,
-        } as never)
-      }
-
-      router.push(`/jobs/${jobId}`)
+      router.push(`/jobs/${job.id}`)
     } catch {
       showError(t(lang, 'saveError'))
       setSaving(false)
@@ -98,6 +90,7 @@ export function NewJobShell({ role, userId, lang }: Props) {
 
   return (
     <div className="min-h-screen bg-bg">
+      {/* Header — sits outside the form so sticky positioning works */}
       <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
@@ -113,26 +106,46 @@ export function NewJobShell({ role, userId, lang }: Props) {
           </div>
         </div>
 
-        <Btn
-          variant="accent"
-          size="sm"
-          onClick={handleSubmit(onSubmit)}
-          disabled={saving}
-        >
+        {/* type="submit" form[id] lets this button outside the <form> still submit it */}
+        <Btn variant="accent" size="sm" type="submit" form="new-job-form" disabled={saving}>
           {saving ? t(lang, 'loading') : t(lang, 'createJob')}
         </Btn>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-16">
+      {/* Native <form> ensures react-hook-form validation fires correctly */}
+      <form
+        id="new-job-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-16"
+      >
         <CoreSection
           register={register}
           errors={errors}
           control={control}
           readOnly={false}
-          role={role}
           lang={lang}
+          validateRequired
         />
-      </div>
+
+        {/* Locked pre-schedule — mirrors pending job detail layout */}
+        <ProductionReadySection
+          register={register}
+          readOnly
+          lang={lang}
+          jobId=""
+          userId=""
+          files={[]}
+        />
+
+        <Card className="p-5 space-y-3 opacity-50 pointer-events-none select-none">
+          <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
+          <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
+            <Lock size={14} />
+            {t(lang, 'chatPreScheduleMessage')}
+          </div>
+        </Card>
+      </form>
     </div>
   )
 }

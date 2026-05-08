@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
@@ -9,11 +10,11 @@ import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
 import { CoreSection } from './CoreSection'
 import { AssigneeSection } from './AssigneeSection'
-import { FinancialSection } from './FinancialSection'
 import { AttachmentSection } from './AttachmentSection'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
+import { ProductionReadySection } from './ProductionReadySection'
 import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -24,6 +25,7 @@ import Link from 'next/link'
 export type FormValues = {
   project_title:           string
   date:                    string
+  date_end:                string
   time_start:              string
   time_end:                string
   client:                  string
@@ -53,6 +55,7 @@ interface Props {
 
 export function JobDetailShell({ job, role, userId, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+  const router = useRouter()
   const supabase = createClient()
 
   const completed = job.status === 'completed'
@@ -65,10 +68,11 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, control, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
+      date_end:                job.date_end ?? '',
       time_start:              job.time_start ?? '',
       time_end:                job.time_end ?? '',
       client:                  job.client ?? '',
@@ -93,6 +97,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       await supabase.from('jobs').update({
         project_title:           values.project_title || null,
         date:                    values.date,
+        date_end:                values.date_end || null,
         time_start:              values.time_start || null,
         time_end:                values.time_end || null,
         client:                  values.client,
@@ -107,16 +112,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         notes:                   values.notes || null,
       } as never).eq('id', job.id).throwOnError()
 
-      if (role !== 'installer') {
-        await supabase.from('job_financials').upsert({
-          job_id:        job.id,
-          quote_amount:  values.quote_amount  ? parseFloat(values.quote_amount)  : null,
-          supplier_cost: values.supplier_cost ? parseFloat(values.supplier_cost) : null,
-          margin_notes:  values.margin_notes || null,
-        } as never, { onConflict: 'job_id' }).throwOnError()
-      }
-
       showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
     } catch {
       showError(t(lang, 'saveError'))
     } finally {
@@ -163,7 +160,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           <Link href={backHref} className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <span className="font-display text-sm font-medium text-ink truncate">{job.client}</span>
+          <span className="font-display text-sm font-medium text-ink truncate">{watch('project_title') || job.client}</span>
           <Pill variant={status} />
         </div>
 
@@ -210,9 +207,19 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           errors={errors}
           control={control}
           readOnly={readOnly}
-          role={role}
           lang={lang}
         />
+
+        {role !== 'installer' && (
+          <ProductionReadySection
+            register={register}
+            readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
+            lang={lang}
+            jobId={job.id}
+            userId={userId}
+            files={job.files.filter(f => f.kind === 'production_instructions')}
+          />
+        )}
 
         <AssigneeSection
           jobId={job.id}
@@ -224,16 +231,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           readOnly={readOnly}
         />
 
-        {role !== 'installer' && status !== 'pending' && status !== 'awaiting_approval' && (
-          <FinancialSection
-            register={register}
-            errors={errors}
-            readOnly={readOnly}
-            lang={lang}
-          />
-        )}
-
-        {status === 'pending' && (
+        {(status === 'pending' || status === 'scheduled') && (
           <PendingFilesSection
             jobId={job.id}
             userId={userId}
@@ -242,7 +240,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         )}
 
         <AttachmentSection
-          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment')}
+          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment' && f.kind !== 'production_instructions')}
           lang={lang}
         />
 
@@ -253,6 +251,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           completedAt={job.completed_at}
           initialMessages={initialMessages}
           chatFiles={job.files.filter(f => f.kind === 'attachment')}
+          preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
         />
 
         <StatusSection

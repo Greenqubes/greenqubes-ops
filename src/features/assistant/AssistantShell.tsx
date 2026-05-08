@@ -36,6 +36,18 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
+  // Pick up any conversation started in the floating chat panel
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('floating_chat_handoff')
+      if (stored) {
+        const msgs = JSON.parse(stored) as Message[]
+        if (msgs.length > 0) setMessages(msgs)
+        sessionStorage.removeItem('floating_chat_handoff')
+      }
+    } catch { /* ignore parse errors */ }
+  }, [])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])

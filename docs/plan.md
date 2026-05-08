@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-07 (Session 18.3 complete — label renames, pending flow, chat indicator, Files/URL, Project Title field; 17.6 items 1–2 done)_
+_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature; Session 17.10 planned for backend performance review)_
 
 ---
 
@@ -303,27 +303,66 @@ Label renames (Client → Customer, Job Description, Location / Address, Client 
 
 ---
 
-## Session 17.4 — Admin role-switcher view _(planned)_
+## Session 17.4 — Admin role-switcher view ✓
 
-For `ai@greenqubes.com` (admin account) only: add a button in the header/company bar that lets the admin preview the UI as Sales, Scheduler, or Installer. Requires server-side email check, role-override state passed through shells, no DB writes. Scope: functional feature, not design.
-
----
-
-## Session 17.5 — Persistent floating AI chatbot _(planned)_
-
-Add a floating chat bubble (bottom-right, above bottom nav) visible on all pages except `/assistant`. Tapping opens a compact chat panel. Uses the existing `/api/assistant/chat` streaming SSE endpoint — full RAG retrieval + web search, same as the assistant page. Chat state resets on close (no cross-page persistence needed). Must not render on `/assistant` to avoid duplication.
+For `ai@greenqubes.com` (admin account) only: "Preview as" section in UserMenu with Sales / Scheduler / Installer buttons. Cookie-based override (`role_override`), server-side only, no DB writes. Amber chip on avatar when active. Notes: `docs/session17.4-note.md`.
 
 ---
 
-## Session 17.6 — New job form + schedule filter improvements _(partial — remainder planned)_
+## Session 17.5 — Persistent floating AI chatbot ✓
 
-Items 1 and 2 were completed in Session 18.3. Remaining:
+Floating chat bubble (bottom-right, above bottom nav) on all pages except `/assistant`. Full RAG + web search via existing `/api/assistant/chat` SSE endpoint. Chat resets on close; auto-saved to `asst_chats`. Notes: `docs/session17.5-note.md`.
 
-1. ~~**Project title field**~~ ✓ done in Session 18.3 (migration 0012, CoreSection, schedule display)
+---
+
+## Session 17.6 — New job form + schedule filter improvements ✓
+
+All items complete. Notes: `docs/session17.6-note.md`.
+
+1. ~~**Project title field**~~ ✓ done in Session 18.3
 2. ~~**Create Job button + pending filter**~~ ✓ done in Session 18.3
-3. **Pending tab — sales only** — hide the Pending bottom nav tab from non-sales users. Update `BottomNav` role-gating logic.
-4. **Time picker — 15-min intervals** — constrain time_start and time_end minute options to 00 / 15 / 30 / 45 in the job form (new and edit).
-5. **Production ready instructions attachment** — add a new row above the existing Production instructions section in job detail: allows a comment + photo/video file attachments labelled "Production ready instructions". Reuses existing R2 upload flow and `files` table (`kind = 'production_instructions'`).
+3. ~~**Pending tab — sales only**~~ ✓ done this session
+4. ~~**Time picker — 15-min intervals**~~ ✓ `step={900}` on time_start and time_end
+5. ~~**Production ready instructions attachment**~~ ✓ `ProductionReadySection` with text + photo/video upload (kind = `production_instructions`)
+
+Also done this session (post-commit fixes):
+- Floating chat → `/assistant` conversation handoff via `sessionStorage`
+- Pending + Completed tabs showing no jobs — fixed via `pageMode` prop on `ScheduleShell`
+- Chat + Production Ready Instructions locked pre-schedule (`preScheduleLocked` prop on `ChatSection`)
+- New job form mirrors pending job layout with both sections visible but locked
+- `FinancialSection` removed from all pages and all DB save logic stripped
+
+---
+
+## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar + bug fixes ✓
+
+Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Also: client contact fields made optional; scheduled job page matches pending layout (chat open); fixed `project_title` missing from `getJobById` SELECT; reactive header (`project_title || client`); `router.refresh()` after save to bust Next.js cache. Notes: `docs/session17.7-note.md`.
+
+---
+
+## Session 17.8 — Installer UI: Completed Tab + My Jobs Redesign + View Toggle ✓
+
+Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My Jobs page redesigned to match ScheduleShell: "Hi, [name]" eyebrow, "My Jobs" h1, search toggle, terracotta filter chips (Today's run / Up next / This week), Past tab removed. List/Week/Month view toggle added — list mode keeps InstallerJobCard + NowCard; week/month modes use shared WeekView/MonthView with date nav. `InstallerJob` extended with `project_title` + `date_end` for correct JobRow rendering. Notes: `docs/session17.8-note.md`.
+
+---
+
+## Session 17.9 — Report a Bug Feature ✓
+
+Floating bug button (bottom-right, above AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Writes markdown file to `bugs_reported/bugs_[role]_[date]_[N].md` (when `BUG_LOG_DIR` env var is set); fixed bugs move to `bugs_reported/bugs_fixed/`. Fires Telegram to a dedicated bug-only bot (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`). New "Bugs" tab in AdminShell with open/fixed list and "Mark Fixed" action. Notes: `docs/session17.9-note.md`.
+
+---
+
+## Session 17.10 — Backend Performance Review _(planned)_
+
+Every page navigation currently takes a few seconds. Goal: profile all main pages and reduce load times.
+
+Investigation areas (in priority order):
+1. Server component waterfalls — sequential `await` calls that can be parallelised with `Promise.all`
+2. Supabase query patterns — N+1 queries, over-fetching columns, missing indexes
+3. Next.js caching — audit `force-dynamic` / `no-store` usage; apply static generation where safe
+4. Cold starts — heavy imports on API routes (AI assistant); consider lazy loading
+5. Realtime subscription overhead on schedule page
+6. Bundle size / code splitting for large client components
 
 ---
 

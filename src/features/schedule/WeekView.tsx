@@ -48,7 +48,7 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
             {jobs.length === 0 ? (
               <p className="pl-3 text-xs text-muted italic">—</p>
             ) : (
-              jobs.map(job => <JobRow key={job.id} job={job} />)
+              jobs.map(job => <JobRow key={job.id} job={job} currentDate={d} />)
             )}
           </div>
         )

@@ -37,7 +37,8 @@ export const bn: Partial<Translations> = {
   jobDetail: 'কাজের বিবরণ',
   clientPOCName: 'ক্লায়েন্টের নাম',
   clientPOCPhone: 'ক্লায়েন্ট যোগাযোগ নম্বর (ঐচ্ছিক)',
-  productionInstructions: 'উৎপাদন নির্দেশনা',
+  productionInstructions:       'উৎপাদন নির্দেশনা',
+  productionReadyInstructions:  'প্রোডাকশন রেডি নির্দেশনা',
   notes: 'নোট',
   financials: 'আর্থিক তথ্য',
   quoteAmount: 'উদ্ধৃতি পরিমাণ (SGD)',
@@ -72,7 +73,8 @@ export const bn: Partial<Translations> = {
   workloadSelectPrompt: 'তারিখ পরিবর্তন করতে ট্যাপ করুন (ঐচ্ছিক)',
   statusOverride: 'স্ট্যাটাস ওভাররাইড',
   chatLockedTitle: 'চ্যাট বন্ধ',
-  chatLockedMessage: 'এই কাজটি সম্পন্ন হওয়ার ৭ দিনের বেশি হয়ে গেছে।',
+  chatLockedMessage:      'এই কাজটি সম্পন্ন হওয়ার ৭ দিনের বেশি হয়ে গেছে।',
+  chatPreScheduleMessage: 'কাজটি শিডিউল হলে চ্যাট পাওয়া যাবে।',
   chatOpenUntil: 'চ্যাট খোলা থাকবে',
   attachFile: 'ফাইল সংযুক্ত করুন',
   messagePlaceholder: 'বার্তা লিখুন…',
@@ -84,6 +86,7 @@ export const bn: Partial<Translations> = {
 
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: 'হ্যালো',
+  installerMyJobs: 'আমার কাজ',
   installerToday: 'আজকের কাজ',
   installerUpNext: 'পরবর্তী',
   installerThisWeek: 'এই সপ্তাহ',

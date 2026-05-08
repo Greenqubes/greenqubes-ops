@@ -9,6 +9,7 @@ type CrashPayload = {
   stackTrace?:     string
   componentStack?: string
   userEmail?:      string
+  digest?:         string
 }
 
 function buildMarkdown(p: CrashPayload, ua: string): string {
@@ -21,10 +22,13 @@ function buildMarkdown(p: CrashPayload, ua: string): string {
     `**Route:** ${p.route}`,
     `**User:** ${p.userEmail ?? 'unknown'}`,
     `**UA:** ${ua.slice(0, 120)}`,
-    '',
-    '## Error',
-    p.errorMessage,
   ]
+
+  if (p.digest) {
+    lines.push(`**Digest:** \`${p.digest}\``)
+  }
+
+  lines.push('', '## Error', p.errorMessage)
 
   if (p.stackTrace) {
     lines.push('', '## Stack', '```', p.stackTrace.slice(0, 3000), '```')
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
     // Dev only: write .md file when CRASH_LOG_DIR is set
     const dir = process.env.CRASH_LOG_DIR
     if (dir) {
-      const name = `crash-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.md`
+      const name = `crash-${new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-')}.txt`
       await mkdir(dir, { recursive: true })
       await writeFile(path.join(dir, name), markdown, 'utf8')
     }

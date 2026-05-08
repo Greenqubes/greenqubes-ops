@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SignOutButton from '@/components/SignOutButton'
 import { en } from '@/lib/i18n/en'
+import { getEffectiveRole } from '@/lib/utils/role-override'
+import type { Role } from '@/lib/supabase/types'
 
 const roleColor: Record<string, string> = {
   sales:     'var(--blue)',
@@ -15,15 +17,18 @@ export default async function Home() {
 
   if (!user) redirect('/login')
 
-  type Profile = { name: string; role: string; lang: string }
+  type Profile = { name: string; role: Role; lang: string }
   const { data: profile } = await supabase
     .from('users')
     .select('name, role, lang')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: Profile | null; error: unknown }
 
-  if (profile?.role === 'installer') redirect('/installer')
-  if (profile?.role === 'sales' || profile?.role === 'scheduler') redirect('/schedule')
+  if (profile) {
+    const effectiveRole = await getEffectiveRole(profile.role, user.email)
+    if (effectiveRole === 'installer') redirect('/installer')
+    if (effectiveRole === 'sales' || effectiveRole === 'scheduler') redirect('/schedule')
+  }
 
   return (
     <main

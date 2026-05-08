@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Role        = 'sales' | 'scheduler' | 'installer'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
-export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link'
+export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
 export type Punctuality = 'strict' | 'flexible'
@@ -269,6 +269,38 @@ export interface Database {
           resolved?:    boolean
         }
         Update: Partial<Database['public']['Tables']['crash_logs']['Insert']>
+        Relationships: []
+      }
+
+      bug_reports: {
+        Row: {
+          id:             string
+          user_email:     string | null
+          user_role:      string | null
+          route:          string | null
+          message:        string
+          priority:       'low' | 'medium' | 'high' | 'urgent'
+          status:         'open' | 'fixed'
+          screenshot_key: string | null
+          markdown_file:  string | null
+          ip_address:     string | null
+          platform:       string | null
+          browser:        string | null
+          os:             string | null
+          screen:         string | null
+          created_at:     string
+          resolved_at:    string | null
+        }
+        Insert: Omit<
+          Database['public']['Tables']['bug_reports']['Row'],
+          'id' | 'created_at' | 'status' | 'resolved_at'
+        > & {
+          id?:          string
+          created_at?:  string
+          status?:      'open' | 'fixed'
+          resolved_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['bug_reports']['Insert']>
         Relationships: []
       }
     }

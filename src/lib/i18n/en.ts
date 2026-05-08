@@ -32,11 +32,12 @@ export const en = {
   createJob: 'Create Job',
   projectTitle: 'Project Title',
   date: 'Date',
+  dateEnd: 'End Date (optional)',
   client: 'Customer',
   jobDescription: 'Job Description',
   locationAddress: 'Location / Address',
   timeStart: 'Time start',
-  timeEnd: 'Time end (optional)',
+  timeEnd: 'Time end',
   punctuality: 'Punctuality',
   strictOnTime: 'Strict on-time',
   flexibleWindow: 'Flexible window',
@@ -94,6 +95,7 @@ export const en = {
 
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: 'Hi',
+  installerMyJobs: 'My Jobs',
   installerToday: "Today's run",
   installerUpNext: 'Up next',
   installerThisWeek: 'This week',
@@ -149,7 +151,8 @@ export const en = {
   jobDetail: 'Job detail',
   clientPOCName: 'Client Name',
   clientPOCPhone: 'Client Contact No. (Optional)',
-  productionInstructions: 'Production instructions',
+  productionInstructions:       'Production instructions',
+  productionReadyInstructions:  'Production ready instructions',
   notes: 'Notes',
 
   // ── Financials ─────────────────────────────────────────────────────────────
@@ -185,7 +188,8 @@ export const en = {
 
   // ── Chat ───────────────────────────────────────────────────────────────────
   chatLockedTitle: 'Chat closed',
-  chatLockedMessage: 'This job was completed more than 7 days ago.',
+  chatLockedMessage:          'This job was completed more than 7 days ago.',
+  chatPreScheduleMessage:     'Chat will be available once this job is scheduled.',
   chatOpenUntil: 'Chat open until',
   attachFile: 'Attach file',
   messagePlaceholder: 'Type a message…',
