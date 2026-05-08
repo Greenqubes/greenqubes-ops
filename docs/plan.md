@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-09 (post Session 18.3 — docs cleanup + workflow reset)_
+_Last updated: 2026-05-09 (chore-docs — docs cleanup + workflow reset complete)_
 
 ---
 
