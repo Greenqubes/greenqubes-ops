@@ -1,7 +1,7 @@
 # Set SUPABASE_DB_URL as System Environment Variable
 # Run this script as Administrator
 
-$dbUrl = "postgresql://postgres.sotedopqyoondboareyp:GreenqubesAI2026!@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+$dbUrl = "postgresql://postgres.<ref>:<password>@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
 
 Write-Host "Setting SUPABASE_DB_URL as System environment variable..."
 [Environment]::SetEnvironmentVariable("SUPABASE_DB_URL", $dbUrl, "Machine")
