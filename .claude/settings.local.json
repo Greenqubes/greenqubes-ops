@@ -31,7 +31,8 @@
       "Bash(Get-ChildItem -Path . -Name)",
       "Bash(curl -s http://localhost:3000/)",
       "Bash(pkill -f \"next dev\")",
-      "Bash(echo 'CRASH_LOG_DIR=C:\\\\\\\\Greenqubes_GitHub\\\\\\\\greenqubes-ops\\\\\\\\crash logs')"
+      "Bash(echo 'CRASH_LOG_DIR=C:\\\\\\\\Greenqubes_GitHub\\\\\\\\greenqubes-ops\\\\\\\\crash logs')",
+      "Bash(git switch *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"

@@ -1,10 +1,14 @@
 /**
- * Pulls all bug reports from Supabase and writes them as markdown files locally.
+ * Pulls all bug reports from Supabase and:
+ * 1. Writes them as markdown files locally
+ * 2. Creates/closes GitHub issues in greenqubes-ops repo
+ *
  * Open bugs  → bugs_reported/{version}/bugs_{role}_{date}_{N}.md
  * Fixed bugs → bugs_reported/{version}/fixed/bugs_{role}_{date}_{N}.md
+ * GitHub issues automatically created and closed based on bug status.
  *
  * Run: npm run sync-bugs
- * Safe to re-run — skips files that already exist (idempotent).
+ * Requires: GITHUB_TOKEN env var (personal access token with repo scope)
  */
 
 import fs   from 'node:fs'
@@ -18,6 +22,9 @@ const db = createClient<Database>(
 )
 
 const BUG_LOG_DIR = process.env.BUG_LOG_DIR
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+const GITHUB_REPO = process.env.GITHUB_REPO || 'Greenqubes/greenqubes-ops'
+
 if (!BUG_LOG_DIR) {
   console.error('[sync-bugs] BUG_LOG_DIR not set in .env.local')
   process.exit(1)
@@ -77,6 +84,112 @@ function buildMarkdown(bug: {
   ].join('\n')
 }
 
+function buildGitHubIssueBody(bug: {
+  priority:       string
+  created_at:     string
+  user_email:     string | null
+  user_role:      string | null
+  route:          string | null
+  ip_address:     string | null
+  platform:       string | null
+  browser:        string | null
+  os:             string | null
+  screen:         string | null
+  screenshot_key: string | null
+  message:        string
+}): string {
+  const sgtTime = toSGT(bug.created_at)
+  const screenshot = bug.screenshot_key
+    ? `[Screenshot](https://your-r2-url/bug-reports/${bug.screenshot_key})`
+    : 'None'
+
+  return [
+    bug.message,
+    '',
+    '---',
+    '',
+    '### Diagnostics',
+    `- **Time:** ${sgtTime}`,
+    `- **User:** ${bug.user_email ?? 'unknown'} (${bug.user_role ?? 'unknown'})`,
+    `- **Page:** ${bug.route ?? 'unknown'}`,
+    `- **IP:** ${bug.ip_address ?? 'unknown'}`,
+    `- **Platform:** ${bug.platform ?? 'unknown'}`,
+    `- **Browser:** ${bug.browser ?? 'unknown'}`,
+    `- **OS:** ${bug.os ?? 'unknown'}`,
+    `- **Screen:** ${bug.screen ?? 'unknown'}`,
+    `- **Screenshot:** ${screenshot}`,
+  ].join('\n')
+}
+
+async function createGitHubIssue(bug: any): Promise<string | null> {
+  if (!GITHUB_TOKEN) {
+    console.warn('[sync-bugs] GITHUB_TOKEN not set — skipping GitHub issue creation')
+    return null
+  }
+
+  const labels = ['bug', `priority-${bug.priority}`]
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/issues`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: `[${bug.priority.toUpperCase()}] Bug reported by ${bug.user_email?.split('@')[0] ?? 'unknown'}`,
+          body: buildGitHubIssueBody(bug),
+          labels: labels,
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      console.warn(`[sync-bugs] GitHub API error: ${response.status}`, error)
+      return null
+    }
+
+    const issue = await response.json()
+    return issue.html_url
+  } catch (error) {
+    console.warn('[sync-bugs] Failed to create GitHub issue:', error)
+    return null
+  }
+}
+
+async function closeGitHubIssue(issueUrl: string): Promise<boolean> {
+  if (!GITHUB_TOKEN) {
+    return false
+  }
+
+  try {
+    const issueNumber = parseInt(issueUrl.split('/').pop() || '', 10)
+    if (!issueNumber) return false
+
+    const response = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/issues/${issueNumber}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ state: 'closed' }),
+      }
+    )
+
+    return response.ok
+  } catch (error) {
+    console.warn('[sync-bugs] Failed to close GitHub issue:', error)
+    return false
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -99,6 +212,8 @@ async function main() {
 
   let written = 0
   let skipped = 0
+  let issuesCreated = 0
+  let issuesClosed = 0
 
   for (const bug of bugs) {
     const relativePath = bug.markdown_file
@@ -108,8 +223,6 @@ async function main() {
     }
 
     // Determine destination based on status
-    // DB stores: "{version}/bugs_{role}_{date}_{N}.md"
-    // Fixed goes: "{version}/fixed/bugs_{role}_{date}_{N}.md"
     let destRelative: string
     if (bug.status === 'fixed') {
       const versionDir = path.dirname(relativePath)
@@ -121,23 +234,47 @@ async function main() {
 
     const destAbs = path.join(BUG_LOG_DIR!, destRelative)
 
-    // Skip if already exists
+    // Handle markdown file
     if (fs.existsSync(destAbs)) {
       skipped++
-      continue
+    } else {
+      fs.mkdirSync(path.dirname(destAbs), { recursive: true })
+      const content = buildMarkdown(bug as any)
+      fs.writeFileSync(destAbs, content, 'utf8')
+      console.log(`[sync-bugs] ✓ ${destRelative}`)
+      written++
     }
 
-    // Ensure directory exists
-    fs.mkdirSync(path.dirname(destAbs), { recursive: true })
+    // Handle GitHub issues
+    if (bug.status === 'fixed' && bug.github_issue_url) {
+      // Close the GitHub issue if it's fixed
+      const closed = await closeGitHubIssue(bug.github_issue_url)
+      if (closed) {
+        console.log(`[sync-bugs] ✓ Closed GitHub issue ${bug.github_issue_url}`)
+        issuesClosed++
+      }
+    } else if (bug.status === 'open' && !bug.github_issue_url) {
+      // Create a GitHub issue for new open bugs
+      const issueUrl = await createGitHubIssue(bug)
+      if (issueUrl) {
+        // Update the database with the issue URL
+        const { error: updateError } = await db
+          .from('bug_reports')
+          .update({ github_issue_url: issueUrl })
+          .eq('id', bug.id)
 
-    // Write markdown
-    const content = buildMarkdown(bug as Parameters<typeof buildMarkdown>[0])
-    fs.writeFileSync(destAbs, content, 'utf8')
-    console.log(`[sync-bugs] ✓ ${destRelative}`)
-    written++
+        if (!updateError) {
+          console.log(`[sync-bugs] ✓ Created GitHub issue ${issueUrl}`)
+          issuesCreated++
+        } else {
+          console.warn(`[sync-bugs] Failed to save issue URL to DB:`, updateError.message)
+        }
+      }
+    }
   }
 
-  console.log(`\n[sync-bugs] Done — ${written} written, ${skipped} already existed.`)
+  console.log(`\n[sync-bugs] Done — ${written} markdown files written, ${skipped} already existed.`)
+  console.log(`[sync-bugs] GitHub — ${issuesCreated} issues created, ${issuesClosed} issues closed.`)
 }
 
 main().catch(e => {

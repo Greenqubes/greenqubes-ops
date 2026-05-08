@@ -24,7 +24,7 @@ REM ─────────────────────────�
 
 set REPO=C:\greenqubes-ops
 set VAULT=E:\greenqubes-kb
-set BASH=C:\Program Files\Git\bin\bash.exe
+set BASH=C:\Git\bin\bash.exe
 set LOG_DIR=E:\Greenqubes-Archive\logs
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
@@ -63,7 +63,7 @@ if errorlevel 1 (
 REM ── Step 3: R2 cold archive + Supabase DB dump ────────────────────────────
 :step3
 call :log "[3/4] Running backup (R2 sync + DB dump)..."
-"%BASH%" "%REPO%\scripts\backup.sh" >> "%LOG%" 2>&1
+"%BASH%" -c "export SUPABASE_DB_URL='%SUPABASE_DB_URL%'; export BACKUP_ROOT='E:/Greenqubes-Archive'; %REPO%/scripts/backup.sh" >> "%LOG%" 2>&1
 if errorlevel 1 (
   call :log "ERROR: backup.sh failed - check log above"
 ) else (

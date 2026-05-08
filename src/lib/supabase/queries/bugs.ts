@@ -4,22 +4,23 @@ export type BugPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type BugStatus   = 'open' | 'fixed'
 
 export type BugReport = {
-  id:             string
-  user_email:     string | null
-  user_role:      string | null
-  route:          string | null
-  message:        string
-  priority:       BugPriority
-  status:         BugStatus
-  screenshot_key: string | null
-  markdown_file:  string | null
-  ip_address:     string | null
-  platform:       string | null
-  browser:        string | null
-  os:             string | null
-  screen:         string | null
-  created_at:     string
-  resolved_at:    string | null
+  id:              string
+  user_email:      string | null
+  user_role:       string | null
+  route:           string | null
+  message:         string
+  priority:        BugPriority
+  status:          BugStatus
+  screenshot_key:  string | null
+  markdown_file:   string | null
+  ip_address:      string | null
+  platform:        string | null
+  browser:         string | null
+  os:              string | null
+  screen:          string | null
+  created_at:      string
+  resolved_at:     string | null
+  github_issue_url: string | null
 }
 
 export async function insertBugReport(
@@ -75,4 +76,13 @@ export async function getBugMarkdownFile(id: string): Promise<string | null> {
     .eq('id', id)
     .maybeSingle()
   return data?.markdown_file ?? null
+}
+
+export async function updateGitHubIssueUrl(id: string, issueUrl: string): Promise<void> {
+  const db = createServiceClient()
+  const { error } = await db
+    .from('bug_reports')
+    .update({ github_issue_url: issueUrl })
+    .eq('id', id)
+  if (error) console.error('[bugs] update github issue url failed', error)
 }
