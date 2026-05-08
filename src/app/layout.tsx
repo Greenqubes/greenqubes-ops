@@ -34,11 +34,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="font-body antialiased">
         <ErrorBoundary>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <BugReportButton />
+          </ToastProvider>
           <Suspense fallback={null}>
             <FloatingChatWrapper />
           </Suspense>
-          <BugReportButton />
         </ErrorBoundary>
       </body>
     </html>
