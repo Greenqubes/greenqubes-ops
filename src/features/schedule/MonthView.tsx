@@ -58,7 +58,7 @@ export function MonthView({
               key={i}
               onClick={() => onDrillDown(d)}
               className={cn(
-                'aspect-square rounded-lg border flex flex-col items-center justify-start pt-1 px-0.5',
+                'aspect-square rounded-md border flex flex-col items-center justify-start pt-1 px-0.5',
                 'text-xs transition-colors cursor-pointer',
                 isSelected
                   ? 'bg-ink border-ink text-white'

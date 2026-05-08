@@ -7,8 +7,10 @@ export type ScheduleJob = {
   id:               string
   status:           JobStatus
   date:             string
+  date_end:         string | null
   time_start:       string | null
   time_end:         string | null
+  project_title:    string | null
   client:           string
   location:         string
   description:      string | null
@@ -18,20 +20,44 @@ export type ScheduleJob = {
   job_assignees:    Array<{ users: { id: string; name: string } | null }>
 }
 
+const SCHEDULE_SELECT = `
+  id, status, date, date_end, time_start, time_end,
+  project_title, client, location, description, punctuality,
+  production_ready, do_issued,
+  job_assignees ( users ( id, name ) )
+`
+
 export async function getScheduleJobs(): Promise<ScheduleJob[]> {
   const supabase = await createClient()
-
   const { data, error } = await supabase
     .from('jobs')
-    .select(`
-      id, status, date, time_start, time_end,
-      client, location, description, punctuality,
-      production_ready, do_issued,
-      job_assignees ( users ( id, name ) )
-    `)
+    .select(SCHEDULE_SELECT)
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as unknown as ScheduleJob[]
+}
 
+export async function getCompletedJobs(): Promise<ScheduleJob[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(SCHEDULE_SELECT)
+    .eq('status', 'completed')
+    .order('date',       { ascending: false })
+    .order('time_start', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as unknown as ScheduleJob[]
+}
+
+export async function getPendingJobs(): Promise<ScheduleJob[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(SCHEDULE_SELECT)
+    .in('status', ['pending', 'awaiting_approval'])
+    .order('date',       { ascending: true })
+    .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
   return (data ?? []) as unknown as ScheduleJob[]
 }
@@ -69,8 +95,10 @@ export type JobDetail = {
   id:                      string
   status:                  JobStatus
   date:                    string
+  date_end:                string | null
   time_start:              string | null
   time_end:                string | null
+  project_title:           string | null
   client:                  string
   location:                string
   description:             string | null
@@ -99,8 +127,10 @@ export type JobDetail = {
 
 export type CoreFieldsPatch = {
   date?:                    string
+  date_end?:                string | null
   time_start?:              string | null
   time_end?:                string | null
+  project_title?:           string | null
   client?:                  string
   location?:                string
   description?:             string | null
@@ -125,8 +155,8 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
   const { data, error } = await supabase
     .from('jobs')
     .select(`
-      id, status, date, time_start, time_end,
-      client, location, description, client_poc_name, client_poc_phone,
+      id, status, date, date_end, time_start, time_end,
+      project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override, created_at, updated_at,

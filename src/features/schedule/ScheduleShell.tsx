@@ -25,19 +25,15 @@ type ViewMode = 'list' | 'week' | 'month'
 type Filter   = 'all' | 'today' | 'week' | 'upcoming'
 
 interface ScheduleShellProps {
-  jobs:          ScheduleJob[]
-  lang:          LangCode
-  role?:         Role
-  approvalCount?: number
+  jobs:     ScheduleJob[]
+  lang:     LangCode
+  role?:    Role
+  pageMode?: 'schedule' | 'pending' | 'completed'
 }
 
-export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
-
-  const [liveApprovalCount, setLiveApprovalCount] = useState(approvalCount)
-
-  useEffect(() => { setLiveApprovalCount(approvalCount) }, [approvalCount])
 
   // Refresh server data on job changes (realtime) + every 2 min as fallback.
   // router.refresh() re-fetches server data while preserving all React state
@@ -57,28 +53,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
     }
   }, [router])
 
-  useEffect(() => {
-    if (role !== 'scheduler') return
-    const supabase = createClient()
-
-    async function refreshCount() {
-      const { count } = await supabase
-        .from('jobs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'awaiting_approval')
-      setLiveApprovalCount(count ?? 0)
-    }
-
-    const channel = supabase
-      .channel('schedule-approvals')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs' }, () => {
-        refreshCount()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [role])
-
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [filter,       setFilter]       = useState<Filter>('all')
   const [query,        setQuery]        = useState('')
@@ -89,11 +63,16 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
 
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
-    if (filter === 'today'    && j.date !== today) return false
-    if (filter === 'upcoming' && j.date <  today)  return false
+    if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
+    if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
+    if (pageMode === 'completed' &&  j.status !== 'completed') return false
+    const endDate = j.date_end ?? j.date
+    if (filter === 'today'    && (today < j.date || today > endDate)) return false
+    if (filter === 'upcoming' && endDate < today)  return false
     if (filter === 'week') {
-      const diff = (new Date(j.date).getTime() - new Date(today).getTime()) / 86_400_000
-      if (diff < 0 || diff > 7) return false
+      const startDiff = (new Date(j.date).getTime()    - new Date(today).getTime()) / 86_400_000
+      const endDiff   = (new Date(endDate).getTime()   - new Date(today).getTime()) / 86_400_000
+      if (endDiff < 0 || startDiff > 7) return false
     }
     if (query.trim()) {
       const q   = query.toLowerCase()
@@ -106,17 +85,26 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
     return true
   }), [jobs, filter, query, today])
 
-  const dates = useMemo(
-    () => [...new Set(filtered.map(j => j.date))].sort(),
-    [filtered]
-  )
-
+  // Expand multi-day jobs so they appear on every date in their range
   const jobsByDate = useMemo(() =>
     filtered.reduce<Record<string, ScheduleJob[]>>((acc, j) => {
-      ;(acc[j.date] ??= []).push(j)
+      if (j.date_end && j.date_end > j.date) {
+        let cur = j.date
+        while (cur <= j.date_end) {
+          ;(acc[cur] ??= []).push(j)
+          cur = shiftDate(cur, 1)
+        }
+      } else {
+        ;(acc[j.date] ??= []).push(j)
+      }
       return acc
     }, {}),
     [filtered]
+  )
+
+  const dates = useMemo(
+    () => Object.keys(jobsByDate).sort(),
+    [jobsByDate]
   )
 
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])
@@ -142,7 +130,7 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
   const headingLabel = useMemo(() => {
     if (viewMode === 'list') {
       return new Date(selectedDate + 'T00:00:00')
-        .toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' })
+        .toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
     }
     return monthLabel(selectedDate, locale)
   }, [viewMode, selectedDate, locale])
@@ -169,17 +157,31 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
   return (
     <div className="min-h-screen bg-bg">
 
+      {/* ── Company bar ── */}
+      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
+        <div className="flex items-center gap-2">
+          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
+          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <NotificationDrawer jobs={jobs} lang={lang} />
+          <UserMenu lang={lang} />
+        </div>
+      </div>
+
+      {/* ── Company schedule label ── */}
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
+        {tr(lang, 'companySchedule')}
+      </p>
+
       {/* ── Header ── */}
       <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-muted uppercase tracking-widest mb-1">
-            {tr(lang, 'companySchedule')}
-          </p>
           <div className="flex items-center gap-1">
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
             </button>
-            <h1 className="font-display text-2xl font-medium text-ink tracking-tight leading-none px-1">
+            <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
               {headingLabel}
             </h1>
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
@@ -189,33 +191,6 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {(role === 'sales' || role === 'scheduler') && (
-            <Link
-              href="/jobs/new"
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg font-medium lowercase tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
-            >
-              <Plus size={12} />
-              {tr(lang, 'newJob')}
-            </Link>
-          )}
-          {role === 'scheduler' && (
-            <Link
-              href="/approvals"
-              className="relative p-2 rounded-lg border border-line bg-paper text-ink2 hover:border-ink2 transition-colors"
-              title={tr(lang, 'approvalsTab')}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-              </svg>
-              {liveApprovalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 flex items-center justify-center bg-terracotta text-white text-[10px] font-bold rounded-full px-1 leading-none">
-                  {liveApprovalCount}
-                </span>
-              )}
-            </Link>
-          )}
-          <NotificationDrawer jobs={jobs} lang={lang} />
           <button
             onClick={() => setShowSearch(s => !s)}
             aria-label="Toggle search"
@@ -228,7 +203,15 @@ export function ScheduleShell({ jobs, lang, role, approvalCount = 0 }: ScheduleS
           >
             <Search size={15} />
           </button>
-          <UserMenu />
+          {(role === 'sales' || role === 'scheduler') && (
+            <Link
+              href="/jobs/new"
+              className="inline-flex items-center gap-1 px-3 py-[11px] text-xs rounded-lg font-semibold tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
+            >
+              <Plus size={12} />
+              New
+            </Link>
+          )}
         </div>
       </div>
 

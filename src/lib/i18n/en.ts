@@ -18,7 +18,7 @@ export const en = {
   companySchedule: 'Company schedule',
   newJob: 'New job',
   noJobs: 'No jobs scheduled',
-  searchJobs: 'Search jobs, clients, locations…',
+  searchJobs: 'Search jobs, customers, locations…',
   filterAll: 'All',
   filterToday: 'Today',
   filterWeek: 'This week',
@@ -29,13 +29,15 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
-  createJob: 'Create job',
+  createJob: 'Create Job',
+  projectTitle: 'Project Title',
   date: 'Date',
-  client: 'Client',
-  jobDescription: 'Job description',
-  locationAddress: 'Location / address',
+  dateEnd: 'End Date (optional)',
+  client: 'Customer',
+  jobDescription: 'Job Description',
+  locationAddress: 'Location / Address',
   timeStart: 'Time start',
-  timeEnd: 'Time end (optional)',
+  timeEnd: 'Time end',
   punctuality: 'Punctuality',
   strictOnTime: 'Strict on-time',
   flexibleWindow: 'Flexible window',
@@ -56,6 +58,7 @@ export const en = {
   awaitingApprovalDetail: 'This job has been sent for review. Recall it to make changes.',
   approvalsTab: 'Approvals',
   approvalsTitle: 'Approvals',
+  approvalsSubtitle: 'Pending requests from sales',
   approveAndSchedule: 'Approve & schedule',
   approvedSuccess: 'Approved & scheduled',
   sendBack: 'Send back',
@@ -66,7 +69,7 @@ export const en = {
   sendBackConfirm: 'Send back',
   noApprovals: 'No requests awaiting approval',
   approvalsEmpty: 'All clear — nothing awaiting approval',
-  pushToSchedule: 'Push to schedule',
+  pushToSchedule: 'Push for Approval',
 
   // ── Workload preview ───────────────────────────────────────────────────────
   workloadTitle: 'Team workload',
@@ -91,6 +94,8 @@ export const en = {
   overduePastEnd: 'Past scheduled end time',
 
   // ── Installer dashboard ────────────────────────────────────────────────────
+  installerHi: 'Hi',
+  installerMyJobs: 'My Jobs',
   installerToday: "Today's run",
   installerUpNext: 'Up next',
   installerThisWeek: 'This week',
@@ -105,8 +110,11 @@ export const en = {
   monthViewHint:      'tap a date to see jobs',
 
   // ── Job chat ───────────────────────────────────────────────────────────────
-  jobChatTitle: 'Job chat',
+  jobChatTitle: 'Job Chat',
+  jobChatTitleLocked: 'Job Chat (Locked)',
   jobChatSubtitle: 'Live thread between sales, scheduler & installers',
+  chatLive: 'Live',
+  chatSyncing: 'Syncing',
   sendMessage: 'Send',
   recordVoiceNote: 'Voice note',
   playVoiceNote: 'Play',
@@ -141,9 +149,10 @@ export const en = {
 
   // ── Job detail ─────────────────────────────────────────────────────────────
   jobDetail: 'Job detail',
-  clientPOCName: 'Client contact name',
-  clientPOCPhone: 'Client contact phone',
-  productionInstructions: 'Production instructions',
+  clientPOCName: 'Client Name',
+  clientPOCPhone: 'Client Contact No. (Optional)',
+  productionInstructions:       'Production instructions',
+  productionReadyInstructions:  'Production ready instructions',
   notes: 'Notes',
 
   // ── Financials ─────────────────────────────────────────────────────────────
@@ -159,13 +168,19 @@ export const en = {
   selectInstaller: 'Select installer…',
 
   // ── Files ──────────────────────────────────────────────────────────────────
-  jobFiles: 'Files',
+  jobFiles: 'Files / URL',
   noFiles: 'No files attached',
   downloadFile: 'Download',
   uploading: 'Uploading…',
+  pendingFiles: 'Attachments',
+  attachFiles: 'Attach Files',
+  urlLinks: 'URL Links',
+  urlLinksPlaceholder: 'Paste links, one per line (e.g. WeTransfer, SharePoint)…',
+  saveLinks: 'Save Links',
+  openLink: 'Open',
 
   // ── Status actions ─────────────────────────────────────────────────────────
-  submitForApproval: 'Submit for approval',
+  submitForApproval: 'Submit for Approval',
   recallApproval: 'Recall',
   markComplete: 'Mark complete',
   statusOverride: 'Override status',
@@ -173,7 +188,8 @@ export const en = {
 
   // ── Chat ───────────────────────────────────────────────────────────────────
   chatLockedTitle: 'Chat closed',
-  chatLockedMessage: 'This job was completed more than 7 days ago.',
+  chatLockedMessage:          'This job was completed more than 7 days ago.',
+  chatPreScheduleMessage:     'Chat will be available once this job is scheduled.',
   chatOpenUntil: 'Chat open until',
   attachFile: 'Attach file',
   messagePlaceholder: 'Type a message…',

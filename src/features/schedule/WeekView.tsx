@@ -34,7 +34,7 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
               </span>
               <span className="text-xs text-muted uppercase tracking-wide">{short}</span>
               {isToday && (
-                <span className="text-[10px] font-medium text-terracotta uppercase tracking-wide">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-terracotta-soft text-terracotta text-[10px] font-medium">
                   {t(lang, 'filterToday')}
                 </span>
               )}
@@ -46,9 +46,9 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
             </div>
 
             {jobs.length === 0 ? (
-              <p className="pl-3 text-sm text-muted italic">—</p>
+              <p className="pl-3 text-xs text-muted italic">—</p>
             ) : (
-              jobs.map(job => <JobRow key={job.id} job={job} />)
+              jobs.map(job => <JobRow key={job.id} job={job} currentDate={d} />)
             )}
           </div>
         )

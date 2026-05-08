@@ -1,6 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { JobRow } from './JobRow'
-import { dayLabel, langToLocale } from './utils'
+import { dayLabel, langToLocale, isOverdue } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 
 interface ListStrings {
@@ -32,11 +32,15 @@ export function ListView({
       {dates.length > 0 && (
         <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-none">
           {dates.map(d => {
-            const active    = d === selectedDate
-            const isToday   = d === today
-            const count     = jobsByDate[d]?.length ?? 0
-            const dayNum    = new Date(d + 'T00:00:00').getDate()
-            const shortDay  = dayLabel(d, locale)
+            const active       = d === selectedDate
+            const isToday      = d === today
+            const dateJobs     = jobsByDate[d] ?? []
+            const count        = dateJobs.length
+            const dayNum       = new Date(d + 'T00:00:00').getDate()
+            const shortDay     = dayLabel(d, locale)
+            const hasOverdue   = dateJobs.some(j => isOverdue(j.status, j.date))
+            const hasStrict    = dateJobs.some(j => j.punctuality === 'strict')
+            const hasFlexible  = dateJobs.some(j => j.punctuality !== 'strict')
 
             return (
               <button
@@ -47,18 +51,35 @@ export function ListView({
                   'transition-colors text-xs font-medium',
                   active
                     ? 'bg-ink border-ink text-white'
-                    : 'bg-paper border-line text-ink2 hover:border-ink2'
+                    : hasOverdue
+                      ? 'bg-bad-soft border-bad text-bad'
+                      : 'bg-paper border-line text-ink2 hover:border-ink2'
                 )}
               >
-                <span className="text-[10px] opacity-70 uppercase tracking-wide">{shortDay}</span>
-                <span className={cn('font-display text-base leading-none', isToday && !active && 'text-terracotta')}>
+                <span className={cn('text-[10px] uppercase tracking-wide', !hasOverdue && 'opacity-70')}>{shortDay}</span>
+                <span className={cn(
+                  'font-display text-base leading-none',
+                  !active && isToday && !hasOverdue && 'text-terracotta'
+                )}>
                   {dayNum}
                 </span>
+
+                {/* Punctuality dot(s) */}
                 {count > 0 && (
-                  <span className={cn(
-                    'absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
-                    active ? 'bg-white' : 'bg-terracotta'
-                  )} />
+                  active ? (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white" />
+                  ) : (hasStrict && hasFlexible) ? (
+                    <>
+                      {/* Blue base dot */}
+                      <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
+                      {/* Red dot shifted half a dot to the left, rendered on top */}
+                      <span className="absolute top-1.5 right-[9px] w-1.5 h-1.5 rounded-full bg-[#D14545]" />
+                    </>
+                  ) : hasFlexible ? (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
+                  ) : (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D14545]" />
+                  )
                 )}
               </button>
             )
@@ -78,7 +99,7 @@ export function ListView({
             {/* Punctuality legend */}
             <div className="flex gap-4 mb-3">
               <span className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="w-2 h-2 rounded-sm bg-terracotta inline-block" />
+                <span className="w-2 h-2 rounded-sm bg-[#D14545] inline-block" />
                 {strings.strictOnTime}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -86,7 +107,7 @@ export function ListView({
                 {strings.flexibleWindow}
               </span>
             </div>
-            {dayJobs.map(job => <JobRow key={job.id} job={job} />)}
+            {dayJobs.map(job => <JobRow key={job.id} job={job} currentDate={selectedDate} />)}
           </>
         )}
       </div>

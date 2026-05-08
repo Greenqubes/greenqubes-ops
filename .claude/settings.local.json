@@ -20,7 +20,18 @@
       "Bash(vercel --version)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(git stash *)",
+      "Bash(npm audit *)",
+      "Bash(npx vercel *)",
+      "Bash(dir context.md CONTEXT.md)",
+      "Bash(Get-Item context.md, CONTEXT.md)",
+      "Bash(Select-Object Name, LastWriteTime, Length)",
+      "Bash(Get-ChildItem -Path . -Name)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(echo 'CRASH_LOG_DIR=C:\\\\\\\\Greenqubes_GitHub\\\\\\\\greenqubes-ops\\\\\\\\crash logs')"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"

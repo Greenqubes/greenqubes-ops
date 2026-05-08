@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-05 (Session 17.2 — calendar navigation timezone fix, live schedule updates)_
+_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature; Session 17.10 planned for backend performance review)_
 
 ---
 
@@ -279,11 +279,90 @@ Added migration 0011 (`REPLICA IDENTITY FULL` on jobs) and 2-min polling fallbac
 
 ---
 
-## Session 18 — Full design review _(planned)_
+## Session 18 — Full design review ✓
 
-Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. Every screen compared side-by-side. Findings logged and fixed in-session — expect typography, spacing, colour, and interaction regressions from the migration. Notes written to `docs/session18-note.md`.
+Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Also fixed Supabase OAuth redirect URLs (added Vercel wildcard + localhost to allowed list; Site URL updated to production). Notes: `docs/session18-note.md`.
 
-> Session 18 is reserved exclusively for the design review. All pre-review bug fixes go into 17.X sessions.
+---
+
+## Session 18.1 — Additional design edits ✓
+
+Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Company bar branding, notification bell redesign, overdue styling (pill, date strip, drawer), language switcher in UserMenu, Completed/Pending pages + bottom nav tabs, JobRow time label. Notes: `docs/session18.1-note.md`.
+
+---
+
+## Session 18.2 — Additional design edits ✓
+
+Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed `lowercase` CSS override, capitalized Pending / Completed / Overdue labels. Schedule tab now hides completed jobs (visible in Completed tab only). Strict on-time legend box colour fixed to `#D14545`. Admin role-switcher feature deferred to Session 17.4. Notes: `docs/session18.2-note.md`.
+
+---
+
+## Session 18.3 — Additional design edits + 17.6 partial pull-forward ✓
+
+Label renames (Client → Customer, Job Description, Location / Address, Client Name, Client Contact No.), button casing (Create Job, Submit for Approval, Push for Approval). Scheduler "Push for Approval" now routes to awaiting_approval (no bypass). Schedule tab hides pending + awaiting_approval. Financials hidden on pending/awaiting_approval jobs. Job Chat Live/Syncing realtime dot indicator; locked title "Job Chat (Locked)" after 7-day window. Whole job locked on completion (including assignees). New PendingFilesSection: multi-file upload + URL links (saved as url_link files, shown in Files/URL section). Files renamed Files/URL. Project Title field above Date on all job forms; schedule shows project_title with client fallback. Migration 0012 (project_title column). **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session18.3-note.md`.
+
+---
+
+## Session 17.4 — Admin role-switcher view ✓
+
+For `ai@greenqubes.com` (admin account) only: "Preview as" section in UserMenu with Sales / Scheduler / Installer buttons. Cookie-based override (`role_override`), server-side only, no DB writes. Amber chip on avatar when active. Notes: `docs/session17.4-note.md`.
+
+---
+
+## Session 17.5 — Persistent floating AI chatbot ✓
+
+Floating chat bubble (bottom-right, above bottom nav) on all pages except `/assistant`. Full RAG + web search via existing `/api/assistant/chat` SSE endpoint. Chat resets on close; auto-saved to `asst_chats`. Notes: `docs/session17.5-note.md`.
+
+---
+
+## Session 17.6 — New job form + schedule filter improvements ✓
+
+All items complete. Notes: `docs/session17.6-note.md`.
+
+1. ~~**Project title field**~~ ✓ done in Session 18.3
+2. ~~**Create Job button + pending filter**~~ ✓ done in Session 18.3
+3. ~~**Pending tab — sales only**~~ ✓ done this session
+4. ~~**Time picker — 15-min intervals**~~ ✓ `step={900}` on time_start and time_end
+5. ~~**Production ready instructions attachment**~~ ✓ `ProductionReadySection` with text + photo/video upload (kind = `production_instructions`)
+
+Also done this session (post-commit fixes):
+- Floating chat → `/assistant` conversation handoff via `sessionStorage`
+- Pending + Completed tabs showing no jobs — fixed via `pageMode` prop on `ScheduleShell`
+- Chat + Production Ready Instructions locked pre-schedule (`preScheduleLocked` prop on `ChatSection`)
+- New job form mirrors pending job layout with both sections visible but locked
+- `FinancialSection` removed from all pages and all DB save logic stripped
+
+---
+
+## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar + bug fixes ✓
+
+Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Also: client contact fields made optional; scheduled job page matches pending layout (chat open); fixed `project_title` missing from `getJobById` SELECT; reactive header (`project_title || client`); `router.refresh()` after save to bust Next.js cache. Notes: `docs/session17.7-note.md`.
+
+---
+
+## Session 17.8 — Installer UI: Completed Tab + My Jobs Redesign + View Toggle ✓
+
+Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My Jobs page redesigned to match ScheduleShell: "Hi, [name]" eyebrow, "My Jobs" h1, search toggle, terracotta filter chips (Today's run / Up next / This week), Past tab removed. List/Week/Month view toggle added — list mode keeps InstallerJobCard + NowCard; week/month modes use shared WeekView/MonthView with date nav. `InstallerJob` extended with `project_title` + `date_end` for correct JobRow rendering. Notes: `docs/session17.8-note.md`.
+
+---
+
+## Session 17.9 — Report a Bug Feature ✓
+
+Floating bug button (bottom-right, above AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Writes markdown file to `bugs_reported/bugs_[role]_[date]_[N].md` (when `BUG_LOG_DIR` env var is set); fixed bugs move to `bugs_reported/bugs_fixed/`. Fires Telegram to a dedicated bug-only bot (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`). New "Bugs" tab in AdminShell with open/fixed list and "Mark Fixed" action. Notes: `docs/session17.9-note.md`.
+
+---
+
+## Session 17.10 — Backend Performance Review _(planned)_
+
+Every page navigation currently takes a few seconds. Goal: profile all main pages and reduce load times.
+
+Investigation areas (in priority order):
+1. Server component waterfalls — sequential `await` calls that can be parallelised with `Promise.all`
+2. Supabase query patterns — N+1 queries, over-fetching columns, missing indexes
+3. Next.js caching — audit `force-dynamic` / `no-store` usage; apply static generation where safe
+4. Cold starts — heavy imports on API routes (AI assistant); consider lazy loading
+5. Realtime subscription overhead on schedule page
+6. Bundle size / code splitting for large client components
 
 ---
 
@@ -333,5 +412,5 @@ New features to be defined after launch feedback. Versioning continues at **V.1.
 | Anthropic | ✓ in `.env.local` |
 | Voyage AI | ✓ in `.env.local` |
 | Telegram bot | ✓ in `.env.local` |
-| Vercel | account created, repo connection pending |
+| Vercel | ✓ connected to GitHub, auto-deploy live — preview at https://greenqubes-ops.vercel.app |
 | Server PC (backup) | not started — setup guide steps H1 + S1–S9 |

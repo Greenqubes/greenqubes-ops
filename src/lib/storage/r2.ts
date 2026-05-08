@@ -15,11 +15,13 @@ const r2 = new S3Client({
 const BUCKET = process.env.R2_BUCKET_NAME!
 
 const KIND_FOLDER: Record<FileKind, string> = {
-  photo:      'photos',
-  completion: 'completion',
-  voice:      'voice',
-  do:         'do',
-  attachment: 'attachments',
+  photo:                   'photos',
+  completion:              'completion',
+  voice:                   'voice',
+  do:                      'do',
+  attachment:              'attachments',
+  url_link:                'links',
+  production_instructions: 'production-instructions',
 }
 
 export function generateKey(jobId: string, kind: FileKind, originalName: string): string {
@@ -60,4 +62,18 @@ export async function getDownloadUrl(key: string): Promise<string> {
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
     { expiresIn: 3600 },
   )
+}
+
+export async function getBugScreenshotUploadUrl(
+  filename: string,
+  contentType: string,
+): Promise<{ url: string; key: string }> {
+  const ext = filename.includes('.') ? filename.split('.').pop() : 'jpg'
+  const key = `bug-reports/${randomUUID()}.${ext}`
+  const url = await getSignedUrl(
+    r2,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: 300 },
+  )
+  return { url, key }
 }

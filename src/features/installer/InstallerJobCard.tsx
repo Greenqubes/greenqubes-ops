@@ -34,6 +34,9 @@ export function InstallerJobCard({ job, lang }: Props) {
               <span className="text-[11px] text-muted">{dateLabel}</span>
             </div>
             <p className="font-display font-medium text-ink truncate">{job.client}</p>
+            {job.description && (
+              <p className="text-[13px] text-ink2 line-clamp-1 leading-snug">{job.description}</p>
+            )}
             {timeStr && (
               <div className="flex items-center gap-1.5 text-xs text-ink2">
                 <Clock size={11} className="shrink-0" />

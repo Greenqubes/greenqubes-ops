@@ -19,9 +19,15 @@ Multiple fix attempts were made in Session 17.3 — NotificationDrawer, JobRow, 
 
 ---
 
+## Deployment workflow — dev branch first
+
+All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
+
+---
+
 ## Hard rules
 
-- Session 18 is exclusively for the full visual design review against `docs/greenqubes-phase0.jsx`. No feature work, no refactoring. New bugs found during Session 18 go to Session 17.4+.
+- Session 18 and 18.X sub-sessions are exclusively for visual design work against `docs/greenqubes-phase0.jsx`. No feature work, no refactoring. New functional bugs found during 18.X go to Session 17.4+.
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
-- Bug-fix sessions before Session 18 are named 17.X (17.1, 17.2, 17.3 …). Session 18 is reserved for design review only.
+- Bug-fix sessions before Session 19 are named 17.X (17.1, 17.2, 17.3 …). Sessions 18 and 18.X are reserved for design review only.

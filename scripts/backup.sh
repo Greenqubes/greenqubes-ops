@@ -28,12 +28,12 @@
 #   - Set SUPABASE_DB_URL + BACKUP_ROOT as System env vars (Control Panel → Advanced System Settings)
 #
 # WSL crontab (runs at 19:00 UTC = 03:00 SGT next day):
-#   0 19 * * * SUPABASE_DB_URL="..." BACKUP_ROOT="/mnt/d/Greenqubes-Archive" /path/to/backup.sh
+#   0 19 * * * SUPABASE_DB_URL="..." BACKUP_ROOT="/mnt/e/Greenqubes-Archive" /path/to/backup.sh
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
-BACKUP_ROOT="${BACKUP_ROOT:-D:/Greenqubes-Archive}"
+BACKUP_ROOT="${BACKUP_ROOT:-E:/Greenqubes-Archive}"
 SUPABASE_DB_URL="${SUPABASE_DB_URL:?Set SUPABASE_DB_URL to the Supabase direct connection URI}"
 R2_REMOTE="${R2_REMOTE:-greenqubes-r2}"
 R2_BUCKET="${R2_BUCKET:-greenqubes-files}"

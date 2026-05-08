@@ -28,7 +28,7 @@ export function StatusSection({ status, role, lang, onStatusChange }: Props) {
       actions.push({ label: t(lang, 'sendBack'), next: 'pending', variant: 'secondary' })
     }
     if (status === 'scheduled') actions.push({ label: t(lang, 'markComplete'), next: 'completed' })
-    if (status === 'pending')   actions.push({ label: t(lang, 'pushToSchedule'), next: 'scheduled', variant: 'secondary' })
+    if (status === 'pending')   actions.push({ label: t(lang, 'pushToSchedule'), next: 'awaiting_approval', variant: 'secondary' })
   }
 
   if (role === 'installer') {

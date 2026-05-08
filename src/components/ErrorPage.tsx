@@ -17,6 +17,7 @@ export function ErrorPage({ error, reset, route }: Props) {
         route,
         errorMessage: error.message,
         stackTrace:   error.stack,
+        digest:       error.digest,
       }),
     }).catch(() => {})
   }, [error, route])
@@ -29,6 +30,11 @@ export function ErrorPage({ error, reset, route }: Props) {
       <p className="text-sm text-muted text-center max-w-sm">
         This error has been logged. Tap below to try again.
       </p>
+      {error.digest && (
+        <p className="text-[11px] text-muted font-mono bg-bg px-2 py-1 rounded border border-line">
+          {error.digest}
+        </p>
+      )}
       <button
         onClick={reset}
         className="text-sm font-medium text-terracotta underline underline-offset-2"
