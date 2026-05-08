@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature + nightly sync-bugs auto-commit; Session 17.10 planned for backend performance review)_
+_Last updated: 2026-05-09 (Session 17.11 complete — git cleanup, security fix; Session 17.10 complete — nightly bug sync; next: backend performance review or Session 18.X feature/design work)_
 
 ---
 
@@ -263,7 +263,7 @@ Connect the GitHub repo to Vercel, set all env vars (Supabase, R2, Anthropic, Vo
 
 Replaced broken SECURITY DEFINER-based SELECT policies on `messages` + `files` with direct `auth.uid()` subqueries — Supabase Realtime can now evaluate them correctly and delivers events. Added `src/app/icon.tsx` favicon (terracotta "G", 32×32). Notes: `docs/session17.1-note.md`.
 
-> **Naming rule:** Any bug-fix session before the full design review is Session 17.X (X increments per bug). Session 18 is reserved for the full design review only.
+> **Naming rule:** Bug-fix and maintenance sessions before Session 19 are Session 17.X. Sessions 18 and 18.X are reserved for visual design work AND additional feature implementations needed before pre-alpha testing.
 
 ---
 
@@ -352,7 +352,21 @@ Floating bug button (bottom-right, above AI bubble) opens a modal: message + pri
 
 ---
 
-## Session 17.10 — Backend Performance Review _(planned)_
+## Session 17.10 — Nightly Bug Sync ✓
+
+Auto-sync of bug reports from Supabase to local markdown files. `scripts/sync-bugs.ts` added; nightly bat Step 4 runs sync-bugs and auto-commits + pushes new files to `dev`. Notes: `docs/session17.10-note.md`.
+
+---
+
+## Session 17.11 — Git Maintenance + Security Fix ✓
+
+GitGuardian alert: hardcoded PostgreSQL URI removed from `scripts/set-db-url.ps1`, database password rotated. Git history rebased from 94 → 24 clean session-based commits, force-pushed to `dev`. Five large/unnecessary doc files removed from repo. `.claude/skills/` added to `.gitignore`. ui-ux-pro-max skill installed. Notes: `docs/session17.11-note.md`.
+
+> **Other machines:** run `git fetch origin && git reset --hard origin/dev` to sync the rewritten history. Also update `SUPABASE_DB_URL` env var with new password.
+
+---
+
+## Session 17.X — Backend Performance Review _(planned)_
 
 Every page navigation currently takes a few seconds. Goal: profile all main pages and reduce load times.
 

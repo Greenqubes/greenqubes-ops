@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-08 (Session 17.7 complete — required fields, end date, custom time picker, multi-day calendar, optional contact fields, scheduled job layout, project_title save fix, router.refresh cache bust; 19 next)_
+_Last updated: 2026-05-09 (Session 17.11 complete — git cleanup, security fix, tooling; next: backend performance review or Session 18.X)_
 
 ---
 
@@ -20,7 +20,7 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migrating from a 5,400-line single-file React prototype (`docs/prototype-archive.jsx`) to a feature-folder Next.js app with Supabase backend. Migration plan at the bottom of this file.
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is in pre-production on Vercel preview. Next milestone: Session 19 pre-alpha testing.
 
 ---
 
@@ -249,12 +249,12 @@ greenqubes/
 │   ├── monday-digest.ts          # weekly importance digest
 │   └── backup.sh                 # rclone cold archive
 ├── docs/
-│   ├── architecture.md
-│   ├── data-model.md
-│   ├── deploy.md
-│   ├── prototype-archive.jsx     # original 5400-line prototype
-│   └── conversation-archive-1.md # design conversations
-└── CONTEXT.md                    # you are here
+│   ├── plan.md                   # session build plan
+│   ├── CONTEXT.md                # you are here
+│   ├── greenqubes-phase0.jsx     # design reference (active — used in CLAUDE.md)
+│   ├── session*-note.md          # per-session notes
+│   └── nic-checklist.md          # owner checklist
+└── CLAUDE.md                     # Claude Code session instructions
 ```
 
 ---
@@ -298,6 +298,10 @@ greenqubes/
 - [x] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint. Notes: `docs/session17.5-note.md`.
 - [x] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions, floating chat handoff, pending/completed tab fix, pre-schedule locks, financials removed. Notes: `docs/session17.6-note.md`.
 - [x] **Session 17.7** — Required fields, end date, custom TimeSelect, multi-day calendar, optional contact fields, scheduled job layout matches pending (chat open), project_title SELECT fix, reactive header, router.refresh after save. Notes: `docs/session17.7-note.md`.
+- [x] **Session 17.8** — Installer Completed tab + My Jobs redesign (match ScheduleShell), list/week/month view toggle. Notes: `docs/session17.8-note.md`.
+- [x] **Session 17.9** — Report a bug feature: floating button, modal, R2 screenshot upload, `bug_reports` table (migration 0014), Telegram bug bot, Admin Bugs tab, `sync-bugs.ts`. Notes: `docs/session17.9-note.md`.
+- [x] **Session 17.10** — Nightly bug sync: `scripts/sync-bugs.ts` + nightly bat Step 4 auto-commits + pushes new markdown files to `dev`. Notes: `docs/session17.10-note.md`.
+- [x] **Session 17.11** — Git cleanup + security: hardcoded PostgreSQL URI removed, DB password rotated, git history rebased 94→24 commits, 5 large doc files removed, `.claude/skills/` gitignored, ui-ux-pro-max installed. Notes: `docs/session17.11-note.md`.
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
