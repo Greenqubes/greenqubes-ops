@@ -4,19 +4,21 @@ import { useState }    from 'react'
 import { cn }          from '@/lib/utils/cn'
 import { BottomNav }   from '@/components/BottomNav'
 import { UserMenu }    from '@/components/UserMenu'
-import { UsersTab }     from '@/features/admin/UsersTab'
-import { DigestTab }    from '@/features/admin/DigestTab'
-import { HealthTab }    from '@/features/admin/HealthTab'
-import { CrashLogTab } from '@/features/admin/CrashLogTab'
+import { UsersTab }      from '@/features/admin/UsersTab'
+import { DigestTab }     from '@/features/admin/DigestTab'
+import { HealthTab }     from '@/features/admin/HealthTab'
+import { CrashLogTab }  from '@/features/admin/CrashLogTab'
+import { BugReportsTab } from '@/features/admin/BugReportsTab'
 import type { LangCode } from '@/lib/supabase/types'
 
-type Tab = 'users' | 'digest' | 'health' | 'crashes'
+type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users',   label: 'Users'   },
   { id: 'digest',  label: 'Digest'  },
   { id: 'health',  label: 'Health'  },
   { id: 'crashes', label: 'Crashes' },
+  { id: 'bugs',    label: 'Bugs'    },
 ]
 
 type Props = {
@@ -94,6 +96,7 @@ export function AdminShell({ userName, role, lang }: Props) {
           {tab === 'digest'  && <DigestTab />}
           {tab === 'health'  && <HealthTab />}
           {tab === 'crashes' && <CrashLogTab />}
+          {tab === 'bugs'    && <BugReportsTab />}
         </main>
       </div>
 

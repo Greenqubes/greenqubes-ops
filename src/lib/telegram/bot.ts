@@ -72,6 +72,26 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
   }
 }
 
+// Sends a bug report to the dedicated bug-only Telegram bot.
+// Silently no-ops if TELEGRAM_BUG_BOT_TOKEN or TELEGRAM_BUG_CHAT_ID is missing.
+export async function sendBugTelegram(text: string): Promise<void> {
+  const token  = process.env.TELEGRAM_BUG_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_BUG_CHAT_ID
+  if (!token || !chatId?.trim()) {
+    console.warn('[telegram-bug] TELEGRAM_BUG_BOT_TOKEN or TELEGRAM_BUG_CHAT_ID not set — skipping')
+    return
+  }
+
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+  })
+  if (!res.ok) {
+    console.error('[telegram-bug] sendMessage failed', res.status, await res.text())
+  }
+}
+
 // ── Internal ───────────────────────────────────────────────────────────────────
 
 export type InlineKeyboardButton = { text: string; callback_data: string }

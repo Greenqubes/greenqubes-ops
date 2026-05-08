@@ -63,3 +63,17 @@ export async function getDownloadUrl(key: string): Promise<string> {
     { expiresIn: 3600 },
   )
 }
+
+export async function getBugScreenshotUploadUrl(
+  filename: string,
+  contentType: string,
+): Promise<{ url: string; key: string }> {
+  const ext = filename.includes('.') ? filename.split('.').pop() : 'jpg'
+  const key = `bug-reports/${randomUUID()}.${ext}`
+  const url = await getSignedUrl(
+    r2,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: 300 },
+  )
+  return { url, key }
+}

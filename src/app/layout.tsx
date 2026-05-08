@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { ToastProvider }       from '@/components/Toast'
 import { ErrorBoundary }       from '@/components/ErrorBoundary'
 import { FloatingChatWrapper } from '@/components/FloatingChatWrapper'
+import { BugReportButton }     from '@/components/BugReportButton'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <FloatingChatWrapper />
           </Suspense>
+          <BugReportButton />
         </ErrorBoundary>
       </body>
     </html>
