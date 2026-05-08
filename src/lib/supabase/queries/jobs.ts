@@ -156,7 +156,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
     .from('jobs')
     .select(`
       id, status, date, date_end, time_start, time_end,
-      client, location, description, client_poc_name, client_poc_phone,
+      project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override, created_at, updated_at,

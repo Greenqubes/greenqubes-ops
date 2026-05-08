@@ -66,7 +66,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, control, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
@@ -157,7 +157,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           <Link href={backHref} className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <span className="font-display text-sm font-medium text-ink truncate">{job.client}</span>
+          <span className="font-display text-sm font-medium text-ink truncate">{watch('project_title') || job.client}</span>
           <Pill variant={status} />
         </div>
 
