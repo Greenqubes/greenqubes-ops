@@ -26,7 +26,7 @@ Before closing off:
 1. Update `docs/plan.md` — mark completed items, add any new sessions or notes
 2. Update `docs/CONTEXT.md` — update the "Last updated" line and migration plan checkboxes
 3. Update `docs/nic-checklist.md` — tick off anything completed this session, add any new pending items
-4. Read `docs/session-naming.md`, pick the best prefix + topic for what was done this session, and **confirm the filename with Nic before creating the note file**
+4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filename in the format `{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check `docs/` for existing files with the same prefix+topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
 
