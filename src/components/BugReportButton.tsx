@@ -229,7 +229,7 @@ export function BugReportButton() {
           'bottom-[136px]',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
-            : 'bg-terracotta/90 text-white hover:bg-terracotta',
+            : 'bg-ink text-paper hover:bg-terracotta',
         )}
         aria-label="Report a bug"
         title="Report a bug"
