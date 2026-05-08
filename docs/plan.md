@@ -279,30 +279,6 @@ Added migration 0011 (`REPLICA IDENTITY FULL` on jobs) and 2-min polling fallbac
 
 ---
 
-## Session 18 — Full design review ✓
-
-Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Also fixed Supabase OAuth redirect URLs (added Vercel wildcard + localhost to allowed list; Site URL updated to production). Notes: `docs/session18-note.md`.
-
----
-
-## Session 18.1 — Additional design edits ✓
-
-Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Company bar branding, notification bell redesign, overdue styling (pill, date strip, drawer), language switcher in UserMenu, Completed/Pending pages + bottom nav tabs, JobRow time label. Notes: `docs/session18.1-note.md`.
-
----
-
-## Session 18.2 — Additional design edits ✓
-
-Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed `lowercase` CSS override, capitalized Pending / Completed / Overdue labels. Schedule tab now hides completed jobs (visible in Completed tab only). Strict on-time legend box colour fixed to `#D14545`. Admin role-switcher feature deferred to Session 17.4. Notes: `docs/session18.2-note.md`.
-
----
-
-## Session 18.3 — Additional design edits + 17.6 partial pull-forward ✓
-
-Label renames (Client → Customer, Job Description, Location / Address, Client Name, Client Contact No.), button casing (Create Job, Submit for Approval, Push for Approval). Scheduler "Push for Approval" now routes to awaiting_approval (no bypass). Schedule tab hides pending + awaiting_approval. Financials hidden on pending/awaiting_approval jobs. Job Chat Live/Syncing realtime dot indicator; locked title "Job Chat (Locked)" after 7-day window. Whole job locked on completion (including assignees). New PendingFilesSection: multi-file upload + URL links (saved as url_link files, shown in Files/URL section). Files renamed Files/URL. Project Title field above Date on all job forms; schedule shows project_title with client fallback. Migration 0012 (project_title column). **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session18.3-note.md`.
-
----
-
 ## Session 17.4 — Admin role-switcher view ✓
 
 For `ai@greenqubes.com` (admin account) only: "Preview as" section in UserMenu with Sales / Scheduler / Installer buttons. Cookie-based override (`role_override`), server-side only, no DB writes. Amber chip on avatar when active. Notes: `docs/session17.4-note.md`.
@@ -377,6 +353,30 @@ Investigation areas (in priority order):
 4. Cold starts — heavy imports on API routes (AI assistant); consider lazy loading
 5. Realtime subscription overhead on schedule page
 6. Bundle size / code splitting for large client components
+
+---
+
+## Session 18 — Full design review ✓
+
+Visual pass of the running preview against `docs/greenqubes-phase0.jsx`. 19 findings audited; 17 fixed in-session (F17 kept as harmless, F19 deferred to 17.4). New CSS tokens `--bad` / `--bad-soft` added. New i18n keys: `approvalsSubtitle`, `installerHi`. TypeScript clean. Also fixed Supabase OAuth redirect URLs (added Vercel wildcard + localhost to allowed list; Site URL updated to production). Notes: `docs/session18-note.md`.
+
+---
+
+## Session 18.1 — Additional design edits ✓
+
+Follow-up visual pass based on owner's own design input after reviewing the Session 18 preview. Company bar branding, notification bell redesign, overdue styling (pill, date strip, drawer), language switcher in UserMenu, Completed/Pending pages + bottom nav tabs, JobRow time label. Notes: `docs/session18.1-note.md`.
+
+---
+
+## Session 18.2 — Additional design edits ✓
+
+Visual pass continuing owner review. Job time label 12px → 15px. Pill: removed `lowercase` CSS override, capitalized Pending / Completed / Overdue labels. Schedule tab now hides completed jobs (visible in Completed tab only). Strict on-time legend box colour fixed to `#D14545`. Admin role-switcher feature deferred to Session 17.4. Notes: `docs/session18.2-note.md`.
+
+---
+
+## Session 18.3 — Additional design edits + 17.6 partial pull-forward ✓
+
+Label renames (Client → Customer, Job Description, Location / Address, Client Name, Client Contact No.), button casing (Create Job, Submit for Approval, Push for Approval). Scheduler "Push for Approval" now routes to awaiting_approval (no bypass). Schedule tab hides pending + awaiting_approval. Financials hidden on pending/awaiting_approval jobs. Job Chat Live/Syncing realtime dot indicator; locked title "Job Chat (Locked)" after 7-day window. Whole job locked on completion (including assignees). New PendingFilesSection: multi-file upload + URL links (saved as url_link files, shown in Files/URL section). Files renamed Files/URL. Project Title field above Date on all job forms; schedule shows project_title with client fallback. Migration 0012 (project_title column). **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session18.3-note.md`.
 
 ---
 

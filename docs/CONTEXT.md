@@ -290,18 +290,18 @@ greenqubes/
 - [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
 - [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
 - [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
-- [x] **Session 18** — Full design review (audit + fix pass done 2026-05-05; 17 of 19 findings fixed; notes: `docs/session18-note.md`)
-- [x] **Session 18.1** — Additional design edits from owner review of Session 18 preview (notes: `docs/session18.1-note.md`)
-- [x] **Session 18.2** — Pill casing (Pending/Completed/Overdue), completed jobs hidden from schedule tab, Strict on-time legend colour #D14545, admin role-switcher deferred to 17.4
-- [x] **Session 18.3** — Label renames (Customer, Job Description, etc.), Push for Approval flow, schedule filter (pending/awaiting_approval hidden), financials gated, Job Chat Live indicator + locked title, whole-job lock, PendingFilesSection (multi-file + URL links as url_link files), Files/URL section, Project Title field + migration 0012
 - [x] **Session 17.4** — Admin role-switcher: ai@greenqubes.com can preview UI as Sales / Scheduler / Installer. Notes: `docs/session17.4-note.md`.
 - [x] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint. Notes: `docs/session17.5-note.md`.
-- [x] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions, floating chat handoff, pending/completed tab fix, pre-schedule locks, financials removed. Notes: `docs/session17.6-note.md`.
+- [x] **Session 17.6** — Pending tab sales-only, time picker 15-min intervals, production ready instructions, floating chat handoff, pending/completed tab fix, pre-schedule locks, financials removed. Notes: `docs/session17.6-note.md`.
 - [x] **Session 17.7** — Required fields, end date, custom TimeSelect, multi-day calendar, optional contact fields, scheduled job layout matches pending (chat open), project_title SELECT fix, reactive header, router.refresh after save. Notes: `docs/session17.7-note.md`.
 - [x] **Session 17.8** — Installer Completed tab + My Jobs redesign (match ScheduleShell), list/week/month view toggle. Notes: `docs/session17.8-note.md`.
 - [x] **Session 17.9** — Report a bug feature: floating button, modal, R2 screenshot upload, `bug_reports` table (migration 0014), Telegram bug bot, Admin Bugs tab, `sync-bugs.ts`. Notes: `docs/session17.9-note.md`.
 - [x] **Session 17.10** — Nightly bug sync: `scripts/sync-bugs.ts` + nightly bat Step 4 auto-commits + pushes new markdown files to `dev`. Notes: `docs/session17.10-note.md`.
 - [x] **Session 17.11** — Git cleanup + security: hardcoded PostgreSQL URI removed, DB password rotated, git history rebased 94→24 commits, 5 large doc files removed, `.claude/skills/` gitignored, ui-ux-pro-max installed. Notes: `docs/session17.11-note.md`.
+- [x] **Session 18** — Full design review (audit + fix pass done 2026-05-05; 17 of 19 findings fixed; notes: `docs/session18-note.md`)
+- [x] **Session 18.1** — Additional design edits from owner review of Session 18 preview (notes: `docs/session18.1-note.md`)
+- [x] **Session 18.2** — Pill casing (Pending/Completed/Overdue), completed jobs hidden from schedule tab, Strict on-time legend colour #D14545, admin role-switcher deferred to 17.4
+- [x] **Session 18.3** — Label renames (Customer, Job Description, etc.), Push for Approval flow, schedule filter (pending/awaiting_approval hidden), financials gated, Job Chat Live indicator + locked title, whole-job lock, PendingFilesSection (multi-file + URL links as url_link files), Files/URL section, Project Title field + migration 0012
 - [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
 - [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
