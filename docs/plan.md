@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature implemented)_
+_Last updated: 2026-05-08 (Session 17.9 complete — report a bug feature; Session 17.10 planned for backend performance review)_
 
 ---
 
@@ -349,6 +349,20 @@ Installer bottom nav gains a Completed tab (My Jobs | Completed | Assistant). My
 ## Session 17.9 — Report a Bug Feature ✓
 
 Floating bug button (bottom-right, above AI bubble) opens a modal: message + priority (Low/Medium/High/Urgent) + optional screenshot upload to R2. Auto-captures IP, platform, browser, OS, screen resolution, route, user email/role. Saves to new `bug_reports` table (migration 0014). Writes markdown file to `bugs_reported/bugs_[role]_[date]_[N].md` (when `BUG_LOG_DIR` env var is set); fixed bugs move to `bugs_reported/bugs_fixed/`. Fires Telegram to a dedicated bug-only bot (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`). New "Bugs" tab in AdminShell with open/fixed list and "Mark Fixed" action. Notes: `docs/session17.9-note.md`.
+
+---
+
+## Session 17.10 — Backend Performance Review _(planned)_
+
+Every page navigation currently takes a few seconds. Goal: profile all main pages and reduce load times.
+
+Investigation areas (in priority order):
+1. Server component waterfalls — sequential `await` calls that can be parallelised with `Promise.all`
+2. Supabase query patterns — N+1 queries, over-fetching columns, missing indexes
+3. Next.js caching — audit `force-dynamic` / `no-store` usage; apply static generation where safe
+4. Cold starts — heavy imports on API routes (AI assistant); consider lazy loading
+5. Realtime subscription overhead on schedule page
+6. Bundle size / code splitting for large client components
 
 ---
 

@@ -1,175 +1,96 @@
-# Session 17.9 — Report a Bug Feature (Design Only — Implementation Pending)
+# Session 17.9 — Report a Bug Feature (Implementation)
 
-_Written: 2026-05-08. No code committed this session — design agreed, implementation deferred to next chat._
-
----
-
-## What was designed
-
-A user-facing bug reporting feature. Full design agreed with owner. Ready to implement next session.
+_Written: 2026-05-08. Full implementation completed this session._
 
 ---
 
-## Feature overview
+## What was built
 
-### Floating button
-- Small terracotta/red circle button with a `Bug` icon (lucide-react)
-- Positioned bottom-right, stacked **below** the existing AI chat floating bubble
-- Visible on all pages (same exclusion logic as AI bubble — hidden on `/assistant`)
-- Clicking opens a modal
+Full end-to-end bug reporting feature. Design was agreed in the previous session; all code written and deployed to dev this session.
 
-### Report modal
-- **Message** — required free-text textarea (describe the bug)
-- **Priority** — selector: Low / Medium / High / Urgent
-- **Screenshot** — optional image attachment (uploaded to R2 under `bug-reports/` prefix)
-- Submit button → success toast on completion
+---
 
-### Auto-captured diagnostics (no user input needed)
-Captured at client side and sent in the POST payload:
+## Files created
 
-| Field | Source |
+| File | Purpose |
 |---|---|
-| Timestamp (SGT) | Server-side |
-| IP address | `x-forwarded-for` header (Vercel) |
-| Platform | User-Agent parse |
-| Browser + version | User-Agent parse |
-| OS | User-Agent parse |
-| Screen resolution | `window.screen.width × height` (client) |
-| Current page/route | `window.location.pathname` (client) |
-| User email + role | From authenticated session |
+| `supabase/migrations/0014_bug_reports.sql` | `bug_reports` table with priority/status checks, RLS enabled (service client only) |
+| `src/lib/supabase/queries/bugs.ts` | DB helpers: `insertBugReport`, `getBugReports`, `countBugReportsForDate`, `markBugFixed`, `getBugMarkdownFile` |
+| `src/app/api/bugs/route.ts` | POST (submit report) + GET (admin list, scheduler only) |
+| `src/app/api/bugs/[id]/route.ts` | PATCH (mark fixed — updates DB + moves markdown file) |
+| `src/app/api/bugs/upload-url/route.ts` | Presigned R2 URL for screenshot upload |
+| `src/components/BugReportButton.tsx` | Floating bug button + modal (message, priority, screenshot) |
+| `src/features/admin/BugReportsTab.tsx` | Admin tab: open/fixed list, priority pills, view screenshot, Mark Fixed |
+| `bugs_reported/pre-alpha/.gitkeep` | Version folder scaffold |
+| `bugs_reported/pre-alpha/fixed/.gitkeep` | Fixed subfolder scaffold |
 
----
+## Files modified
 
-## Architecture
-
-### Database — migration `0014_bug_reports.sql`
-
-New `bug_reports` table (not reusing `crash_logs`):
-
-```sql
-create table bug_reports (
-  id            uuid primary key default gen_random_uuid(),
-  user_email    text,
-  user_role     text,
-  route         text,
-  message       text not null,
-  priority      text not null,   -- 'low' | 'medium' | 'high' | 'urgent'
-  status        text not null default 'open',  -- 'open' | 'fixed'
-  screenshot_url text,           -- R2 presigned or public URL
-  markdown_file text,            -- filename for cross-reference
-  ip_address    text,
-  platform      text,
-  browser       text,
-  os            text,
-  screen        text,
-  created_at    timestamptz default now(),
-  resolved_at   timestamptz
-);
-```
-
-RLS: service client only (all reads/writes via API routes, not direct from browser).
-
-### API routes
-
-- **`POST /api/bugs`** — receive report, save to DB, write markdown file, send Telegram
-- **`GET /api/bugs`** — admin only, list all reports (open + fixed)
-- **`PATCH /api/bugs/[id]`** — admin only, mark fixed → set `status = 'fixed'`, `resolved_at = now()`, move markdown file to `bugs_fixed/`
-
-### Markdown files
-
-**Naming:** `bugs_[role]_[YYYY-MM-DD]_[N].md` where N = count of reports that calendar day + 1 (e.g. `bugs_scheduler_2026-05-08_1.md`)
-
-**Open bugs folder:** `C:\Greenqubes_GitHub\greenqubes-ops\bugs_reported\`  
-**Fixed bugs folder:** `C:\Greenqubes_GitHub\greenqubes-ops\bugs_reported\bugs_fixed\`
-
-**File content template:**
-```md
-# Bug Report — [PRIORITY] — [date SGT]
-
-**Time:** 08 May 2026, 3:42 PM SGT
-**User:** email (role)
-**Page:** /route
-**Priority:** urgent
-**IP:** 123.456.789.0
-**Platform:** Mobile · iPhone · Safari 17
-**OS:** iOS 17.4
-**Screen:** 390×844
-**Screenshot:** [link or "none"]
-
-## Description
-
-[message]
-```
-
-### Telegram — separate bug-only bot
-
-New bot separate from the main notification bot. Requires two new env vars:
-- `TELEGRAM_BUG_BOT_TOKEN`
-- `TELEGRAM_BUG_CHAT_ID`
-
-**Bot setup steps (do before next session):**
-1. Open Telegram → message `@BotFather` → send `/newbot`
-2. Give it a name e.g. "GreenQubes Bug Reports" and a username e.g. `greenqubes_bugs_bot`
-3. Copy the token → add to `.env.local` as `TELEGRAM_BUG_BOT_TOKEN`
-4. Either start a private chat with the bot or add it to a group
-5. Visit `https://api.telegram.org/bot<TOKEN>/getUpdates` after sending it a message to get the `chat_id`
-6. Add to `.env.local` as `TELEGRAM_BUG_CHAT_ID`
-7. Add both vars to Vercel environment variables
-
-**Telegram message format:**
-```
-🐛 Bug Report — URGENT
-Time: 08 May 2026, 3:42 PM SGT
-Platform: Mobile · iPhone · Safari 17
-OS: iOS 17.4
-Screen: 390×844
-IP: 123.456.789.0
-User: nicholas@greenqubes.com (scheduler)
-Page: /schedule
-Screenshot: [View ↗] (R2 link)
----
-[message text]
-```
-
-### Admin panel — new "Bug Reports" tab
-
-5th tab in AdminShell (`src/features/admin/`). New file: `BugReportsTab.tsx`.
-
-- Lists open reports: priority pill (colour-coded), user/role, page, timestamp, message preview
-- "Mark Fixed" button per row → calls `PATCH /api/bugs/[id]` → moves to fixed section
-- Collapsible "Fixed" section below open reports showing resolved bugs with resolved timestamp
-
----
-
-## Files to create / modify
-
-| File | Action |
+| File | Change |
 |---|---|
-| `supabase/migrations/0014_bug_reports.sql` | New — bug_reports table |
-| `src/app/api/bugs/route.ts` | New — POST (submit) + GET (admin list) |
-| `src/app/api/bugs/[id]/route.ts` | New — PATCH (mark fixed) |
-| `src/lib/supabase/queries/bugs.ts` | New — DB query helpers |
-| `src/lib/telegram/bot.ts` | Extend — add `sendBugTelegram()` using bug bot token |
-| `src/lib/telegram/templates.ts` | Extend — add `tplBugReport()` template |
-| `src/lib/supabase/types.ts` | Extend — add bug_reports types |
-| `src/components/BugReportButton.tsx` | New — floating button + modal |
-| `src/features/admin/BugReportsTab.tsx` | New — admin tab UI |
-| `src/features/admin/AdminShell.tsx` | Modify — add Bug Reports tab |
-| `src/app/layout.tsx` | Modify — mount `<BugReportButton />` |
-| `.env.local` | Add `TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID` |
+| `src/lib/supabase/types.ts` | Added `bug_reports` Row/Insert/Update types |
+| `src/lib/storage/r2.ts` | Added `getBugScreenshotUploadUrl()` (no jobId, uses `bug-reports/` prefix) |
+| `src/lib/telegram/bot.ts` | Added `sendBugTelegram()` using `TELEGRAM_BUG_BOT_TOKEN` |
+| `src/lib/telegram/templates.ts` | Added `tplBugReport()` with full diagnostic formatting |
+| `src/features/admin/AdminShell.tsx` | Added "Bugs" tab (5th tab) |
+| `src/app/layout.tsx` | Mounted `<BugReportButton />` inside `<ToastProvider>` |
 
 ---
 
-## Pre-implementation checklist (owner to do before next session)
+## Architecture decisions
 
-- [ ] Create the bug Telegram bot via `@BotFather`, get token + chat ID
-- [ ] Add `TELEGRAM_BUG_BOT_TOKEN` and `TELEGRAM_BUG_CHAT_ID` to `.env.local`
-- [ ] Add both vars to Vercel environment variables dashboard
+### Floating button position
+Bug button sits **above** the AI chat bubble: `bottom-[136px]`, `w-10 h-10` (slightly smaller than AI's `w-12 h-12` at `bottom-20`). This gives the AI button visual priority and avoids collision with the bottom nav.
+
+### Version-scoped folder structure
+`APP_VERSION` env var (default `pre-alpha`) scopes all markdown files:
+- Open: `bugs_reported/{version}/bugs_{role}_{YYYY-MM-DD}_{N}.md`
+- Fixed: `bugs_reported/{version}/fixed/bugs_{role}_{YYYY-MM-DD}_{N}.md`
+
+When moving to V.0.0.0.1 (Session 19), update `APP_VERSION` in `.env.local` and Vercel — new folder is created automatically on first report.
+
+### Markdown files (local dev only)
+`BUG_LOG_DIR` env var must be set for file writes. On Vercel it is not set; DB + Telegram still work. Files are written/moved by the API route using `fs/promises`.
+
+### Screenshot upload flow
+Client calls `/api/bugs/upload-url` → gets presigned PUT URL → uploads directly to R2 → passes the R2 key in the `/api/bugs` POST body. The API generates a short-lived download URL for Telegram.
+
+### Telegram bug bot
+Separate from the main notification bot. Uses `TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`. Silently no-ops if either env var is missing. Message format includes priority emoji, all diagnostics, and a screenshot link if present.
+
+### Auto-captured diagnostics
+- Server-side: IP (`x-forwarded-for`), user-agent parse (platform/browser/OS), email/role from session
+- Client-side: `window.location.pathname`, `window.screen.width × height`
 
 ---
 
-## What's next
+## Bug fixed this session
 
-- Next session: implement everything above end-to-end
-- Run `npx supabase db push` after migration is applied
-- Test: submit a bug report as each role, confirm markdown file written, Telegram received, admin tab shows it, mark fixed moves the file
+**Vercel build error** — `BugReportButton` was mounted outside `<ToastProvider>` in layout.tsx, causing `useToast()` to throw during prerendering of `/_not-found`. Fixed by moving `<BugReportButton />` inside `<ToastProvider>`.
+
+---
+
+## Env vars added
+
+| Var | Where | Value |
+|---|---|---|
+| `BUG_LOG_DIR` | `.env.local` only | `C:/Greenqubes_GitHub/greenqubes-ops/bugs_reported` |
+| `APP_VERSION` | `.env.local` + Vercel | `pre-alpha` |
+| `TELEGRAM_BUG_BOT_TOKEN` | `.env.local` + Vercel | _(set by owner before session)_ |
+| `TELEGRAM_BUG_CHAT_ID` | `.env.local` + Vercel | _(set by owner before session)_ |
+
+---
+
+## What's next — Session 17.10
+
+**Backend performance review.** Every page navigation currently takes a few seconds. Goal: identify and fix the root causes of slow load times across the app.
+
+Likely investigation areas:
+- Supabase query patterns (N+1 queries, missing indexes, over-fetching columns)
+- Next.js caching strategy (`force-dynamic` vs `cache: 'no-store'` vs static generation)
+- Server component waterfall — sequential `await` calls that could be parallelised with `Promise.all`
+- Bundle size / code splitting — large client components loading on every route
+- Vercel cold starts on API routes (especially the AI assistant route with heavy imports)
+- Realtime subscription overhead on schedule page (polling interval + WebSocket setup cost)
+
+Approach: profile each main page (schedule, job detail, installer, approvals, admin), measure server response times, identify the biggest wins, fix in priority order.
