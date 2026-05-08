@@ -134,10 +134,13 @@ export async function POST(req: NextRequest) {
       screen:   body.screen, screenshotUrl, message: body.message,
     })
 
-    // Build filename: bugs_[role]_[YYYY-MM-DD]_[N].md
-    const dateStr     = now.toISOString().slice(0, 10)
-    const countToday  = await countBugReportsForDate(dateStr)
-    const filename    = `bugs_${userRole}_${dateStr}_${countToday + 1}.md`
+    // Build filename + version-scoped relative path
+    // Structure: {version}/bugs_{role}_{YYYY-MM-DD}_{N}.md
+    const version      = process.env.APP_VERSION ?? 'pre-alpha'
+    const dateStr      = now.toISOString().slice(0, 10)
+    const countToday   = await countBugReportsForDate(dateStr)
+    const filename     = `bugs_${userRole}_${dateStr}_${countToday + 1}.md`
+    const relativePath = `${version}/${filename}`
 
     const id = await insertBugReport({
       user_email:     userEmail,
@@ -146,7 +149,7 @@ export async function POST(req: NextRequest) {
       message:        body.message,
       priority:       body.priority,
       screenshot_key: body.screenshotKey ?? null,
-      markdown_file:  filename,
+      markdown_file:  relativePath,
       ip_address:     ip,
       platform,
       browser:        parseBrowser(ua).browser,
@@ -157,11 +160,13 @@ export async function POST(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Failed to save bug report' }, { status: 500 })
 
     // Write markdown file (dev only — BUG_LOG_DIR env var must be set)
+    // Final path: {BUG_LOG_DIR}/{version}/bugs_{role}_{date}_{N}.md
     const dir = process.env.BUG_LOG_DIR
     if (dir) {
       try {
-        await mkdir(dir, { recursive: true })
-        await writeFile(path.join(dir, filename), markdown, 'utf8')
+        const versionDir = path.join(dir, version)
+        await mkdir(versionDir, { recursive: true })
+        await writeFile(path.join(versionDir, filename), markdown, 'utf8')
       } catch (e) {
         console.error('[bugs] failed to write markdown file', e)
       }

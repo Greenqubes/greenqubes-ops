@@ -25,15 +25,22 @@ export async function PATCH(
 
     const { id } = await params
 
-    // Move markdown file to bugs_fixed/ subfolder if BUG_LOG_DIR is set
+    // Move markdown file into {version}/fixed/ when marking fixed
+    // markdown_file stores the relative path: "{version}/bugs_{role}_{date}_{N}.md"
+    // becomes: "{version}/fixed/bugs_{role}_{date}_{N}.md"
     const dir = process.env.BUG_LOG_DIR
     if (dir) {
-      const filename = await getBugMarkdownFile(id)
-      if (filename) {
+      const relativePath = await getBugMarkdownFile(id)
+      if (relativePath) {
         try {
-          const fixedDir = path.join(dir, 'bugs_fixed')
+          const versionDir = path.dirname(relativePath)           // e.g. "pre-alpha"
+          const filename   = path.basename(relativePath)          // e.g. "bugs_scheduler_..."
+          const fixedDir   = path.join(dir, versionDir, 'fixed')
           await mkdir(fixedDir, { recursive: true })
-          await rename(path.join(dir, filename), path.join(fixedDir, filename))
+          await rename(
+            path.join(dir, versionDir, filename),
+            path.join(fixedDir, filename),
+          )
         } catch { /* file may not exist in all environments */ }
       }
     }
