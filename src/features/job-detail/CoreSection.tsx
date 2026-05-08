@@ -104,7 +104,7 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
       <div className="grid grid-cols-2 gap-4">
         <Field label={t(lang, 'clientPOCName')} error={errors.client_poc_name?.message}>
           <Input
-            {...register('client_poc_name', req)}
+            {...register('client_poc_name')}
             disabled={readOnly}
             error={!!errors.client_poc_name}
           />
@@ -112,7 +112,7 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
         <Field label={t(lang, 'clientPOCPhone')} error={errors.client_poc_phone?.message}>
           <Input
             type="tel"
-            {...register('client_poc_phone', req)}
+            {...register('client_poc_phone')}
             disabled={readOnly}
             error={!!errors.client_poc_phone}
           />
