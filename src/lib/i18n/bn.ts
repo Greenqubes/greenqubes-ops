@@ -86,6 +86,7 @@ export const bn: Partial<Translations> = {
 
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: 'হ্যালো',
+  installerMyJobs: 'আমার কাজ',
   installerToday: 'আজকের কাজ',
   installerUpNext: 'পরবর্তী',
   installerThisWeek: 'এই সপ্তাহ',

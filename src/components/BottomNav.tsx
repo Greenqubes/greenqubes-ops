@@ -23,6 +23,7 @@ const TABS: Record<Role, Tab[]> = {
   ],
   installer: [
     { href: '/installer', label: 'My Jobs',   Icon: HardHat       },
+    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
 }

@@ -1,19 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Briefcase } from 'lucide-react'
+import { Search, X, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { UserMenu } from '@/components/UserMenu'
 import { t } from '@/lib/i18n'
 import { toISO, timeToMinutes } from '@/features/schedule/utils'
 import { InstallerJobCard } from './InstallerJobCard'
 import { NowCard } from './NowCard'
-import { Pill } from '@/components/Pill'
 import { BottomNav } from '@/components/BottomNav'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { LangCode } from '@/lib/i18n'
 
-type Tab = 'today' | 'next' | 'week' | 'past'
+type Tab = 'today' | 'next' | 'week'
 
 function getWeekEnd(today: string): string {
   const d = new Date(today + 'T00:00:00')
@@ -30,7 +29,9 @@ interface Props {
 }
 
 export function InstallerShell({ jobs, lang, userName }: Props) {
-  const [tab, setTab] = useState<Tab>('today')
+  const [tab,        setTab]        = useState<Tab>('today')
+  const [query,      setQuery]      = useState('')
+  const [showSearch, setShowSearch] = useState(false)
 
   const today   = toISO(new Date())
   const weekEnd = getWeekEnd(today)
@@ -57,15 +58,6 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
     [scheduled, today, weekEnd],
   )
 
-  const pastJobs = useMemo(
-    () => jobs
-      .filter(j => j.status === 'completed' || j.date < today)
-      .sort((a, b) => b.date.localeCompare(a.date)),
-    [jobs, today],
-  )
-
-  const firstName = userName.split(' ')[0]
-
   const nowMins = useMemo(() => {
     const now = new Date()
     return now.getHours() * 60 + now.getMinutes()
@@ -80,18 +72,27 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
     }) ?? null
   }, [todayJobs, nowMins])
 
-  const tabs: { v: Tab; label: string; count: number }[] = [
+  const firstName = userName.split(' ')[0]
+
+  const baseJobs =
+    tab === 'today' ? todayJobs :
+    tab === 'next'  ? nextJobs  :
+                     weekJobs
+
+  const visibleJobs = useMemo(() => {
+    if (!query.trim()) return baseJobs
+    const q = query.toLowerCase()
+    return baseJobs.filter(j =>
+      [j.client, j.description ?? '', j.location ?? '']
+        .join(' ').toLowerCase().includes(q)
+    )
+  }, [baseJobs, query])
+
+  const chips: { v: Tab; label: string; count: number }[] = [
     { v: 'today', label: t(lang, 'installerToday'),    count: todayJobs.length },
     { v: 'next',  label: t(lang, 'installerUpNext'),   count: nextJobs.length  },
     { v: 'week',  label: t(lang, 'installerThisWeek'), count: weekJobs.length  },
-    { v: 'past',  label: t(lang, 'installerHistoryTab'), count: 0              },
   ]
-
-  const visibleJobs =
-    tab === 'today' ? todayJobs :
-    tab === 'next'  ? nextJobs  :
-    tab === 'week'  ? weekJobs  :
-                     pastJobs
 
   return (
     <div className="min-h-screen bg-bg">
@@ -105,25 +106,64 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
         <UserMenu lang={lang} />
       </div>
 
+      {/* ── My schedule label ── */}
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
+        {t(lang, 'installerHi')}, {firstName}
+      </p>
+
       {/* ── Header ── */}
-      <div className="px-4 pt-5 pb-4">
-        <p className="text-[11px] text-muted uppercase tracking-widest mb-1">{t(lang, 'installerHi')}, {firstName}</p>
+      <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
         <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
-          {t(lang, 'installerToday')}
+          {t(lang, 'installerMyJobs')}
         </h1>
-        <Pill variant="installer" className="mt-1.5" />
+        <button
+          onClick={() => setShowSearch(s => !s)}
+          aria-label="Toggle search"
+          className={cn(
+            'p-2 rounded-lg border transition-colors',
+            showSearch
+              ? 'bg-ink border-ink text-white'
+              : 'bg-paper border-line text-ink2 hover:border-ink2'
+          )}
+        >
+          <Search size={15} />
+        </button>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="px-4 pb-3 flex gap-1.5 overflow-x-auto scrollbar-none">
-        {tabs.map(({ v, label, count }) => (
+      {/* ── Search bar ── */}
+      {showSearch && (
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+            <input
+              autoFocus
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={t(lang, 'searchJobs')}
+              className="w-full bg-paper border border-line rounded-full py-2 pl-8 pr-8 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-terracotta"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Filter chips ── */}
+      <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
+        {chips.map(({ v, label, count }) => (
           <button
             key={v}
             onClick={() => setTab(v)}
             className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-xs font-medium shrink-0 transition-colors',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
               tab === v
-                ? 'bg-brand-green text-white border-brand-green'
+                ? 'bg-terracotta-soft border-terracotta text-terracotta'
                 : 'bg-paper border-line text-ink2 hover:border-ink2',
             )}
           >
@@ -131,7 +171,9 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
             {count > 0 && (
               <span className={cn(
                 'inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-bold leading-none',
-                tab === v ? 'bg-white/25 text-white' : 'bg-brand-green/15 text-brand-green',
+                tab === v
+                  ? 'bg-terracotta/15 text-terracotta'
+                  : 'bg-ink/10 text-ink2',
               )}>
                 {count}
               </span>
@@ -139,13 +181,6 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
           </button>
         ))}
       </div>
-
-      {/* ── Section label ── */}
-      {tab === 'past' && pastJobs.length > 0 && (
-        <p className="px-4 pb-2 text-[11px] text-muted uppercase tracking-widest">
-          {t(lang, 'installerHistoryTitle')}
-        </p>
-      )}
 
       {/* ── Job list ── */}
       <div className="px-4 space-y-3 pb-24">
