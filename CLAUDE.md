@@ -7,7 +7,7 @@ Before doing anything else:
 1. Read `docs/plan.md` top to bottom
 2. Read `docs/context.md` top to bottom
 3. Read `docs/nic-checklist.md` top to bottom — list all unchecked items from "Before Pre-Alpha Testing" and "Before Go-Live" as bullet points in your response
-4. **Ask Nic which session note to read** — do not auto-search for one. Wait for Nic to name the file, then read it.
+4. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
 5. Do not proceed until Nic confirms you have the right context
 
 ---
@@ -26,7 +26,7 @@ Before closing off:
 1. Update `docs/plan.md` — mark completed items, add any new sessions or notes
 2. Update `docs/CONTEXT.md` — update the "Last updated" line and migration plan checkboxes
 3. Update `docs/nic-checklist.md` — tick off anything completed this session, add any new pending items
-4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filename in the format `{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check `docs/` for existing files with the same prefix+topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
+4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
 

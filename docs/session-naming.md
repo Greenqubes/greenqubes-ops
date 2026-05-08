@@ -1,10 +1,23 @@
 # Session Note Naming Convention
 
-Format: `{prefix}-{topic}-{YYYYMMDD}-{n}-note.md`
+Format: `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md`
 
 Where `{n}` starts at 1 and increments if a same-prefix+topic session already exists on the same date.
 
-Example: `fix-chat-20260509-1-note.md`, `feat-installer-20260601-1-note.md`, `chore-docs-20260509-2-note.md`
+Example: `docs/fix/fix-chat-20260509-1-note.md`, `docs/feat/feat-installer-20260601-1-note.md`, `docs/chore/chore-docs-20260509-2-note.md`
+
+## Folders
+
+| Folder | Prefix |
+|---|---|
+| `docs/fix/` | `fix` |
+| `docs/feat/` | `feat` |
+| `docs/visual/` | `visual` |
+| `docs/ux/` | `ux` |
+| `docs/backend/` | `backend` |
+| `docs/db/` | `db` |
+| `docs/infra/` | `infra` |
+| `docs/chore/` | `chore` |
 
 ---
 
@@ -31,11 +44,11 @@ One word. Pick the closest match to what was touched:
 
 ## Examples
 
-| Session | Filename |
+| Session | File path |
 |---|---|
-| Fixed job chat lock behaviour | `fix-chat-20260509-1-note.md` |
-| Added installer sign-off flow | `feat-installer-20260601-1-note.md` |
-| Schedule page visual pass | `visual-schedule-20260615-1-note.md` |
-| Optimised Supabase queries | `backend-perf-20260620-1-note.md` |
-| Added project_title migration | `db-jobs-20260622-1-note.md` |
-| Cleaned up docs and tooling | `chore-docs-20260509-1-note.md` |
+| Fixed job chat lock behaviour | `docs/fix/fix-chat-20260509-1-note.md` |
+| Added installer sign-off flow | `docs/feat/feat-installer-20260601-1-note.md` |
+| Schedule page visual pass | `docs/visual/visual-schedule-20260615-1-note.md` |
+| Optimised Supabase queries | `docs/backend/backend-perf-20260620-1-note.md` |
+| Added project_title migration | `docs/db/db-jobs-20260622-1-note.md` |
+| Cleaned up docs and tooling | `docs/chore/chore-docs-20260509-1-note.md` |
