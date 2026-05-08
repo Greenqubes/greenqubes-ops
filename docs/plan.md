@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-07 (Session 17.6 complete — 17.6 items + pending/completed tab fix, pre-schedule locks, financials removed)_
+_Last updated: 2026-05-08 (Session 17.7 complete — required fields, end date, custom time picker, multi-day calendar, optional contact fields, scheduled job layout, project_title save fix, router.refresh cache bust)_
 
 ---
 
