@@ -271,6 +271,38 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['crash_logs']['Insert']>
         Relationships: []
       }
+
+      bug_reports: {
+        Row: {
+          id:             string
+          user_email:     string | null
+          user_role:      string | null
+          route:          string | null
+          message:        string
+          priority:       'low' | 'medium' | 'high' | 'urgent'
+          status:         'open' | 'fixed'
+          screenshot_key: string | null
+          markdown_file:  string | null
+          ip_address:     string | null
+          platform:       string | null
+          browser:        string | null
+          os:             string | null
+          screen:         string | null
+          created_at:     string
+          resolved_at:    string | null
+        }
+        Insert: Omit<
+          Database['public']['Tables']['bug_reports']['Row'],
+          'id' | 'created_at' | 'status' | 'resolved_at'
+        > & {
+          id?:          string
+          created_at?:  string
+          status?:      'open' | 'fixed'
+          resolved_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['bug_reports']['Insert']>
+        Relationships: []
+      }
     }
 
     Views: Record<string, never>
