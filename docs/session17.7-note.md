@@ -96,6 +96,49 @@ alter table jobs add column if not exists date_end date;
 |---|---|
 | `b929634` | Session 17.7: required fields on new job, end date, 15-min time selects, multi-day calendar |
 | `16efdd9` | Session 17.7 follow-up: custom time dropdown + guaranteed form validation |
+| `0796863` | fix: make client contact name and phone optional fields |
+| `c7d4acf` | feat: scheduled job page matches pending layout with chat open |
+| `c9a5417` | fix: project_title missing from getJobById select + reactive header |
+| `686c99b` | fix: call router.refresh() after save to bust Next.js cache |
+
+---
+
+## Additional fixes (2026-05-08)
+
+### 6. Client contact fields made optional
+
+`client_poc_name` and `client_poc_phone` were using the `req` validation rules in `CoreSection`, making them required on new job creation. Removed the `req` binding from both fields — they are now always optional regardless of `validateRequired`.
+
+**File:** `src/features/job-detail/CoreSection.tsx`
+
+---
+
+### 7. Scheduled job page matches pending layout (chat open)
+
+Scheduled jobs now render with the same section layout as pending jobs:
+- `PendingFilesSection` shown for `scheduled` status (was only shown for `pending`)
+- `ProductionReadySection` locked (readOnly) for `scheduled` status (was editable)
+- `ChatSection` remains open/unlocked for `scheduled` (chat was already only locked for `pending` / `awaiting_approval`)
+
+**File:** `src/features/job-detail/JobDetailShell.tsx`
+
+---
+
+### 8. project_title missing from getJobById SELECT
+
+`project_title` was absent from the SELECT in `getJobById`, causing the field to always load as `undefined` → `''` on re-entry even after saving. Added `project_title` to the query.
+
+Header in `JobDetailShell` updated to show `watch('project_title') || job.client` — updates live as the user types and falls back to client name when project title is empty.
+
+**Files:** `src/lib/supabase/queries/jobs.ts`, `src/features/job-detail/JobDetailShell.tsx`
+
+---
+
+### 9. router.refresh() after save
+
+After a successful save in `JobDetailShell`, `router.refresh()` is now called to invalidate the Next.js server cache. Without this, the schedule/calendar page served stale data after a job was edited.
+
+**File:** `src/features/job-detail/JobDetailShell.tsx`
 
 ---
 
@@ -108,4 +151,4 @@ alter table jobs add column if not exists date_end date;
 
 ## What's next
 
-- Session 18 — Full visual design review against `docs/greenqubes-phase0.jsx`
+- Session 19 — Pre-Alpha Testing (Myself)

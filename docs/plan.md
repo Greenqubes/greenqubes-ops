@@ -334,9 +334,9 @@ Also done this session (post-commit fixes):
 
 ---
 
-## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar ✓
+## Session 17.7 — Required fields, End Date, Custom Time Picker, Multi-day Calendar + bug fixes ✓
 
-Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Notes: `docs/session17.7-note.md`.
+Required fields enforced on new job creation (all except Notes & Punctuality). Custom `TimeSelect` dropdown replaces native time inputs — no browser clock picker, pure 15-min intervals. End Date (optional) field added beside Date. Multi-day jobs (date_end) expand across all calendar dates; "Job Day X/X" shown in JobRow. Migration 0013 adds `date_end` column. **⚠️ Run `npx supabase db push` to apply.** Also: client contact fields made optional; scheduled job page matches pending layout (chat open); fixed `project_title` missing from `getJobById` SELECT; reactive header (`project_title || client`); `router.refresh()` after save to bust Next.js cache. Notes: `docs/session17.7-note.md`.
 
 ---
 
