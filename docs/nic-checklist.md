@@ -1,48 +1,26 @@
-# Nic's checklist — things only you can do
+# Nic's Checklist — Things Only You Can Do
 
-> Updated after each session. Claude handles the coding; this doc tracks every manual action, setup step, or decision that needs a human.
+> Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: Session 17 (2026-05-04)_
-
----
-
-## Right now — known bug to fix in Session 18
-
-- [ ] **Job chat realtime not working** — messages save and Telegram fires, but the chat UI requires a page refresh to show new messages. WebSocket connects but Supabase drops realtime events (suspected RLS custom-function issue). Fix planned for Session 18 — see `docs/session17(live-chat)-note.md` for full diagnosis and two fix options.
+_Last updated: 2026-05-09 (post Session 18.3 cleanup)_
 
 ---
 
-## Server PC — backup setup
+## Before Pre-Alpha Testing (Session 19) — Must Complete First
 
-- [ ] **Install rclone** and configure the `greenqubes-r2` remote (see `scripts/backup.sh` header for exact config steps)
-- [ ] **Set `SUPABASE_DB_URL`** as a system environment variable (Supabase dashboard → Settings → Database → Direct connection URI)
-- [ ] **Schedule `scripts/backup.sh`** as a daily Windows Task Scheduler job at 03:00 SGT (see script header for exact schtasks command)
+- [ ] **Run pending DB migrations** — `npx supabase db push` to apply migrations 0012 (project_title) and 0013 (date_end) and 0014 (bug_reports). Run from the project directory on any machine with Supabase CLI linked.
+- [ ] **Test Monday digest manually** — run `npm run monday-digest` and confirm it sends to all digest subscribers via Telegram.
+- [ ] **Obsidian sync — first run** — add `OBSIDIAN_VAULT_PATH` to `.env.local`, review vault for sensitive notes (add YAML frontmatter for anything with supplier pricing, client personal info, HR matters), then run `npm run obsidian-sync` and confirm output shows `✓ filename.md (N chunks)` for each file.
+- [ ] **Add production OAuth redirect URI** — Google Cloud Console → your OAuth client → Authorised redirect URIs → confirm `https://greenqubes-ops.vercel.app/auth/callback` is present (may already be done).
 
 ---
 
-## Obsidian sync — do this before first sync
+## Before Go-Live (Session 23) — Set Up With Team
 
-- [ ] **Review your vault for sensitive notes** — before running the sync, any note you don't want widely visible should have YAML frontmatter:
-  ```yaml
-  ---
-  visibility: [role:sales, role:scheduler]
-  tags: [supplier, costing]
-  ---
-  ```
-  Notes with no frontmatter default to `public-internal` (visible to all logged-in users). Check supplier pricing, client personal info, HR notes.
-
-- [ ] **Add `OBSIDIAN_VAULT_PATH` to `.env.local`**:
-  ```
-  OBSIDIAN_VAULT_PATH=C:/Users/YourName/Documents/YourVault
-  ```
-
-- [ ] **Run the first sync manually** to confirm it works:
-  ```
-  npm run obsidian-sync
-  ```
-  You should see `✓ filename.md (N chunks)` for each file.
-
-- [ ] **Schedule nightly sync** — once confirmed working, set up Windows Task Scheduler:
+- [ ] **Provision team accounts** — Admin → Users tab → Provision new user. Each person must sign in via Google at least once first before you can provision them.
+- [ ] **Collect Telegram chat IDs** — each team member messages your bot once; copy their chat ID into their user row from Admin → Users tab → Edit.
+- [ ] **Set digest subscribers** — Admin → Digest tab → Subscriber panel → check the box for each person who should receive the Monday digest.
+- [ ] **Schedule Obsidian nightly sync** — once manual sync is confirmed working, set up Windows Task Scheduler on the server PC:
   - Program: `node`
   - Arguments: `--env-file=.env.local node_modules/.bin/tsx scripts/obsidian-sync.ts`
   - Start in: `C:\Greenqubes_GitHub\greenqubes-ops`
@@ -50,30 +28,24 @@ _Last updated: Session 17 (2026-05-04)_
 
 ---
 
-## Monday digest
+## Security — Do Before Bringing in Any Team Members
 
-- [ ] **Test the digest manually** before relying on the cron:
-  ```
-  npm run monday-digest
-  ```
-  Should send to all users marked as digest subscribers with a Telegram Chat ID set.
+- [ ] **Turn on 2FA** on every service account — GitHub, Vercel, Supabase, Anthropic, Cloudflare. Takes 10 minutes. Do this before any team member gets access.
 
 ---
 
-## Ongoing — after go-live
+## Ongoing — After Go-Live
 
-- [ ] **Provision team accounts** — Admin → Users tab → Provision new user. Each person must have signed in via Google at least once first.
-- [ ] **Collect Telegram chat IDs** — each team member messages your bot once; copy their chat ID into their user row from Admin → Users tab → Edit.
-- [ ] **Set digest subscribers** — Admin → Digest tab → Subscriber panel → check the box for each person who should receive the Monday digest.
-- [ ] **Add Google OAuth redirect URI for production** — Google Cloud Console → your OAuth client → Authorised redirect URIs → add `https://greenqubes-ops.vercel.app/auth/callback`
-- [ ] **Turn on 2FA** on every service account — GitHub, Vercel, Supabase, Anthropic, Cloudflare. Takes 10 minutes.
-- [ ] **Check first few Monday digests manually** — review the first 2–3 digests to confirm what surfaces is worth promoting to Obsidian.
+- [ ] **Review first few Monday digests manually** — confirm what surfaces is worth promoting to Obsidian before trusting the process.
 
 ---
 
-## Admin security note
+## Server PC — Already Set Up ✓
 
-Admin access is **hard-gated to `ai@greenqubes.com` only** at both the page and API level. No other account — not even other scheduler accounts — can reach `/admin` or any `/api/admin/*` endpoint. The check is against the Google-authenticated email, not a role field, so it cannot be bypassed by editing `public.users`.
+- [x] rclone installed and `greenqubes-r2` remote configured
+- [x] `SUPABASE_DB_URL` set as system environment variable (using Supabase Connection Pooler — IPv4)
+- [x] Nightly backup scheduled in Task Scheduler at 02:00 — syncs R2 → `E:\Greenqubes-Archive\r2` and dumps DB → `E:\Greenqubes-Archive\db\`
+- [x] Git Bash path confirmed: `C:\Git\bin\bash.exe`
 
 ---
 
@@ -86,14 +58,22 @@ Admin access is **hard-gated to `ai@greenqubes.com` only** at both the page and 
 - [x] Voyage AI API key added
 - [x] Telegram bot created + token added
 - [x] Google OAuth client created + Supabase callback wired
-- [x] Supabase DB schema applied (migrations 0001–0007)
+- [x] All DB migrations applied (0001–0011; 0012–0014 pending — see above)
 - [x] Seed data applied (Sarah/Kai/Ravi/Ali + 4 demo jobs)
 - [x] Vercel deployed — https://greenqubes-ops.vercel.app
 - [x] All env vars set in Vercel dashboard
 - [x] Telegram webhook pointed at Vercel URL
-- [x] Supabase auth callback URL added for Vercel
+- [x] Supabase auth callback URL added for Vercel preview + production
 - [x] Your Telegram Chat ID added to your user record
-- [x] `messages` + `files` tables added to `supabase_realtime` publication
-- [x] `REPLICA IDENTITY FULL` set on `messages` + `files`
+- [x] `messages` + `files` + `jobs` tables added to `supabase_realtime` publication
+- [x] `REPLICA IDENTITY FULL` set on `messages`, `files`, `jobs`
 - [x] GreenqubesAI scheduler account provisioned + tested
 - [x] Supabase project linked via CLI (`npx supabase link`)
+- [x] Job chat realtime fixed (Session 17.1 — simplified RLS policies)
+- [x] DB password rotated (Session 17.11 — old password invalidated)
+
+---
+
+## Admin Security Note
+
+Admin access is hard-gated to `ai@greenqubes.com` only at both the page and API level. No other account — not even other scheduler accounts — can reach `/admin` or any `/api/admin/*` endpoint. The check is against the Google-authenticated email, not a role field, so it cannot be bypassed by editing `public.users`.
