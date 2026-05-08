@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
@@ -54,6 +55,7 @@ interface Props {
 
 export function JobDetailShell({ job, role, userId, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+  const router = useRouter()
   const supabase = createClient()
 
   const completed = job.status === 'completed'
@@ -111,6 +113,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       } as never).eq('id', job.id).throwOnError()
 
       showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
     } catch {
       showError(t(lang, 'saveError'))
     } finally {
