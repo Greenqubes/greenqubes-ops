@@ -100,7 +100,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }, [saveConversation])
 
   function loadFromHistory(chat: AsstChatRow) {
-    if (messages.length >= 2) saveConversation(messages)
+    if (messagesRef.current.length >= 2) saveConversation(messagesRef.current)
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
       .map(m => ({ id: uid(), role: m.role, content: m.content }))
     setMessages(msgs)
