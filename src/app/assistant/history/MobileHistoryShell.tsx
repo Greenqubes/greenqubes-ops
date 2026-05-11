@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { HistoryList } from '@/features/assistant/HistoryList'
+import { Modal } from '@/components/Modal'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 import type { LangCode } from '@/lib/supabase/types'
 
@@ -11,9 +12,10 @@ interface Props { lang: LangCode }
 
 export function MobileHistoryShell({ lang: _lang }: Props) {
   const router = useRouter()
-  const [chats,   setChats]   = useState<AsstChatRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [toast,   setToast]   = useState<string | null>(null)
+  const [chats,           setChats]           = useState<AsstChatRow[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [toast,           setToast]           = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchChats = useCallback(async () => {
@@ -52,7 +54,11 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
     }
   }
 
-  async function handleDelete(id: string) {
+  async function confirmDelete() {
+    const id = pendingDeleteId
+    if (!id) return
+    setPendingDeleteId(null)
+
     setChats(prev => prev.filter(c => c.id !== id))
     const res = await fetch('/api/assistant/delete', {
       method:  'DELETE',
@@ -93,7 +99,7 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
             chats={chats}
             onLoad={handleLoad}
             onPin={handlePin}
-            onDelete={handleDelete}
+            onDelete={setPendingDeleteId}
             mobile
           />
         )}
@@ -105,6 +111,29 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
           {toast}
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={pendingDeleteId !== null}
+        onClose={() => setPendingDeleteId(null)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-1">Delete Permanently?</p>
+        <p className="text-sm text-ink2 mb-5">This conversation will be removed and cannot be recovered.</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setPendingDeleteId(null)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            No
+          </button>
+          <button
+            onClick={confirmDelete}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
+          >
+            Yes
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

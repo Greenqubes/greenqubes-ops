@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Pin, MoreVertical, Check, X } from 'lucide-react'
+import { Pin, MoreVertical } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 import type { Json } from '@/lib/supabase/types'
@@ -50,8 +50,7 @@ const GROUP_LABELS: Record<Group, string> = {
 const GROUP_ORDER: Group[] = ['pinned', 'today', 'week', 'earlier']
 
 export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobile }: Props) {
-  const [openMenuId,       setOpenMenuId]       = useState<string | null>(null)
-  const [confirmDeleteId,  setConfirmDeleteId]  = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   // Close open menu when clicking outside
   useEffect(() => {
@@ -74,11 +73,6 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
 
   function handleDeleteClick(id: string) {
     setOpenMenuId(null)
-    setConfirmDeleteId(id)
-  }
-
-  function handleDeleteConfirm(id: string) {
-    setConfirmDeleteId(null)
     onDelete(id)
   }
 
@@ -98,14 +92,11 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
                 chat={chat}
                 isActive={chat.id === activeChatId}
                 isMenuOpen={openMenuId === chat.id}
-                isConfirmingDelete={confirmDeleteId === chat.id}
                 mobile={mobile}
                 onLoad={() => onLoad(chat)}
                 onToggleMenu={() => setOpenMenuId(openMenuId === chat.id ? null : chat.id)}
                 onPin={() => handlePin(chat)}
                 onDeleteClick={() => handleDeleteClick(chat.id)}
-                onDeleteConfirm={() => handleDeleteConfirm(chat.id)}
-                onDeleteCancel={() => setConfirmDeleteId(null)}
               />
             ))}
           </div>
@@ -118,47 +109,22 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
 // ── ChatRow ──────────────────────────────────────────────────────────────────
 
 interface RowProps {
-  chat:                AsstChatRow
-  isActive:            boolean
-  isMenuOpen:          boolean
-  isConfirmingDelete:  boolean
-  mobile?:             boolean
-  onLoad:              () => void
-  onToggleMenu:        () => void
-  onPin:               () => void
-  onDeleteClick:       () => void
-  onDeleteConfirm:     () => void
-  onDeleteCancel:      () => void
+  chat:          AsstChatRow
+  isActive:      boolean
+  isMenuOpen:    boolean
+  mobile?:       boolean
+  onLoad:        () => void
+  onToggleMenu:  () => void
+  onPin:         () => void
+  onDeleteClick: () => void
 }
 
 function ChatRow({
-  chat, isActive, isMenuOpen, isConfirmingDelete, mobile,
-  onLoad, onToggleMenu, onPin, onDeleteClick, onDeleteConfirm, onDeleteCancel,
+  chat, isActive, isMenuOpen, mobile,
+  onLoad, onToggleMenu, onPin, onDeleteClick,
 }: RowProps) {
   const topic = chat.topic ?? 'Untitled conversation'
   const count = msgCount(chat.msgs)
-
-  if (isConfirmingDelete) {
-    return (
-      <div className="mx-1 mb-1 rounded-lg border border-line bg-paper px-3 py-2">
-        <p className="text-xs font-medium text-ink mb-2">Delete permanently?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={onDeleteConfirm}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-terracotta text-white text-xs font-medium hover:bg-terracotta/90 transition-colors"
-          >
-            <Check size={11} /> Confirm
-          </button>
-          <button
-            onClick={onDeleteCancel}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-line text-ink2 text-xs font-medium hover:border-ink2 transition-colors"
-          >
-            <X size={11} /> Cancel
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="relative group">

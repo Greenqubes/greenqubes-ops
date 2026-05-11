@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { PlusCircle, Loader2 } from 'lucide-react'
 import { HistoryList } from './HistoryList'
+import { Modal } from '@/components/Modal'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Props {
@@ -14,9 +15,10 @@ interface Props {
 }
 
 export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Props) {
-  const [chats,   setChats]   = useState<AsstChatRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [toast,   setToast]   = useState<string | null>(null)
+  const [chats,          setChats]          = useState<AsstChatRow[]>([])
+  const [loading,        setLoading]        = useState(true)
+  const [toast,          setToast]          = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -62,7 +64,11 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
     }
   }
 
-  async function handleDelete(id: string) {
+  async function confirmDelete() {
+    const id = pendingDeleteId
+    if (!id) return
+    setPendingDeleteId(null)
+
     // Optimistic update
     setChats(prev => prev.filter(c => c.id !== id))
     onDelete(id)
@@ -74,7 +80,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
     })
 
     if (!res.ok) {
-      // Refetch to restore state
       fetchChats()
     }
   }
@@ -100,7 +105,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
             activeChatId={activeChatId}
             onLoad={onLoad}
             onPin={handlePin}
-            onDelete={handleDelete}
+            onDelete={setPendingDeleteId}
           />
         )}
       </div>
@@ -122,6 +127,29 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
           New chat
         </button>
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={pendingDeleteId !== null}
+        onClose={() => setPendingDeleteId(null)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-1">Delete Permanently?</p>
+        <p className="text-sm text-ink2 mb-5">This conversation will be removed and cannot be recovered.</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setPendingDeleteId(null)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            No
+          </button>
+          <button
+            onClick={confirmDelete}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
+          >
+            Yes
+          </button>
+        </div>
+      </Modal>
     </aside>
   )
 }
