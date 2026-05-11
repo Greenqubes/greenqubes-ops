@@ -36,11 +36,11 @@ export async function pinChat(id: string, pinned: boolean): Promise<boolean> {
 
 export async function deleteChat(id: string): Promise<boolean> {
   const supabase = await createClient()
-  const { count, error } = await supabase
+  const { error } = await supabase
     .from('asst_chats')
-    .delete({ count: 'exact' })
+    .delete()
     .eq('id', id)
-  return !error && (count ?? 0) > 0
+  return !error
 }
 
 export async function saveChat(

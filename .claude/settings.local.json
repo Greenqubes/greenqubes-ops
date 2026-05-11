@@ -28,7 +28,14 @@
       "WebSearch",
       "Bash(claude plugin *)",
       "Bash(claude /plugin)",
-      "Read(//Users/Nic/.claude/**)"
+      "Read(//Users/Nic/.claude/**)",
+      "Read(//c/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/**)",
+      "Bash(C:\\\\Users\\\\Greenqubes2023\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.1.0\\\\skills\\\\brainstorming\\\\scripts\\\\start-server.sh --project-dir \"c:/Greenqubes_GitHub/greenqubes-ops\")",
+      "Bash(bash \"C:/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh\" --project-dir \"c:/Greenqubes_GitHub/greenqubes-ops\")",
+      "Read(//c/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/subagent-driven-development/**)",
+      "Read(//c/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/requesting-code-review/**)",
+      "PowerShell(git add src/app/api/assistant/history/route.ts src/app/api/assistant/pin/route.ts src/app/api/assistant/delete/route.ts)",
+      "PowerShell(git commit -m \"feat: assistant history, pin, and delete API routes\")"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"

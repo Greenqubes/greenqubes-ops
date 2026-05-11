@@ -12,7 +12,7 @@ export async function DELETE(req: NextRequest) {
   const { id } = body
   if (!id) return new Response('Bad request', { status: 400 })
 
-  const affected = await deleteChat(id)
-  if (!affected) return new Response('Not found', { status: 404 })
+  const ok = await deleteChat(id)
+  if (!ok) return new Response('Delete failed', { status: 500 })
   return Response.json({ ok: true })
 }
