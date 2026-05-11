@@ -136,6 +136,7 @@ export interface Database {
           entities:   string[] | null
           tags:       string[] | null
           importance: number | null
+          pinned:     boolean
           visibility: string[]
           ts:         string
           updated_at: string
@@ -149,6 +150,7 @@ export interface Database {
           entities?:   string[] | null
           tags?:       string[] | null
           importance?: number | null
+          pinned?:     boolean
           visibility:  string[]
           ts?:         string
           updated_at?: string
@@ -162,6 +164,7 @@ export interface Database {
           entities?:   string[] | null
           tags?:       string[] | null
           importance?: number | null
+          pinned?:     boolean
           visibility?: string[]
           ts?:         string
           updated_at?: string
