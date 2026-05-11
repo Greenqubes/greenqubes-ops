@@ -85,50 +85,52 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
   }
 
   return (
-    <aside className="hidden md:flex flex-col shrink-0 w-[260px] border-r border-line bg-paper h-screen sticky top-0 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 px-4 pt-4 pb-2">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">History</p>
-      </div>
-
-      {/* List */}
-      <div className="flex-1 overflow-y-auto px-1 py-1">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 size={16} className="animate-spin text-muted" />
-          </div>
-        ) : chats.length === 0 ? (
-          <p className="px-3 py-4 text-xs text-muted text-center">No conversations yet</p>
-        ) : (
-          <HistoryList
-            chats={chats}
-            activeChatId={activeChatId}
-            onLoad={onLoad}
-            onPin={handlePin}
-            onDelete={setPendingDeleteId}
-          />
-        )}
-      </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className="absolute bottom-16 left-2 right-2 px-3 py-2 bg-ink text-white text-xs rounded-lg shadow-md text-center">
-          {toast}
+    <>
+      <aside className="hidden md:flex flex-col shrink-0 w-[260px] border-r border-line bg-paper h-screen sticky top-0 overflow-hidden">
+        {/* Header */}
+        <div className="shrink-0 px-4 pt-4 pb-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">History</p>
         </div>
-      )}
 
-      {/* New Chat button */}
-      <div className="shrink-0 p-3 border-t border-line">
-        <button
-          onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-line bg-bg text-ink2 hover:border-ink2 hover:text-ink text-sm font-medium transition-colors"
-        >
-          <PlusCircle size={14} />
-          New chat
-        </button>
-      </div>
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-1 py-1">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={16} className="animate-spin text-muted" />
+            </div>
+          ) : chats.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-muted text-center">No conversations yet</p>
+          ) : (
+            <HistoryList
+              chats={chats}
+              activeChatId={activeChatId}
+              onLoad={onLoad}
+              onPin={handlePin}
+              onDelete={setPendingDeleteId}
+            />
+          )}
+        </div>
 
-      {/* Delete confirmation modal */}
+        {/* Toast */}
+        {toast && (
+          <div className="absolute bottom-16 left-2 right-2 px-3 py-2 bg-ink text-white text-xs rounded-lg shadow-md text-center">
+            {toast}
+          </div>
+        )}
+
+        {/* New Chat button */}
+        <div className="shrink-0 p-3 border-t border-line">
+          <button
+            onClick={onNewChat}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-line bg-bg text-ink2 hover:border-ink2 hover:text-ink text-sm font-medium transition-colors"
+          >
+            <PlusCircle size={14} />
+            New chat
+          </button>
+        </div>
+      </aside>
+
+      {/* Modal rendered outside aside to escape overflow:hidden */}
       <Modal
         isOpen={pendingDeleteId !== null}
         onClose={() => setPendingDeleteId(null)}
@@ -150,6 +152,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
           </button>
         </div>
       </Modal>
-    </aside>
+    </>
   )
 }
