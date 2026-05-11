@@ -17,6 +17,16 @@ build/
 .env.test.local
 .env.production.local
 
+# claude code skills (local dev tool, reinstall with: npx uipro-cli init --ai claude)
+.claude/skills/
+
+# large doc files not needed in repo
+docs/conversation-archive-1.md
+docs/prototype-archive.jsx
+docs/greenqubes-architecture.html
+docs/greenqubes-setup-guide.html
+docs/Claude Start up instructions.pdf
+
 # misc
 .DS_Store
 *.pem

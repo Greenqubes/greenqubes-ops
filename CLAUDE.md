@@ -6,9 +6,9 @@ Before doing anything else:
 
 1. Read `docs/plan.md` top to bottom
 2. Read `docs/context.md` top to bottom
-3. List all files matching `docs/*-note.md`, sort them, identify the most recent one (highest session number / sub-number), read it top to bottom
-4. **Confirm to the user** which note file you read and ask: "Is this the latest session note, or is there a newer one I should read first?"
-5. Do not proceed until the user confirms
+3. Read `docs/nic-checklist.md` top to bottom — list all unchecked items from "Before Pre-Alpha Testing" and "Before Go-Live" as bullet points in your response
+4. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
+5. Do not proceed until Nic confirms you have the right context
 
 ---
 
@@ -16,6 +16,17 @@ Before doing anything else:
 
 **React hydration error #418 on /schedule (production only)**
 Multiple fix attempts were made in Session 17.3 — NotificationDrawer, JobRow, ScheduleShell today prop, replacing toLocaleDateString with static formatters, disabling SSR entirely via dynamic import. None resolved it in production. All fixes were force-reverted. The page works after a manual refresh. Do not attempt again without a specific new hypothesis. Leave it alone.
+
+---
+
+## Session end (when Nic says to end the session)
+
+Before closing off:
+
+1. Update `docs/plan.md` — mark completed items, add any new sessions or notes
+2. Update `docs/CONTEXT.md` — update the "Last updated" line and migration plan checkboxes
+3. Update `docs/nic-checklist.md` — tick off anything completed this session, add any new pending items
+4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
 
@@ -27,7 +38,5 @@ All code changes must be committed and pushed to the `dev` branch first. Vercel 
 
 ## Hard rules
 
-- Session 18 and 18.X sub-sessions are exclusively for visual design work against `docs/greenqubes-phase0.jsx`. No feature work, no refactoring. New functional bugs found during 18.X go to Session 17.4+.
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
-- Bug-fix sessions before Session 19 are named 17.X (17.1, 17.2, 17.3 …). Sessions 18 and 18.X are reserved for design review only.
