@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getJobRecipients } from '@/lib/supabase/queries/notifications'
+import { getJobRecipients, getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobApproved } from '@/lib/telegram/templates'
+import { tplJobApproved, tplJobAssigned } from '@/lib/telegram/templates'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
 export async function POST(
   _req: NextRequest,
@@ -25,13 +27,7 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  type JobRow = { client: string; date: string }
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('client, date')
-    .eq('id', jobId)
-    .maybeSingle() as { data: JobRow | null; error: unknown }
-
+  const job = await getJobNotifData(jobId)
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   await supabase
@@ -44,18 +40,46 @@ export async function POST(
     .eq('id', jobId)
     .throwOnError()
 
-  // Notify sales POC via Telegram
-  const { salesPoc } = await getJobRecipients(jobId)
+  const jobUrl = `${APP_URL}/jobs/${jobId}`
+  const { salesPoc, installers } = await getJobRecipients(jobId)
+
+  // Notify sales POC
   if (salesPoc?.telegram_chat_id) {
     await sendTelegram(
       salesPoc.telegram_chat_id,
       tplJobApproved({
+        projectTitle:  job.project_title,
         jobClient:     job.client,
+        pocName:       job.client_poc_name,
+        pocPhone:      job.client_poc_phone,
         jobDate:       job.date,
+        timeStart:     job.time_start,
+        timeEnd:       job.time_end,
         schedulerName: profile.name,
+        jobUrl,
       }),
     )
   }
+
+  // Notify each assigned installer
+  await Promise.all(
+    installers
+      .filter(i => i.telegram_chat_id)
+      .map(i => sendTelegram(
+        i.telegram_chat_id!,
+        tplJobAssigned({
+          projectTitle: job.project_title,
+          jobClient:    job.client,
+          pocName:      job.client_poc_name,
+          pocPhone:     job.client_poc_phone,
+          jobDate:      job.date,
+          timeStart:    job.time_start,
+          timeEnd:      job.time_end,
+          location:     job.location,
+          jobUrl,
+        }),
+      )),
+  )
 
   return NextResponse.json({ ok: true })
 }
