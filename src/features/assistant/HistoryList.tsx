@@ -56,8 +56,8 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
   useEffect(() => {
     if (!openMenuId) return
     function handleOutside() { setOpenMenuId(null) }
-    document.addEventListener('mousedown', handleOutside)
-    return () => document.removeEventListener('mousedown', handleOutside)
+    document.addEventListener('click', handleOutside)
+    return () => document.removeEventListener('click', handleOutside)
   }, [openMenuId])
 
   const grouped = GROUP_ORDER.reduce<Record<Group, AsstChatRow[]>>(
