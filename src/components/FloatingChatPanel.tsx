@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2 } from 'lucide-react'
-import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
@@ -27,10 +26,20 @@ function uid() {
 
 export function FloatingChatPanel({ lang }: Props) {
   const pathname    = usePathname()
-  const [isOpen,       setIsOpen]       = useState(false)
-  const [messages,     setMessages]     = useState<Message[]>([])
-  const [input,        setInput]        = useState('')
-  const [isStreaming,  setIsStreaming]  = useState(false)
+  const router      = useRouter()
+  const [isOpen,        setIsOpen]        = useState(false)
+  const [messages,      setMessages]      = useState<Message[]>([])
+  const [input,         setInput]         = useState('')
+  const [isStreaming,   setIsStreaming]   = useState(false)
+  const [pendingExpand, setPendingExpand] = useState(false)
+
+  // Navigate to /assistant once streaming finishes if expand was clicked mid-stream
+  useEffect(() => {
+    if (!isStreaming && pendingExpand) {
+      setPendingExpand(false)
+      router.push('/assistant')
+    }
+  }, [isStreaming, pendingExpand, router])
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
@@ -178,13 +187,16 @@ export function FloatingChatPanel({ lang }: Props) {
             <p className="flex-1 font-display text-[13px] font-medium text-ink leading-none">
               {t(lang, 'assistant')}
             </p>
-            <Link
-              href="/assistant"
+            <button
+              onClick={() => isStreaming ? setPendingExpand(true) : router.push('/assistant')}
               className="p-1.5 rounded-lg text-muted hover:text-ink2 hover:bg-bg transition-colors"
-              title="Open full assistant"
+              title={isStreaming ? 'Opening after reply…' : 'Open full assistant'}
             >
-              <Maximize2 size={13} />
-            </Link>
+              {pendingExpand
+                ? <Loader2 size={13} className="animate-spin" />
+                : <Maximize2 size={13} />
+              }
+            </button>
             {messages.length > 0 && (
               <button
                 onClick={handleNewChat}
