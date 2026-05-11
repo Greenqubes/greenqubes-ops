@@ -8,12 +8,13 @@ _Last updated: 2026-05-11 (feat-assistant-2 — history sidebar implemented; del
 
 ## Pending — Next Session
 
-- [ ] **Fix assistant history sidebar — delete conversation button not working** — "Delete Permanently? Confirm" fires the DELETE API but the row doesn't disappear / reappears on next load. Investigate: check RLS policy 0016 is applied, check `deleteChat` return value, check optimistic update flow in `HistorySidebar.tsx` and `MobileHistoryShell.tsx`. Verify Vercel preview deploys migration 0016.
+- [ ] **Pre-alpha testing (Session 19)** — all sidebar bugs fixed; app is ready for end-to-end testing.
 
 ---
 
-## Done This Session ✓ (2026-05-11, session 2)
+## Done This Session ✓ (2026-05-11, session 3)
 
+- [x] **Fixed assistant history delete button** — root cause: `mousedown` click-outside handler unmounted the dropdown before the `click` event fired on "Delete conversation", so `onDeleteClick` never ran. Fixed by switching to `click` event. Also replaced inline confirm with a proper "Delete Permanently?" modal (No/Yes). Made `deleteChat` idempotent (`!error` only, no count check).
 - [x] **Implemented assistant history sidebar** — migrations 0015 (pinned column) + 0016 (RLS delete policy), 3 new API routes (history/pin/delete), HistoryList + HistorySidebar components, mobile `/assistant/history` route, AssistantShell sidebar layout + Suspense boundary. Pushed to dev.
 
 ## Done Last Session ✓ (2026-05-11, session 1)

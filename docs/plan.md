@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-11 (feat-assistant-2 — assistant history sidebar implemented; delete button bug noted)_
+_Last updated: 2026-05-11 (fix-assistant — delete button fixed; delete modal added; ready for pre-alpha testing)_
 
 ---
 
@@ -22,7 +22,7 @@ _Last updated: 2026-05-11 (feat-assistant-2 — assistant history sidebar implem
 
 ## Current State
 
-App is feature-complete for pre-alpha. All core flows built and deployed to Vercel preview (`https://greenqubes-ops.vercel.app`). Full design pass done (Sessions 18–18.3). Next milestone: Session 19 pre-alpha testing by Nic.
+App is feature-complete for pre-alpha. All core flows built and deployed to Vercel preview (`https://greenqubes-ops.vercel.app`). Full design pass done (Sessions 18–18.3). Assistant history sidebar complete and delete button fixed. Next milestone: Session 19 pre-alpha testing by Nic.
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
@@ -70,6 +70,7 @@ App is feature-complete for pre-alpha. All core flows built and deployed to Verc
 | chore-assistant | Permissions Audit + Assistant Codebase Review | Fewer-permission-prompts audit, deleted 11 orphaned .gitkeep files, traced chat thread + assistant full flow, identified 5 bugs/cleanup items for next session | [chore/chore-assistant-20260509-1-note.md](chore/chore-assistant-20260509-1-note.md) |
 | feat-assistant | Assistant Fixes + History Sidebar Spec | Fixed duplicate asst_chats saves, streaming expand bug, added expand button to floating panel, deleted empty feature folders, tightened settings.json, designed + specced history sidebar | [feat/feat-assistant-20260511-1-note.md](feat/feat-assistant-20260511-1-note.md) |
 | feat-assistant-2 | Assistant History Sidebar Implementation | Migrations 0015+0016, 3 new API routes, HistoryList + HistorySidebar components, mobile /assistant/history route, AssistantShell sidebar layout. Delete conversation button not working in preview — investigate next session | [feat/feat-assistant-20260511-2-note.md](feat/feat-assistant-20260511-2-note.md) |
+| fix-assistant | Assistant Delete Button Fix + Delete Modal | Fixed mousedown/click race condition in HistoryList outside-click handler; replaced inline confirm with Delete Permanently modal; made deleteChat idempotent | [fix/fix-assistant-20260511-1-note.md](fix/fix-assistant-20260511-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
