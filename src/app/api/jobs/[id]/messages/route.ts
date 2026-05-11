@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getJobById, insertMessage, insertVoiceMessage } from '@/lib/supabase/queries/jobs'
-import { getJobRecipients } from '@/lib/supabase/queries/notifications'
+import { getJobRecipients, getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplJobMessage, tplJobVoiceNote } from '@/lib/telegram/templates'
 
 const CHAT_OPEN_DAYS = 7
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
+
+function sgtTimeNow(): string {
+  return new Date().toLocaleTimeString('en-SG', {
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Singapore',
+  })
+}
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +48,10 @@ export async function POST(
   const body = await req.json() as { content?: string; kind?: string; voice_url?: string }
   const isVoice = body.kind === 'voice'
 
+  // Fetch notification data (project title, POC fields)
+  const notifData = await getJobNotifData(jobId)
+  const jobUrl = `${APP_URL}/jobs/${jobId}`
+
   // ── Telegram helpers ──────────────────────────────────────────────────────
   async function notifyParticipants(tgMessage: string) {
     const { salesPoc, installers } = await getJobRecipients(jobId)
@@ -58,11 +69,18 @@ export async function POST(
 
     const message = await insertVoiceMessage(jobId, authorId, voiceUrl)
 
-    await notifyParticipants(tplJobVoiceNote({
-      jobClient:  job.client,
-      jobDate:    job.date,
-      authorName: authorName,
-    }))
+    if (notifData) {
+      await notifyParticipants(tplJobVoiceNote({
+        projectTitle: notifData.project_title,
+        jobClient:    notifData.client,
+        pocName:      notifData.client_poc_name,
+        pocPhone:     notifData.client_poc_phone,
+        jobDate:      notifData.date,
+        authorName,
+        sentAt:       sgtTimeNow(),
+        jobUrl,
+      }))
+    }
 
     return NextResponse.json({ message })
   }
@@ -73,12 +91,19 @@ export async function POST(
 
   const message = await insertMessage(jobId, authorId, content)
 
-  await notifyParticipants(tplJobMessage({
-    jobClient:  job.client,
-    jobDate:    job.date,
-    authorName: authorName,
-    preview:    content.slice(0, 100),
-  }))
+  if (notifData) {
+    await notifyParticipants(tplJobMessage({
+      projectTitle: notifData.project_title,
+      jobClient:    notifData.client,
+      pocName:      notifData.client_poc_name,
+      pocPhone:     notifData.client_poc_phone,
+      jobDate:      notifData.date,
+      authorName,
+      sentAt:       sgtTimeNow(),
+      preview:      content.slice(0, 100),
+      jobUrl,
+    }))
+  }
 
   return NextResponse.json({ message })
 }
