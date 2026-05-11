@@ -7,7 +7,9 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const { id } = await req.json() as { id: string }
+  let body: { id: string }
+  try { body = await req.json() } catch { return new Response('Bad request', { status: 400 }) }
+  const { id } = body
   if (!id) return new Response('Bad request', { status: 400 })
 
   await deleteChat(id)
