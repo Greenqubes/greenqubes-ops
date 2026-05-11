@@ -35,7 +35,12 @@
       "Read(//c/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/subagent-driven-development/**)",
       "Read(//c/Users/Greenqubes2023/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/requesting-code-review/**)",
       "PowerShell(git add src/app/api/assistant/history/route.ts src/app/api/assistant/pin/route.ts src/app/api/assistant/delete/route.ts)",
-      "PowerShell(git commit -m \"feat: assistant history, pin, and delete API routes\")"
+      "PowerShell(git commit -m \"feat: assistant history, pin, and delete API routes\")",
+      "Bash(Select-String -Path \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\.env.local\" -Pattern \"OBSIDIAN\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST https://api.voyageai.com/v1/embeddings -H \"Authorization: Bearer pa-KXdeFJQRGYLvEYVGENGQUi0evNNGHisx24pOyLzQvsg\" -H \"Content-Type: application/json\" -d '{\"input\":[\"test\"],\"model\":\"voyage-3\"}')",
+      "Bash(curl -s -w \"%{http_code}\" https://api.voyageai.com)",
+      "PowerShell(Invoke-WebRequest -Uri \"https://api.voyageai.com\" -UseBasicParsing -TimeoutSec 10 2>&1)",
+      "PowerShell(node --version)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"

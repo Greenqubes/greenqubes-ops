@@ -29,10 +29,10 @@ _Last updated: 2026-05-11 (feat-assistant-2 — history sidebar implemented; del
 
 ## Before Pre-Alpha Testing (Session 19) — Must Complete First
 
-- [ ] **Run pending DB migrations** — `npx supabase db push` to apply migrations 0012 (project_title) and 0013 (date_end) and 0014 (bug_reports). Run from the project directory on any machine with Supabase CLI linked.
+- [x] **Run pending DB migrations** — `npx supabase db push` confirmed all migrations (0012–0016) already applied; remote database up to date.
 - [ ] **Test Monday digest manually** — run `npm run monday-digest` and confirm it sends to all digest subscribers via Telegram.
-- [ ] **Obsidian sync — first run** — add `OBSIDIAN_VAULT_PATH` to `.env.local`, review vault for sensitive notes (add YAML frontmatter for anything with supplier pricing, client personal info, HR matters), then run `npm run obsidian-sync` and confirm output shows `✓ filename.md (N chunks)` for each file.
-- [ ] **Add production OAuth redirect URI** — Google Cloud Console → your OAuth client → Authorised redirect URIs → confirm `https://greenqubes-ops.vercel.app/auth/callback` is present (may already be done).
+- [x] **Obsidian sync — first run** — `greenqubes-kb` added as git submodule at `vault/`; `OBSIDIAN_VAULT_PATH` set in `.env.local`; `--use-system-ca` added to all script commands (Node TLS fix); sync confirmed working (`✓ Welcome.md (1 chunk)`).
+- [x] **Add production OAuth redirect URI** — added `https://greenqubes-ops.vercel.app/auth/callback` to Supabase Auth → URL Configuration → Redirect URLs. Google Cloud Console only needs the Supabase callback URI (already present).
 
 ---
 

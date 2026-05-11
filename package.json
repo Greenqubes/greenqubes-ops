@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "obsidian-sync": "tsx --env-file=.env.local scripts/obsidian-sync.ts",
-    "monday-digest": "tsx --env-file=.env.local scripts/monday-digest.ts",
-    "sync-bugs":     "tsx --env-file=.env.local scripts/sync-bugs.ts"
+    "obsidian-sync": "node --use-system-ca --import tsx --env-file=.env.local scripts/obsidian-sync.ts",
+    "monday-digest": "node --use-system-ca --import tsx --env-file=.env.local scripts/monday-digest.ts",
+    "sync-bugs":     "node --use-system-ca --import tsx --env-file=.env.local scripts/sync-bugs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
