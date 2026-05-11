@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-11 (feat-assistant — assistant fixes + history sidebar spec)_
+_Last updated: 2026-05-11 (feat-assistant-2 — assistant history sidebar implemented; delete button bug noted)_
 
 ---
 
@@ -69,6 +69,7 @@ App is feature-complete for pre-alpha. All core flows built and deployed to Verc
 | chore-docs | Docs Cleanup + Workflow Reset | Archived session notes, rewrote checklist, squashed plan/context, new session naming convention | [chore/chore-docs-20260509-1-note.md](chore/chore-docs-20260509-1-note.md) |
 | chore-assistant | Permissions Audit + Assistant Codebase Review | Fewer-permission-prompts audit, deleted 11 orphaned .gitkeep files, traced chat thread + assistant full flow, identified 5 bugs/cleanup items for next session | [chore/chore-assistant-20260509-1-note.md](chore/chore-assistant-20260509-1-note.md) |
 | feat-assistant | Assistant Fixes + History Sidebar Spec | Fixed duplicate asst_chats saves, streaming expand bug, added expand button to floating panel, deleted empty feature folders, tightened settings.json, designed + specced history sidebar | [feat/feat-assistant-20260511-1-note.md](feat/feat-assistant-20260511-1-note.md) |
+| feat-assistant-2 | Assistant History Sidebar Implementation | Migrations 0015+0016, 3 new API routes, HistoryList + HistorySidebar components, mobile /assistant/history route, AssistantShell sidebar layout. Delete conversation button not working in preview — investigate next session | [feat/feat-assistant-20260511-2-note.md](feat/feat-assistant-20260511-2-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

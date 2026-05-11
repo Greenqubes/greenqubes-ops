@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-09 (chore-assistant — permissions audit, .gitkeep cleanup, assistant flow review; next: fix duplicate asst_chats saves + pre-alpha testing)_
+_Last updated: 2026-05-11 (feat-assistant-2 — history sidebar implemented and pushed to dev; delete conversation button broken in preview — fix next session, then pre-alpha testing)_
 
 ---
 

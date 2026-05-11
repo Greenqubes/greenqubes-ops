@@ -2,17 +2,21 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-11 (feat-assistant — all 5 pending fixes resolved, history sidebar spec added)_
+_Last updated: 2026-05-11 (feat-assistant-2 — history sidebar implemented; delete button bug added)_
 
 ---
 
 ## Pending — Next Session
 
-- [ ] **Implement assistant history sidebar** — spec at `docs/superpowers/specs/2026-05-11-assistant-history-sidebar-design.md`. Includes migration 0015 (pinned column), 3 new API routes, HistorySidebar + HistoryList components, mobile `/assistant/history` route, and AssistantShell layout update.
+- [ ] **Fix assistant history sidebar — delete conversation button not working** — "Delete Permanently? Confirm" fires the DELETE API but the row doesn't disappear / reappears on next load. Investigate: check RLS policy 0016 is applied, check `deleteChat` return value, check optimistic update flow in `HistorySidebar.tsx` and `MobileHistoryShell.tsx`. Verify Vercel preview deploys migration 0016.
 
 ---
 
-## Done This Session ✓ (2026-05-11)
+## Done This Session ✓ (2026-05-11, session 2)
+
+- [x] **Implemented assistant history sidebar** — migrations 0015 (pinned column) + 0016 (RLS delete policy), 3 new API routes (history/pin/delete), HistoryList + HistorySidebar components, mobile `/assistant/history` route, AssistantShell sidebar layout + Suspense boundary. Pushed to dev.
+
+## Done Last Session ✓ (2026-05-11, session 1)
 
 - [x] **Fixed duplicate `asst_chats` saves** — removed `saveConversation` from `sendMessage` in both AssistantShell and FloatingChatPanel; added unmount cleanup to AssistantShell.
 - [x] **Deleted `features/chat-thread/`** — empty folder removed; chat stays in `job-detail/ChatSection.tsx`.
