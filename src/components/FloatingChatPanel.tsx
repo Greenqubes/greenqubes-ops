@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles } from 'lucide-react'
+import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2 } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
@@ -177,6 +178,13 @@ export function FloatingChatPanel({ lang }: Props) {
             <p className="flex-1 font-display text-[13px] font-medium text-ink leading-none">
               {t(lang, 'assistant')}
             </p>
+            <Link
+              href="/assistant"
+              className="p-1.5 rounded-lg text-muted hover:text-ink2 hover:bg-bg transition-colors"
+              title="Open full assistant"
+            >
+              <Maximize2 size={13} />
+            </Link>
             {messages.length > 0 && (
               <button
                 onClick={handleNewChat}
