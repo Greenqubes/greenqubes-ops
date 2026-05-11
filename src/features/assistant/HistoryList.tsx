@@ -1,7 +1,7 @@
 // src/features/assistant/HistoryList.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Pin, MoreVertical, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
@@ -52,6 +52,14 @@ const GROUP_ORDER: Group[] = ['pinned', 'today', 'week', 'earlier']
 export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobile }: Props) {
   const [openMenuId,       setOpenMenuId]       = useState<string | null>(null)
   const [confirmDeleteId,  setConfirmDeleteId]  = useState<string | null>(null)
+
+  // Close open menu when clicking outside
+  useEffect(() => {
+    if (!openMenuId) return
+    function handleOutside() { setOpenMenuId(null) }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [openMenuId])
 
   const grouped = GROUP_ORDER.reduce<Record<Group, AsstChatRow[]>>(
     (acc, g) => ({ ...acc, [g]: [] }),
@@ -161,7 +169,7 @@ function ChatRow({
           isActive ? 'bg-terracotta/10 border border-terracotta/20' : 'hover:bg-bg',
         )}
       >
-        <div className="flex items-start justify-between gap-1 pr-10">
+        <div className={cn('flex items-start justify-between gap-1', !mobile ? 'pr-10' : 'pr-8')}>
           <span className="text-sm font-medium text-ink truncate leading-tight">
             {chat.pinned && <span className="mr-1 text-amber text-[11px]">📌</span>}
             {topic}
