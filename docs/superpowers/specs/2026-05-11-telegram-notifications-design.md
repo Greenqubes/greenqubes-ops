@@ -197,9 +197,28 @@ Promote this to the knowledge base?
 
 ---
 
-## Bug report (no change)
+## Bug report
+**Recipient:** Admin via `greenqubes_bugs_bot` (`TELEGRAM_BUG_BOT_TOKEN` + `TELEGRAM_BUG_CHAT_ID`)  
+**Trigger:** Any user submits a bug report
 
-`tplBugReport` is already fully designed and not marked as placeholder. No changes needed.
+Priority emoji: 🚨 Urgent · 🔴 High · 🟡 Medium · 🟢 Low
+
+```
+[emoji] Bug Report — [PRIORITY]
+───────────────────────────────
+Reported by: [userEmail] ([userRole])
+Time: [sgtTime]
+Page: [route]
+Platform: [platform] · [os]
+───────────────────────────────
+"[message]"
+───────────────────────────────
+View screenshot →    ← omitted if no screenshot
+```
+
+**Params (unchanged from existing):** `priority`, `sgtTime`, `platform`, `os`, `screen`, `ip`, `userEmail`, `userRole`, `route`, `message`, `screenshotUrl?`
+
+**Change from existing:** Redesign copy to match professional & structured style. Remove `screen` and `ip` fields — not useful in the notification (available in Admin → Bugs tab). Screenshot link opens the Cloudflare R2 signed URL directly.
 
 ---
 
@@ -224,3 +243,7 @@ Each template is called from an API route or script. All callers must be updated
 
 ### Routing change
 - `tplJobMessage` and `tplJobVoiceNote` callers must query `job_assignees` and send to each assigned installer's `telegram_chat_id` in addition to the sales POC.
+
+### `tplBugReport` changes
+- Remove `screen` and `ip` params — not useful in the notification (visible in Admin → Bugs tab)
+- Update copy to match professional & structured style with dividers
