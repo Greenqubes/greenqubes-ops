@@ -1,7 +1,7 @@
 // src/features/assistant/HistorySidebar.tsx
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { PlusCircle, Loader2 } from 'lucide-react'
 import { HistoryList } from './HistoryList'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
@@ -18,6 +18,8 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
   const [loading, setLoading] = useState(true)
   const [toast,   setToast]   = useState<string | null>(null)
 
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const fetchChats = useCallback(async () => {
     try {
       const res = await fetch('/api/assistant/history')
@@ -29,9 +31,15 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
 
   useEffect(() => { fetchChats() }, [fetchChats])
 
+  // Clear toast timer on unmount
+  useEffect(() => {
+    return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current) }
+  }, [])
+
   function showToast(msg: string) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast(msg)
-    setTimeout(() => setToast(null), 3000)
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000)
   }
 
   async function handlePin(id: string, pinned: boolean) {
