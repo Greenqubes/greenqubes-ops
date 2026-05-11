@@ -25,20 +25,22 @@ export async function getRecentChats(limit = 20): Promise<AsstChatRow[]> {
   return (data ?? []) as AsstChatRow[]
 }
 
-export async function pinChat(id: string, pinned: boolean): Promise<void> {
+export async function pinChat(id: string, pinned: boolean): Promise<boolean> {
   const supabase = await createClient()
-  await supabase
+  const { count, error } = await supabase
     .from('asst_chats')
-    .update({ pinned } as never)
+    .update({ pinned } as never, { count: 'exact' })
     .eq('id', id)
+  return !error && (count ?? 0) > 0
 }
 
-export async function deleteChat(id: string): Promise<void> {
+export async function deleteChat(id: string): Promise<boolean> {
   const supabase = await createClient()
-  await supabase
+  const { count, error } = await supabase
     .from('asst_chats')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', id)
+  return !error && (count ?? 0) > 0
 }
 
 export async function saveChat(

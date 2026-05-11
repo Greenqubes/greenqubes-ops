@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  await pinChat(id, pinned)
+  const affected = await pinChat(id, pinned)
+  if (!affected) return new Response('Not found', { status: 404 })
   return Response.json({ ok: true })
 }
