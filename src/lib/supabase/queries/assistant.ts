@@ -10,6 +10,7 @@ export interface AsstChatRow {
   msgs:       Json
   tags:       string[] | null
   importance: number | null
+  pinned:     boolean
   ts:         string
 }
 
@@ -17,10 +18,27 @@ export async function getRecentChats(limit = 20): Promise<AsstChatRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('asst_chats')
-    .select('id, topic, msgs, tags, importance, ts')
-    .order('ts', { ascending: false })
+    .select('id, topic, msgs, tags, importance, pinned, ts')
+    .order('pinned', { ascending: false })
+    .order('ts',     { ascending: false })
     .limit(limit)
   return (data ?? []) as AsstChatRow[]
+}
+
+export async function pinChat(id: string, pinned: boolean): Promise<void> {
+  const supabase = await createClient()
+  await supabase
+    .from('asst_chats')
+    .update({ pinned } as never)
+    .eq('id', id)
+}
+
+export async function deleteChat(id: string): Promise<void> {
+  const supabase = await createClient()
+  await supabase
+    .from('asst_chats')
+    .delete()
+    .eq('id', id)
 }
 
 export async function saveChat(
