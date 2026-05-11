@@ -140,11 +140,7 @@ export function FloatingChatPanel({ lang }: Props) {
         }
       }
 
-      setMessages(prev => {
-        const finalised = prev.map(m => m.id === asstId ? { ...m, streaming: false } : m)
-        saveConversation(finalised)
-        return finalised
-      })
+      setMessages(prev => prev.map(m => m.id === asstId ? { ...m, streaming: false } : m))
     } catch {
       setMessages(prev => prev.map(m =>
         m.id === asstId

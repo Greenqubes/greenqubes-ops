@@ -33,8 +33,9 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   const [messages,    setMessages]    = useState<Message[]>([])
   const [input,       setInput]       = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLTextAreaElement>(null)
+  const bottomRef   = useRef<HTMLDivElement>(null)
+  const inputRef    = useRef<HTMLTextAreaElement>(null)
+  const messagesRef = useRef<Message[]>([])
 
   // Pick up any conversation started in the floating chat panel
   useEffect(() => {
@@ -68,6 +69,13 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       // best-effort; don't surface to user
     }
   }, [])
+
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // Save on unmount (user navigates away without clicking New Chat)
+  useEffect(() => {
+    return () => { saveConversation(messagesRef.current) }
+  }, [saveConversation])
 
   function startNewChat() {
     if (messages.length >= 2) saveConversation(messages)
@@ -151,14 +159,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         }
       }
 
-      // Finalise — remove streaming flag, then auto-save in background
-      setMessages(prev => {
-        const finalised = prev.map(m =>
-          m.id === asstId ? { ...m, streaming: false } : m,
-        )
-        saveConversation(finalised)
-        return finalised
-      })
+      setMessages(prev => prev.map(m => m.id === asstId ? { ...m, streaming: false } : m))
     } catch {
       setMessages(prev =>
         prev.map(m =>
