@@ -62,11 +62,12 @@ export type JobNotifData = {
 
 export async function getJobNotifData(jobId: string): Promise<JobNotifData | null> {
   const supabase = createServiceClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('jobs')
     .select('project_title, client, client_poc_name, client_poc_phone, date, time_start, time_end, location')
     .eq('id', jobId)
     .maybeSingle()
+  if (error) throw error
   return data as JobNotifData | null
 }
 
