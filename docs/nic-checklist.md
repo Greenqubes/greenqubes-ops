@@ -2,17 +2,23 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-09 (chore-assistant — 5 pending fixes added)_
+_Last updated: 2026-05-11 (feat-assistant — all 5 pending fixes resolved, history sidebar spec added)_
 
 ---
 
-## Pending Code Fixes (from chore-assistant session, 2026-05-09)
+## Pending — Next Session
 
-- [ ] **Fix duplicate `asst_chats` saves** — `saveConversation` fires after every assistant reply; should only fire on "New Chat" click. Creates multiple partial rows per conversation, pollutes the digest queue.
-- [ ] **Delete or build out `features/chat-thread/`** — folder is empty; chat lives in `job-detail/ChatSection.tsx`. Either delete it or build a dedicated fullscreen `/jobs/[id]/chat` page (better on mobile).
-- [ ] **Delete or build out `features/completion/`** — empty folder. Confirm where completion logic lives and delete if not needed.
-- [ ] **Clean up empty `docs/` prefix folders** — `docs/infra`, `docs/feat`, `docs/backend`, `docs/ux`, `docs/visual`, `docs/fix`, `docs/db` are all empty. Delete any you'll never use.
-- [ ] **Tighten `settings.local.json` permissions** — `Bash(npm run *)` and `Bash(git push *)` are broader than needed. Optional: replace with specific scripts and `Bash(git push origin dev)`.
+- [ ] **Implement assistant history sidebar** — spec at `docs/superpowers/specs/2026-05-11-assistant-history-sidebar-design.md`. Includes migration 0015 (pinned column), 3 new API routes, HistorySidebar + HistoryList components, mobile `/assistant/history` route, and AssistantShell layout update.
+
+---
+
+## Done This Session ✓ (2026-05-11)
+
+- [x] **Fixed duplicate `asst_chats` saves** — removed `saveConversation` from `sendMessage` in both AssistantShell and FloatingChatPanel; added unmount cleanup to AssistantShell.
+- [x] **Deleted `features/chat-thread/`** — empty folder removed; chat stays in `job-detail/ChatSection.tsx`.
+- [x] **Deleted `features/completion/`** — empty folder removed; completion logic confirmed in `job-detail/StatusSection.tsx`.
+- [x] **Empty `docs/` prefix folders** — already gone (`.gitkeep` files deleted last session).
+- [x] **Tightened `settings.local.json`** — `git push` scoped to `origin dev`, ~12 stale one-off entries removed.
 
 ---
 
