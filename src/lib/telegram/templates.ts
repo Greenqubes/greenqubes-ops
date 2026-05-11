@@ -1,107 +1,231 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Telegram message templates — all copy is PLACEHOLDER.
-// Edit the return string in each function to customise the final wording.
-// Format: HTML (Telegram supports <b>, <i>, <code>, <a href="...">).
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Triggered when any user posts a message in a job's chat thread.
-export function tplJobMessage(p: {
-  jobClient:  string
-  jobDate:    string
-  authorName: string
-  preview:    string   // first 100 chars of message content
-}): string {
-  return `💬 [PLACEHOLDER] New message on <b>${p.jobClient}</b> (${p.jobDate})\n\nFrom: ${p.authorName}\n"${p.preview}"`
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${d} ${months[m - 1]} ${y}`
 }
 
-// Triggered when a scheduler approves a job and moves it to scheduled.
-export function tplJobApproved(p: {
-  jobClient:     string
-  jobDate:       string
-  schedulerName: string
-}): string {
-  return `✅ [PLACEHOLDER] <b>${p.jobClient}</b> on ${p.jobDate} has been approved and scheduled by ${p.schedulerName}.`
+function formatTime(t: string): string {
+  const [h, m] = t.split(':').map(Number)
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return m === 0 ? `${h12} ${suffix}` : `${h12}:${String(m).padStart(2, '0')} ${suffix}`
 }
 
-// Triggered when a scheduler sends a job back to sales (with or without note).
-export function tplJobSentBack(p: {
-  jobClient: string
-  jobDate:   string
-  note?:     string
-}): string {
-  const noteStr = p.note ? `\n\nNote: ${p.note}` : ''
-  return `↩️ [PLACEHOLDER] <b>${p.jobClient}</b> on ${p.jobDate} has been sent back for revision.${noteStr}`
+function pocLines(name: string | null, phone: string | null): string {
+  return `POC: ${name ?? '(NIL)'}\nContact: ${phone ?? '(NIL)'}`
 }
 
-// Triggered by the overdue cron when a scheduled job is past its end time.
-export function tplJobOverdue(p: {
-  jobClient: string
-  jobDate:   string
-  timeEnd:   string
-  location:  string
-}): string {
-  return `⏰ [PLACEHOLDER] Overdue: <b>${p.jobClient}</b>\n📍 ${p.location}\nScheduled: ${p.jobDate} until ${p.timeEnd}`
+function dateLine(date: string, timeStart: string | null, timeEnd: string | null): string {
+  return timeStart && timeEnd
+    ? `${formatDate(date)}, ${formatTime(timeStart)} – ${formatTime(timeEnd)}`
+    : formatDate(date)
 }
 
-// Triggered when a user posts a voice note in a job's chat thread.
-export function tplJobVoiceNote(p: {
-  jobClient:  string
-  jobDate:    string
-  authorName: string
-}): string {
-  return `🎤 [PLACEHOLDER] Voice note on <b>${p.jobClient}</b> (${p.jobDate})\nFrom: ${p.authorName}`
-}
+// ─── Job notifications ────────────────────────────────────────────────────────
 
-// Triggered when a sales user submits a job for scheduler approval.
 export function tplJobSubmittedForApproval(p: {
-  jobClient: string
-  jobDate:   string
-  salesName: string
+  projectTitle: string | null
+  jobClient:    string
+  pocName:      string | null
+  pocPhone:     string | null
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  salesName:    string
+  jobUrl:       string
 }): string {
-  return `📋 [PLACEHOLDER] Approval needed: <b>${p.jobClient}</b> on ${p.jobDate}\nSubmitted by ${p.salesName}`
-}
-
-// Sent to the dedicated bug bot when a user submits a bug report.
-export function tplBugReport(p: {
-  priority:    string
-  sgtTime:     string
-  platform:    string
-  os:          string
-  screen:      string
-  ip:          string
-  userEmail:   string
-  userRole:    string
-  route:       string
-  message:     string
-  screenshotUrl?: string
-}): string {
-  const priorityEmoji = p.priority === 'urgent' ? '🚨' : p.priority === 'high' ? '🔴' : p.priority === 'medium' ? '🟡' : '🟢'
-  const screenshotLine = p.screenshotUrl
-    ? `\nScreenshot: <a href="${p.screenshotUrl}">View ↗</a>`
-    : ''
   return (
-    `${priorityEmoji} <b>Bug Report — ${p.priority.toUpperCase()}</b>\n` +
-    `Time: ${p.sgtTime}\n` +
-    `Platform: ${p.platform}\n` +
-    `OS: ${p.os}\n` +
-    `Screen: ${p.screen}\n` +
-    `IP: ${p.ip}\n` +
-    `User: ${p.userEmail} (${p.userRole})\n` +
-    `Page: ${p.route}` +
-    screenshotLine +
-    `\n---\n${p.message}`
+    `📋 <b>Approval Requested</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `Submitted by: ${p.salesName}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
 
-// Monday digest — header sent once before the individual conversation items.
+export function tplJobApproved(p: {
+  projectTitle:  string | null
+  jobClient:     string
+  pocName:       string | null
+  pocPhone:      string | null
+  jobDate:       string
+  timeStart:     string | null
+  timeEnd:       string | null
+  schedulerName: string
+  jobUrl:        string
+}): string {
+  return (
+    `✅ <b>Job Approved</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `Approved by: ${p.schedulerName}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+export function tplJobAssigned(p: {
+  projectTitle: string | null
+  jobClient:    string
+  pocName:      string | null
+  pocPhone:     string | null
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+  jobUrl:       string
+}): string {
+  return (
+    `📅 <b>Job Assigned</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+export function tplJobSentBack(p: {
+  projectTitle:  string | null
+  jobClient:     string
+  pocName:       string | null
+  pocPhone:      string | null
+  jobDate:       string
+  schedulerName: string
+  sentAt:        string
+  note?:         string
+  jobUrl:        string
+}): string {
+  const noteLine = p.note ? `Note: <i>"${p.note}"</i>\n` : ''
+  return (
+    `↩️ <b>Job Sent Back</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${formatDate(p.jobDate)}\n` +
+    `Sent back by: ${p.schedulerName}\n` +
+    `Sent at: ${p.sentAt}\n` +
+    noteLine + `\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+export function tplJobOverdue(p: {
+  projectTitle: string | null
+  jobClient:    string
+  pocName:      string | null
+  pocPhone:     string | null
+  jobDate:      string
+  timeEnd:      string
+  location:     string
+  jobUrl:       string
+}): string {
+  return (
+    `⏰ <b>Job Overdue</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${formatDate(p.jobDate)}\n` +
+    `Scheduled until: ${p.timeEnd}\n` +
+    `📍 ${p.location}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+export function tplJobMessage(p: {
+  projectTitle: string | null
+  jobClient:    string
+  pocName:      string | null
+  pocPhone:     string | null
+  jobDate:      string
+  authorName:   string
+  sentAt:       string
+  preview:      string
+  jobUrl:       string
+}): string {
+  return (
+    `💬 <b>New Message</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${formatDate(p.jobDate)}\n` +
+    `From: ${p.authorName}\n` +
+    `Sent at: ${p.sentAt}\n` +
+    `<i>"${p.preview}"</i>\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+export function tplJobVoiceNote(p: {
+  projectTitle: string | null
+  jobClient:    string
+  pocName:      string | null
+  pocPhone:     string | null
+  jobDate:      string
+  authorName:   string
+  sentAt:       string
+  jobUrl:       string
+}): string {
+  return (
+    `🎤 <b>Voice Note</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${formatDate(p.jobDate)}\n` +
+    `From: ${p.authorName}\n` +
+    `Sent at: ${p.sentAt}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// ─── Bug report ───────────────────────────────────────────────────────────────
+
+export function tplBugReport(p: {
+  priority:       string
+  sgtTime:        string
+  platform:       string
+  os:             string
+  userEmail:      string
+  userRole:       string
+  route:          string
+  message:        string
+  screenshotUrl?: string
+}): string {
+  const emoji = p.priority === 'urgent' ? '🚨' : p.priority === 'high' ? '🔴' : p.priority === 'medium' ? '🟡' : '🟢'
+  const screenshotLine = p.screenshotUrl ? `\n<a href="${p.screenshotUrl}">View screenshot →</a>` : ''
+  return (
+    `${emoji} <b>Bug Report</b> — ${p.priority.toUpperCase()}\n` +
+    `——————————————————\n` +
+    `Reported by: ${p.userEmail} (${p.userRole})\n` +
+    `Time: ${p.sgtTime}\n` +
+    `Page: ${p.route}\n` +
+    `Platform: ${p.platform} · ${p.os}\n` +
+    `——————————————————\n` +
+    `<i>"${p.message}"</i>` +
+    screenshotLine
+  )
+}
+
+// ─── Monday digest ────────────────────────────────────────────────────────────
+
 export function tplDigestHeader(p: {
   weekOf: string
   count:  number
 }): string {
-  return `📊 <b>Monday Digest — week of ${p.weekOf}</b>\n\n${p.count} important conversation${p.count !== 1 ? 's' : ''} from last week. Tap a link below to promote to Obsidian.`
+  return (
+    `📊 <b>Monday Digest — week of ${p.weekOf}</b>\n` +
+    `——————————————————\n` +
+    `${p.count} important conversation${p.count !== 1 ? 's' : ''} from last week.\n` +
+    `Review each below and vote to promote to the knowledge base.`
+  )
 }
 
-// Monday digest — one message per high-importance conversation (with voting buttons).
 export function tplDigestItem(p: {
   index:      number
   topic:      string
@@ -110,10 +234,17 @@ export function tplDigestItem(p: {
   summary:    string
 }): string {
   const stars = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
-  return `${p.index}. <b>${p.topic}</b> ${stars}\n<i>${p.date}</i>\n\n${p.summary}`
+  return (
+    `<b>${p.index}. ${p.topic}</b>\n` +
+    `${stars}\n` +
+    `<i>${p.date}</i>\n` +
+    `——————————————————\n` +
+    `${p.summary}\n` +
+    `——————————————————\n` +
+    `Promote this to the knowledge base?`
+  )
 }
 
-// Shown below a digest item after votes are cast (replaces original text).
 export function tplVoteStatus(p: {
   index:       number
   topic:       string
@@ -125,15 +256,17 @@ export function tplVoteStatus(p: {
   totalVoters: number
   outcome:     'pending' | 'promoted' | 'dismissed'
 }): string {
-  const stars   = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
-  const header  = `${p.index}. <b>${p.topic}</b> ${stars}\n<i>${p.date}</i>\n\n${p.summary}\n\n`
+  const stars = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
+  const header = (
+    `<b>${p.index}. ${p.topic}</b>\n` +
+    `${stars}\n` +
+    `<i>${p.date}</i>\n` +
+    `——————————————————\n` +
+    `${p.summary}\n` +
+    `——————————————————\n`
+  )
   const awaiting = p.totalVoters - p.yesCount - p.noCount
-
-  if (p.outcome === 'promoted') {
-    return `${header}✅ Promoted by majority — Obsidian note sent to all voters.`
-  }
-  if (p.outcome === 'dismissed') {
-    return `${header}❌ Dismissed by majority — skipped.`
-  }
-  return `${header}📊 ${p.yesCount} Yes · ${p.noCount} No · ${awaiting} awaiting (${p.totalVoters} voters)`
+  if (p.outcome === 'promoted') return header + `✅ Promoted — added to knowledge base.`
+  if (p.outcome === 'dismissed') return header + `❌ Dismissed — skipped.`
+  return header + `📊 ${p.yesCount} Yes · ${p.noCount} No · ${awaiting} awaiting (${p.totalVoters} voters)`
 }
