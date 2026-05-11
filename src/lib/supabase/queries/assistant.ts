@@ -40,6 +40,7 @@ export async function deleteChat(id: string): Promise<boolean> {
     .from('asst_chats')
     .delete()
     .eq('id', id)
+  if (error) console.error('[deleteChat] error', error)
   return !error
 }
 
