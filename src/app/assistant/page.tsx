@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AssistantShell } from '@/features/assistant/AssistantShell'
@@ -20,11 +21,13 @@ export default async function AssistantPage() {
   const backHref = (profile.role as Role) === 'installer' ? '/installer' : '/schedule'
 
   return (
-    <AssistantShell
-      userName={profile.name}
-      role={profile.role as Role}
-      lang={profile.lang as LangCode}
-      backHref={backHref}
-    />
+    <Suspense>
+      <AssistantShell
+        userName={profile.name}
+        role={profile.role as Role}
+        lang={profile.lang as LangCode}
+        backHref={backHref}
+      />
+    </Suspense>
   )
 }

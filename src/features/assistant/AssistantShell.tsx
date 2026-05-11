@@ -1,13 +1,19 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ArrowLeft, Send, RotateCcw, Bot, User, Loader2, ExternalLink, Sparkles } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import {
+  ArrowLeft, Send, RotateCcw, Bot, User, Loader2,
+  ExternalLink, Sparkles, History,
+} from 'lucide-react'
 import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
+import { HistorySidebar } from './HistorySidebar'
+import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Message {
   id:        string
@@ -30,12 +36,15 @@ function uid() {
 }
 
 export function AssistantShell({ lang, backHref, role }: Props) {
-  const [messages,    setMessages]    = useState<Message[]>([])
-  const [input,       setInput]       = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const inputRef    = useRef<HTMLTextAreaElement>(null)
-  const messagesRef = useRef<Message[]>([])
+  const [messages,      setMessages]      = useState<Message[]>([])
+  const [input,         setInput]         = useState('')
+  const [isStreaming,   setIsStreaming]   = useState(false)
+  const [activeChatId,  setActiveChatId]  = useState<string | undefined>()
+  const bottomRef    = useRef<HTMLDivElement>(null)
+  const inputRef     = useRef<HTMLTextAreaElement>(null)
+  const messagesRef  = useRef<Message[]>([])
+  const searchParams = useSearchParams()
+  const chatIdParam  = searchParams.get('chat')
 
   // Pick up any conversation started in the floating chat panel
   useEffect(() => {
@@ -48,6 +57,19 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       }
     } catch { /* ignore parse errors */ }
   }, [])
+
+  // Auto-load chat from ?chat=<id> (mobile history navigation)
+  useEffect(() => {
+    if (!chatIdParam) return
+    fetch('/api/assistant/history')
+      .then(r => r.json())
+      .then((chats: AsstChatRow[]) => {
+        const found = chats.find(c => c.id === chatIdParam)
+        if (found) loadFromHistory(found)
+      })
+      .catch(() => { /* best-effort */ })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatIdParam])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -77,11 +99,28 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     return () => { saveConversation(messagesRef.current) }
   }, [saveConversation])
 
+  function loadFromHistory(chat: AsstChatRow) {
+    if (messages.length >= 2) saveConversation(messages)
+    const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
+      .map(m => ({ id: uid(), role: m.role, content: m.content }))
+    setMessages(msgs)
+    setActiveChatId(chat.id)
+    setInput('')
+  }
+
   function startNewChat() {
     if (messages.length >= 2) saveConversation(messages)
     setMessages([])
     setInput('')
+    setActiveChatId(undefined)
     inputRef.current?.focus()
+  }
+
+  function handleSidebarDelete(id: string) {
+    if (id === activeChatId) {
+      setMessages([])
+      setActiveChatId(undefined)
+    }
   }
 
   async function sendMessage() {
@@ -99,7 +138,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
     const history = next
       .filter(m => !m.streaming)
-      .slice(0, -1)           // exclude the empty assistant placeholder
+      .slice(0, -1)
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
     try {
@@ -181,101 +220,122 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col pb-16">
+    <div className="min-h-screen bg-bg flex">
 
-      {/* ── Header ── */}
-      <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
-        <Link
-          href={backHref}
-          className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          aria-label={t(lang, 'backToSchedule')}
-        >
-          <ArrowLeft size={16} />
-        </Link>
+      {/* ── Sidebar (desktop only, manages its own hidden md:flex) ── */}
+      <HistorySidebar
+        activeChatId={activeChatId}
+        onLoad={loadFromHistory}
+        onNewChat={startNewChat}
+        onDelete={handleSidebarDelete}
+      />
 
-        <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
-          <Sparkles size={15} className="text-white" />
+      {/* ── Main content ── */}
+      <div className="flex-1 flex flex-col min-h-screen pb-16">
+
+        {/* ── Header ── */}
+        <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
+          <Link
+            href={backHref}
+            className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+            aria-label={t(lang, 'backToSchedule')}
+          >
+            <ArrowLeft size={16} />
+          </Link>
+
+          <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
+            <Sparkles size={15} className="text-white" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-[15px] font-medium text-ink leading-none">
+              {t(lang, 'assistant')}
+            </h1>
+            <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
+          </div>
+
+          {/* Mobile — History button (hidden on desktop where sidebar is visible) */}
+          <Link
+            href="/assistant/history"
+            className="md:hidden p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+            aria-label="Conversation history"
+          >
+            <History size={16} />
+          </Link>
+
+          {messages.length > 0 && (
+            <button
+              onClick={startNewChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors"
+            >
+              <RotateCcw size={12} />
+              {t(lang, 'newChat')}
+            </button>
+          )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h1 className="font-display text-[15px] font-medium text-ink leading-none">
-            {t(lang, 'assistant')}
-          </h1>
-          <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
+        {/* ── Messages ── */}
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-terracotta/10 border border-terracotta/20 flex items-center justify-center">
+                <Bot size={22} className="text-terracotta" />
+              </div>
+              <div>
+                <p className="font-display text-lg font-medium text-ink">
+                  {t(lang, 'assistant')}
+                </p>
+                <p className="text-sm text-muted mt-1">{t(lang, 'assistantEmpty')}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="max-w-2xl mx-auto space-y-5">
+              {messages.map(msg => (
+                <MessageBubble key={msg.id} msg={msg} lang={lang} />
+              ))}
+            </div>
+          )}
+          <div ref={bottomRef} />
         </div>
 
-        {messages.length > 0 && (
-          <button
-            onClick={startNewChat}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors"
-          >
-            <RotateCcw size={12} />
-            {t(lang, 'newChat')}
-          </button>
-        )}
-      </div>
+        <BottomNav role={role} />
 
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-terracotta/10 border border-terracotta/20 flex items-center justify-center">
-              <Bot size={22} className="text-terracotta" />
-            </div>
-            <div>
-              <p className="font-display text-lg font-medium text-ink">
-                {t(lang, 'assistant')}
-              </p>
-              <p className="text-sm text-muted mt-1">{t(lang, 'assistantEmpty')}</p>
-            </div>
+        {/* ── Input bar ── */}
+        <div className="shrink-0 border-t border-line bg-paper px-4 py-3">
+          <div className="max-w-2xl mx-auto flex gap-2 items-end">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t(lang, 'askPlaceholder')}
+              rows={1}
+              disabled={isStreaming}
+              className={cn(
+                'flex-1 resize-none rounded-xl border border-line bg-bg px-3.5 py-2.5 text-sm text-ink placeholder:text-muted',
+                'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
+                'transition-colors min-h-[42px] max-h-40 leading-relaxed',
+                'disabled:opacity-50',
+              )}
+              style={{ fieldSizing: 'content' } as React.CSSProperties}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || isStreaming}
+              className={cn(
+                'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
+                input.trim() && !isStreaming
+                  ? 'bg-terracotta text-white hover:bg-terracotta/90'
+                  : 'bg-line text-muted cursor-not-allowed',
+              )}
+              aria-label={t(lang, 'sendMessage')}
+            >
+              {isStreaming
+                ? <Loader2 size={16} className="animate-spin" />
+                : <Send size={16} />
+              }
+            </button>
           </div>
-        ) : (
-          <div className="max-w-2xl mx-auto space-y-5">
-            {messages.map(msg => (
-              <MessageBubble key={msg.id} msg={msg} lang={lang} />
-            ))}
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <BottomNav role={role} />
-
-      {/* ── Input bar ── */}
-      <div className="shrink-0 border-t border-line bg-paper px-4 py-3">
-        <div className="max-w-2xl mx-auto flex gap-2 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t(lang, 'askPlaceholder')}
-            rows={1}
-            disabled={isStreaming}
-            className={cn(
-              'flex-1 resize-none rounded-xl border border-line bg-bg px-3.5 py-2.5 text-sm text-ink placeholder:text-muted',
-              'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
-              'transition-colors min-h-[42px] max-h-40 leading-relaxed',
-              'disabled:opacity-50',
-            )}
-            style={{ fieldSizing: 'content' } as React.CSSProperties}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || isStreaming}
-            className={cn(
-              'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
-              input.trim() && !isStreaming
-                ? 'bg-terracotta text-white hover:bg-terracotta/90'
-                : 'bg-line text-muted cursor-not-allowed',
-            )}
-            aria-label={t(lang, 'sendMessage')}
-          >
-            {isStreaming
-              ? <Loader2 size={16} className="animate-spin" />
-              : <Send size={16} />
-            }
-          </button>
         </div>
       </div>
     </div>
