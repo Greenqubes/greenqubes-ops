@@ -49,16 +49,41 @@ export async function getSchedulers(): Promise<NotifRecipient[]> {
   return (data ?? []) as NotifRecipient[]
 }
 
+export type JobNotifData = {
+  project_title:    string | null
+  client:           string
+  client_poc_name:  string | null
+  client_poc_phone: string | null
+  date:             string
+  time_start:       string | null
+  time_end:         string | null
+  location:         string
+}
+
+export async function getJobNotifData(jobId: string): Promise<JobNotifData | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('jobs')
+    .select('project_title, client, client_poc_name, client_poc_phone, date, time_start, time_end, location')
+    .eq('id', jobId)
+    .maybeSingle()
+  return data as JobNotifData | null
+}
+
 // ── Overdue alerts ────────────────────────────────────────────────────────────
 
 export type OverdueJob = {
-  id:        string
-  client:    string
-  date:      string
-  time_end:  string | null
-  location:  string
-  sales_poc: { id: string; telegram_chat_id: string | null } | null
-  job_assignees: Array<{
+  id:               string
+  project_title:    string | null
+  client:           string
+  client_poc_name:  string | null
+  client_poc_phone: string | null
+  date:             string
+  time_start:       string | null
+  time_end:         string | null
+  location:         string
+  sales_poc:        { id: string; telegram_chat_id: string | null } | null
+  job_assignees:    Array<{
     users: { id: string; telegram_chat_id: string | null } | null
   }>
 }
@@ -73,7 +98,8 @@ export async function getOverdueJobs(): Promise<OverdueJob[]> {
   const { data, error } = await supabase
     .from('jobs')
     .select(`
-      id, client, date, time_end, location,
+      id, project_title, client, client_poc_name, client_poc_phone,
+      date, time_start, time_end, location,
       sales_poc:users!jobs_sales_poc_id_fkey ( id, telegram_chat_id ),
       job_assignees ( users ( id, telegram_chat_id ) )
     `)
