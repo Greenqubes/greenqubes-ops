@@ -2,20 +2,45 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-11 (feat-assistant-2 — history sidebar implemented; delete button bug added)_
+_Last updated: 2026-05-11 (feat-notifications — pre-alpha testing done; bugs + features logged below)_
 
 ---
 
-## Pending — Next Session
+## Pending — Next Session (Pre-Alpha Hotfixes)
 
-- [ ] **Pre-alpha testing (Session 19)** — all sidebar bugs fixed; app is ready for end-to-end testing.
+### Bugs (from pre-alpha test 2026-05-11)
+
+- [ ] **Notification: submit for approval doesn't fire** — job submission doesn't send Telegram to scheduler. Investigate `submit/route.ts`.
+- [ ] **Notification: approve job doesn't fire** — scheduler approving a job sends nothing to sales or installers. Investigate `approve/route.ts`.
+- [ ] **Notification: send back doesn't fire** — scheduler sending job back sends nothing to sales. Investigate `send-back/route.ts`.
+- [ ] **Notification: overdue cron doesn't fire** — manual `GET /api/notifications/overdue` triggers no Telegram. Check cron route + `getOverdueJobs` query.
+- [ ] **Bug report fails when image attached** — submitting a bug report with a screenshot returns "Failed to submit bug report. Please try again." — investigate R2 upload path in `bugs/route.ts`.
+- [ ] **Voice note requires microphone permission every time** — browser asks for mic access on every recording. Fix: request permission once and cache the stream / MediaStream handle across recordings.
+- [ ] **Job chat: attachment doesn't trigger anything** — sending a file attachment in job chat has no handler / no visible response. Investigate messages/route.ts + ChatSection attachment flow.
+
+### Features (from pre-alpha test 2026-05-11)
+
+- [ ] **Voice note: live audio waveform while recording** — show an animated audio bar (waveform / level indicator) during recording so the user knows it's capturing.
+- [ ] **Job creation/edit/pending: time end optional** — `time_end` should not be a required field. Some jobs don't need an end time.
+- [ ] **Job creation/edit/pending: job description optional** — `description` field should not be required. Simple jobs don't always need one.
+- [ ] **Job creation/edit/pending: time fields persist on edit** — editing a job auto-clears the time fields. Make them persist / pre-fill with saved values.
+- [ ] **Job creation/edit/pending: AI "Suggest" button per text column** — add a small "Suggest" button (top-right of each field) for Project Title, Job Description, Note, and Production Instructions. Calls Claude to polish/correct English grammar. Like the existing smart textarea but per-field inline.
+- [ ] **Scheduler tab: send scheduled job back to sales** — when editing a scheduled job, add a "Send Back" button (left of Mark Complete). Opens same send-back flow as approvals queue.
+- [ ] **Scheduler tab: delete job** — when editing a job, add a "Delete Job" button (left of Send Back). Hard-deletes from DB + removes from site. Confirmation modal required.
+- [ ] **Sales tab: recall job** — when editing a job in awaiting_approval status, replace "Send Back" label with "Recall Job" (same mechanic, clearer copy for sales).
+- [ ] **Sales tab: pre-send popup** — before sales pushes job for approval, show a popup displaying: assigned scheduler's name + a "busier than usual" indicator if the scheduler has high load that day. Confirm to proceed.
+- [ ] **`NEXT_PUBLIC_APP_URL` in Vercel** — add `NEXT_PUBLIC_APP_URL=https://greenqubes-ops.vercel.app` to Vercel Environment Variables so "View in app →" links work in production Telegram notifications.
 
 ---
 
-## Done This Session ✓ (2026-05-11, session 3)
+## Done This Session ✓ (2026-05-11, feat-notifications)
 
-- [x] **Fixed assistant history delete button** — root cause: `mousedown` click-outside handler unmounted the dropdown before the `click` event fired on "Delete conversation", so `onDeleteClick` never ran. Fixed by switching to `click` event. Also replaced inline confirm with a proper "Delete Permanently?" modal (No/Yes). Made `deleteChat` idempotent (`!error` only, no count check).
-- [x] **Implemented assistant history sidebar** — migrations 0015 (pinned column) + 0016 (RLS delete policy), 3 new API routes (history/pin/delete), HistoryList + HistorySidebar components, mobile `/assistant/history` route, AssistantShell sidebar layout + Suspense boundary. Pushed to dev.
+- [x] **Finalised all Telegram notification templates** — removed all `[PLACEHOLDER]` markers; added project title, POC name/phone, time ranges, job URLs, `sentAt` timestamps, `tplJobAssigned` (new); redesigned bug report template (removed screen/ip).
+- [x] **Updated all 6 notification caller routes** — approve, send-back, submit, messages, overdue, bugs all pass new params via `getJobNotifData` helper.
+- [x] **Obsidian sync — first run confirmed** — `greenqubes-kb` added as git submodule at `vault/`; `--use-system-ca` fix applied to all npm scripts; sync confirmed working.
+- [x] **Added `NEXT_PUBLIC_APP_URL` to `.env.local`** — set to `https://greenqubes-ops.vercel.app`. Still needs adding to Vercel dashboard (see pending).
+- [x] **Pre-alpha testing done** — bugs and feature requests logged above.
+- [x] **UI/UX Pro Max design system generated** — `design-system/greenqubes-ops/MASTER.md` created (Trust & Authority style).
 
 ## Done Last Session ✓ (2026-05-11, session 1)
 

@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-11 (fix-assistant — delete button fixed, delete modal added; app ready for pre-alpha testing)_
+_Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised, Obsidian sync wired, pre-alpha testing done, bugs + features logged for next session)_
 
 ---
 

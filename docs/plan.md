@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-11 (fix-assistant — delete button fixed; delete modal added; ready for pre-alpha testing)_
+_Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised; all callers updated; Obsidian sync wired; pre-alpha testing done — bugs logged for next session)_
 
 ---
 
@@ -22,11 +22,11 @@ _Last updated: 2026-05-11 (fix-assistant — delete button fixed; delete modal a
 
 ## Current State
 
-App is feature-complete for pre-alpha. All core flows built and deployed to Vercel preview (`https://greenqubes-ops.vercel.app`). Full design pass done (Sessions 18–18.3). Assistant history sidebar complete and delete button fixed. Next milestone: Session 19 pre-alpha testing by Nic.
+Pre-alpha testing complete. Telegram notification templates fully implemented (project title, POC fields, job assigned to installers, bug report redesigned). Obsidian sync wired as git submodule. Testing revealed several bugs and feature requests — logged in nic-checklist.md for next session.
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
-**Pending DB migrations:** Run `npx supabase db push` to apply migrations 0012 (project_title), 0013 (date_end), 0014 (bug_reports).
+**DB migrations:** All migrations 0012–0016 applied. No pending migrations.
 
 ---
 
@@ -71,6 +71,7 @@ App is feature-complete for pre-alpha. All core flows built and deployed to Verc
 | feat-assistant | Assistant Fixes + History Sidebar Spec | Fixed duplicate asst_chats saves, streaming expand bug, added expand button to floating panel, deleted empty feature folders, tightened settings.json, designed + specced history sidebar | [feat/feat-assistant-20260511-1-note.md](feat/feat-assistant-20260511-1-note.md) |
 | feat-assistant-2 | Assistant History Sidebar Implementation | Migrations 0015+0016, 3 new API routes, HistoryList + HistorySidebar components, mobile /assistant/history route, AssistantShell sidebar layout. Delete conversation button not working in preview — investigate next session | [feat/feat-assistant-20260511-2-note.md](feat/feat-assistant-20260511-2-note.md) |
 | fix-assistant | Assistant Delete Button Fix + Delete Modal | Fixed mousedown/click race condition in HistoryList outside-click handler; replaced inline confirm with Delete Permanently modal; made deleteChat idempotent | [fix/fix-assistant-20260511-1-note.md](fix/fix-assistant-20260511-1-note.md) |
+| feat-notifications | Telegram Templates + Obsidian Sync First Run | Finalised all Telegram notification templates (project title, POC fields, job assigned, bug report redesign); updated all 6 caller routes; wired Obsidian vault as git submodule; UI/UX Pro Max design system generated; pre-alpha testing done — bugs + features logged | [feat/feat-notifications-20260511-1-note.md](feat/feat-notifications-20260511-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
