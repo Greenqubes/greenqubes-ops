@@ -20,7 +20,10 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday diges
 
 ### Features (added 2026-05-12)
 
-- [ ] **Admin role** — add a 4th role `admin` (scoped to `ai@greenqubes.com` only) for admin control and testing. Admin should be able to access all pages and act as any role without the amber role-switcher cookie workaround. Discuss scope at start of next session before implementing.
+- [ ] **Admin role (4th role)** — add `admin` as a 4th role, scoped to `ai@greenqubes.com`. Should have full access to all pages and act as any role (replacing the amber role-switcher workaround). CLAUDE.md hard rule "don't add a fourth role" must be updated first. Discuss exact scope + RLS implications before implementing.
+- [ ] **CLAUDE.md: roles rule update** — change the hard rule from "don't add a fourth role" to "never add or remove roles without explicit user confirmation." Claude may suggest new roles but must not implement without approval.
+- [ ] **Role name capitalisation (UI)** — all role pills, labels, and display text should use title case: `Sales`, `Scheduler`, `Installer`, `Admin`. Currently lowercase throughout — find and update all display strings (not DB enum values).
+- [ ] **Session timeout config** — currently users stay logged in forever (no timebox set). Decide whether to keep forever or set 14-day timebox. Configure via Supabase dashboard → Auth → Configuration → Sessions, or via `[auth.sessions]` in `supabase/config.toml` (`timebox = "336h"` for 14 days).
 - [ ] **Admin page: back arrow to schedule** — add a back arrow / "← Schedule" link at the top of the admin page (`/admin`) so there's a way to navigate back to `/schedule` without using the browser back button.
 
 ### Features (from pre-alpha test 2026-05-11)
