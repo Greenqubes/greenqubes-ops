@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-11 (feat-notifications — pre-alpha testing done; bugs + features logged below)_
+_Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday digest confirmed)_
 
 ---
 
@@ -33,7 +33,12 @@ _Last updated: 2026-05-11 (feat-notifications — pre-alpha testing done; bugs +
 
 ---
 
-## Done This Session ✓ (2026-05-11, feat-notifications)
+## Done This Session ✓ (2026-05-12, feat-admin)
+
+- [x] **Pre-provision users without prior sign-in** — admin can now provision by email before user signs in; migration 0017 (`email` column + partial unique index on `users`); `provisionUser()` rewritten; auth callback links `auth_id` on first sign-in; UserRow shows "Waiting for sign-in: {email}" for unlinked rows.
+- [x] **Monday digest confirmed working** — ran `npm run monday-digest`; skips correctly when no `importance >= 4` conversations exist.
+
+## Done Last Session ✓ (2026-05-11, feat-notifications)
 
 - [x] **Finalised all Telegram notification templates** — removed all `[PLACEHOLDER]` markers; added project title, POC name/phone, time ranges, job URLs, `sentAt` timestamps, `tplJobAssigned` (new); redesigned bug report template (removed screen/ip).
 - [x] **Updated all 6 notification caller routes** — approve, send-back, submit, messages, overdue, bugs all pass new params via `getJobNotifData` helper.
@@ -55,7 +60,7 @@ _Last updated: 2026-05-11 (feat-notifications — pre-alpha testing done; bugs +
 ## Before Pre-Alpha Testing (Session 19) — Must Complete First
 
 - [x] **Run pending DB migrations** — `npx supabase db push` confirmed all migrations (0012–0016) already applied; remote database up to date.
-- [ ] **Test Monday digest manually** — run `npm run monday-digest` and confirm it sends to all digest subscribers via Telegram.
+- [x] **Test Monday digest manually** — ran `npm run monday-digest`; skipped correctly (no `importance >= 4` conversations yet). Script works.
 - [x] **Obsidian sync — first run** — `greenqubes-kb` added as git submodule at `vault/`; `OBSIDIAN_VAULT_PATH` set in `.env.local`; `--use-system-ca` added to all script commands (Node TLS fix); sync confirmed working (`✓ Welcome.md (1 chunk)`).
 - [x] **Add production OAuth redirect URI** — added `https://greenqubes-ops.vercel.app/auth/callback` to Supabase Auth → URL Configuration → Redirect URLs. Google Cloud Console only needs the Supabase callback URI (already present).
 
