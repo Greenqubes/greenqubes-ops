@@ -37,7 +37,7 @@ export async function provisionUser(
   // Prevent duplicate provisioning by email
   const { data: existing } = await db
     .from('users')
-    .select('id, email')
+    .select('id')
     .eq('email', email.toLowerCase())
     .maybeSingle()
   if (existing) throw new Error(`${email} is already provisioned.`)
@@ -55,7 +55,10 @@ export async function provisionUser(
     } as never)
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (error.code === '23505') throw new Error(`${email} is already provisioned.`)
+    throw error
+  }
   return data as unknown as AdminUser
 }
 
