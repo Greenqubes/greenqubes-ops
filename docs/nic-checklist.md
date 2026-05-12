@@ -21,6 +21,7 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday diges
 ### Features (added 2026-05-12)
 
 - [ ] **Admin role** — add a 4th role `admin` (scoped to `ai@greenqubes.com` only) for admin control and testing. Admin should be able to access all pages and act as any role without the amber role-switcher cookie workaround. Discuss scope at start of next session before implementing.
+- [ ] **Admin page: back arrow to schedule** — add a back arrow / "← Schedule" link at the top of the admin page (`/admin`) so there's a way to navigate back to `/schedule` without using the browser back button.
 
 ### Features (from pre-alpha test 2026-05-11)
 
