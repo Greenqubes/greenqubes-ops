@@ -195,7 +195,11 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2 items-center">
+        <>
+          {user.auth_id === null && user.email && (
+            <p className="text-sm text-[--ink2] mb-2">Waiting for sign-in: <span className="font-medium">{user.email}</span></p>
+          )}
+          <div className="flex flex-wrap gap-2 items-center">
           <Pill variant={user.role} />
           {user.telegram_chat_id ? (
             <span className="text-xs text-muted font-mono">TG {user.telegram_chat_id}</span>
@@ -213,6 +217,7 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
             </span>
           )}
         </div>
+        </>
       )}
     </Card>
   )

@@ -18,6 +18,7 @@ export interface Database {
         Row: {
           id:                string
           auth_id:           string | null
+          email:             string | null
           name:              string
           role:              Role
           telegram_chat_id:  string | null

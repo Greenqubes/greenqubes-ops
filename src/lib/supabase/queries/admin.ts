@@ -34,25 +34,19 @@ export async function provisionUser(
 ): Promise<AdminUser> {
   const db = createServiceClient()
 
-  // Find auth user by email via admin API
-  const { data: authData, error: authErr } = await db.auth.admin.listUsers()
-  if (authErr) throw authErr
-
-  const authUser = authData.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-  if (!authUser) throw new Error(`No Google account found for ${email}. The user must sign in at least once first.`)
-
-  // Prevent duplicate provisioning
+  // Prevent duplicate provisioning by email
   const { data: existing } = await db
     .from('users')
-    .select('id')
-    .eq('auth_id', authUser.id)
+    .select('id, email')
+    .eq('email', email.toLowerCase())
     .maybeSingle()
   if (existing) throw new Error(`${email} is already provisioned.`)
 
   const { data, error } = await db
     .from('users')
     .insert({
-      auth_id:           authUser.id,
+      email:             email.toLowerCase(),
+      auth_id:           null,
       name,
       role,
       lang,
