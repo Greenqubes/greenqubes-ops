@@ -6,6 +6,7 @@ import type { Role, LangCode }  from '@/lib/supabase/types'
 export type AdminUser = {
   id:                string
   auth_id:           string | null
+  email:             string | null
   name:              string
   role:              Role
   telegram_chat_id:  string | null
@@ -19,7 +20,7 @@ export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, name, role, telegram_chat_id, lang, phone, digest_subscriber, created_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, created_at')
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as AdminUser[]
