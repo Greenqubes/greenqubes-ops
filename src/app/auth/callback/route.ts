@@ -18,11 +18,12 @@ export async function GET(request: Request) {
         // Link auth_id to any pre-provisioned row that matches this email.
         // Uses service role client because RLS does not allow users to update their own auth_id.
         const db = createServiceClient()
-        await db
+        const { error: linkError } = await db
           .from('users')
           .update({ auth_id: authId })
           .eq('email', email)
           .is('auth_id', null)
+        if (linkError) console.error('[auth/callback] auth_id link failed:', linkError.message)
       }
 
       return NextResponse.redirect(`${origin}/`)
