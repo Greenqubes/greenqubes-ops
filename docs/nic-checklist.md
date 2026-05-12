@@ -18,6 +18,10 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday diges
 - [ ] **Voice note requires microphone permission every time** — browser asks for mic access on every recording. Fix: request permission once and cache the stream / MediaStream handle across recordings.
 - [ ] **Job chat: attachment doesn't trigger anything** — sending a file attachment in job chat has no handler / no visible response. Investigate messages/route.ts + ChatSection attachment flow.
 
+### Features (added 2026-05-12)
+
+- [ ] **Admin role** — add a 4th role `admin` (scoped to `ai@greenqubes.com` only) for admin control and testing. Admin should be able to access all pages and act as any role without the amber role-switcher cookie workaround. Discuss scope at start of next session before implementing.
+
 ### Features (from pre-alpha test 2026-05-11)
 
 - [ ] **Voice note: live audio waveform while recording** — show an animated audio bar (waveform / level indicator) during recording so the user knows it's capturing.
