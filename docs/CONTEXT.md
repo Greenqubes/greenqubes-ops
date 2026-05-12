@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised, Obsidian sync wired, pre-alpha testing done, bugs + features logged for next session)_
+_Last updated: 2026-05-12 (feat-admin — pre-provision users without prior sign-in, migration 0017, Monday digest confirmed working)_
 
 ---
 
