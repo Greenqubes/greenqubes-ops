@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
@@ -56,6 +57,8 @@ export function UserMenu({ lang: initialLang }: Props) {
   const [lang,         setLang]         = useState<LangCode>(initialLang ?? 'en')
   const [changingLang, setChangingLang] = useState(false)
   const [roleOverride, setRoleOverride] = useState<Role | null>(null)
+  const [mounted,      setMounted]      = useState(false)
+  const { resolvedTheme, setTheme } = useTheme()
   const ref      = useRef<HTMLDivElement>(null)
   const router   = useRouter()
   const pathname = usePathname()
@@ -82,6 +85,8 @@ export function UserMenu({ lang: initialLang }: Props) {
   useEffect(() => {
     if (initialLang) setLang(initialLang)
   }, [initialLang])
+
+  useEffect(() => { setMounted(true) }, [])
 
   // Close on outside click
   useEffect(() => {
@@ -211,6 +216,21 @@ export function UserMenu({ lang: initialLang }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Dark mode toggle */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun size={14} strokeWidth={1.8} />
+              ) : (
+                <Moon size={14} strokeWidth={1.8} />
+              )}
+              {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </button>
+          )}
 
           {/* Admin shortcuts */}
           {isAdmin && (
