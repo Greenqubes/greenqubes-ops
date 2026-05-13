@@ -207,6 +207,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           register={register}
           errors={errors}
           control={control}
+          watch={watch}
+          setValue={setValue}
           readOnly={readOnly}
           lang={lang}
         />
@@ -214,6 +216,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         {role !== 'installer' && (
           <ProductionReadySection
             register={register}
+            watch={watch}
+            setValue={setValue}
             readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
             lang={lang}
             jobId={job.id}
