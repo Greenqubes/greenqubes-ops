@@ -27,6 +27,21 @@
   --bad-soft: #F5E0E0;
 }
 
+.dark {
+  --bg: #1C1A17;
+  --paper: #242220;
+  --ink: #F0EDE8;
+  --ink2: #BDB8B0;
+  --muted: #8B8478;
+  --line: #2E2B27;
+
+  --terracotta-soft: #2A1A17;
+  --green-soft: #172319;
+  --blue-soft: #152030;
+  --amber-soft: #271E10;
+  --bad-soft: #2A1515;
+}
+
 @layer base {
   body {
     background-color: var(--bg);
