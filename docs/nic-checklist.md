@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday digest confirmed)_
+_Last updated: 2026-05-14 (feat-admin-2 — admin role done; Vercel cron fixed)_
 
 ---
 
@@ -16,10 +16,14 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday diges
 - [x] **Voice note requires microphone permission every time** — fixed: stream is now requested once per component lifecycle and reused across recordings. Tracks stopped on unmount.
 - [x] **Job chat: attachment doesn't trigger anything** — fixed: R2 CORS was blocking the upload (resolved by CORS config). Added `kind: 'attachment'` handler to messages route so file attachments now send Telegram notifications like voice notes do.
 
+### Bugs (from 2026-05-14)
+
+- [ ] **AdminRoleModal double-Yes bug** — when editing a user's role to Admin in UsersTab, "Yes" in the confirm modal requires two presses before it fires. Likely a state update race condition between `handleRoleChange` setting `modalPhase` and the dropdown `value` re-render.
+
 ### Features (added 2026-05-12)
 
-- [ ] **Admin role (4th role)** — add `admin` as a 4th role, scoped to `ai@greenqubes.com`. Should have full access to all pages and act as any role (replacing the amber role-switcher workaround). CLAUDE.md hard rule "don't add a fourth role" must be updated first. Discuss exact scope + RLS implications before implementing.
-- [ ] **CLAUDE.md: roles rule update** — change the hard rule from "don't add a fourth role" to "never add or remove roles without explicit user confirmation." Claude may suggest new roles but must not implement without approval.
+- [x] **Admin role (4th role)** — `admin` added to DB enum; RLS updated; email gates replaced; AdminRoleModal in UsersTab; migrations 0018–0020 applied.
+- [x] **CLAUDE.md: roles rule update** — updated to "never add or remove roles without explicit user confirmation."
 - [x] **Role name capitalisation (UI)** — Pill labels, UserMenu override chip, and UsersTab select options all updated to title case. DB enum values unchanged.
 - [x] **Session timeout config** — keeping forever (free Supabase tier doesn't allow timebox config). Revisit when upgrading to paid tier.
 - [x] **Admin page: back arrow to schedule** — added ArrowLeft link to `/schedule` in AdminShell header.

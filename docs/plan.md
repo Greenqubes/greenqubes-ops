@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-12 (feat-admin — pre-provision users without prior sign-in; migration 0017; auth callback linking; Monday digest confirmed working)_
+_Last updated: 2026-05-14 (feat-admin-2 — admin role added to DB enum; RLS policies updated; email gates replaced with role checks; AdminRoleModal in UsersTab; Vercel cron fixed; migrations 0018–0020)_
 
 ---
 
@@ -22,11 +22,13 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users without prior sign
 
 ## Current State
 
-Pre-alpha testing complete. Telegram notification templates fully implemented. Obsidian sync wired. Admin user provisioning updated — users can now be pre-provisioned by email without signing in first; auth callback links auth_id on first sign-in. Monday digest script confirmed working. Pending: bugs + feature requests from pre-alpha testing.
+Admin role fully implemented. `admin` added to `user_role` enum; all RLS policies updated to include admin; hardcoded `ai@greenqubes.com` email gates replaced with `role === 'admin'` checks across all pages and API routes; AdminRoleModal added to UsersTab (confirm + success phases). Vercel cron fixed (overdue was 2-hourly, blocked Hobby plan deployments — changed to daily). Migrations 0018–0020 applied.
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
-**DB migrations:** All migrations 0012–0017 applied. No pending migrations.
+**Minor bug (pending fix):** AdminRoleModal in UsersTab — "Yes" button requires two presses to confirm. Needs investigation.
+
+**DB migrations:** All migrations 0012–0020 applied. No pending migrations.
 
 ---
 
@@ -73,6 +75,7 @@ Pre-alpha testing complete. Telegram notification templates fully implemented. O
 | fix-assistant | Assistant Delete Button Fix + Delete Modal | Fixed mousedown/click race condition in HistoryList outside-click handler; replaced inline confirm with Delete Permanently modal; made deleteChat idempotent | [fix/fix-assistant-20260511-1-note.md](fix/fix-assistant-20260511-1-note.md) |
 | feat-notifications | Telegram Templates + Obsidian Sync First Run | Finalised all Telegram notification templates (project title, POC fields, job assigned, bug report redesign); updated all 6 caller routes; wired Obsidian vault as git submodule; UI/UX Pro Max design system generated; pre-alpha testing done — bugs + features logged | [feat/feat-notifications-20260511-1-note.md](feat/feat-notifications-20260511-1-note.md) |
 | feat-admin | Pre-Provision Users + Monday Digest Confirmed | Admin can now provision users by email without prior sign-in; migration 0017 (email column + partial unique index); auth callback links auth_id on first sign-in; UserRow shows "Waiting for sign-in" email; Monday digest confirmed working (skips correctly when no important conversations) | [feat/feat-admin-20260512-1-note.md](feat/feat-admin-20260512-1-note.md) |
+| feat-admin-2 | Admin Role + Vercel Cron Fix | `admin` added to user_role enum; RLS policies updated; email gates replaced with role checks; AdminRoleModal in UsersTab; BottomNav admin tab; Vercel overdue cron changed to daily (was blocking Hobby plan deployments); migrations 0018–0020 | [feat/feat-admin-20260514-1-note.md](feat/feat-admin-20260514-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
