@@ -4,6 +4,8 @@ import { useState }    from 'react'
 import { cn }          from '@/lib/utils/cn'
 import { BottomNav }   from '@/components/BottomNav'
 import { UserMenu }    from '@/components/UserMenu'
+import { ArrowLeft }   from 'lucide-react'
+import Link            from 'next/link'
 import { UsersTab }      from '@/features/admin/UsersTab'
 import { DigestTab }     from '@/features/admin/DigestTab'
 import { HealthTab }     from '@/features/admin/HealthTab'
@@ -36,13 +38,22 @@ export function AdminShell({ userName, role, lang }: Props) {
       {/* ── Top header (full width) ─────────────────────────────────────────── */}
       <div className="sticky top-0 z-40 bg-paper border-b border-line">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-0.5">
-              Greenqubes
-            </p>
-            <h1 className="font-display text-2xl font-medium text-ink tracking-tight">
-              Admin
-            </h1>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/schedule"
+              className="text-muted hover:text-ink transition-colors"
+              aria-label="Back to schedule"
+            >
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-0.5">
+                Greenqubes
+              </p>
+              <h1 className="font-display text-2xl font-medium text-ink tracking-tight">
+                Admin
+              </h1>
+            </div>
           </div>
           <UserMenu />
         </div>

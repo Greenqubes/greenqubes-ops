@@ -68,7 +68,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, setValue, reset, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
@@ -112,6 +112,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         notes:                   values.notes || null,
       } as never).eq('id', job.id).throwOnError()
 
+      reset(values)
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
     } catch {

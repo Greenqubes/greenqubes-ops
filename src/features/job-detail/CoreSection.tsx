@@ -74,17 +74,15 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
             )}
           />
         </Field>
-        <Field label={t(lang, 'timeEnd')} error={errors.time_end?.message}>
+        <Field label={t(lang, 'timeEnd')}>
           <Controller
             control={control}
             name="time_end"
-            rules={req}
             render={({ field }) => (
               <TimeSelect
                 value={field.value}
                 onChange={field.onChange}
                 disabled={readOnly}
-                error={!!errors.time_end}
               />
             )}
           />
@@ -129,12 +127,12 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
       </Field>
 
       {/* Description */}
-      <Field label={t(lang, 'jobDescription')} error={errors.description?.message}>
+      <Field label={t(lang, 'jobDescription')}>
         <textarea
-          {...register('description', req)}
+          {...register('description')}
           disabled={readOnly}
           rows={3}
-          className={cn(TEXTAREA, errors.description && 'border-terracotta')}
+          className={TEXTAREA}
         />
       </Field>
 

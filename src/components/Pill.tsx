@@ -20,9 +20,9 @@ const label: Record<PillVariant, string> = {
   awaiting_approval: 'awaiting approval',
   completed:         'Completed',
   overdue:           'Overdue',
-  sales:             'sales',
-  scheduler:         'scheduler',
-  installer:         'installer',
+  sales:             'Sales',
+  scheduler:         'Scheduler',
+  installer:         'Installer',
 }
 
 interface PillProps {

@@ -70,7 +70,7 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
             value={role}
             onChange={e => setRole(e.target.value as Role)}
           >
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
           </select>
           <select
             className="w-24 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
@@ -160,7 +160,7 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
             value={role}
             onChange={e => setRole(e.target.value as Role)}
           >
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
           </select>
 
           <div>

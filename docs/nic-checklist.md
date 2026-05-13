@@ -10,34 +10,32 @@ _Last updated: 2026-05-12 (feat-admin — pre-provision users done; Monday diges
 
 ### Bugs (from pre-alpha test 2026-05-11)
 
-- [ ] **Notification: submit for approval doesn't fire** — job submission doesn't send Telegram to scheduler. Investigate `submit/route.ts`.
-- [ ] **Notification: approve job doesn't fire** — scheduler approving a job sends nothing to sales or installers. Investigate `approve/route.ts`.
-- [ ] **Notification: send back doesn't fire** — scheduler sending job back sends nothing to sales. Investigate `send-back/route.ts`.
-- [ ] **Notification: overdue cron doesn't fire** — manual `GET /api/notifications/overdue` triggers no Telegram. Check cron route + `getOverdueJobs` query.
-- [ ] **Bug report fails when image attached** — submitting a bug report with a screenshot returns "Failed to submit bug report. Please try again." — investigate R2 upload path in `bugs/route.ts`.
-- [ ] **Voice note requires microphone permission every time** — browser asks for mic access on every recording. Fix: request permission once and cache the stream / MediaStream handle across recordings.
-- [ ] **Job chat: attachment doesn't trigger anything** — sending a file attachment in job chat has no handler / no visible response. Investigate messages/route.ts + ChatSection attachment flow.
+- [x] **Notification: submit/approve/send-back don't fire** — not a code bug. Test accounts (seed data) have no `telegram_chat_id`. Routes work correctly; notifications will fire once real users have TG IDs added via Admin → Users tab.
+- [x] **Notification: overdue cron doesn't fire** — cron entry was missing from `vercel.json` (fixed). Manual test requires `Authorization: Bearer <CRON_SECRET>` header. To test manually: `curl -H "Authorization: Bearer <CRON_SECRET>" https://greenqubes-ops.vercel.app/api/notifications/overdue`
+- [x] **Bug report fails when image attached** — root cause: R2 bucket had no CORS config. Fixed: CORS configured on R2 bucket (PUT + GET from Vercel + localhost). Code hardened: screenshot upload failure no longer blocks the report submission.
+- [x] **Voice note requires microphone permission every time** — fixed: stream is now requested once per component lifecycle and reused across recordings. Tracks stopped on unmount.
+- [x] **Job chat: attachment doesn't trigger anything** — fixed: R2 CORS was blocking the upload (resolved by CORS config). Added `kind: 'attachment'` handler to messages route so file attachments now send Telegram notifications like voice notes do.
 
 ### Features (added 2026-05-12)
 
 - [ ] **Admin role (4th role)** — add `admin` as a 4th role, scoped to `ai@greenqubes.com`. Should have full access to all pages and act as any role (replacing the amber role-switcher workaround). CLAUDE.md hard rule "don't add a fourth role" must be updated first. Discuss exact scope + RLS implications before implementing.
 - [ ] **CLAUDE.md: roles rule update** — change the hard rule from "don't add a fourth role" to "never add or remove roles without explicit user confirmation." Claude may suggest new roles but must not implement without approval.
-- [ ] **Role name capitalisation (UI)** — all role pills, labels, and display text should use title case: `Sales`, `Scheduler`, `Installer`, `Admin`. Currently lowercase throughout — find and update all display strings (not DB enum values).
-- [ ] **Session timeout config** — currently users stay logged in forever (no timebox set). Decide whether to keep forever or set 14-day timebox. Configure via Supabase dashboard → Auth → Configuration → Sessions, or via `[auth.sessions]` in `supabase/config.toml` (`timebox = "336h"` for 14 days).
-- [ ] **Admin page: back arrow to schedule** — add a back arrow / "← Schedule" link at the top of the admin page (`/admin`) so there's a way to navigate back to `/schedule` without using the browser back button.
+- [x] **Role name capitalisation (UI)** — Pill labels, UserMenu override chip, and UsersTab select options all updated to title case. DB enum values unchanged.
+- [x] **Session timeout config** — keeping forever (free Supabase tier doesn't allow timebox config). Revisit when upgrading to paid tier.
+- [x] **Admin page: back arrow to schedule** — added ArrowLeft link to `/schedule` in AdminShell header.
 
 ### Features (from pre-alpha test 2026-05-11)
 
 - [ ] **Voice note: live audio waveform while recording** — show an animated audio bar (waveform / level indicator) during recording so the user knows it's capturing.
-- [ ] **Job creation/edit/pending: time end optional** — `time_end` should not be a required field. Some jobs don't need an end time.
-- [ ] **Job creation/edit/pending: job description optional** — `description` field should not be required. Simple jobs don't always need one.
-- [ ] **Job creation/edit/pending: time fields persist on edit** — editing a job auto-clears the time fields. Make them persist / pre-fill with saved values.
+- [x] **Job creation/edit/pending: time end optional** — removed required validation from `time_end` in CoreSection. Always optional now.
+- [x] **Job creation/edit/pending: job description optional** — removed required validation from `description` in CoreSection. Always optional now.
+- [x] **Job creation/edit/pending: time fields persist on edit** — fixed: `reset(values)` called after successful save so form baseline syncs with saved data and `isDirty` resets correctly.
 - [ ] **Job creation/edit/pending: AI "Suggest" button per text column** — add a small "Suggest" button (top-right of each field) for Project Title, Job Description, Note, and Production Instructions. Calls Claude to polish/correct English grammar. Like the existing smart textarea but per-field inline.
 - [ ] **Scheduler tab: send scheduled job back to sales** — when editing a scheduled job, add a "Send Back" button (left of Mark Complete). Opens same send-back flow as approvals queue.
 - [ ] **Scheduler tab: delete job** — when editing a job, add a "Delete Job" button (left of Send Back). Hard-deletes from DB + removes from site. Confirmation modal required.
 - [ ] **Sales tab: recall job** — when editing a job in awaiting_approval status, replace "Send Back" label with "Recall Job" (same mechanic, clearer copy for sales).
 - [ ] **Sales tab: pre-send popup** — before sales pushes job for approval, show a popup displaying: assigned scheduler's name + a "busier than usual" indicator if the scheduler has high load that day. Confirm to proceed.
-- [ ] **`NEXT_PUBLIC_APP_URL` in Vercel** — add `NEXT_PUBLIC_APP_URL=https://greenqubes-ops.vercel.app` to Vercel Environment Variables so "View in app →" links work in production Telegram notifications.
+- [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
 

@@ -149,7 +149,7 @@ export function UserMenu({ lang: initialLang }: Props) {
       {/* Avatar button + override chip */}
       <div className="flex items-center gap-1.5">
         {isAdmin && roleOverride && (
-          <span className="text-[10px] font-medium text-amber-700 bg-amber/15 border border-amber/30 px-1.5 py-0.5 rounded-full leading-none">
+          <span className="text-[10px] font-medium text-amber-700 bg-amber/15 border border-amber/30 px-1.5 py-0.5 rounded-full leading-none capitalize">
             {roleOverride}
           </span>
         )}
