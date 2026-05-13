@@ -50,7 +50,7 @@ export function ListView({
                   'relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl border shrink-0 min-w-[52px]',
                   'transition-colors text-xs font-medium',
                   active
-                    ? 'bg-ink border-ink text-white'
+                    ? 'bg-ink border-ink text-paper'
                     : hasOverdue
                       ? 'bg-bad-soft border-bad text-bad'
                       : 'bg-paper border-line text-ink2 hover:border-ink2'

@@ -207,7 +207,7 @@ export function UserMenu({ lang: initialLang }: Props) {
                   className={cn(
                     'flex-1 py-1 rounded-md text-xs font-medium border transition-colors',
                     lang === code
-                      ? 'bg-ink text-white border-ink'
+                      ? 'bg-ink text-paper border-ink'
                       : 'bg-bg border-line text-ink2 hover:border-ink2',
                   )}
                 >
