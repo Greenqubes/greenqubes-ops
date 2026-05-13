@@ -34,7 +34,7 @@ _Last updated: 2026-05-14 (feat-admin-2 — admin role done; Vercel cron fixed)_
 - [x] **Job creation/edit/pending: time end optional** — removed required validation from `time_end` in CoreSection. Always optional now.
 - [x] **Job creation/edit/pending: job description optional** — removed required validation from `description` in CoreSection. Always optional now.
 - [x] **Job creation/edit/pending: time fields persist on edit** — fixed: `reset(values)` called after successful save so form baseline syncs with saved data and `isDirty` resets correctly.
-- [ ] **Job creation/edit/pending: AI "Suggest" button per text column** — add a small "Suggest" button (top-right of each field) for Project Title, Job Description, Note, and Production Instructions. Calls Claude to polish/correct English grammar. Like the existing smart textarea but per-field inline.
+- [x] **Job creation/edit/pending: AI "Suggest" button per text column** — SuggestField component added; /api/ai/suggest route (Haiku, SUGGEST_CONFIG for easy style edits); Project Title, Description, Notes, Production Instructions all wired. Preview-first UX with Accept/Dismiss.
 - [ ] **Scheduler tab: send scheduled job back to sales** — when editing a scheduled job, add a "Send Back" button (left of Mark Complete). Opens same send-back flow as approvals queue.
 - [ ] **Scheduler tab: delete job** — when editing a job, add a "Delete Job" button (left of Send Back). Hard-deletes from DB + removes from site. Confirmation modal required.
 - [ ] **Sales tab: recall job** — when editing a job in awaiting_approval status, replace "Send Back" label with "Recall Job" (same mechanic, clearer copy for sales).
