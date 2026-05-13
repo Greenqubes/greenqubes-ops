@@ -10,7 +10,7 @@ async function guardAdmin(): Promise<boolean> {
     .from('users')
     .select('role')
     .eq('auth_id', user.id)
-    .maybeSingle()
+    .maybeSingle() as { data: { role: string } | null; error: unknown }
   return profile?.role === 'admin'
 }
 
