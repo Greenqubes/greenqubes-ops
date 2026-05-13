@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
-const ADMIN_EMAIL = 'ai@greenqubes.com'
 const VALID_ROLES: Role[] = ['sales', 'scheduler', 'installer']
 
 function readRoleOverrideCookie(): Role | null {
@@ -67,16 +66,15 @@ export function UserMenu({ lang: initialLang }: Props) {
       const userEmail = user?.email ?? ''
       setName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
       setEmail(userEmail)
-      const admin = userEmail === ADMIN_EMAIL
-      setIsAdmin(admin)
-      if (admin) setRoleOverride(readRoleOverrideCookie())
+      setRoleOverride(readRoleOverrideCookie())
       if (user) {
         const { data } = await supabase
           .from('users')
-          .select('lang')
+          .select('lang, role')
           .eq('auth_id', user.id)
-          .maybeSingle() as { data: { lang: string } | null; error: unknown }
+          .maybeSingle() as { data: { lang: string; role: string } | null; error: unknown }
         if (data?.lang) setLang(data.lang as LangCode)
+        if (data?.role) setIsAdmin(data.role === 'admin')
       }
     })
   }, [])
