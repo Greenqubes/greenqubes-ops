@@ -36,6 +36,12 @@ All code changes must be committed and pushed to the `dev` branch first. Vercel 
 
 ---
 
+## Communication style
+
+Always explain in plain, everyday language. Avoid coding terms unless necessary. If a technical term must be used, follow it immediately with a one-sentence plain explanation. Nic is a non-technical founder — explanations should be fast to read and easy to understand without a coding background.
+
+---
+
 ## Hard rules
 
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
