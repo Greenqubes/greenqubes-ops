@@ -20,7 +20,7 @@ export default async function ApprovalsPage() {
 
   if (!profile) redirect('/login')
 
-  const effectiveRole = await getEffectiveRole(profile.role, user.email)
+  const effectiveRole = await getEffectiveRole(profile.role)
   if (effectiveRole !== 'scheduler') redirect('/schedule')
 
   const queue = await getApprovalQueue()
