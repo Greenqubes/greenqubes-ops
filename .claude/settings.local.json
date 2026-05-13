@@ -18,7 +18,16 @@
       "Bash(npx next *)",
       "Bash(npx vercel *)",
       "Bash(claude plugin *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(gh run *)",
+      "Bash(gh repo *)",
+      "Bash(cat .vercel/project.json)",
+      "Bash(ls -la .vercel/)",
+      "Bash(npm list *)",
+      "Bash(open /tmp/suggest-mockup.html)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(bash /Users/Nic/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh --project-dir \"/Users/Nic/Desktop/Greenqubes AI/greenqubes-ops\")"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"
