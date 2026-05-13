@@ -4,12 +4,16 @@ import { createServiceClient }                    from '@/lib/supabase/service'
 import { getUsageSummary, getUnusualActivity,
          getLastEventTime, type HealthCheck }     from '@/lib/supabase/queries/admin'
 
-const ADMIN_EMAIL = 'ai@greenqubes.com'
-
-async function guardAdmin() {
+async function guardAdmin(): Promise<boolean> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return user?.email === ADMIN_EMAIL
+  if (!user) return false
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('auth_id', user.id)
+    .maybeSingle()
+  return profile?.role === 'admin'
 }
 
 async function checkSupabase(): Promise<HealthCheck> {

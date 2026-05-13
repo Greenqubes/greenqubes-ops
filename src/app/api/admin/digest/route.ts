@@ -8,12 +8,17 @@ import { tplDigestItem }            from '@/lib/telegram/templates'
 import type { Json }                from '@/lib/supabase/types'
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const ADMIN_EMAIL = 'ai@greenqubes.com'
 
-async function guardAdmin() {
+async function guardAdmin(): Promise<boolean> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return user?.email === ADMIN_EMAIL
+  if (!user) return false
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('auth_id', user.id)
+    .maybeSingle()
+  return profile?.role === 'admin'
 }
 
 export async function GET() {
