@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-14 (feat-admin-2 — admin role done; Vercel cron fixed)_
+_Last updated: 2026-05-14 (feat-design — dark mode added; installer clash warning added to pending)_
 
 ---
 
@@ -19,6 +19,11 @@ _Last updated: 2026-05-14 (feat-admin-2 — admin role done; Vercel cron fixed)_
 ### Bugs (from 2026-05-14)
 
 - [ ] **AdminRoleModal double-Yes bug** — when editing a user's role to Admin in UsersTab, "Yes" in the confirm modal requires two presses before it fires. Likely a state update race condition between `handleRoleChange` setting `modalPhase` and the dropdown `value` re-render.
+
+### Features (added 2026-05-14, feat-design)
+
+- [x] **Dark mode** — Claude Warm palette; next-themes; UserMenu Moon/Sun toggle; persists in localStorage; auto-detects system preference on first visit; contrast fixes across 8 components.
+- [ ] **Installer clash warning** — when an installer is already assigned to a job on the same day, show a page-level prompt/warning. Nic to explain details next session.
 
 ### Features (added 2026-05-12)
 

@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-14 (feat-admin-2 — admin role in DB enum, RLS updated, email gates replaced with role checks, migrations 0018–0020)_
+_Last updated: 2026-05-14 (feat-design — dark mode; next-themes, Claude Warm palette, UserMenu toggle, contrast fixes)_
 
 ---
 
