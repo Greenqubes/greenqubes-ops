@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-14 (feat-admin-2 — admin role added to DB enum; RLS policies updated; email gates replaced with role checks; AdminRoleModal in UsersTab; Vercel cron fixed; migrations 0018–0020)_
+_Last updated: 2026-05-14 (feat-jobs — AI Suggest button added to Project Title, Description, Notes, Production Instructions; SuggestField component; /api/ai/suggest route; plain language rule added to CLAUDE.md)_
 
 ---
 
@@ -76,6 +76,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-notifications | Telegram Templates + Obsidian Sync First Run | Finalised all Telegram notification templates (project title, POC fields, job assigned, bug report redesign); updated all 6 caller routes; wired Obsidian vault as git submodule; UI/UX Pro Max design system generated; pre-alpha testing done — bugs + features logged | [feat/feat-notifications-20260511-1-note.md](feat/feat-notifications-20260511-1-note.md) |
 | feat-admin | Pre-Provision Users + Monday Digest Confirmed | Admin can now provision users by email without prior sign-in; migration 0017 (email column + partial unique index); auth callback links auth_id on first sign-in; UserRow shows "Waiting for sign-in" email; Monday digest confirmed working (skips correctly when no important conversations) | [feat/feat-admin-20260512-1-note.md](feat/feat-admin-20260512-1-note.md) |
 | feat-admin-2 | Admin Role + Vercel Cron Fix | `admin` added to user_role enum; RLS policies updated; email gates replaced with role checks; AdminRoleModal in UsersTab; BottomNav admin tab; Vercel overdue cron changed to daily (was blocking Hobby plan deployments); migrations 0018–0020 | [feat/feat-admin-20260514-1-note.md](feat/feat-admin-20260514-1-note.md) |
+| feat-jobs | AI Suggest Button | SuggestField component; /api/ai/suggest route (Haiku, SUGGEST_CONFIG); Project Title, Description, Notes, Production Instructions all wired; plain language rule added to CLAUDE.md | [feat/feat-jobs-20260514-1-note.md](feat/feat-jobs-20260514-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
