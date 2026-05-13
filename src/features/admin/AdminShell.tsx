@@ -11,7 +11,7 @@ import { DigestTab }     from '@/features/admin/DigestTab'
 import { HealthTab }     from '@/features/admin/HealthTab'
 import { CrashLogTab }  from '@/features/admin/CrashLogTab'
 import { BugReportsTab } from '@/features/admin/BugReportsTab'
-import type { LangCode } from '@/lib/supabase/types'
+import type { LangCode, Role } from '@/lib/supabase/types'
 
 type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs'
 
@@ -25,7 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 type Props = {
   userName: string
-  role:     'scheduler'
+  role:     Role
   lang:     LangCode
 }
 
