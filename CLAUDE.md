@@ -40,3 +40,4 @@ All code changes must be committed and pushed to the `dev` branch first. Vercel 
 
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
+- Never add or remove roles without explicit user confirmation. Claude may suggest new roles but must not implement without approval.
