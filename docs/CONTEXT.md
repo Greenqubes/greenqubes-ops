@@ -263,7 +263,7 @@ greenqubes/
 
 All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
 
-- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1
+- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
 - [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
