@@ -1,9 +1,10 @@
 'use client'
 
-import { UseFormRegister, FieldErrors, Control, Controller } from 'react-hook-form'
+import { UseFormRegister, FieldErrors, Control, Controller, UseFormWatch, UseFormSetValue } from 'react-hook-form'
 import { Card } from '@/components/Card'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/Input'
+import { SuggestField } from '@/components/SuggestField'
 import { TimeSelect } from './TimeSelect'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
@@ -11,18 +12,19 @@ import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 
 interface Props {
-  register:    UseFormRegister<FormValues>
-  errors:      FieldErrors<FormValues>
-  control:     Control<FormValues>
-  readOnly:    boolean
-  lang:        LangCode
-  /** When true every field except Notes & Punctuality is required */
+  register:          UseFormRegister<FormValues>
+  errors:            FieldErrors<FormValues>
+  control:           Control<FormValues>
+  watch:             UseFormWatch<FormValues>
+  setValue:          UseFormSetValue<FormValues>
+  readOnly:          boolean
+  lang:              LangCode
   validateRequired?: boolean
 }
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
-export function CoreSection({ register, errors, control, readOnly, lang, validateRequired = false }: Props) {
+export function CoreSection({ register, errors, control, watch, setValue, readOnly, lang, validateRequired = false }: Props) {
   const req = validateRequired ? { required: 'Required' } : {}
 
   return (
@@ -30,12 +32,19 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
 
       {/* Project Title */}
       <Field label={t(lang, 'projectTitle')} error={errors.project_title?.message}>
-        <Input
-          {...register('project_title', req)}
-          placeholder="e.g. Vivienne Westwood Installation"
-          disabled={readOnly}
-          error={!!errors.project_title}
-        />
+        <SuggestField
+          value={watch('project_title')}
+          onAccept={s => setValue('project_title', s, { shouldDirty: true })}
+          readOnly={readOnly}
+          field="Project Title"
+        >
+          <Input
+            {...register('project_title', req)}
+            placeholder="e.g. Vivienne Westwood Installation"
+            disabled={readOnly}
+            error={!!errors.project_title}
+          />
+        </SuggestField>
       </Field>
 
       {/* Date + End Date */}
@@ -74,17 +83,15 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
             )}
           />
         </Field>
-        <Field label={t(lang, 'timeEnd')} error={errors.time_end?.message}>
+        <Field label={t(lang, 'timeEnd')}>
           <Controller
             control={control}
             name="time_end"
-            rules={req}
             render={({ field }) => (
               <TimeSelect
                 value={field.value}
                 onChange={field.onChange}
                 disabled={readOnly}
-                error={!!errors.time_end}
               />
             )}
           />
@@ -129,18 +136,32 @@ export function CoreSection({ register, errors, control, readOnly, lang, validat
       </Field>
 
       {/* Description */}
-      <Field label={t(lang, 'jobDescription')} error={errors.description?.message}>
-        <textarea
-          {...register('description', req)}
-          disabled={readOnly}
-          rows={3}
-          className={cn(TEXTAREA, errors.description && 'border-terracotta')}
-        />
+      <Field label={t(lang, 'jobDescription')}>
+        <SuggestField
+          value={watch('description')}
+          onAccept={s => setValue('description', s, { shouldDirty: true })}
+          readOnly={readOnly}
+          field="Job Description"
+        >
+          <textarea
+            {...register('description')}
+            disabled={readOnly}
+            rows={3}
+            className={TEXTAREA}
+          />
+        </SuggestField>
       </Field>
 
       {/* Notes — always optional */}
       <Field label={t(lang, 'notes')}>
-        <textarea {...register('notes')} disabled={readOnly} rows={2} className={TEXTAREA} />
+        <SuggestField
+          value={watch('notes')}
+          onAccept={s => setValue('notes', s, { shouldDirty: true })}
+          readOnly={readOnly}
+          field="Notes"
+        >
+          <textarea {...register('notes')} disabled={readOnly} rows={2} className={TEXTAREA} />
+        </SuggestField>
       </Field>
 
       {/* Punctuality — always optional, has default */}

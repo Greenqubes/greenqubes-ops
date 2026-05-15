@@ -27,7 +27,7 @@ export function NewJobShell({ userId, lang }: Props) {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           '',
       date:                    today,
@@ -123,6 +123,8 @@ export function NewJobShell({ userId, lang }: Props) {
           register={register}
           errors={errors}
           control={control}
+          watch={watch}
+          setValue={setValue}
           readOnly={false}
           lang={lang}
           validateRequired

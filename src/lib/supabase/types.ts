@@ -4,7 +4,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer'
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
 export type MessageKind = 'text' | 'voice'

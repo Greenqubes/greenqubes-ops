@@ -55,21 +55,24 @@ export function BugReportButton() {
     try {
       let screenshotKey: string | null = null
 
-      // Upload screenshot to R2 if provided
       if (screenshot) {
-        const urlRes = await fetch('/api/bugs/upload-url', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ filename: screenshot.name, contentType: screenshot.type }),
-        })
-        if (urlRes.ok) {
-          const { url, key } = await urlRes.json() as { url: string; key: string }
-          await fetch(url, {
-            method:  'PUT',
-            headers: { 'Content-Type': screenshot.type },
-            body:    screenshot,
+        try {
+          const urlRes = await fetch('/api/bugs/upload-url', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ filename: screenshot.name, contentType: screenshot.type }),
           })
-          screenshotKey = key
+          if (urlRes.ok) {
+            const { url, key } = await urlRes.json() as { url: string; key: string }
+            const putRes = await fetch(url, {
+              method:  'PUT',
+              headers: { 'Content-Type': screenshot.type },
+              body:    screenshot,
+            })
+            if (putRes.ok) screenshotKey = key
+          }
+        } catch {
+          // Screenshot upload failed — submit report without it
         }
       }
 

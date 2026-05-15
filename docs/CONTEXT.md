@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised, Obsidian sync wired, pre-alpha testing done, bugs + features logged for next session)_
+_Last updated: 2026-05-14 (feat-design — dark mode; next-themes, Claude Warm palette, UserMenu toggle, contrast fixes)_
 
 ---
 
@@ -263,7 +263,7 @@ greenqubes/
 
 All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
 
-- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1
+- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
 - [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
 - [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light

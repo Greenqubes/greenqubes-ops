@@ -182,7 +182,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
           className={cn(
             'p-2 rounded-lg border transition-colors shrink-0',
             showSearch
-              ? 'bg-ink border-ink text-white'
+              ? 'bg-ink border-ink text-paper'
               : 'bg-paper border-line text-ink2 hover:border-ink2'
           )}
         >
@@ -225,7 +225,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
-                viewMode === v ? 'bg-ink text-white' : 'text-muted hover:text-ink'
+                viewMode === v ? 'bg-ink text-paper' : 'text-muted hover:text-ink'
               )}
             >
               <Icon size={11} />

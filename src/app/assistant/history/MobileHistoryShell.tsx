@@ -107,7 +107,7 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-4 right-4 px-4 py-2.5 bg-ink text-white text-sm rounded-xl shadow-md text-center">
+        <div className="fixed bottom-6 left-4 right-4 px-4 py-2.5 bg-ink text-paper text-sm rounded-xl shadow-md text-center">
           {toast}
         </div>
       )}

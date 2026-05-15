@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
-const ADMIN_EMAIL = 'ai@greenqubes.com'
 const VALID_ROLES: Role[] = ['sales', 'scheduler', 'installer']
 
 function readRoleOverrideCookie(): Role | null {
@@ -57,6 +57,8 @@ export function UserMenu({ lang: initialLang }: Props) {
   const [lang,         setLang]         = useState<LangCode>(initialLang ?? 'en')
   const [changingLang, setChangingLang] = useState(false)
   const [roleOverride, setRoleOverride] = useState<Role | null>(null)
+  const [mounted,      setMounted]      = useState(false)
+  const { resolvedTheme, setTheme } = useTheme()
   const ref      = useRef<HTMLDivElement>(null)
   const router   = useRouter()
   const pathname = usePathname()
@@ -67,16 +69,15 @@ export function UserMenu({ lang: initialLang }: Props) {
       const userEmail = user?.email ?? ''
       setName(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? '')
       setEmail(userEmail)
-      const admin = userEmail === ADMIN_EMAIL
-      setIsAdmin(admin)
-      if (admin) setRoleOverride(readRoleOverrideCookie())
+      setRoleOverride(readRoleOverrideCookie())
       if (user) {
         const { data } = await supabase
           .from('users')
-          .select('lang')
+          .select('lang, role')
           .eq('auth_id', user.id)
-          .maybeSingle() as { data: { lang: string } | null; error: unknown }
+          .maybeSingle() as { data: { lang: string; role: string } | null; error: unknown }
         if (data?.lang) setLang(data.lang as LangCode)
+        if (data?.role) setIsAdmin(data.role === 'admin')
       }
     })
   }, [])
@@ -84,6 +85,8 @@ export function UserMenu({ lang: initialLang }: Props) {
   useEffect(() => {
     if (initialLang) setLang(initialLang)
   }, [initialLang])
+
+  useEffect(() => { setMounted(true) }, [])
 
   // Close on outside click
   useEffect(() => {
@@ -149,7 +152,7 @@ export function UserMenu({ lang: initialLang }: Props) {
       {/* Avatar button + override chip */}
       <div className="flex items-center gap-1.5">
         {isAdmin && roleOverride && (
-          <span className="text-[10px] font-medium text-amber-700 bg-amber/15 border border-amber/30 px-1.5 py-0.5 rounded-full leading-none">
+          <span className="text-[10px] font-medium text-amber-700 bg-amber/15 border border-amber/30 px-1.5 py-0.5 rounded-full leading-none capitalize">
             {roleOverride}
           </span>
         )}
@@ -204,7 +207,7 @@ export function UserMenu({ lang: initialLang }: Props) {
                   className={cn(
                     'flex-1 py-1 rounded-md text-xs font-medium border transition-colors',
                     lang === code
-                      ? 'bg-ink text-white border-ink'
+                      ? 'bg-ink text-paper border-ink'
                       : 'bg-bg border-line text-ink2 hover:border-ink2',
                   )}
                 >
@@ -213,6 +216,21 @@ export function UserMenu({ lang: initialLang }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Dark mode toggle */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun size={14} strokeWidth={1.8} />
+              ) : (
+                <Moon size={14} strokeWidth={1.8} />
+              )}
+              {resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </button>
+          )}
 
           {/* Admin shortcuts */}
           {isAdmin && (

@@ -8,18 +8,86 @@ import { cn }      from '@/lib/utils/cn'
 import type { AdminUser } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode } from '@/lib/supabase/types'
 
-const ROLES: Role[]     = ['sales', 'scheduler', 'installer']
+const ROLES: Role[]     = ['sales', 'scheduler', 'installer', 'admin']
 const LANGS: LangCode[] = ['en', 'zh', 'bn']
+
+// ── Admin role confirmation modal ──────────────────────────────────────────
+
+type ModalPhase = 'confirm' | 'success'
+
+function AdminRoleModal({
+  phase,
+  email,
+  onConfirm,
+  onCancel,
+  onClose,
+}: {
+  phase:     ModalPhase
+  email:     string
+  onConfirm: () => void
+  onCancel:  () => void
+  onClose:   () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4">
+      <div className="bg-paper border border-line rounded-card shadow-lg w-full max-w-sm p-6 flex flex-col gap-4">
+        {phase === 'confirm' ? (
+          <>
+            <p className="font-display font-medium text-ink text-base">Are you sure?</p>
+            <p className="text-sm text-ink2">
+              This user will have unrestricted access to the whole system.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Btn variant="ghost" size="sm" onClick={onCancel}>No</Btn>
+              <Btn variant="accent" size="sm" onClick={onConfirm}>Yes</Btn>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="font-display font-medium text-ink text-base">
+              {email} is now Admin!
+            </p>
+            <div className="flex justify-end">
+              <Btn variant="primary" size="sm" onClick={onClose}>Ok</Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ── Provision form ─────────────────────────────────────────────────────────────
 
 function ProvisionForm({ onDone }: { onDone: () => void }) {
-  const [email, setEmail] = useState('')
-  const [name,  setName]  = useState('')
-  const [role,  setRole]  = useState<Role>('installer')
-  const [lang,  setLang]  = useState<LangCode>('en')
-  const [busy,  setBusy]  = useState(false)
-  const [err,   setErr]   = useState<string | null>(null)
+  const [email,       setEmail]       = useState('')
+  const [name,        setName]        = useState('')
+  const [role,        setRole]        = useState<Role>('installer')
+  const [lang,        setLang]        = useState<LangCode>('en')
+  const [busy,        setBusy]        = useState(false)
+  const [err,         setErr]         = useState<string | null>(null)
+  const [showModal,   setShowModal]   = useState(false)
+  const [pendingRole, setPendingRole] = useState<Role | null>(null)
+
+  function handleRoleChange(next: Role) {
+    if (next === 'admin') {
+      setPendingRole(next)
+      setShowModal(true)
+    } else {
+      setRole(next)
+    }
+  }
+
+  function confirmAdmin() {
+    if (pendingRole) setRole(pendingRole)
+    setPendingRole(null)
+    setShowModal(false)
+  }
+
+  function cancelAdmin() {
+    setPendingRole(null)
+    setShowModal(false)
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,60 +112,119 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <Card className="p-4 mb-4">
-      <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-3">
-        Provision new user
-      </p>
-      <form onSubmit={submit} className="flex flex-col gap-2.5">
-        <input
-          className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-          placeholder="Google account email"
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
+    <>
+      {showModal && (
+        <AdminRoleModal
+          phase="confirm"
+          email={email || 'This user'}
+          onConfirm={confirmAdmin}
+          onCancel={cancelAdmin}
+          onClose={cancelAdmin}
         />
-        <input
-          className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-          placeholder="Display name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          required
-        />
-        <div className="flex gap-2">
-          <select
-            className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-            value={role}
-            onChange={e => setRole(e.target.value as Role)}
-          >
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-          <select
-            className="w-24 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-            value={lang}
-            onChange={e => setLang(e.target.value as LangCode)}
-          >
-            {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </div>
-        {err && <p className="text-xs text-red-500">{err}</p>}
-        <Btn type="submit" variant="accent" size="sm" disabled={busy}>
-          {busy ? 'Adding…' : 'Add user'}
-        </Btn>
-      </form>
-    </Card>
+      )}
+      <Card className="p-4 mb-4">
+        <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-3">
+          Provision new user
+        </p>
+        <form onSubmit={submit} className="flex flex-col gap-2.5">
+          <input
+            className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+            placeholder="Google account email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+          <input
+            className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+            placeholder="Display name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
+          <div className="flex gap-2">
+            <select
+              className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              value={role}
+              onChange={e => handleRoleChange(e.target.value as Role)}
+            >
+              {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+            </select>
+            <select
+              className="w-24 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              value={lang}
+              onChange={e => setLang(e.target.value as LangCode)}
+            >
+              {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+          {err && <p className="text-xs text-red-500">{err}</p>}
+          <Btn type="submit" variant="accent" size="sm" disabled={busy}>
+            {busy ? 'Adding…' : 'Add user'}
+          </Btn>
+        </form>
+      </Card>
+    </>
   )
 }
 
 // ── User row ───────────────────────────────────────────────────────────────────
 
 function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
-  const [editing,   setEditing]   = useState(false)
-  const [role,      setRole]      = useState<Role>(user.role)
-  const [tgId,      setTgId]      = useState(user.telegram_chat_id ?? '')
-  const [digestSub, setDigestSub] = useState(user.digest_subscriber)
-  const [busy,      setBusy]      = useState(false)
-  const [err,       setErr]       = useState<string | null>(null)
+  const [editing,     setEditing]     = useState(false)
+  const [role,        setRole]        = useState<Role>(user.role)
+  const [tgId,        setTgId]        = useState(user.telegram_chat_id ?? '')
+  const [digestSub,   setDigestSub]   = useState(user.digest_subscriber)
+  const [busy,        setBusy]        = useState(false)
+  const [err,         setErr]         = useState<string | null>(null)
+  const [modalPhase,  setModalPhase]  = useState<'confirm' | 'success' | null>(null)
+  const [prevRole,    setPrevRole]    = useState<Role>(user.role)
+
+  function handleRoleChange(next: Role) {
+    if (next === 'admin') {
+      setPrevRole(role)
+      setModalPhase('confirm')
+    } else {
+      setRole(next)
+    }
+  }
+
+  async function confirmAdmin() {
+    setRole('admin')
+    setBusy(true); setErr(null)
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          role:              'admin',
+          telegram_chat_id:  tgId.trim() || null,
+          digest_subscriber: digestSub,
+        }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json() as { error: string }
+        throw new Error(error)
+      }
+      setModalPhase('success')
+    } catch (err) {
+      setErr((err as Error).message)
+      setRole(prevRole)
+      setModalPhase(null)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function cancelAdmin() {
+    setModalPhase(null)
+  }
+
+  function closeSuccessModal() {
+    setModalPhase(null)
+    setEditing(false)
+    onSaved()
+  }
 
   async function save() {
     setBusy(true); setErr(null)
@@ -137,89 +264,100 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   })
 
   return (
-    <Card className={cn('p-4 transition-colors', editing && 'ring-2 ring-terracotta/30')}>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
-          <p className="font-display font-medium text-ink text-sm truncate">{user.name}</p>
-          <p className="text-xs text-muted truncate">{joined}</p>
-        </div>
-        {!editing && (
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-muted hover:text-ink2 underline underline-offset-2 shrink-0"
-          >
-            Edit
-          </button>
-        )}
-      </div>
-
-      {editing ? (
-        <div className="flex flex-col gap-2.5 mt-2">
-          <select
-            className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-            value={role}
-            onChange={e => setRole(e.target.value as Role)}
-          >
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-
-          <div>
-            <label className="text-xs text-muted mb-1 block">Telegram Chat ID</label>
-            <input
-              className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-              placeholder="e.g. 123456789"
-              value={tgId}
-              onChange={e => setTgId(e.target.value)}
-            />
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              className="accent-terracotta w-4 h-4"
-              checked={digestSub}
-              onChange={e => setDigestSub(e.target.checked)}
-            />
-            <span className="text-sm text-ink">Receives Monday digest</span>
-          </label>
-
-          {err && <p className="text-xs text-red-500">{err}</p>}
-
-          <div className="flex gap-2">
-            <Btn variant="primary" size="sm" onClick={save} disabled={busy}>
-              {busy ? 'Saving…' : 'Save'}
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={cancel} disabled={busy}>
-              Cancel
-            </Btn>
-          </div>
-        </div>
-      ) : (
-        <>
-          {user.auth_id === null && user.email && (
-            <p className="text-sm text-[--ink2] mb-2">Waiting for sign-in: <span className="font-medium">{user.email}</span></p>
-          )}
-          <div className="flex flex-wrap gap-2 items-center">
-          <Pill variant={user.role} />
-          {user.telegram_chat_id ? (
-            <span className="text-xs text-muted font-mono">TG {user.telegram_chat_id}</span>
-          ) : (
-            <span className="text-xs text-muted italic">No Telegram ID</span>
-          )}
-          {user.digest_subscriber && (
-            <span className="text-xs bg-brand-blue/10 text-brand-blue border border-brand-blue/20 rounded-full px-2 py-0.5 font-medium">
-              digest
-            </span>
-          )}
-          {!user.auth_id && (
-            <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
-              not linked
-            </span>
-          )}
-        </div>
-        </>
+    <>
+      {modalPhase && (
+        <AdminRoleModal
+          phase={modalPhase}
+          email={user.email ?? user.name}
+          onConfirm={confirmAdmin}
+          onCancel={cancelAdmin}
+          onClose={closeSuccessModal}
+        />
       )}
-    </Card>
+      <Card className={cn('p-4 transition-colors', editing && 'ring-2 ring-terracotta/30')}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="min-w-0">
+            <p className="font-display font-medium text-ink text-sm truncate">{user.name}</p>
+            <p className="text-xs text-muted truncate">{joined}</p>
+          </div>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-muted hover:text-ink2 underline underline-offset-2 shrink-0"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+
+        {editing ? (
+          <div className="flex flex-col gap-2.5 mt-2">
+            <select
+              className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              value={role}
+              onChange={e => handleRoleChange(e.target.value as Role)}
+            >
+              {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+            </select>
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">Telegram Chat ID</label>
+              <input
+                className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                placeholder="e.g. 123456789"
+                value={tgId}
+                onChange={e => setTgId(e.target.value)}
+              />
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="accent-terracotta w-4 h-4"
+                checked={digestSub}
+                onChange={e => setDigestSub(e.target.checked)}
+              />
+              <span className="text-sm text-ink">Receives Monday digest</span>
+            </label>
+
+            {err && <p className="text-xs text-red-500">{err}</p>}
+
+            <div className="flex gap-2">
+              <Btn variant="primary" size="sm" onClick={save} disabled={busy}>
+                {busy ? 'Saving…' : 'Save'}
+              </Btn>
+              <Btn variant="ghost" size="sm" onClick={cancel} disabled={busy}>
+                Cancel
+              </Btn>
+            </div>
+          </div>
+        ) : (
+          <>
+            {user.auth_id === null && user.email && (
+              <p className="text-sm text-[--ink2] mb-2">Waiting for sign-in: <span className="font-medium">{user.email}</span></p>
+            )}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Pill variant={user.role} />
+              {user.telegram_chat_id ? (
+                <span className="text-xs text-muted font-mono">TG {user.telegram_chat_id}</span>
+              ) : (
+                <span className="text-xs text-muted italic">No Telegram ID</span>
+              )}
+              {user.digest_subscriber && (
+                <span className="text-xs bg-brand-blue/10 text-brand-blue border border-brand-blue/20 rounded-full px-2 py-0.5 font-medium">
+                  digest
+                </span>
+              )}
+              {!user.auth_id && (
+                <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
+                  not linked
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </Card>
+    </>
   )
 }
 

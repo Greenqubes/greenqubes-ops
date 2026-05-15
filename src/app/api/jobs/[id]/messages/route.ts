@@ -45,8 +45,9 @@ export async function POST(
     }
   }
 
-  const body = await req.json() as { content?: string; kind?: string; voice_url?: string }
+  const body = await req.json() as { content?: string; kind?: string; voice_url?: string; filename?: string }
   const isVoice = body.kind === 'voice'
+  const isAttachment = body.kind === 'attachment'
 
   // Fetch notification data (project title, POC fields)
   const notifData = await getJobNotifData(jobId)
@@ -83,6 +84,25 @@ export async function POST(
     }
 
     return NextResponse.json({ message })
+  }
+
+  // ── File attachment (notification only — file record already inserted client-side) ──
+  if (isAttachment) {
+    const filename = body.filename?.trim() ?? 'file'
+    if (notifData) {
+      await notifyParticipants(tplJobMessage({
+        projectTitle: notifData.project_title,
+        jobClient:    notifData.client,
+        pocName:      notifData.client_poc_name,
+        pocPhone:     notifData.client_poc_phone,
+        jobDate:      notifData.date,
+        authorName,
+        sentAt:       sgtTimeNow(),
+        preview:      `📎 ${filename}`,
+        jobUrl,
+      }))
+    }
+    return NextResponse.json({ ok: true })
   }
 
   // ── Text message ──────────────────────────────────────────────────────────
