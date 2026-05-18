@@ -107,21 +107,21 @@ export function WeekWorkloadChart({ initialWeekDays, jobDate }: Props) {
 
       <div className={cn('flex gap-3 transition-opacity duration-150', loading && 'opacity-40')}>
 
-        {/* Bar chart */}
-        <div className="flex-1 min-w-0">
-          {/* Bars */}
-          <div className="flex items-end gap-1" style={{ height: 60 }}>
-            {weekDays.map(day => {
-              const level      = jobLevel(day.jobCount)
-              const isSelected = day.date === selectedDate
-              const isJobDay   = day.date === jobDate
-              return (
-                <button
-                  key={day.date}
-                  type="button"
-                  onClick={() => setSelectedDate(p => p === day.date ? null : day.date)}
-                  className="flex-1 flex items-end h-full focus:outline-none"
-                >
+        {/* Bar chart — single flex row, one button per day contains bar + label */}
+        <div className="flex-1 min-w-0 flex gap-1">
+          {weekDays.map(day => {
+            const level      = jobLevel(day.jobCount)
+            const isSelected = day.date === selectedDate
+            const isJobDay   = day.date === jobDate
+            return (
+              <button
+                key={day.date}
+                type="button"
+                onClick={() => setSelectedDate(p => p === day.date ? null : day.date)}
+                className="flex-1 flex flex-col items-stretch focus:outline-none"
+              >
+                {/* Bar area — fixed height, bar grows from bottom */}
+                <div className="flex items-end" style={{ height: 60 }}>
                   <div
                     className={cn(
                       'w-full rounded-sm transition-all duration-200',
@@ -131,28 +131,17 @@ export function WeekWorkloadChart({ initialWeekDays, jobDate }: Props) {
                     )}
                     style={{ height: BAR_H[level] }}
                   />
-                </button>
-              )
-            })}
-          </div>
-          {/* Day labels */}
-          <div className="flex gap-1 mt-1">
-            {weekDays.map(day => (
-              <button
-                key={day.date}
-                type="button"
-                onClick={() => setSelectedDate(p => p === day.date ? null : day.date)}
-                className={cn(
-                  'flex-1 text-center text-[9px] font-medium focus:outline-none transition-colors',
-                  day.date === selectedDate ? 'text-ink'
-                  : day.date === jobDate    ? 'text-terracotta'
-                  : 'text-muted'
-                )}
-              >
-                {day.dayLabel}
+                </div>
+                {/* Label */}
+                <span className={cn(
+                  'mt-1 text-center text-[9px] font-medium transition-colors',
+                  isSelected ? 'text-ink' : isJobDay ? 'text-terracotta' : 'text-muted'
+                )}>
+                  {day.dayLabel}
+                </span>
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
 
         {/* Installer panel */}
