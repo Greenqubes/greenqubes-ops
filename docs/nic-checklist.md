@@ -2,13 +2,22 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-14 (chore-jobs — bulk delete feature design decided; PR opened dev→main)_
+_Last updated: 2026-05-18 (feat-clash-resolution — clash modal, workload chart, delete job, time fixes)_
 
 ---
 
-## Pending — Next Session (Pre-Alpha Hotfixes)
+## Pending — Next Session
 
-### Bugs (from pre-alpha test 2026-05-11)
+### Bugs (from 2026-05-18, feat-clash-resolution)
+
+- [ ] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — scheduler clicks "Approve & Schedule" (or "Schedule") on the approval card and gets a save error. Root cause unknown — investigate the approve API route and ApprovalCard submit handler.
+- [ ] **[MINOR] Friday bar missing in WeekWorkloadChart** — the Friday column in the team workload chart inside ClashResolutionModal doesn't render visibly. Layout was restructured (merged bar+label into single button per day) but fix was not confirmed on preview. Re-test and dig deeper if still broken.
+
+### Features (from 2026-05-18, feat-clash-resolution)
+
+- [ ] **Schedule page visual overhaul** — Nic to share screenshot of target design. Full visual redesign of the /schedule page. Spec + plan needed before coding.
+
+### Bugs (from 2026-05-14)
 
 - [x] **Notification: submit/approve/send-back don't fire** — not a code bug. Test accounts (seed data) have no `telegram_chat_id`. Routes work correctly; notifications will fire once real users have TG IDs added via Admin → Users tab.
 - [x] **Notification: overdue cron doesn't fire** — cron entry was missing from `vercel.json` (fixed). Manual test requires `Authorization: Bearer <CRON_SECRET>` header. To test manually: `curl -H "Authorization: Bearer <CRON_SECRET>" https://greenqubes-ops.vercel.app/api/notifications/overdue`
@@ -44,7 +53,7 @@ _Last updated: 2026-05-14 (chore-jobs — bulk delete feature design decided; PR
 - [ ] **Scheduler tab: send scheduled job back to sales** — when editing a scheduled job, add a "Send Back" button (left of Mark Complete). Opens same send-back flow as approvals queue.
 - [ ] **Scheduler tab: delete job** — when editing a job, add a "Delete Job" button (left of Send Back). Hard-deletes from DB + removes from site. Confirmation modal required.
 - [ ] **Sales tab: recall job** — when editing a job in awaiting_approval status, replace "Send Back" label with "Recall Job" (same mechanic, clearer copy for sales).
-- [ ] **Sales tab: pre-send popup** — before sales pushes job for approval, show a popup displaying: assigned scheduler's name + a "busier than usual" indicator if the scheduler has high load that day. Confirm to proceed.
+- [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---

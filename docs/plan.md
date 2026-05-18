@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-14 (chore-jobs — git rebase resolved, PR created dev→main, bulk delete design decided)_
+_Last updated: 2026-05-18 (feat-clash-resolution — clash detection, ClashResolutionModal, workload chart, delete job, TimeSelect fixes)_
 
 ---
 
@@ -26,9 +26,13 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
+**Major bug (pending fix):** Save fails on the approvals page when scheduler clicks "Approve & Schedule" or "Schedule". Needs root-cause investigation next session.
+
 **Minor bug (pending fix):** AdminRoleModal in UsersTab — "Yes" button requires two presses to confirm. Needs investigation.
 
-**DB migrations:** All migrations 0012–0020 applied. No pending migrations.
+**Minor visual bug (pending fix):** Friday bar missing in WeekWorkloadChart inside ClashResolutionModal. Layout fix was attempted (merged bar+label into single button) but not confirmed resolved on preview.
+
+**DB migrations:** All migrations 0012–0021 applied. No pending migrations. Migration 0021 adds `years_experience` (integer) and `skills` (text[]) to `users` table.
 
 ---
 
@@ -80,6 +84,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-jobs | AI Suggest Button | SuggestField component; /api/ai/suggest route (Haiku, SUGGEST_CONFIG); Project Title, Description, Notes, Production Instructions all wired; plain language rule added to CLAUDE.md | [feat/feat-jobs-20260514-1-note.md](feat/feat-jobs-20260514-1-note.md) |
 | feat-design | Dark Mode | next-themes; ThemeProvider wrapper; .dark CSS token block (Claude Warm palette); UserMenu Moon/Sun toggle with localStorage + system preference detection; text-white→text-paper contrast fixes across 8 components | [feat/feat-design-20260514-1-note.md](feat/feat-design-20260514-1-note.md) |
 | chore-jobs | Git + PR + Bulk Delete Design | Resolved rebase conflict (plan.md, nic-checklist.md, CONTEXT.md); PR opened dev→main; bulk delete feature designed (Design A: always-on checkboxes, bottom delete bar); spec + plan pending next session | [chore/chore-jobs-20260514-1-note.md](chore/chore-jobs-20260514-1-note.md) |
+| feat-clash-resolution | Clash Detection + Resolution Modal + Workload Chart | Installer clash detection (proper time-overlap logic, no false positives for non-overlapping times); ClashResolutionModal (substitute selection with free/busy badges, keep-anyway, time shift via TimeSelect); travel-time warning for back-to-back jobs; team workload chart with week navigation (5-level bars, green→red, interactive installer panel); auto-save form before clash check; TimeSelect rolling from current time + HH:MM:SS normalisation; Delete Job button (sales, pending only); migration 0021 (years_experience, skills); major bug: save fails on approval page (approve & schedule); minor: Friday bar missing in chart | [feat/feat-clash-resolution-20260518-1-note.md](feat/feat-clash-resolution-20260518-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
