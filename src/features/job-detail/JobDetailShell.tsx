@@ -180,13 +180,14 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   }
 
   const handleSendToScheduler = async (
-    replacements: Record<string, string>,
+    replacements: Record<string, string | 'keep'>,
     timeStart: string,
     timeEnd: string,
   ) => {
     try {
-      // Apply staged installer swaps
+      // Apply staged installer swaps (skip 'keep' entries)
       for (const [oldId, newId] of Object.entries(replacements)) {
+        if (newId === 'keep') continue
         await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
         await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newId } as never)
       }
@@ -358,7 +359,6 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           substitutes={clashData.substitutes}
           lang={lang}
           onSendToScheduler={handleSendToScheduler}
-          onPushAnyways={handlePushAnyways}
           onCancel={() => setClashData(null)}
         />
       )}

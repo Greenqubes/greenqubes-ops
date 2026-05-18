@@ -14,8 +14,7 @@ interface Props {
   clashes:           Clash[]
   substitutes:       Substitute[]
   lang:              LangCode
-  onSendToScheduler: (replacements: Record<string, string>, timeStart: string, timeEnd: string) => Promise<void>
-  onPushAnyways:     () => Promise<void>
+  onSendToScheduler: (replacements: Record<string, string | 'keep'>, timeStart: string, timeEnd: string) => Promise<void>
   onCancel:          () => void
 }
 
@@ -43,19 +42,20 @@ function toInputTime(t: string | null): string {
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
   clashes, substitutes,
-  onSendToScheduler, onPushAnyways, onCancel,
+  onSendToScheduler, onCancel,
 }: Props) {
-  const [replacements, setReplacements] = useState<Record<string, string>>({})
+  const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
   const [timeStart, setTimeStart] = useState(toInputTime(jobTimeStart))
   const [timeEnd,   setTimeEnd]   = useState(toInputTime(jobTimeEnd))
-  const [submitting, setSubmitting] = useState(false)
-  // name of installer whose "Keep anyway" was clicked — shows warning prompt
-  const [keepWarningName, setKeepWarningName] = useState<string | null>(null)
+  const [submitting,    setSubmitting]    = useState(false)
+  const [showWarning,   setShowWarning]   = useState(false)
 
   const unresolvedCount = clashes.filter(c => replacements[c.installer.id] === undefined).length
-  const allResolved = unresolvedCount === 0
+  const allResolved     = unresolvedCount === 0
+  const hasKeeps        = Object.values(replacements).some(v => v === 'keep')
 
   async function handleSend() {
+    if (hasKeeps) { setShowWarning(true); return }
     setSubmitting(true)
     try {
       await onSendToScheduler(replacements, timeStart, timeEnd)
@@ -64,13 +64,13 @@ export function ClashResolutionModal({
     }
   }
 
-  async function handleConfirmKeepAnyways() {
+  async function handleConfirmSend() {
     setSubmitting(true)
     try {
-      await onPushAnyways()
+      await onSendToScheduler(replacements, timeStart, timeEnd)
     } finally {
       setSubmitting(false)
-      setKeepWarningName(null)
+      setShowWarning(false)
     }
   }
 
@@ -157,10 +157,15 @@ export function ClashResolutionModal({
                     })
                   )}
 
-                  {/* Keep anyway → triggers warning prompt */}
+                  {/* Keep anyway — stages choice silently */}
                   <button
-                    onClick={() => setKeepWarningName(clash.installer.name)}
-                    className="w-full px-4 py-3 border-t border-line text-sm text-left text-muted hover:text-ink transition-colors"
+                    onClick={() => setReplacements(prev => ({ ...prev, [clash.installer.id]: 'keep' }))}
+                    className={cn(
+                      'w-full px-4 py-3 border-t border-line text-sm text-left transition-colors',
+                      replacements[clash.installer.id] === 'keep'
+                        ? 'text-ink font-medium bg-line/40'
+                        : 'text-muted hover:text-ink',
+                    )}
                   >
                     Keep anyway ({clash.installer.name})
                   </button>
@@ -228,21 +233,21 @@ export function ClashResolutionModal({
         </div>
       </div>
 
-      {/* Keep-anyway warning prompt */}
-      {keepWarningName && (
+      {/* Warning prompt — shown when Send to scheduler is clicked with keeps */}
+      {showWarning && (
         <>
-          <div className="fixed inset-0 z-60 bg-black/40" aria-hidden="true" />
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[60] bg-black/40" aria-hidden="true" />
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-sm bg-paper rounded-card border border-line shadow-xl p-6 space-y-4 text-center">
               <p className="font-display text-base font-semibold text-ink">Push to Scheduler!</p>
               <p className="text-sm text-muted">
                 Please check directly with the Scheduler for approval.
               </p>
               <div className="flex gap-2 justify-center">
-                <Btn variant="secondary" size="sm" onClick={() => setKeepWarningName(null)} disabled={submitting}>
+                <Btn variant="secondary" size="sm" onClick={() => setShowWarning(false)} disabled={submitting}>
                   Cancel
                 </Btn>
-                <Btn variant="primary" size="sm" onClick={handleConfirmKeepAnyways} disabled={submitting}>
+                <Btn variant="primary" size="sm" onClick={handleConfirmSend} disabled={submitting}>
                   {submitting ? 'Sending…' : 'OK'}
                 </Btn>
               </div>
