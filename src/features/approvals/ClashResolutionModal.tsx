@@ -12,6 +12,7 @@ interface Props {
   jobTimeStart:      string | null
   jobTimeEnd:        string | null
   clashes:           Clash[]
+  travelWarnings:    Clash[]
   substitutes:       Substitute[]
   lang:              LangCode
   onSendToScheduler: (replacements: Record<string, string | 'keep'>, timeStart: string, timeEnd: string) => Promise<void>
@@ -41,7 +42,7 @@ function toInputTime(t: string | null): string {
 
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
-  clashes, substitutes,
+  clashes, travelWarnings, substitutes,
   onSendToScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
@@ -51,7 +52,7 @@ export function ClashResolutionModal({
   const [showWarning,   setShowWarning]   = useState(false)
 
   const unresolvedCount = clashes.filter(c => replacements[c.installer.id] === undefined).length
-  const allResolved     = unresolvedCount === 0
+  const allResolved     = clashes.length === 0 || unresolvedCount === 0
   const hasKeeps        = Object.values(replacements).some(v => v === 'keep')
 
   async function handleSend() {
@@ -91,12 +92,35 @@ export function ClashResolutionModal({
             {/* Header */}
             <div>
               <h2 className="font-display text-lg font-semibold text-ink">
-                {clashes.length} clash{clashes.length !== 1 ? 'es' : ''} need attention
+                {clashes.length > 0
+                  ? `${clashes.length} clash${clashes.length !== 1 ? 'es' : ''} need attention`
+                  : 'Review before sending'}
               </h2>
               <p className="mt-1 text-xs text-muted">
                 {fmtDate(jobDate)}{timeLabel ? ` · ${timeLabel}` : ''}
               </p>
             </div>
+
+            {/* Travel warning banner */}
+            {travelWarnings.length > 0 && (
+              <div className="rounded-lg border border-amber bg-amber/10 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+                  Travel time heads-up
+                </p>
+                {travelWarnings.map(w => {
+                  const t = [fmtTime(w.conflictingJob.timeStart), fmtTime(w.conflictingJob.timeEnd)].filter(Boolean).join('–')
+                  return (
+                    <p key={w.installer.id} className="text-sm text-ink">
+                      <span className="font-semibold">{w.installer.name}</span>
+                      {' has a back-to-back job with '}
+                      <span className="font-semibold">{w.conflictingJob.client}</span>
+                      {t ? ` (${t})` : ''}
+                      {'. Are you sure they can make it in time?'}
+                    </p>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Clash cards */}
             {clashes.map(clash => {

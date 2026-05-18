@@ -165,7 +165,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
-      if (data.clashes.length === 0) {
+      if (data.clashes.length === 0 && data.travelWarnings.length === 0) {
         const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -360,6 +360,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           jobTimeStart={clashData.jobTimeStart}
           jobTimeEnd={clashData.jobTimeEnd}
           clashes={clashData.clashes}
+          travelWarnings={clashData.travelWarnings}
           substitutes={clashData.substitutes}
           lang={lang}
           onSendToScheduler={handleSendToScheduler}

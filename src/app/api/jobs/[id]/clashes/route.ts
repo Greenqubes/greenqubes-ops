@@ -26,27 +26,39 @@ export interface Substitute {
   role:            string
   yearsExperience: number | null
   skills:          string[]
-  hasConflict:     boolean   // true = has another job overlapping this time slot
+  hasConflict:     boolean
 }
 
 export interface ClashesResponse {
-  clashes:      Clash[]
-  substitutes:  Substitute[]
-  jobDate:      string
-  jobTimeStart: string | null
-  jobTimeEnd:   string | null
+  clashes:        Clash[]
+  travelWarnings: Clash[]   // same installer, jobs touch end-to-start exactly
+  substitutes:    Substitute[]
+  jobDate:        string
+  jobTimeStart:   string | null
+  jobTimeEnd:     string | null
 }
 
-// Only flags a clash when times genuinely overlap.
-// If start times are missing we can't know → flag. If end times are missing,
-// two jobs only clash when their start times are identical.
+// True when the two time windows genuinely overlap (touching end-to-start is NOT an overlap).
+// Handles missing end times: if a job has no end, its start is treated as a point in time
+// and checked against the other job's window.
 function timesOverlap(
   s1: string | null, e1: string | null,
   s2: string | null, e2: string | null,
 ): boolean {
-  if (!s1 || !s2) return true          // no start time info → flag as unknown
-  if (!e1 || !e2) return s1 === s2     // no end time → clash only if same start
-  return s1 < e2 && s2 < e1           // proper overlap check
+  if (!s1 || !s2) return true               // no start → can't determine, flag
+  if (e1 && e2)   return s1 < e2 && s2 < e1 // both have end → strict overlap (touching = no clash)
+  if (e1)         return s2 >= s1 && s2 < e1 // only job1 has end → job2 start inside job1 range
+  if (e2)         return s1 >= s2 && s1 < e2 // only job2 has end → job1 start inside job2 range
+  return s1 === s2                           // neither has end → clash only if identical start
+}
+
+// True when jobs touch exactly end-to-start (same installer would need instant teleport).
+function timesTouch(
+  s1: string | null, e1: string | null,
+  s2: string | null, e2: string | null,
+): boolean {
+  if (!s1 || !s2) return false
+  return (!!e1 && e1 === s2) || (!!e2 && e2 === s1)
 }
 
 export async function GET(
@@ -92,7 +104,7 @@ export async function GET(
 
   const assigneeIds = assignees.map(a => a.id)
 
-  // All other jobs on the same date (any installer could be affected)
+  // All other jobs on the same date
   type ConflictRow = {
     id: string; client: string; time_start: string | null; time_end: string | null
     job_assignees: Array<{ user_id: string }>
@@ -104,9 +116,15 @@ export async function GET(
     .neq('id', jobId)
     .in('status', ['scheduled', 'awaiting_approval']) as { data: ConflictRow[] | null; error: unknown }
 
-  // Only same-day jobs whose time actually overlaps with our job
-  const overlapping = (sameDay ?? []).filter(j =>
+  const sameDayJobs = sameDay ?? []
+
+  const overlapping = sameDayJobs.filter(j =>
     timesOverlap(job.time_start, job.time_end, j.time_start, j.time_end)
+  )
+
+  const touching = sameDayJobs.filter(j =>
+    !timesOverlap(job.time_start, job.time_end, j.time_start, j.time_end) &&
+    timesTouch(job.time_start, job.time_end, j.time_start, j.time_end)
   )
 
   // Build clash list for current assignees
@@ -119,7 +137,7 @@ export async function GET(
       if (conflictAssigneeIds.has(assignee.id) && !clashingInstallerIds.has(assignee.id)) {
         clashingInstallerIds.add(assignee.id)
         clashes.push({
-          installer: { id: assignee.id, name: assignee.name },
+          installer:      { id: assignee.id, name: assignee.name },
           conflictingJob: {
             jobId:     conflict.id,
             client:    conflict.client,
@@ -131,15 +149,34 @@ export async function GET(
     }
   }
 
-  // Build a set of installer IDs who have any overlapping job (for substitute status)
-  const busyInstallerIds = new Set<string>()
-  for (const conflict of overlapping) {
-    for (const a of conflict.job_assignees) {
-      busyInstallerIds.add(a.user_id)
+  // Build travel-warning list — same installer on a back-to-back job (touching, not overlapping)
+  const travelWarnings: Clash[] = []
+  const warnedInstallerIds = new Set<string>()
+
+  for (const conflict of touching) {
+    const conflictAssigneeIds = new Set(conflict.job_assignees.map(a => a.user_id))
+    for (const assignee of assignees) {
+      if (conflictAssigneeIds.has(assignee.id) && !warnedInstallerIds.has(assignee.id)) {
+        warnedInstallerIds.add(assignee.id)
+        travelWarnings.push({
+          installer:      { id: assignee.id, name: assignee.name },
+          conflictingJob: {
+            jobId:     conflict.id,
+            client:    conflict.client,
+            timeStart: conflict.time_start,
+            timeEnd:   conflict.time_end,
+          },
+        })
+      }
     }
   }
 
-  // All installers except: clashing assignees (being replaced) + current non-clashing assignees
+  // Busy installer IDs = anyone on an overlapping job (for substitute free/busy status)
+  const busyInstallerIds = new Set<string>()
+  for (const conflict of overlapping) {
+    for (const a of conflict.job_assignees) busyInstallerIds.add(a.user_id)
+  }
+
   type UserRow = {
     id: string; name: string; role: string
     years_experience: number | null; skills: string[]
@@ -152,7 +189,7 @@ export async function GET(
   const currentAssigneeIds = new Set(assigneeIds)
 
   const substitutes: Substitute[] = (allInstallers ?? [])
-    .filter(u => !currentAssigneeIds.has(u.id))   // exclude anyone already on this job
+    .filter(u => !currentAssigneeIds.has(u.id))
     .map(u => ({
       id:              u.id,
       name:            u.name,
@@ -161,11 +198,11 @@ export async function GET(
       skills:          u.skills ?? [],
       hasConflict:     busyInstallerIds.has(u.id),
     }))
-    // Free installers first, then busy ones
     .sort((a, b) => Number(a.hasConflict) - Number(b.hasConflict))
 
   return NextResponse.json({
     clashes,
+    travelWarnings,
     substitutes,
     jobDate:      job.date,
     jobTimeStart: job.time_start,
