@@ -130,9 +130,9 @@ export function ClashResolutionModal({
                     const isSelected = selected === sub.id
                     const meta = [
                       sub.role.charAt(0).toUpperCase() + sub.role.slice(1),
-                      sub.yearsExperience != null ? `${sub.yearsExperience}y` : null,
-                      sub.skills.length > 0 ? sub.skills.join(', ') : null,
-                    ].filter(Boolean).join(' · ')
+                      sub.yearsExperience != null ? `${sub.yearsExperience}y` : 'N/A',
+                      sub.skills.length > 0 ? sub.skills.join(', ') : 'N/A',
+                    ].join(' · ')
 
                     return (
                       <button
