@@ -16,6 +16,7 @@ import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
+import { Modal } from '@/components/Modal'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
@@ -64,6 +65,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   const [saving,          setSaving]          = useState(false)
   const [status,          setStatus]          = useState<JobStatus>(job.status)
   const [showWorkload,    setShowWorkload]     = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting,        setDeleting]        = useState(false)
   const [assignees, setAssignees] = useState(
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
@@ -133,6 +136,19 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
       showError(t(lang, 'saveError'))
+    }
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      router.push('/schedule')
+    } catch {
+      showError(t(lang, 'saveError'))
+      setDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -270,6 +286,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
               await handleStatusChange(s)
             }
           }}
+          onDelete={() => setShowDeleteModal(true)}
         />
 
       </div>
@@ -283,6 +300,24 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           onClose={() => setShowWorkload(false)}
         />
       )}
+
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'deleteJobConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'deleteJobConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting ? t(lang, 'loading') : t(lang, 'deleteJob')}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   )
 }

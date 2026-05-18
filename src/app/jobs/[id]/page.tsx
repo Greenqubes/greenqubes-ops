@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getJobById, getInstallerUsers, getJobMessages } from '@/lib/supabase/queries/jobs'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
+import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -28,9 +29,11 @@ export default async function JobDetailPage({
 
   if (!profile) redirect('/login')
 
+  const role = await getEffectiveRole(profile.role)
+
   const [job, installers, messages] = await Promise.all([
     getJobById(id),
-    profile.role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
+    role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     getJobMessages(id),
   ])
 
@@ -39,7 +42,7 @@ export default async function JobDetailPage({
   return (
     <JobDetailShell
       job={job}
-      role={profile.role}
+      role={role}
       userId={profile.id}
       lang={(profile.lang as LangCode) ?? 'en'}
       installers={installers}
