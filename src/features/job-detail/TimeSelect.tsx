@@ -21,6 +21,13 @@ interface TimeSelectProps {
   placeholder?: string
 }
 
+function getRollingOptions() {
+  const now      = new Date()
+  const minutes  = now.getHours() * 60 + now.getMinutes()
+  const startIdx = Math.min(Math.ceil(minutes / 15), 95)
+  return [...TIME_OPTIONS.slice(startIdx), ...TIME_OPTIONS.slice(0, startIdx)]
+}
+
 export function TimeSelect({
   value,
   onChange,
@@ -28,10 +35,11 @@ export function TimeSelect({
   error,
   placeholder = '— select time —',
 }: TimeSelectProps) {
-  const [open, setOpen] = useState(false)
-  const ref             = useRef<HTMLDivElement>(null)
-  const listRef         = useRef<HTMLDivElement>(null)
-  const selected        = TIME_OPTIONS.find(o => o.value === value?.slice(0, 5))
+  const [open,         setOpen]         = useState(false)
+  const [rollingOpts,  setRollingOpts]  = useState(getRollingOptions)
+  const ref     = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const selected = TIME_OPTIONS.find(o => o.value === value?.slice(0, 5))
 
   // Close on outside click
   useEffect(() => {
@@ -42,9 +50,11 @@ export function TimeSelect({
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
-  // Scroll selected option into view when opening
+  // Recalculate rolling order and scroll selected into view when opening
   useEffect(() => {
-    if (!open || !listRef.current) return
+    if (!open) return
+    setRollingOpts(getRollingOptions())
+    if (!listRef.current) return
     const active = listRef.current.querySelector('[data-selected="true"]') as HTMLElement | null
     if (active) active.scrollIntoView({ block: 'center' })
   }, [open])
@@ -89,7 +99,7 @@ export function TimeSelect({
           >
             {placeholder}
           </button>
-          {TIME_OPTIONS.map(o => (
+          {rollingOpts.map(o => (
             <button
               key={o.value}
               type="button"
