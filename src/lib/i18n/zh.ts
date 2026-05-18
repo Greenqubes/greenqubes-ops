@@ -78,6 +78,8 @@ export const zh: Partial<Translations> = {
   workloadFreeDay: '空闲',
   workloadCurrentDate: '当前日期',
   workloadSelectPrompt: '点击日期可更改（可选）',
+  workloadSendingTo: '发送给排班员',
+  workloadBusyWarning: '个工作已在此日期 — 比平时繁忙',
   statusOverride: '覆盖状态',
   chatLockedTitle: '聊天已关闭',
   chatLockedMessage:      '该工作完成已超过7天。',

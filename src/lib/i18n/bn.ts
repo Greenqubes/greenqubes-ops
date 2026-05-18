@@ -71,6 +71,8 @@ export const bn: Partial<Translations> = {
   workloadFreeDay: 'ফাঁকা',
   workloadCurrentDate: 'বর্তমান তারিখ',
   workloadSelectPrompt: 'তারিখ পরিবর্তন করতে ট্যাপ করুন (ঐচ্ছিক)',
+  workloadSendingTo: 'শিডিউলারকে পাঠানো হচ্ছে',
+  workloadBusyWarning: 'টি কাজ ইতিমধ্যে এই দিনে — স্বাভাবিকের চেয়ে ব্যস্ত',
   statusOverride: 'স্ট্যাটাস ওভাররাইড',
   chatLockedTitle: 'চ্যাট বন্ধ',
   chatLockedMessage:      'এই কাজটি সম্পন্ন হওয়ার ৭ দিনের বেশি হয়ে গেছে।',
