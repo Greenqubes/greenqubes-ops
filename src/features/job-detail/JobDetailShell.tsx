@@ -180,16 +180,15 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   }
 
   const handleSendToScheduler = async (
-    replacements: Record<string, string | 'keep'>,
+    replacements: Record<string, string>,
     timeStart: string,
     timeEnd: string,
   ) => {
     try {
       // Apply staged installer swaps
-      for (const [oldId, newIdOrKeep] of Object.entries(replacements)) {
-        if (newIdOrKeep === 'keep') continue
+      for (const [oldId, newId] of Object.entries(replacements)) {
         await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
-        await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newIdOrKeep } as never)
+        await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newId } as never)
       }
       // Apply time change if different from original
       if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
