@@ -38,6 +38,9 @@ export interface ClashesResponse {
   jobTimeEnd:     string | null
 }
 
+// Normalize to HH:MM so HH:MM:SS from the DB and HH:MM from the modal compare correctly.
+const hhmm = (t: string | null) => t?.slice(0, 5) ?? null
+
 // True when the two time windows genuinely overlap (touching end-to-start is NOT an overlap).
 // Handles missing end times: if a job has no end, its start is treated as a point in time
 // and checked against the other job's window.
@@ -45,11 +48,12 @@ function timesOverlap(
   s1: string | null, e1: string | null,
   s2: string | null, e2: string | null,
 ): boolean {
-  if (!s1 || !s2) return true               // no start → can't determine, flag
-  if (e1 && e2)   return s1 < e2 && s2 < e1 // both have end → strict overlap (touching = no clash)
-  if (e1)         return s2 >= s1 && s2 < e1 // only job1 has end → job2 start inside job1 range
-  if (e2)         return s1 >= s2 && s1 < e2 // only job2 has end → job1 start inside job2 range
-  return s1 === s2                           // neither has end → clash only if identical start
+  const [a, b, c, d] = [hhmm(s1), hhmm(e1), hhmm(s2), hhmm(e2)]
+  if (!a || !c) return true               // no start → can't determine, flag
+  if (b && d)   return a < d && c < b     // both have end → strict overlap (touching = no clash)
+  if (b)        return c >= a && c < b    // only job1 has end → job2 start inside job1 range
+  if (d)        return a >= c && a < d    // only job2 has end → job1 start inside job2 range
+  return a === c                          // neither has end → clash only if identical start
 }
 
 // True when jobs touch exactly end-to-start (same installer would need instant teleport).
@@ -57,8 +61,9 @@ function timesTouch(
   s1: string | null, e1: string | null,
   s2: string | null, e2: string | null,
 ): boolean {
-  if (!s1 || !s2) return false
-  return (!!e1 && e1 === s2) || (!!e2 && e2 === s1)
+  const [a, b, c, d] = [hhmm(s1), hhmm(e1), hhmm(s2), hhmm(e2)]
+  if (!a || !c) return false
+  return (!!b && b === c) || (!!d && d === a)
 }
 
 export async function GET(

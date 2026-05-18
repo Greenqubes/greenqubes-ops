@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronRight, AlertCircle, Send } from 'lucide-react'
 import { Btn } from '@/components/Btn'
+import { TimeSelect } from '@/features/job-detail/TimeSelect'
 import { cn } from '@/lib/utils/cn'
 import type { Clash, Substitute } from '@/app/api/jobs/[id]/clashes/route'
 import type { LangCode } from '@/lib/i18n'
@@ -220,21 +221,11 @@ export function ClashResolutionModal({
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-[10px] font-medium uppercase tracking-wide text-muted mb-1">Start time</label>
-                  <input
-                    type="time"
-                    value={timeStart}
-                    onChange={e => setTimeStart(e.target.value)}
-                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:border-ink2"
-                  />
+                  <TimeSelect value={timeStart} onChange={setTimeStart} />
                 </div>
                 <div className="flex-1">
                   <label className="block text-[10px] font-medium uppercase tracking-wide text-muted mb-1">End time</label>
-                  <input
-                    type="time"
-                    value={timeEnd}
-                    onChange={e => setTimeEnd(e.target.value)}
-                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:border-ink2"
-                  />
+                  <TimeSelect value={timeEnd} onChange={setTimeEnd} />
                 </div>
               </div>
             </div>
