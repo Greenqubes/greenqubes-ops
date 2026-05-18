@@ -362,6 +362,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           clashes={clashData.clashes}
           travelWarnings={clashData.travelWarnings}
           substitutes={clashData.substitutes}
+          weekDays={clashData.weekDays}
           lang={lang}
           onSendToScheduler={handleSendToScheduler}
           onCancel={() => setClashData(null)}

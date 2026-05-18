@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { ChevronRight, AlertCircle, Send } from 'lucide-react'
 import { Btn } from '@/components/Btn'
 import { TimeSelect } from '@/features/job-detail/TimeSelect'
+import { WeekWorkloadChart } from './WeekWorkloadChart'
 import { cn } from '@/lib/utils/cn'
-import type { Clash, Substitute } from '@/app/api/jobs/[id]/clashes/route'
+import type { Clash, Substitute, WeekDay } from '@/app/api/jobs/[id]/clashes/route'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   clashes:           Clash[]
   travelWarnings:    Clash[]
   substitutes:       Substitute[]
+  weekDays:          WeekDay[]
   lang:              LangCode
   onSendToScheduler: (replacements: Record<string, string | 'keep'>, timeStart: string, timeEnd: string) => Promise<void>
   onCancel:          () => void
@@ -43,7 +45,7 @@ function toInputTime(t: string | null): string {
 
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
-  clashes, travelWarnings, substitutes,
+  clashes, travelWarnings, substitutes, weekDays,
   onSendToScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
@@ -228,6 +230,18 @@ export function ClashResolutionModal({
                   <TimeSelect value={timeEnd} onChange={setTimeEnd} />
                 </div>
               </div>
+            </div>
+
+            {/* Team workload chart */}
+            <div>
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 h-px bg-line" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted whitespace-nowrap">
+                  Team workload
+                </span>
+                <div className="flex-1 h-px bg-line" />
+              </div>
+              <WeekWorkloadChart initialWeekDays={weekDays} jobDate={jobDate} />
             </div>
 
           </div>
