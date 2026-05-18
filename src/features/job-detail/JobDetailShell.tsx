@@ -74,7 +74,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, reset, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, getValues, setValue, reset, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
@@ -97,28 +97,31 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     },
   })
 
+  const saveValues = async (values: FormValues) => {
+    await supabase.from('jobs').update({
+      project_title:           values.project_title || null,
+      date:                    values.date,
+      date_end:                values.date_end || null,
+      time_start:              values.time_start || null,
+      time_end:                values.time_end || null,
+      client:                  values.client,
+      location:                values.location,
+      description:             values.description || null,
+      client_poc_name:         values.client_poc_name || null,
+      client_poc_phone:        values.client_poc_phone || null,
+      production_ready:        values.production_ready,
+      do_issued:               values.do_issued,
+      punctuality:             values.punctuality,
+      production_instructions: values.production_instructions || null,
+      notes:                   values.notes || null,
+    } as never).eq('id', job.id).throwOnError()
+    reset(values)
+  }
+
   const onSubmit = async (values: FormValues) => {
     setSaving(true)
     try {
-      await supabase.from('jobs').update({
-        project_title:           values.project_title || null,
-        date:                    values.date,
-        date_end:                values.date_end || null,
-        time_start:              values.time_start || null,
-        time_end:                values.time_end || null,
-        client:                  values.client,
-        location:                values.location,
-        description:             values.description || null,
-        client_poc_name:         values.client_poc_name || null,
-        client_poc_phone:        values.client_poc_phone || null,
-        production_ready:        values.production_ready,
-        do_issued:               values.do_issued,
-        punctuality:             values.punctuality,
-        production_instructions: values.production_instructions || null,
-        notes:                   values.notes || null,
-      } as never).eq('id', job.id).throwOnError()
-
-      reset(values)
+      await saveValues(values)
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
     } catch {
@@ -158,6 +161,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   const handleSubmitForApproval = async () => {
     setSaving(true)
     try {
+      if (isDirty) await saveValues(getValues())
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
