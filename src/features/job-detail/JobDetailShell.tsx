@@ -15,8 +15,9 @@ import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
 import { ProductionReadySection } from './ProductionReadySection'
-import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
+import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { Modal } from '@/components/Modal'
+import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
@@ -62,11 +63,13 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   const completed = job.status === 'completed'
   const readOnly  = completed
 
-  const [saving,          setSaving]          = useState(false)
-  const [status,          setStatus]          = useState<JobStatus>(job.status)
-  const [showWorkload,    setShowWorkload]     = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deleting,        setDeleting]        = useState(false)
+  const [saving,              setSaving]             = useState(false)
+  const [status,              setStatus]             = useState<JobStatus>(job.status)
+  const [clashData,           setClashData]          = useState<ClashesResponse | null>(null)
+  const [showSuccessModal,    setShowSuccessModal]    = useState(false)
+  const [showPushAnywaysModal,setShowPushAnywaysModal]= useState(false)
+  const [showDeleteModal,     setShowDeleteModal]     = useState(false)
+  const [deleting,            setDeleting]            = useState(false)
   const [assignees, setAssignees] = useState(
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
@@ -152,18 +155,74 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     }
   }
 
-  const handleWorkloadConfirm = async (finalDate: string) => {
-    setShowWorkload(false)
+  const handleSubmitForApproval = async () => {
+    setSaving(true)
     try {
+      const res = await fetch(`/api/jobs/${job.id}/clashes`)
+      if (!res.ok) throw new Error()
+      const data: ClashesResponse = await res.json()
+      if (data.clashes.length === 0) {
+        const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+        if (!submitRes.ok) throw new Error()
+        setStatus('awaiting_approval')
+        setShowSuccessModal(true)
+      } else {
+        setClashData(data)
+      }
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendToScheduler = async (
+    replacements: Record<string, string | 'keep'>,
+    timeStart: string,
+    timeEnd: string,
+  ) => {
+    try {
+      // Apply staged installer swaps
+      for (const [oldId, newIdOrKeep] of Object.entries(replacements)) {
+        if (newIdOrKeep === 'keep') continue
+        await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
+        await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newIdOrKeep } as never)
+      }
+      // Apply time change if different from original
+      if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
+        await supabase.from('jobs').update({
+          time_start: timeStart || null,
+          time_end:   timeEnd   || null,
+        } as never).eq('id', job.id)
+        if (timeStart) setValue('time_start', timeStart)
+        if (timeEnd)   setValue('time_end',   timeEnd)
+      }
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ date: finalDate }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
       if (!res.ok) throw new Error()
       setStatus('awaiting_approval')
-      if (finalDate !== job.date) setValue('date', finalDate)
-      showSuccess(t(lang, 'savedSuccessfully'))
+      setClashData(null)
+      setShowSuccessModal(true)
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
+  }
+
+  const handlePushAnyways = async () => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/submit`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error()
+      setStatus('awaiting_approval')
+      setClashData(null)
+      setShowPushAnywaysModal(true)
     } catch {
       showError(t(lang, 'saveError'))
     }
@@ -281,7 +340,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           lang={lang}
           onStatusChange={async (s) => {
             if (role === 'sales' && s === 'awaiting_approval') {
-              setShowWorkload(true)
+              await handleSubmitForApproval()
             } else {
               await handleStatusChange(s)
             }
@@ -291,15 +350,38 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
 
       </div>
 
-      {showWorkload && (
-        <WorkloadPreviewModal
-          jobId={job.id}
-          currentDate={job.date}
+      {clashData && (
+        <ClashResolutionModal
+          jobDate={clashData.jobDate}
+          jobTimeStart={clashData.jobTimeStart}
+          jobTimeEnd={clashData.jobTimeEnd}
+          clashes={clashData.clashes}
+          substitutes={clashData.substitutes}
           lang={lang}
-          onConfirm={handleWorkloadConfirm}
-          onClose={() => setShowWorkload(false)}
+          onSendToScheduler={handleSendToScheduler}
+          onPushAnyways={handlePushAnyways}
+          onCancel={() => setClashData(null)}
         />
       )}
+
+      <Modal isOpen={showSuccessModal} onClose={() => { setShowSuccessModal(false); router.push('/schedule') }}>
+        <div className="space-y-4 text-center">
+          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
+          <Btn variant="primary" size="sm" onClick={() => { setShowSuccessModal(false); router.push('/schedule') }}>
+            OK
+          </Btn>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showPushAnywaysModal} onClose={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
+        <div className="space-y-4 text-center">
+          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
+          <p className="text-sm text-muted">Please check with the Scheduler for approval directly.</p>
+          <Btn variant="primary" size="sm" onClick={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
+            OK
+          </Btn>
+        </div>
+      </Modal>
 
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <div className="space-y-4">
