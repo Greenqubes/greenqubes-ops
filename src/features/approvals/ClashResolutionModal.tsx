@@ -146,9 +146,20 @@ export function ClashResolutionModal({
                           )}
                         >
                           <div className="flex-1 min-w-0">
-                            <p className={cn('text-sm font-medium', isSelected ? 'text-green' : 'text-ink')}>
-                              Replace with: {sub.name}
-                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className={cn('text-sm font-medium', isSelected ? 'text-green' : 'text-ink')}>
+                                Replace with: {sub.name}
+                              </p>
+                              {sub.hasConflict ? (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber bg-amber/10 px-1.5 py-0.5 rounded">
+                                  Conflict
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-green bg-green/10 px-1.5 py-0.5 rounded">
+                                  Free
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted mt-0.5 truncate">{meta}</p>
                           </div>
                           <ChevronRight size={14} className={cn('shrink-0', isSelected ? 'text-green' : 'text-muted')} />
