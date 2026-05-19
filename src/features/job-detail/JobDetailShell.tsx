@@ -10,7 +10,7 @@ import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
 import { CoreSection } from './CoreSection'
 import { AssigneeSection } from './AssigneeSection'
-import { AttachmentSection } from './AttachmentSection'
+import { AttachmentBuckets } from './AttachmentBuckets'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
@@ -326,10 +326,7 @@ export function JobDetailShell({ job, role, userId, userName, lang, installers, 
           />
         )}
 
-        <AttachmentSection
-          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment' && f.kind !== 'production_instructions')}
-          lang={lang}
-        />
+        <AttachmentBuckets jobId={job.id} lang={lang} readOnly={readOnly} />
 
         <ChatSection
           jobId={job.id}
