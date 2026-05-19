@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { JobStatus, FileKind, Punctuality } from '@/lib/supabase/types'
 
 // ── Schedule list ────────────────────────────────────────────────────────────
@@ -65,9 +66,12 @@ export async function getPendingJobs(): Promise<ScheduleJob[]> {
 // ── Job detail ───────────────────────────────────────────────────────────────
 
 export type InstallerUser = {
-  id:    string
-  name:  string
-  phone: string | null
+  id:               string
+  name:             string
+  phone:            string | null
+  role:             string
+  years_experience: number | null
+  skills:           string[]
 }
 
 export type JobFile = {
@@ -200,7 +204,7 @@ export async function getInstallerUsers(): Promise<InstallerUser[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
-    .select('id, name, phone')
+    .select('id, name, phone, role, years_experience, skills')
     .eq('role', 'installer')
     .order('name')
   if (error) throw error
@@ -302,4 +306,49 @@ export async function insertFile(
     .single()
   if (error) throw error
   return data as unknown as JobFile
+}
+
+// ── Attachment Buckets ────────────────────────────────────────────────────────
+
+export type BucketFile = {
+  id:          string
+  job_id:      string | null
+  bucket_id:   string | null
+  kind:        FileKind
+  r2_key:      string
+  url_text:    string | null
+  uploader_id: string | null
+  ts:          string
+}
+
+export type AttachmentBucket = {
+  id:         string
+  job_id:     string
+  name:       string
+  position:   number
+  created_at: string
+  files:      BucketFile[]
+}
+
+export async function getJobBuckets(jobId: string): Promise<AttachmentBucket[]> {
+  const supabase = createBrowserClient()
+  const { data, error } = await supabase
+    .from('attachment_buckets')
+    .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts)')
+    .eq('job_id', jobId)
+    .order('position')
+  if (error) throw error
+  return (data ?? []) as unknown as AttachmentBucket[]
+}
+
+export async function createDefaultBuckets(jobId: string): Promise<void> {
+  const supabase = createBrowserClient()
+  const buckets = [
+    { job_id: jobId, name: 'PERMIT-TO-WORK', position: 0 },
+    { job_id: jobId, name: 'BCA',            position: 1 },
+    { job_id: jobId, name: 'DESIGNER JO',    position: 2 },
+    { job_id: jobId, name: 'OTHERS',         position: 3 },
+  ]
+  const { error } = await supabase.from('attachment_buckets').insert(buckets as never)
+  if (error) throw error
 }
