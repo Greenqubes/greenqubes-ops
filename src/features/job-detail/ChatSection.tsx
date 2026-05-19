@@ -517,32 +517,33 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
         ) : (
           items.map(item => (
-            <div key={item.id} className="space-y-0.5">
-              {item.author && item.kind !== 'voice' && (
-                <p className="text-xs text-muted">{item.author}</p>
-              )}
-              {item.kind === 'message' ? (
-                <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
-                  {item.content}
-                </p>
-              ) : item.kind === 'voice' ? (
-                <div className="flex items-center gap-2">
-                  {item.author && (
-                    <div className={cn(
-                      'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0',
-                      avatarColor(item.author),
-                    )}>
-                      {initials(item.author)}
-                    </div>
-                  )}
+            <div key={item.id} className="flex items-start gap-2">
+              {/* Avatar */}
+              <div className={cn(
+                'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 mt-0.5',
+                item.author ? avatarColor(item.author) : 'bg-ink2',
+              )}>
+                {item.author ? initials(item.author) : '?'}
+              </div>
+
+              {/* Content */}
+              <div className="space-y-0.5 min-w-0">
+                {item.author && (
+                  <p className="text-xs text-muted">{item.author}</p>
+                )}
+                {item.kind === 'message' ? (
+                  <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
+                    {item.content}
+                  </p>
+                ) : item.kind === 'voice' ? (
                   <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
-                </div>
-              ) : (
-                <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
-              )}
-              <p className="text-[10px] text-muted" suppressHydrationWarning>
-                {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
-              </p>
+                ) : (
+                  <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
+                )}
+                <p className="text-[10px] text-muted" suppressHydrationWarning>
+                  {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
+                </p>
+              </div>
             </div>
           ))
         )}
