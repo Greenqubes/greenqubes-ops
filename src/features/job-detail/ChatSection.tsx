@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast'
 import {
   Send, Paperclip, Download, FileText, Image as ImageIcon,
   Mic, StopCircle, Camera, Maximize2, Minimize2,
+  FileSpreadsheet, FileArchive,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
@@ -41,6 +42,55 @@ function chatCutoff(completedAt: string): Date {
   const d = new Date(completedAt)
   d.setDate(d.getDate() + CHAT_OPEN_DAYS)
   return d
+}
+
+// ── File-kind helpers ────────────────────────────────────────────────────────
+type FileKind = 'image' | 'pdf' | 'xls' | 'doc' | 'zip' | 'other'
+type DocKind  = Exclude<FileKind, 'image'>
+
+function fileKind(filename: string): FileKind {
+  if (/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) return 'image'
+  if (/\.pdf$/i.test(filename))                      return 'pdf'
+  if (/\.xlsx?$/i.test(filename))                    return 'xls'
+  if (/\.docx?$/i.test(filename))                    return 'doc'
+  if (/\.zip$/i.test(filename))                      return 'zip'
+  return 'other'
+}
+
+const FILE_TYPE_LABEL: Record<DocKind, string> = {
+  pdf:   'PDF',
+  xls:   'Spreadsheet',
+  doc:   'Word Document',
+  zip:   'ZIP Archive',
+  other: 'File',
+}
+
+const DOC_ICON_CONFIG: Record<DocKind, { bg: string; color: string }> = {
+  pdf:   { bg: 'bg-[#FDECEA]', color: 'text-[#C0392B]' },
+  xls:   { bg: 'bg-[#E8F5E9]', color: 'text-[#2E7D32]' },
+  doc:   { bg: 'bg-[#EEF2FB]', color: 'text-[#3D6FB5]' },
+  zip:   { bg: 'bg-[#FFF8E1]', color: 'text-amber' },
+  other: { bg: 'bg-[#EEF2FB]', color: 'text-ink2' },
+}
+
+function docIconComponent(kind: DocKind) {
+  if (kind === 'xls') return FileSpreadsheet
+  if (kind === 'zip') return FileArchive
+  return FileText
+}
+
+// ── Waveform helper ──────────────────────────────────────────────────────────
+// Deterministic bar heights derived from the voice key so they are stable
+// across re-renders.
+function waveformBars(key: string, count = 12): number[] {
+  let h = 0
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0
+  }
+  return Array.from({ length: count }, () => {
+    h = (h * 1664525 + 1013904223) >>> 0
+    return 30 + (h % 66) // 30–95
+  })
 }
 
 type ChatItem =
