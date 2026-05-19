@@ -500,10 +500,10 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
           {/* Enlarge / shrink — mobile only */}
           <button
             onClick={() => setFullscreen(f => !f)}
-            className="md:hidden p-1 text-muted hover:text-ink transition-colors rounded"
+            className="md:hidden p-1.5 text-muted hover:text-ink transition-colors rounded"
             aria-label={fullscreen ? 'Exit fullscreen' : 'Expand chat'}
           >
-            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
         </div>
       </div>
@@ -511,7 +511,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
       {/* messages */}
       <div className={cn(
         'flex-1 overflow-y-auto px-5 py-4 space-y-3',
-        fullscreen ? 'min-h-0' : 'min-h-[200px] max-h-[400px]',
+        fullscreen ? 'min-h-0' : 'min-h-[280px] max-h-[520px]',
       )}>
         {items.length === 0 ? (
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
@@ -565,7 +565,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
 
       {/* input bar */}
       {!preScheduleLocked && !chatLocked && (
-        <div className="px-4 py-3 border-t border-line flex items-center gap-2">
+        <div className="px-4 py-3 border-t border-line flex items-center gap-4">
           <input
             type="file"
             ref={fileRef}
@@ -654,9 +654,9 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
               size="sm"
               onClick={handleSend}
               disabled={inputDisabled || !text.trim()}
+              aria-label={t(lang, 'sendMessage')}
             >
               <Send size={13} />
-              {t(lang, 'sendMessage')}
             </Btn>
           )}
         </div>
