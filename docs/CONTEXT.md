@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-19 (feat-chat — WhatsApp chat layout, avatars, in-app notifications, waveform, camera, grammar suggest)_
+_Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews: image thumbnails, document cards, voice note play-button cards with waveform progress)_
 
 ---
 

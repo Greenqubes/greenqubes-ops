@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-19 (fix-chat — job chat realtime fully fixed: useMemo client stability, JWT wired to realtime, RLS policies rewritten for admin + EXISTS pattern, avatar/name cache for incoming messages; migrations 0023–0024)_
+_Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews: image thumbnail cards, document cards with coloured file-type icons, voice note play-button cards with waveform progress bars)_
 
 ---
 
@@ -87,6 +87,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-clash-resolution | Clash Detection + Resolution Modal + Workload Chart | Installer clash detection (proper time-overlap logic, no false positives for non-overlapping times); ClashResolutionModal (substitute selection with free/busy badges, keep-anyway, time shift via TimeSelect); travel-time warning for back-to-back jobs; team workload chart with week navigation (5-level bars, green→red, interactive installer panel); auto-save form before clash check; TimeSelect rolling from current time + HH:MM:SS normalisation; Delete Job button (sales, pending only); migration 0021 (years_experience, skills); major bug: save fails on approval page (approve & schedule); minor: Friday bar missing in chart | [feat/feat-clash-resolution-20260518-1-note.md](feat/feat-clash-resolution-20260518-1-note.md) |
 | feat-chat | Chat Redesign + In-App Notifications | WhatsApp-style chat layout (own messages right/terracotta, others left with avatar+name); avatars show initials colour-coded by name; Supabase join key bug fixed (author/uploader→users); voice note live waveform; camera capture button; file auto-rename (voice/camera = `{username} {date} {time}`); in-app notifications for send-back events (migration 0022); bell drawer with mark-all-read + selective delete; sales POC shown on approval cards; grammar suggest button in send-back modal (Haiku); [Sent Back] messages wiped from job chat on approval | [feat/feat-chat-20260519-1-note.md](feat/feat-chat-20260519-1-note.md) |
 | fix-chat | Job Chat Realtime Fix | Fixed realtime not delivering messages: createBrowserClient non-singleton → useMemo; admin missing from auth.uid() RLS policy → migration 0023; sales JWT not wired to realtime → explicit realtime.setAuth(); policies rewritten as EXISTS subqueries → migration 0024; avatar/name cache seeded from initialMessages + async fetch for new senders | [fix/fix-chat-20260519-1-note.md](fix/fix-chat-20260519-1-note.md) |
+| feat-chat-2 | Chat Attachment Previews | Image files show inline thumbnail with terracotta footer on own messages; documents show compact card with coloured file-type icon (PDF/Word/Spreadsheet/ZIP) + download arrow; voice notes show play-button card with deterministic waveform bars that animate progress during playback (grey before play → terracotta as audio plays) | [feat/feat-chat-20260520-1-note.md](feat/feat-chat-20260520-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

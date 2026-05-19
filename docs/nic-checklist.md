@@ -2,20 +2,16 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-19 (fix-chat — job chat realtime fixed for all roles)_
+_Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews done)_
 
 ---
 
 ## Pending — Next Session
 
-### Features (added 2026-05-19, fix-chat)
-
-- [ ] **Chat: attachment thumbnails** — all attachments (voice notes + file attachments) to show thumbnails in the chat. Spec + plan needed next session before coding.
-
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
-- [ ] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — scheduler clicks "Approve & Schedule" (or "Schedule") on the approval card and gets a save error. Root cause unknown — investigate the approve API route and ApprovalCard submit handler.
-- [ ] **[MINOR] Friday bar missing in WeekWorkloadChart** — the Friday column in the team workload chart inside ClashResolutionModal doesn't render visibly. Layout was restructured (merged bar+label into single button per day) but fix was not confirmed on preview. Re-test and dig deeper if still broken.
+- [x] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — fixed.
+- [x] **[MINOR] Friday bar missing in WeekWorkloadChart** — fixed.
 
 ### Features (from 2026-05-18, feat-clash-resolution)
 
@@ -62,11 +58,15 @@ _Last updated: 2026-05-19 (fix-chat — job chat realtime fixed for all roles)_
 
 ---
 
-## Done This Session ✓ (2026-05-19, fix-chat)
+## Done This Session ✓ (2026-05-20, feat-chat-2)
+
+- [x] **Chat: attachment thumbnails** — image files show inline thumbnail (220×160px) with terracotta footer strip on own messages + download arrow on right; documents show compact card with coloured file-type icon box (PDF/Word/Spreadsheet/ZIP) + filename + type label + download arrow; voice notes show play-button card with deterministic waveform bars (grey before play, sweep terracotta left-to-right as audio plays, pause/resume supported).
+
+## Done Last Session ✓ (2026-05-19, fix-chat)
 
 - [x] **Job chat realtime fixed for all roles** — `createBrowserClient` non-singleton caused constant subscription churn (fixed: `useMemo`); admin not in auth.uid() RLS policy (fixed: migration 0023); `@supabase/ssr` browser client doesn't auto-wire JWT to realtime (fixed: explicit `realtime.setAuth()` before subscribe); RLS policies rewritten as `EXISTS` subqueries for reliability (migration 0024); avatar/name for incoming messages now resolved via name cache + async fetch.
 
-## Done Last Session ✓ (2026-05-19, feat-chat)
+## Done ✓ (2026-05-19, feat-chat)
 
 - [x] **In-app notifications for send-back events** — bell drawer shows send-back reason; mark all read button in header; selective delete with checkboxes in drawer footer; migration 0022 applied.
 - [x] **Sales POC shown on approval cards** — "Requested by [name]" with icon on each approval card.
