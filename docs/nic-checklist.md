@@ -8,6 +8,11 @@ _Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews done)_
 
 ## Pending — Next Session
 
+### Bugs (from 2026-05-20, feat-digest-bot)
+
+- [ ] **[MAJOR] Assistant history sidebar doesn't show latest saved chat** — sidebar fetches once on mount and never refreshes. Newly saved conversations don't appear until page reload. Root cause identified: no re-fetch triggered after `saveConversation` completes.
+- [ ] **[MAJOR] Clicking a history item creates duplicate conversation entries** — `loadFromHistory` saves the currently displayed messages before loading the new one, even when those messages were already loaded from history. Every click through history re-saves the same conversation as a new entry. Root cause identified: no `isDirty` flag to distinguish new conversations from loaded ones.
+
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
 - [x] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — fixed.
