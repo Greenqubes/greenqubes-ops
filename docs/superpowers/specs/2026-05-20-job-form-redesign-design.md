@@ -65,10 +65,8 @@ These three fields replace the existing plain `client`, `client_poc_name`, `clie
 - Options come from the `clients` table (`SELECT id, name FROM clients ORDER BY name`).
 - Search bar always visible inside the open dropdown. Scrolling always works.
 - "Add new company…" at the bottom: user types a name → inserts a new row into `clients` → selects it.
-- **X button** beside the selected company name (shown after a company is selected). Clicking X opens a warning modal:
-  > "This will permanently remove **[Company Name]** and all associated client contacts. Are you sure?"
-  > `Cancel` | `Yes, remove`
-  - On confirm: DELETE from `clients` (cascades to `client_contacts`). Clears the company + POC fields on the form. Does **not** affect existing jobs (they already store the text value).
+- **X button** beside the selected company name (shown after a company is selected). Clicking X **clears the selection only** — resets Company, Client POC Name, and Client Phone fields back to empty/disabled. Does not delete the company from the database.
+- **X button per option** inside the open dropdown list — clicking X beside a company name opens a confirmation modal: "This will remove [Company Name] and all associated client names as well. Are you sure?" `No` | `Yes`. On confirm: DELETE from `clients` (cascades to `client_contacts`). If the removed company was selected, the form fields also reset.
 - When no company is selected, the Client POC Name and Client Phone fields are disabled/greyed out.
 
 #### Client POC Name dropdown
@@ -76,7 +74,8 @@ These three fields replace the existing plain `client`, `client_poc_name`, `clie
 - Options come from `client_contacts` filtered by the selected company (`SELECT id, name FROM client_contacts WHERE client_id = ? ORDER BY name`).
 - Same dropdown style as Sales/POC (search bar, scroll).
 - "Add new contact…" at the bottom: user types a POC name → inserts into `client_contacts` linked to current company → selects it.
-- **X button per option** inside the open dropdown list (not on the trigger) — clicking X beside a contact name removes that contact from `client_contacts` permanently. No warning modal needed (lower stakes than deleting a company).
+- **X button on the trigger** (beside the selected POC name, shown after a contact is selected) — clears the selection only, same as Company.
+- **X button per option** inside the open dropdown list — clicking X beside a contact name removes that contact from `client_contacts` permanently. If the removed contact was the currently selected one, the trigger also resets. No warning modal needed.
 - Selecting a contact sets `jobs.client_poc_name` to that contact's name.
 - When company changes, POC name resets to empty.
 
