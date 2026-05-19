@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-20 (feat-digest — dedicated digest bot, D-Promote command, voting polish, 5-day timeout cron)_
+_Last updated: 2026-05-20 (feat-notifications-2 — chat notification throttle, job_chat_state, 1-min window, unseen count)_
 
 ---
 
@@ -91,6 +91,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-digest | Dedicated Digest Bot + D-Promote + Voting Polish | Separate TELEGRAM_DIGEST_BOT_TOKEN + digest webhook; D-Promote secret command (force importance=5, immediate send to all digest_subscribers, word stripped from summary); strict >50% majority for both promote and dismiss; live poll count always shown on messages; buttons disabled for voter immediately after vote; 5-day timeout cron auto-resolves pending votes (strict majority yes → promoted, else dismissed); digest_subscriber flag controls all recipient queries; CLAUDE.md updated to ask about importance scoring categories each session | [feat/feat-digest-20260520-1-note.md](feat/feat-digest-20260520-1-note.md) |
 | fix-assistant-history | Assistant History Bugs + New Chat Alignment | isDirtyRef prevents re-saving history-loaded chats as duplicates; existingId path updates existing row in place via updateChat() preserving original topic; activeChatIdRef for unmount path; refreshTrigger re-fetches sidebar after save; New Chat button pb-[72px] clears BottomNav overlap; polish item: sidebar refresh delay (optimistic update deferred) | [fix/fix-assistant-20260520-1-note.md](fix/fix-assistant-20260520-1-note.md) |
 | feat-jobs | Job Form Redesign | Attachment buckets (upload, URL link, lightbox, rename, delete); SearchableSelect for company/POC/sales with add-new + confirm-delete; InstallerGrid 2-col toggle; ImageLightbox; production instructions always visible; AttachmentBuckets replaces AttachmentSection on edit page; NewJobShell rebuilt with installer grid + 3-button action bar; admin UsersTab: years_experience + skills chip fields for installer role; migrations 0025 (attachment_buckets + bucket_id/url_text on files) + 0026 (clients + client_contacts); feat-job-form-redesign branch → merged to main directly | [feat/feat-jobs-20260520-1-note.md](feat/feat-jobs-20260520-1-note.md) |
+| feat-notifications-2 | Chat Notification Throttle | Throttled job chat Telegram notifications — at most once per 1 min per recipient; accurate unseen message count per person via job_chat_state table; new tplJobChatBatch template (count, project title, client, time, location, date); View in app → button opens system browser (InlineKeyboardButton url type); chat-read API route marks last_seen_at on chat open; ChatSection calls chat-read on mount; migration 0027 (job_chat_state); fixed ts column name bug (was created_at); CLAUDE.md branch exception removed — all to dev | [feat/feat-notifications-20260520-1-note.md](feat/feat-notifications-20260520-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

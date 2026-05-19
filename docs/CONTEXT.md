@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-20 (feat-jobs — job form redesign: attachment buckets, installer grid, company/POC dropdowns, SearchableSelect, admin installer fields)_
+_Last updated: 2026-05-20 (feat-notifications-2 — chat notification throttle, job_chat_state, 1-min window, unseen count)_
 
 ---
 
