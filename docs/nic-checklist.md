@@ -2,16 +2,20 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-20 (feat-digest — digest bot, D-Promote, voting polish)_
+_Last updated: 2026-05-20 (fix-assistant-history — duplicate entries, sidebar refresh, New Chat alignment)_
 
 ---
 
 ## Pending — Next Session
 
+### Polish (from 2026-05-20, fix-assistant-history)
+
+- [ ] **[POLISH] Assistant history sidebar refresh has a noticeable delay** — sidebar re-fetches after save resolves, but the save includes an AI tagging call (Haiku) so there's a 1–2 second lag before the updated chat appears. Needs optimistic update on the sidebar for instant feel. Fine for presentation; defer until after pre-alpha.
+
 ### Bugs (from 2026-05-20, feat-digest-bot)
 
-- [ ] **[MAJOR] Assistant history sidebar doesn't show latest saved chat** — sidebar fetches once on mount and never refreshes. Newly saved conversations don't appear until page reload. Root cause identified: no re-fetch triggered after `saveConversation` completes.
-- [ ] **[MAJOR] Clicking a history item creates duplicate conversation entries** — `loadFromHistory` saves the currently displayed messages before loading the new one, even when those messages were already loaded from history. Every click through history re-saves the same conversation as a new entry. Root cause identified: no `isDirty` flag to distinguish new conversations from loaded ones.
+- [x] **[MAJOR] Assistant history sidebar doesn't show latest saved chat** — fixed: `refreshTrigger` prop re-fetches sidebar after save.
+- [x] **[MAJOR] Clicking a history item creates duplicate conversation entries** — fixed: `isDirtyRef` + `existingId` path updates existing row in place; original topic preserved.
 
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
