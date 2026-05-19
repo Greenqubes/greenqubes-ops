@@ -8,13 +8,34 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import {
   Send, Paperclip, Download, FileText, Image as ImageIcon,
-  Mic, StopCircle,
+  Mic, StopCircle, Camera, Maximize2, Minimize2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
 const CHAT_OPEN_DAYS = 7
+
+// ── Avatar helpers (same logic as UserMenu) ──────────────────────────────────
+const AVATAR_COLORS = ['bg-terracotta','bg-brand-green','bg-brand-blue','bg-brand-amber','bg-ink2']
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+function avatarColor(name: string) {
+  const hash = [...name].reduce((sum, c) => sum + c.charCodeAt(0), 0)
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+// ── Upload filename formatter ─────────────────────────────────────────────────
+function uploadName(userName: string, ext: string): string {
+  const now  = new Date()
+  const date = now.toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' })
+  const time = now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' })
+  return `${userName} ${date} ${time}.${ext}`
+}
 
 function chatCutoff(completedAt: string): Date {
   const d = new Date(completedAt)
@@ -145,6 +166,7 @@ type RecordState = 'idle' | 'recording' | 'uploading'
 interface Props {
   jobId:              string
   userId:             string
+  userName:           string
   lang:               LangCode
   completedAt:        string | null
   initialMessages:    JobMessage[]
@@ -152,11 +174,12 @@ interface Props {
   preScheduleLocked?: boolean
 }
 
-export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
+export function ChatSection({ jobId, userId, userName, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
   const bottomRef        = useRef<HTMLDivElement>(null)
   const fileRef          = useRef<HTMLInputElement>(null)
+  const cameraRef        = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef        = useRef<Blob[]>([])
   const streamRef        = useRef<MediaStream | null>(null)
@@ -175,6 +198,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const [recordSecs,     setRecordSecs]     = useState(0)
   const [chatLocked,     setChatLocked]     = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting')
+  const [fullscreen,     setFullscreen]     = useState(false)
 
   const cutoff = completedAt ? chatCutoff(completedAt) : null
 
@@ -316,7 +340,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
           const urlRes = await fetch('/api/r2/upload-url', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ jobId, kind: 'voice', filename: `${Date.now()}.webm`, contentType: 'audio/webm' }),
+            body:    JSON.stringify({ jobId, kind: 'voice', filename: uploadName(userName, 'webm'), contentType: 'audio/webm' }),
           })
           const { url, key } = await urlRes.json() as { url: string; key: string }
 
@@ -391,18 +415,66 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     }
   }
 
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    const ext      = file.name.split('.').pop() ?? 'jpg'
+    const filename = uploadName(userName, ext)
+
+    setUploading(true)
+    try {
+      const urlRes = await fetch('/api/r2/upload-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ jobId, kind: 'attachment', filename, contentType: file.type || 'image/jpeg' }),
+      })
+      const { url, key } = await urlRes.json() as { url: string; key: string }
+
+      await fetch(url, {
+        method:  'PUT',
+        headers: { 'Content-Type': file.type || 'image/jpeg' },
+        body:    file,
+      })
+
+      await supabase.from('files').insert({
+        job_id:      jobId,
+        kind:        'attachment',
+        r2_key:      key,
+        uploader_id: userId,
+        visibility:  ['public-internal'],
+      } as never).throwOnError()
+
+      await fetch(`/api/jobs/${jobId}/messages`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ kind: 'attachment', filename }),
+      })
+
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const items = toItems(messages, files)
 
   return (
-    <Card className="flex flex-col overflow-hidden">
+    <Card className={cn(
+      'flex flex-col overflow-hidden',
+      fullscreen && 'fixed inset-0 z-[60] rounded-none',
+    )}>
       {/* header */}
-      <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-line flex items-center justify-between shrink-0">
         <h3 className="text-sm font-medium text-ink">
           {chatLocked ? t(lang, 'jobChatTitleLocked') : t(lang, 'jobChatTitle')}
         </h3>
         <div className="flex items-center gap-3">
           {cutoff && !chatLocked && (
-            <span className="text-xs text-muted">
+            <span className="text-xs text-muted hidden sm:inline">
               {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
             </span>
           )}
@@ -425,17 +497,28 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               </span>
             </span>
           )}
+          {/* Enlarge / shrink — mobile only */}
+          <button
+            onClick={() => setFullscreen(f => !f)}
+            className="md:hidden p-1 text-muted hover:text-ink transition-colors rounded"
+            aria-label={fullscreen ? 'Exit fullscreen' : 'Expand chat'}
+          >
+            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
         </div>
       </div>
 
       {/* messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[200px] max-h-[400px]">
+      <div className={cn(
+        'flex-1 overflow-y-auto px-5 py-4 space-y-3',
+        fullscreen ? 'min-h-0' : 'min-h-[200px] max-h-[400px]',
+      )}>
         {items.length === 0 ? (
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
         ) : (
           items.map(item => (
             <div key={item.id} className="space-y-0.5">
-              {item.author && (
+              {item.author && item.kind !== 'voice' && (
                 <p className="text-xs text-muted">{item.author}</p>
               )}
               {item.kind === 'message' ? (
@@ -443,7 +526,17 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
                   {item.content}
                 </p>
               ) : item.kind === 'voice' ? (
-                <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
+                <div className="flex items-center gap-2">
+                  {item.author && (
+                    <div className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0',
+                      avatarColor(item.author),
+                    )}>
+                      {initials(item.author)}
+                    </div>
+                  )}
+                  <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
+                </div>
               ) : (
                 <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
               )}
@@ -480,6 +573,14 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
             className="hidden"
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
           />
+          <input
+            type="file"
+            ref={cameraRef}
+            onChange={handleCameraCapture}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
+          />
 
           <button
             type="button"
@@ -491,6 +592,16 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
             {uploading
               ? <span className="text-xs text-muted">{t(lang, 'uploading')}</span>
               : <Paperclip size={16} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={inputDisabled}
+            title="Take photo"
+            className="text-muted hover:text-ink transition-colors disabled:opacity-40 shrink-0"
+          >
+            <Camera size={16} />
           </button>
 
           <button

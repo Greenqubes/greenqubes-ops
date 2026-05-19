@@ -49,13 +49,14 @@ interface Props {
   job:              JobDetail
   role:             Role
   userId:           string
+  userName:         string
   lang:             LangCode
   installers:       InstallerUser[]
   initialMessages:  JobMessage[]
   backHref?:        string
 }
 
-export function JobDetailShell({ job, role, userId, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
+export function JobDetailShell({ job, role, userId, userName, lang, installers, initialMessages, backHref = '/schedule' }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router = useRouter()
   const supabase = createClient()
@@ -331,6 +332,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         <ChatSection
           jobId={job.id}
           userId={userId}
+          userName={userName}
           lang={lang}
           completedAt={job.completed_at}
           initialMessages={initialMessages}

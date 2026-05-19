@@ -20,10 +20,10 @@ export default async function JobDetailPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  type ProfileRow = { id: string; role: Role; lang: string }
+  type ProfileRow = { id: string; role: Role; lang: string; name: string }
   const { data: profile } = await supabase
     .from('users')
-    .select('id, role, lang')
+    .select('id, role, lang, name')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
 
@@ -44,6 +44,7 @@ export default async function JobDetailPage({
       job={job}
       role={role}
       userId={profile.id}
+      userName={profile.name ?? ''}
       lang={(profile.lang as LangCode) ?? 'en'}
       installers={installers}
       initialMessages={messages}
