@@ -239,10 +239,11 @@ function FileAttachment({ r2Key, filename, lang, isMine = false }: {
 function VoicePlayer({ voiceKey, isMine = false }: {
   voiceKey: string; isMine?: boolean
 }) {
-  const [src,      setSrc]      = useState<string | null>(null)
-  const [loading,  setLoading]  = useState(false)
-  const [playing,  setPlaying]  = useState(false)
-  const [duration, setDuration] = useState<number | null>(null)
+  const [src,         setSrc]         = useState<string | null>(null)
+  const [loading,     setLoading]     = useState(false)
+  const [playing,     setPlaying]     = useState(false)
+  const [duration,    setDuration]    = useState<number | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const bars     = useMemo(() => waveformBars(voiceKey), [voiceKey])
   const radius   = isMine ? 'rounded-[14px_14px_3px_14px]' : 'rounded-[14px_14px_14px_3px]'
@@ -290,9 +291,10 @@ function VoicePlayer({ voiceKey, isMine = false }: {
         ref={audioRef}
         src={src ?? undefined}
         onLoadedMetadata={e => setDuration((e.target as HTMLAudioElement).duration)}
+        onTimeUpdate={e => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCurrentTime(0) }}
         className="hidden"
       />
       <button
@@ -319,13 +321,21 @@ function VoicePlayer({ voiceKey, isMine = false }: {
       </button>
 
       <div className="flex-1 flex items-center gap-[2px] h-7">
-        {bars.map((h, i) => (
-          <div
-            key={i}
-            className={cn('flex-1 rounded-sm', isMine ? 'bg-white/60' : 'bg-terracotta/60')}
-            style={{ height: `${h}%` }}
-          />
-        ))}
+        {bars.map((h, i) => {
+          const played = duration ? (i / bars.length) < (currentTime / duration) : false
+          return (
+            <div
+              key={i}
+              className={cn(
+                'flex-1 rounded-sm transition-colors',
+                isMine
+                  ? played ? 'bg-white'    : 'bg-white/35'
+                  : played ? 'bg-terracotta' : 'bg-terracotta/35',
+              )}
+              style={{ height: `${h}%` }}
+            />
+          )
+        })}
       </div>
 
       <div className="flex flex-col items-end shrink-0">
