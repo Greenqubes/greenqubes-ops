@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-20 (fix-assistant-history — duplicate entries, sidebar refresh, New Chat alignment)_
+_Last updated: 2026-05-20 (feat-jobs — job form redesign merged to main)_
 
 ---
 
@@ -67,7 +67,18 @@ _Last updated: 2026-05-20 (fix-assistant-history — duplicate entries, sidebar 
 
 ---
 
-## Done This Session ✓ (2026-05-20, feat-digest)
+## Done This Session ✓ (2026-05-20, feat-jobs)
+
+- [x] **Attachment buckets** — jobs now have named file buckets (default: PERMIT-TO-WORK, BCA, DESIGNER JO, OTHERS); upload images/files, add URL links, rename buckets, delete buckets; images open in lightbox.
+- [x] **Company/POC dropdowns** — SearchableSelect for client company and POC name on job form; add new company/contact inline; delete with confirm modal.
+- [x] **Sales POC dropdown** — sales POC field on new job form uses SearchableSelect; defaults to current user.
+- [x] **Installer grid** — 2-column toggle grid on new job form; shows role, years experience, skills; green ring + tick when selected.
+- [x] **Admin: installer fields** — when editing an installer in Admin → Users, new fields: Years of experience (number) and Skills (chip input with Enter/comma add + × remove).
+- [x] **Migrations 0025 + 0026** — `attachment_buckets` table + `bucket_id`/`url_text` columns on `files`; `clients` + `client_contacts` tables.
+- [x] **AttachmentBuckets replaces AttachmentSection** — edit job page now uses the full bucket UI instead of the old flat file list.
+- [x] **feat-job-form-redesign branch** — set as the permanent branch for all job form edits; pushes directly to main (CLAUDE.md updated).
+
+## Done Last Session ✓ (2026-05-20, feat-digest)
 
 - [x] **Dedicated digest Telegram bot** — separate `TELEGRAM_DIGEST_BOT_TOKEN` + `TELEGRAM_DIGEST_WEBHOOK_SECRET`; all digest sends and votes use the digest bot, completely isolated from the main ops bot.
 - [x] **D-Promote secret command** — typing `D-Promote` in any assistant conversation forces `importance = 5` and immediately sends the conversation to all `digest_subscriber` users via the digest bot; word stripped from Telegram summary so recipients don't see it.
