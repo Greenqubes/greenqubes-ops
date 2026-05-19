@@ -35,7 +35,7 @@ Before closing off:
 
 All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
 
-**Exception — job form changes:** Use the `feat-job-form-redesign` branch for any edits to the job form (CoreSection, NewJobShell, JobDetailShell, InstallerGrid, AttachmentBuckets, SearchableSelect, and related files). Push that branch directly to `main` after preview confirmation — do not go through `dev`.
+The `feat-job-form-redesign` branch is kept for historical record only — do not push new changes to it.
 
 ---
 
