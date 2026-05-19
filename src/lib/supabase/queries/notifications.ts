@@ -143,3 +143,59 @@ export async function recordOverdueNotification(jobId: string): Promise<void> {
     visibility:   ['role:scheduler'],
   } as never)
 }
+
+// ── Chat notification throttle ────────────────────────────────────────────────
+
+export type JobChatState = {
+  last_seen_at:     string | null
+  last_notified_at: string | null
+}
+
+export async function getJobChatState(
+  jobId:  string,
+  userId: string,
+): Promise<JobChatState | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('job_chat_state')
+    .select('last_seen_at, last_notified_at')
+    .eq('job_id', jobId)
+    .eq('user_id', userId)
+    .maybeSingle()
+  return data as JobChatState | null
+}
+
+// Count messages in this job sent by someone other than the recipient,
+// after the most recent of their last_seen_at or last_notified_at.
+export async function countUnseenMessages(
+  jobId:       string,
+  recipientId: string,
+  state:       JobChatState | null,
+): Promise<number> {
+  const supabase = createServiceClient()
+  const since = state?.last_seen_at ?? state?.last_notified_at ?? null
+
+  let query = supabase
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_id', jobId)
+    .neq('author_id', recipientId)
+
+  if (since) query = query.gt('created_at', since)
+
+  const { count } = await query
+  return count ?? 0
+}
+
+export async function upsertJobChatNotified(
+  jobId:  string,
+  userId: string,
+): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase
+    .from('job_chat_state')
+    .upsert(
+      { job_id: jobId, user_id: userId, last_notified_at: new Date().toISOString() } as never,
+      { onConflict: 'job_id,user_id' },
+    )
+}

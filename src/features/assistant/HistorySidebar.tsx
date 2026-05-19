@@ -8,13 +8,14 @@ import { Modal } from '@/components/Modal'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Props {
-  activeChatId?: string
-  onLoad:        (chat: AsstChatRow) => void
-  onNewChat:     () => void
-  onDelete:      (id: string) => void
+  activeChatId?:   string
+  onLoad:          (chat: AsstChatRow) => void
+  onNewChat:       () => void
+  onDelete:        (id: string) => void
+  refreshTrigger?: number
 }
 
-export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Props) {
+export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refreshTrigger }: Props) {
   const [chats,          setChats]          = useState<AsstChatRow[]>([])
   const [loading,        setLoading]        = useState(true)
   const [toast,          setToast]          = useState<string | null>(null)
@@ -31,7 +32,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
     }
   }, [])
 
-  useEffect(() => { fetchChats() }, [fetchChats])
+  useEffect(() => { fetchChats() }, [fetchChats, refreshTrigger])
 
   // Clear toast timer on unmount
   useEffect(() => {
@@ -113,13 +114,13 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
 
         {/* Toast */}
         {toast && (
-          <div className="absolute bottom-16 left-2 right-2 px-3 py-2 bg-ink text-paper text-xs rounded-lg shadow-md text-center">
+          <div className="absolute bottom-[120px] left-2 right-2 px-3 py-2 bg-ink text-paper text-xs rounded-lg shadow-md text-center">
             {toast}
           </div>
         )}
 
-        {/* New Chat button */}
-        <div className="shrink-0 p-3 border-t border-line">
+        {/* New Chat button — pb-[72px] clears the fixed BottomNav (~60px) */}
+        <div className="shrink-0 px-3 pt-3 pb-[72px] border-t border-line">
           <button
             onClick={onNewChat}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-line bg-bg text-ink2 hover:border-ink2 hover:text-ink text-sm font-medium transition-colors"

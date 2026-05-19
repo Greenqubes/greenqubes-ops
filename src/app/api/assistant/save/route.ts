@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { tagConversation } from '@/lib/ai/tagger'
-import { saveChat } from '@/lib/supabase/queries/assistant'
+import { saveChat, updateChat } from '@/lib/supabase/queries/assistant'
 import { summariseChatForDigest } from '@/lib/digest/run'
 import { sendDigestTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplDigestItem } from '@/lib/telegram/templates'
@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
     .maybeSingle() as { data: Profile | null; error: unknown }
   if (!profile) return new Response('Not provisioned', { status: 403 })
 
-  const { messages } = await req.json() as {
-    messages: { role: string; content: string }[]
+  const { messages, existingId } = await req.json() as {
+    messages:   { role: string; content: string }[]
+    existingId?: string
   }
 
   if (messages.length < 2) {
@@ -35,7 +36,13 @@ export async function POST(req: NextRequest) {
     tagConversation(messages, profile.role as Role),
   ])
 
-  const id = await saveChat(profile.id, messages, tag)
+  let id: string | null
+  if (existingId) {
+    id = await updateChat(existingId, messages, tag)
+    if (!id) id = await saveChat(profile.id, messages, tag)  // fallback if row was deleted
+  } else {
+    id = await saveChat(profile.id, messages, tag)
+  }
 
   if (forcePromote && id) {
     sendDigestNow(id, messages, tag.topic).catch(err =>

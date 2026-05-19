@@ -44,6 +44,45 @@ export async function deleteChat(id: string): Promise<boolean> {
   return !error
 }
 
+export async function updateChat(
+  id:   string,
+  msgs: { role: string; content: string }[],
+  tag:  ChatTag,
+): Promise<string | null> {
+  const supabase = createServiceClient()
+
+  let embeddingStr: string | null = null
+  try {
+    const text   = msgs.map(m => m.content).join(' ').slice(0, 2000)
+    const vec    = await embed(text)
+    embeddingStr = `[${vec.join(',')}]`
+  } catch { /* embedding optional */ }
+
+  // Fetch original topic so the title stays the same across the conversation
+  const { data: original } = await supabase
+    .from('asst_chats')
+    .select('topic')
+    .eq('id', id)
+    .single()
+
+  if (!original) return null  // row was deleted; caller should fall back to insert
+
+  const { error } = await supabase
+    .from('asst_chats')
+    .update({
+      msgs:       msgs as unknown as Json,
+      embedding:  embeddingStr,
+      topic:      original.topic ?? tag.topic,
+      tags:       tag.tags,
+      importance: tag.importance,
+      ts:         new Date().toISOString(),
+    } as never)
+    .eq('id', id)
+
+  if (error) { console.error('updateChat error', error); return null }
+  return id
+}
+
 export async function saveChat(
   userId:  string,
   msgs:    { role: string; content: string }[],

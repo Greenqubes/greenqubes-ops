@@ -10,7 +10,7 @@ import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
 import { CoreSection } from './CoreSection'
 import { AssigneeSection } from './AssigneeSection'
-import { AttachmentSection } from './AttachmentSection'
+import { AttachmentBuckets } from './AttachmentBuckets'
 import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
@@ -40,6 +40,7 @@ export type FormValues = {
   punctuality:             Punctuality
   production_instructions: string
   notes:                   string
+  sales_poc_id:            string
   quote_amount:            string
   supplier_cost:           string
   margin_notes:            string
@@ -92,6 +93,7 @@ export function JobDetailShell({ job, role, userId, userName, lang, installers, 
       punctuality:             job.punctuality,
       production_instructions: job.production_instructions ?? '',
       notes:                   job.notes ?? '',
+      sales_poc_id:            job.sales_poc_id ?? '',
       quote_amount:            job.job_financials?.quote_amount?.toString() ?? '',
       supplier_cost:           job.job_financials?.supplier_cost?.toString() ?? '',
       margin_notes:            job.job_financials?.margin_notes ?? '',
@@ -324,10 +326,7 @@ export function JobDetailShell({ job, role, userId, userName, lang, installers, 
           />
         )}
 
-        <AttachmentSection
-          files={job.files.filter(f => f.kind !== 'voice' && f.kind !== 'attachment' && f.kind !== 'production_instructions')}
-          lang={lang}
-        />
+        <AttachmentBuckets jobId={job.id} lang={lang} readOnly={readOnly} />
 
         <ChatSection
           jobId={job.id}

@@ -175,10 +175,19 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   const [role,        setRole]        = useState<Role>(user.role)
   const [tgId,        setTgId]        = useState(user.telegram_chat_id ?? '')
   const [digestSub,   setDigestSub]   = useState(user.digest_subscriber)
+  const [yearsExp,    setYearsExp]    = useState<number | string>(user.years_experience ?? '')
+  const [skills,      setSkills]      = useState<string[]>(user.skills ?? [])
+  const [skillInput,  setSkillInput]  = useState('')
   const [busy,        setBusy]        = useState(false)
   const [err,         setErr]         = useState<string | null>(null)
   const [modalPhase,  setModalPhase]  = useState<'confirm' | 'success' | null>(null)
   const [prevRole,    setPrevRole]    = useState<Role>(user.role)
+
+  function addSkill(raw: string) {
+    const tag = raw.trim().replace(/,+$/, '').trim()
+    if (tag && !skills.includes(tag)) setSkills(prev => [...prev, tag])
+    setSkillInput('')
+  }
 
   function handleRoleChange(next: Role) {
     if (next === 'admin') {
@@ -230,14 +239,19 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   async function save() {
     setBusy(true); setErr(null)
     try {
+      const body: Record<string, unknown> = {
+        role,
+        telegram_chat_id:  tgId.trim() || null,
+        digest_subscriber: digestSub,
+      }
+      if (role === 'installer') {
+        body.years_experience = yearsExp === '' ? null : Number(yearsExp)
+        body.skills = skills
+      }
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          role,
-          telegram_chat_id:  tgId.trim() || null,
-          digest_subscriber: digestSub,
-        }),
+        body:    JSON.stringify(body),
       })
       if (!res.ok) {
         const { error } = await res.json() as { error: string }
@@ -256,6 +270,9 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
     setRole(user.role)
     setTgId(user.telegram_chat_id ?? '')
     setDigestSub(user.digest_subscriber)
+    setYearsExp(user.years_experience ?? '')
+    setSkills(user.skills ?? [])
+    setSkillInput('')
     setEditing(false)
     setErr(null)
   }
@@ -320,6 +337,49 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
               />
               <span className="text-sm text-ink">Receives Monday digest</span>
             </label>
+
+            {role === 'installer' && (
+              <>
+                <div>
+                  <label className="text-xs text-muted mb-1 block">Years of experience</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                    placeholder="e.g. 5"
+                    value={yearsExp}
+                    onChange={e => setYearsExp(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted mb-1 block">Skills</label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {skills.map(s => (
+                      <span key={s} className="flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+                        {s}
+                        <button
+                          type="button"
+                          onClick={() => setSkills(prev => prev.filter(x => x !== s))}
+                          className="text-muted hover:text-terracotta leading-none"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                    placeholder="Add skill, press Enter or comma"
+                    value={skillInput}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (v.endsWith(',')) { addSkill(v.slice(0, -1)); return }
+                      setSkillInput(v)
+                    }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput) } }}
+                  />
+                </div>
+              </>
+            )}
 
             {err && <p className="text-xs text-red-500">{err}</p>}
 

@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getJobById, insertMessage, insertVoiceMessage } from '@/lib/supabase/queries/jobs'
-import { getJobRecipients, getJobNotifData } from '@/lib/supabase/queries/notifications'
-import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobMessage, tplJobVoiceNote } from '@/lib/telegram/templates'
+import { getJobRecipients, getJobNotifData, getJobChatState, countUnseenMessages, upsertJobChatNotified } from '@/lib/supabase/queries/notifications'
+import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
+import { tplJobChatBatch } from '@/lib/telegram/templates'
 
 const CHAT_OPEN_DAYS = 7
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
-
-function sgtTimeNow(): string {
-  return new Date().toLocaleTimeString('en-SG', {
-    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Singapore',
-  })
-}
+const THROTTLE_MS    = 5 * 60 * 1000
+const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
 export async function POST(
   req: NextRequest,
@@ -32,7 +27,7 @@ export async function POST(
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id: authorId, name: authorName } = profile
+  const { id: authorId } = profile
 
   const job = await getJobById(jobId)
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -46,84 +41,68 @@ export async function POST(
   }
 
   const body = await req.json() as { content?: string; kind?: string; voice_url?: string; filename?: string }
-  const isVoice = body.kind === 'voice'
+  const isVoice      = body.kind === 'voice'
   const isAttachment = body.kind === 'attachment'
 
-  // Fetch notification data (project title, POC fields)
   const notifData = await getJobNotifData(jobId)
-  const jobUrl = `${APP_URL}/jobs/${jobId}`
+  const jobUrl    = `${APP_URL}/jobs/${jobId}`
 
-  // ── Telegram helpers ──────────────────────────────────────────────────────
-  async function notifyParticipants(tgMessage: string) {
+  // ── Throttled Telegram notifications ─────────────────────────────────────────
+  async function notifyParticipantsThrottled(isAttachment = false) {
+    if (!notifData) return
     const { salesPoc, installers } = await getJobRecipients(jobId)
     const recipients = [salesPoc, ...installers].filter(
       (r): r is NonNullable<typeof r> =>
         r !== null && r.id !== authorId && r.telegram_chat_id !== null,
     )
-    await Promise.all(recipients.map(r => sendTelegram(r.telegram_chat_id!, tgMessage)))
+
+    await Promise.all(recipients.map(async r => {
+      const state  = await getJobChatState(jobId, r.id)
+      const lastMs = state?.last_notified_at ? new Date(state.last_notified_at).getTime() : 0
+      if (Date.now() - lastMs < THROTTLE_MS) return
+
+      const unseenInDb = await countUnseenMessages(jobId, r.id, state)
+      // Text/voice are already in DB when this runs; attachments are not in messages table.
+      const count = unseenInDb + (isAttachment ? 1 : 0)
+
+      const text = tplJobChatBatch({
+        count,
+        projectTitle: notifData!.project_title,
+        jobClient:    notifData!.client,
+        jobDate:      notifData!.date,
+        timeStart:    notifData!.time_start,
+        timeEnd:      notifData!.time_end,
+        location:     notifData!.location,
+      })
+
+      await sendTelegramWithKeyboard(
+        r.telegram_chat_id!,
+        text,
+        [[{ text: 'View in app →', url: jobUrl }]],
+      )
+      await upsertJobChatNotified(jobId, r.id)
+    }))
   }
 
-  // ── Voice note ────────────────────────────────────────────────────────────
+  // ── Voice note ────────────────────────────────────────────────────────────────
   if (isVoice) {
     const voiceUrl = body.voice_url?.trim()
     if (!voiceUrl) return NextResponse.json({ error: 'voice_url required' }, { status: 400 })
-
     const message = await insertVoiceMessage(jobId, authorId, voiceUrl)
-
-    if (notifData) {
-      await notifyParticipants(tplJobVoiceNote({
-        projectTitle: notifData.project_title,
-        jobClient:    notifData.client,
-        pocName:      notifData.client_poc_name,
-        pocPhone:     notifData.client_poc_phone,
-        jobDate:      notifData.date,
-        authorName,
-        sentAt:       sgtTimeNow(),
-        jobUrl,
-      }))
-    }
-
+    await notifyParticipantsThrottled()
     return NextResponse.json({ message })
   }
 
   // ── File attachment (notification only — file record already inserted client-side) ──
   if (isAttachment) {
-    const filename = body.filename?.trim() ?? 'file'
-    if (notifData) {
-      await notifyParticipants(tplJobMessage({
-        projectTitle: notifData.project_title,
-        jobClient:    notifData.client,
-        pocName:      notifData.client_poc_name,
-        pocPhone:     notifData.client_poc_phone,
-        jobDate:      notifData.date,
-        authorName,
-        sentAt:       sgtTimeNow(),
-        preview:      `📎 ${filename}`,
-        jobUrl,
-      }))
-    }
+    await notifyParticipantsThrottled(true)
     return NextResponse.json({ ok: true })
   }
 
-  // ── Text message ──────────────────────────────────────────────────────────
+  // ── Text message ──────────────────────────────────────────────────────────────
   const content = body.content?.trim() ?? ''
   if (!content) return NextResponse.json({ error: 'content required' }, { status: 400 })
-
   const message = await insertMessage(jobId, authorId, content)
-
-  if (notifData) {
-    await notifyParticipants(tplJobMessage({
-      projectTitle: notifData.project_title,
-      jobClient:    notifData.client,
-      pocName:      notifData.client_poc_name,
-      pocPhone:     notifData.client_poc_phone,
-      jobDate:      notifData.date,
-      authorName,
-      sentAt:       sgtTimeNow(),
-      preview:      content.slice(0, 100),
-      jobUrl,
-    }))
-  }
-
+  await notifyParticipantsThrottled()
   return NextResponse.json({ message })
 }

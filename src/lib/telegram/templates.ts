@@ -184,6 +184,28 @@ export function tplJobVoiceNote(p: {
   )
 }
 
+export function tplJobChatBatch(p: {
+  count:        number
+  projectTitle: string | null
+  jobClient:    string
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+}): string {
+  const timeLine = p.timeStart && p.timeEnd
+    ? `Time: ${formatTime(p.timeStart)} – ${formatTime(p.timeEnd)}\n`
+    : ''
+  return (
+    `💬 You have <b>${p.count} New Message${p.count !== 1 ? 's' : ''}</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    timeLine +
+    `📍 ${p.location}\n` +
+    `Date: ${formatDate(p.jobDate)}`
+  )
+}
+
 // ─── Bug report ───────────────────────────────────────────────────────────────
 
 export function tplBugReport(p: {

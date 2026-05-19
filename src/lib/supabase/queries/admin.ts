@@ -13,6 +13,8 @@ export type AdminUser = {
   lang:              LangCode
   phone:             string | null
   digest_subscriber: boolean
+  years_experience:  number | null
+  skills:            string[]
   created_at:        string
 }
 
@@ -20,7 +22,7 @@ export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, created_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at')
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as AdminUser[]
@@ -64,7 +66,7 @@ export async function provisionUser(
 
 export async function updateUser(
   id:    string,
-  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone'>>,
+  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone' | 'years_experience' | 'skills'>>,
 ): Promise<void> {
   const db = createServiceClient()
   const { error } = await db.from('users').update(patch as never).eq('id', id)
