@@ -18,8 +18,8 @@ const BAR_H = [6, 18, 32, 46, 60]
 // Colours: grey → green → amber → orange → terracotta
 const BAR_COLOR = [
   'bg-line',
-  'bg-green',
-  'bg-amber',
+  'bg-brand-green',
+  'bg-brand-amber',
   'bg-orange-400',
   'bg-terracotta',
 ]
