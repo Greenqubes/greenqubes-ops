@@ -339,7 +339,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
 
       {/* Bulk delete bar — sits above BottomNav */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
+        <div className="fixed bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
           {confirmBulk ? (
             <>
               <p className="text-sm font-medium text-ink">
