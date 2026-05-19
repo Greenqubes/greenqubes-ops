@@ -41,32 +41,60 @@ The sticky header with the single Save button is removed. The action bar is fixe
 
 Fields shown (in order):
 - Date + Day (side by side; Day is a read-only display that auto-updates from Date)
-- Client (custom dropdown — see 1.3)
+- Company (renamed from "Client" — custom dropdown with delete — see 1.3)
+- Client POC Name (dependent dropdown, scoped to selected company — see 1.3)
+- Client Phone (plain text input, always manual — see 1.3)
 - Project Title (with Improve button)
 - Job Description (with Improve button)
 - Location / Address
 - Time Start + Time End (existing TimeSelect — unchanged)
 - Punctuality toggle (existing — unchanged)
 - Production Ready + DO Issued checkboxes (existing — unchanged)
-- Sales / POC (custom dropdown — see 1.3)
+- Sales / POC (custom dropdown — see 1.4)
 - Notes (with Improve button, optional)
 - Production Instructions (with Improve button, optional)
 
-**Removed from form view:** `client_poc_name` and `client_poc_phone`. These fields remain in the DB. They can be re-added later if needed.
-
 **Day display:** derives day-of-week from the `date` field value using `new Date(date + 'T00:00:00')`. Shown in amber, read-only.
 
-### 1.3 Custom Dropdown (Client + Sales/POC)
+### 1.3 Company + Client POC Fields
 
-A new shared component `ClientSelect` (reusable for both fields). Behaviour:
+These three fields replace the existing plain `client`, `client_poc_name`, `client_poc_phone` inputs. The `jobs` table columns remain unchanged — they still store text. Two new DB tables power the dropdowns (see Part 4 — DB changes for client tables).
 
-- **Client:** options populated by querying `SELECT DISTINCT client FROM jobs ORDER BY client`. Typing filters the list. Scrolling always works. "Add new client…" option at the bottom allows typing a free-text client name — no new DB table required, the name is just saved as text on the job.
-- **Sales/POC:** options populated from `users` where `role IN ('sales', 'scheduler', 'admin')`. Defaults to the currently logged-in user. Scheduler/admin can override to any sales user.
-- Search bar is always visible inside the open dropdown (not just at 10+ — simpler and consistent).
-- Closes on outside click or Escape key.
-- Built as a controlled component accepting `value: string`, `onChange: (v: string) => void`, `options: {label, value}[]`, and `onAddNew?: (name: string) => void`.
+#### Company dropdown
 
-### 1.4 Improve Button (SuggestField update)
+- Options come from the `clients` table (`SELECT id, name FROM clients ORDER BY name`).
+- Search bar always visible inside the open dropdown. Scrolling always works.
+- "Add new company…" at the bottom: user types a name → inserts a new row into `clients` → selects it.
+- **X button** beside the selected company name (shown after a company is selected). Clicking X opens a warning modal:
+  > "This will permanently remove **[Company Name]** and all associated client contacts. Are you sure?"
+  > `Cancel` | `Yes, remove`
+  - On confirm: DELETE from `clients` (cascades to `client_contacts`). Clears the company + POC fields on the form. Does **not** affect existing jobs (they already store the text value).
+- When no company is selected, the Client POC Name and Client Phone fields are disabled/greyed out.
+
+#### Client POC Name dropdown
+
+- Options come from `client_contacts` filtered by the selected company (`SELECT id, name FROM client_contacts WHERE client_id = ? ORDER BY name`).
+- Same dropdown style as Sales/POC (search bar, scroll).
+- "Add new contact…" at the bottom: user types a POC name → inserts into `client_contacts` linked to current company → selects it.
+- **X button per option** inside the open dropdown list (not on the trigger) — clicking X beside a contact name removes that contact from `client_contacts` permanently. No warning modal needed (lower stakes than deleting a company).
+- Selecting a contact sets `jobs.client_poc_name` to that contact's name.
+- When company changes, POC name resets to empty.
+
+#### Client Phone
+
+- Always a plain `<Input type="tel">` — never a dropdown. Not stored in `client_contacts`.
+- No auto-fill. User types manually every time (phone numbers change frequently).
+- Saves to `jobs.client_poc_phone`.
+
+### 1.4 Custom Dropdown (Sales/POC)
+
+A shared `SearchableSelect` component used by Sales/POC (and internally by Company and Client POC). Behaviour:
+
+- **Sales/POC:** options from `users` where `role IN ('sales', 'scheduler', 'admin')`. Defaults to the currently logged-in user. Scheduler/admin can override.
+- Search bar always visible. Closes on outside click or Escape key.
+- Props: `value: string`, `onChange: (v: string) => void`, `options: {label: string, value: string}[]`, `onAddNew?: (name: string) => void`, `onDeleteOption?: (value: string) => void`.
+
+### 1.5 Improve Button (SuggestField update)
 
 `SuggestField.tsx` changes only — no API route change:
 
@@ -79,7 +107,7 @@ A new shared component `ClientSelect` (reusable for both fields). Behaviour:
   - Buttons: `Keep mine` (border/paper) | `Use this` (terracotta filled). "Accept" → "Use this", "Dismiss" → "Keep mine".
 - Panel appears below the input (not above), same as before.
 
-### 1.5 Installer Toggle Grid
+### 1.6 Installer Toggle Grid
 
 `AssigneeSection.tsx` is replaced with a new `InstallerGrid.tsx` for the new job form. (The existing `AssigneeSection` stays in place in `JobDetailShell` for the edit page — it works differently because it saves to `job_assignees` immediately on change for existing jobs.)
 
@@ -106,7 +134,7 @@ export type InstallerUser = {
 
 Query for all installers updated to `SELECT id, name, phone, role, years_experience, skills FROM users WHERE role = 'installer'`.
 
-### 1.6 Action Bar
+### 1.7 Action Bar
 
 Three buttons, right-aligned:
 
@@ -116,7 +144,7 @@ Three buttons, right-aligned:
 | Save as pending | amber border + soft amber bg | INSERT job with `status = 'pending'`, create default buckets, insert selected installers into `job_assignees`, redirect to `/jobs/[id]` |
 | Send for approval | terracotta filled | INSERT job with `status = 'awaiting_approval'`, create default buckets, insert selected installers, fire scheduler notifications (see 1.7), redirect to `/jobs/[id]` |
 
-### 1.7 Send for Approval notification
+### 1.8 Send for Approval notification
 
 When "Send for approval" is clicked:
 - Job inserted with `status = 'awaiting_approval'`.
@@ -229,6 +257,53 @@ When editing a user with `role = 'installer'`:
 ### 3.3 Query update
 
 `InstallerUser` type and the query fetching all installers (used by `InstallerGrid`) must include `years_experience` and `skills` so the installer toggle cards can show them.
+
+---
+
+## Part 4 — Client/Company DB Tables
+
+### 4.1 Migration 0026
+
+```sql
+-- Company/client names
+create table public.clients (
+  id   uuid primary key default gen_random_uuid(),
+  name text not null unique
+);
+
+-- POC names per company (phone is NOT stored here — always manual on the job)
+create table public.client_contacts (
+  id        uuid primary key default gen_random_uuid(),
+  client_id uuid not null references public.clients(id) on delete cascade,
+  name      text not null
+);
+
+-- Seed company names from existing job data
+insert into public.clients (name)
+select distinct client from public.jobs
+where client is not null and client <> ''
+on conflict (name) do nothing;
+
+-- RLS: authenticated users can read; sales/scheduler/admin can insert/update/delete
+alter table public.clients enable row level security;
+alter table public.client_contacts enable row level security;
+-- (policies follow the same pattern as other public-internal tables)
+```
+
+### 4.2 No jobs table changes
+
+`jobs.client`, `jobs.client_poc_name`, `jobs.client_poc_phone` stay as text columns. The new tables power the dropdowns only — they don't replace the stored values on jobs. This means existing jobs are unaffected.
+
+### 4.3 API routes needed
+
+- `GET /api/clients` — returns all companies from `clients` table
+- `POST /api/clients` — creates a new company
+- `DELETE /api/clients/[id]` — deletes company + cascades to contacts
+- `GET /api/clients/[id]/contacts` — returns POC names for a company
+- `POST /api/clients/[id]/contacts` — creates a new POC name
+- `DELETE /api/clients/contacts/[id]` — removes a single POC
+
+All protected by Supabase auth session (no role restriction — all roles can manage client data).
 
 ---
 
