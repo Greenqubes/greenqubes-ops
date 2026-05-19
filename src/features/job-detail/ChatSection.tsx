@@ -406,6 +406,10 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     if (cutoff) setChatLocked(new Date() > cutoff)
   }, [cutoff])
 
+  useEffect(() => {
+    fetch(`/api/jobs/${jobId}/chat-read`, { method: 'POST' }).catch(() => {})
+  }, [jobId])
+
   const inputDisabled = preScheduleLocked || chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {

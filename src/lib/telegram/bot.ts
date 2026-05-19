@@ -191,7 +191,9 @@ async function digestPost(
 
 // ── Internal ───────────────────────────────────────────────────────────────────
 
-export type InlineKeyboardButton = { text: string; callback_data: string }
+export type InlineKeyboardButton =
+  | { text: string; callback_data: string }
+  | { text: string; url: string }
 
 async function telegramPost(
   chatId:   string,
