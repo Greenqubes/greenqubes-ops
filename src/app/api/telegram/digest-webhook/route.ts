@@ -101,6 +101,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   const { count: totalVoters } = await db
     .from('users')
     .select('id', { count: 'exact', head: true })
+    .eq('digest_subscriber', true)
     .not('telegram_chat_id', 'is', null)
 
   const total = totalVoters ?? 1
@@ -143,7 +144,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
     const { data: schedulers } = await db
       .from('users')
       .select('telegram_chat_id')
-      .eq('role', 'scheduler')
+      .eq('digest_subscriber', true)
       .not('telegram_chat_id', 'is', null)
 
     for (const s of schedulers ?? []) {

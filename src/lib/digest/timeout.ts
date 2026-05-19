@@ -20,6 +20,7 @@ export async function runDigestTimeout(): Promise<{ resolved: number }> {
   const { data: allVoters } = await db
     .from('users')
     .select('id, telegram_chat_id')
+    .eq('digest_subscriber', true)
     .not('telegram_chat_id', 'is', null)
 
   const total = (allVoters ?? []).length || 1

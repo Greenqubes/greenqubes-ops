@@ -49,7 +49,7 @@ export async function runDigest(): Promise<{ sent: number; skipped: string }> {
   const { data: schedulers, error: schedErr } = await db
     .from('users')
     .select('id, name, telegram_chat_id')
-    .eq('role', 'scheduler')
+    .eq('digest_subscriber', true)
     .not('telegram_chat_id', 'is', null)
 
   if (schedErr) throw schedErr
