@@ -259,41 +259,49 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
   }, [])
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`job-chat-${jobId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        payload => {
-          console.log('[chat] message event received, job_id:', payload.new?.job_id, 'expecting:', jobId)
-          const row = payload.new as JobMessage
-          if (row.job_id !== jobId) { console.log('[chat] filtered — job_id mismatch'); return }
-          const withName: JobMessage = row.author_id === userId
-            ? { ...row, users: { name: userName } }
-            : row
-          setMessages(prev =>
-            prev.find(m => m.id === withName.id) ? prev : [...prev, withName]
-          )
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'files' },
-        payload => {
-          const row = payload.new as JobFile
-          if (row.job_id !== jobId || row.kind !== 'attachment') return
-          setFiles(prev =>
-            prev.find(f => f.id === row.id) ? prev : [...prev, row]
-          )
-        },
-      )
-      .subscribe((status, err) => {
-        console.log('[chat] subscription status:', status, err ?? '')
-        if (status === 'SUBSCRIBED') setRealtimeStatus('live')
-        else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
-      })
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
 
-    return () => { supabase.removeChannel(channel) }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+
+      channel = supabase
+        .channel(`job-chat-${jobId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+          payload => {
+            const row = payload.new as JobMessage
+            const withName: JobMessage = row.author_id === userId
+              ? { ...row, users: { name: userName } }
+              : row
+            setMessages(prev =>
+              prev.find(m => m.id === withName.id) ? prev : [...prev, withName]
+            )
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+          payload => {
+            const row = payload.new as JobFile
+            if (row.kind !== 'attachment') return
+            setFiles(prev =>
+              prev.find(f => f.id === row.id) ? prev : [...prev, row]
+            )
+          },
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') setRealtimeStatus('live')
+          else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
+        })
+    })
+
+    return () => {
+      active = false
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [jobId, supabase])
 
   const handleSend = async () => {
