@@ -183,6 +183,7 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   function handleRoleChange(next: Role) {
     if (next === 'admin') {
       setPrevRole(role)
+      setRole('admin')
       setModalPhase('confirm')
     } else {
       setRole(next)
@@ -190,7 +191,6 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   }
 
   async function confirmAdmin() {
-    setRole('admin')
     setBusy(true); setErr(null)
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
@@ -217,6 +217,7 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   }
 
   function cancelAdmin() {
+    setRole(prevRole)
     setModalPhase(null)
   }
 
