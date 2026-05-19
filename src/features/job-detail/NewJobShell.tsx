@@ -6,28 +6,33 @@ import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
-import { Btn } from '@/components/Btn'
 import { Card } from '@/components/Card'
 import { CoreSection } from './CoreSection'
-import { ProductionReadySection } from './ProductionReadySection'
-import { ArrowLeft, Lock } from 'lucide-react'
+import { InstallerGrid } from './InstallerGrid'
+import { Lock, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
+import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
+import type { SelectOption } from '@/components/SearchableSelect'
 
 interface Props {
-  userId: string
-  lang:   LangCode
+  userId:          string
+  userName:        string
+  lang:            LangCode
+  salesPocOptions: SelectOption[]
+  allInstallers:   InstallerUser[]
 }
 
-export function NewJobShell({ userId, lang }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
-  const [saving, setSaving] = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           '',
       date:                    today,
@@ -47,27 +52,29 @@ export function NewJobShell({ userId, lang }: Props) {
       quote_amount:            '',
       supplier_cost:           '',
       margin_notes:            '',
+      sales_poc_id:            userId,
     },
   })
 
-  const onSubmit = async (values: FormValues) => {
+  async function saveJob(status: 'pending' | 'awaiting_approval') {
+    const values = watch()
     setSaving(true)
     const supabase = createClient()
     try {
       const { data: job, error: insertError } = await (supabase
         .from('jobs')
         .insert({
-          status:                  'pending',
-          sales_poc_id:            userId,
+          status,
+          sales_poc_id:            values.sales_poc_id || userId,
           project_title:           values.project_title || null,
           date:                    values.date,
           date_end:                values.date_end || null,
-          time_start:              values.time_start  || null,
-          time_end:                values.time_end    || null,
+          time_start:              values.time_start || null,
+          time_end:                values.time_end || null,
           client:                  values.client,
           location:                values.location,
           description:             values.description || null,
-          client_poc_name:         values.client_poc_name  || null,
+          client_poc_name:         values.client_poc_name || null,
           client_poc_phone:        values.client_poc_phone || null,
           production_ready:        values.production_ready,
           do_issued:               values.do_issued,
@@ -81,6 +88,29 @@ export function NewJobShell({ userId, lang }: Props) {
 
       if (insertError || !job) throw insertError
 
+      // Create default attachment buckets
+      await supabase.from('attachment_buckets').insert([
+        { job_id: job.id, name: 'PERMIT-TO-WORK', position: 0 },
+        { job_id: job.id, name: 'BCA',            position: 1 },
+        { job_id: job.id, name: 'DESIGNER JO',    position: 2 },
+        { job_id: job.id, name: 'OTHERS',         position: 3 },
+      ] as never)
+
+      // Insert selected installers
+      if (selectedIds.length > 0) {
+        await supabase.from('job_assignees').insert(
+          selectedIds.map(uid => ({ job_id: job.id, user_id: uid })) as never,
+        )
+      }
+
+      // Fire scheduler notification if sending for approval
+      if (status === 'awaiting_approval') {
+        await fetch(`/api/jobs/${job.id}/submit`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+      }
+
       router.push(`/jobs/${job.id}`)
     } catch {
       showError(t(lang, 'saveError'))
@@ -90,35 +120,17 @@ export function NewJobShell({ userId, lang }: Props) {
 
   return (
     <div className="min-h-screen bg-bg">
-      {/* Header — sits outside the form so sticky positioning works */}
-      <div className="sticky top-0 z-10 bg-bg border-b border-line px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-8">
+
+        {/* Back + title */}
+        <div className="flex items-center gap-3">
           <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <div className="min-w-0">
-            <p className="text-[10px] text-muted uppercase tracking-widest leading-none mb-0.5">
-              {t(lang, 'companySchedule')}
-            </p>
-            <span className="font-display text-sm font-medium text-ink">
-              {t(lang, 'newJob')}
-            </span>
-          </div>
+          <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
         </div>
 
-        {/* type="submit" form[id] lets this button outside the <form> still submit it */}
-        <Btn variant="accent" size="sm" type="submit" form="new-job-form" disabled={saving}>
-          {saving ? t(lang, 'loading') : t(lang, 'createJob')}
-        </Btn>
-      </div>
-
-      {/* Native <form> ensures react-hook-form validation fires correctly */}
-      <form
-        id="new-job-form"
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-        className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-16"
-      >
+        {/* Core fields */}
         <CoreSection
           register={register}
           errors={errors}
@@ -128,26 +140,65 @@ export function NewJobShell({ userId, lang }: Props) {
           readOnly={false}
           lang={lang}
           validateRequired
+          salesPocOptions={salesPocOptions}
         />
 
-        {/* Locked pre-schedule — mirrors pending job detail layout */}
-        <ProductionReadySection
-          register={register}
-          readOnly
-          lang={lang}
-          jobId=""
-          userId=""
-          files={[]}
-        />
+        {/* Installers */}
+        <Card className="p-5 space-y-3">
+          <h3 className="text-sm font-medium text-ink">Installers</h3>
+          {allInstallers.length === 0 ? (
+            <p className="text-sm text-muted">No installers found.</p>
+          ) : (
+            <InstallerGrid allInstallers={allInstallers} onChange={setSelectedIds} />
+          )}
+        </Card>
 
-        <Card className="p-5 space-y-3 opacity-50 pointer-events-none select-none">
+        {/* Attachments — locked until job is saved */}
+        <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
+          <h3 className="text-sm font-medium text-ink">Attachments</h3>
+          <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
+            <Lock size={14} />
+            Save the job first to add attachments.
+          </div>
+        </Card>
+
+        {/* Chat — locked */}
+        <Card className="p-5 space-y-3 opacity-60 pointer-events-none select-none">
           <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
           <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
             <Lock size={14} />
             {t(lang, 'chatPreScheduleMessage')}
           </div>
         </Card>
-      </form>
+
+        {/* Action bar */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg border border-line text-sm font-medium text-ink2 hover:bg-bg disabled:opacity-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => saveJob('pending')}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg border border-amber-400 bg-amber-50 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save as pending'}
+          </button>
+          <button
+            type="button"
+            onClick={() => saveJob('awaiting_approval')}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg bg-terracotta text-sm font-medium text-white hover:brightness-90 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Sending…' : 'Send for approval'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
