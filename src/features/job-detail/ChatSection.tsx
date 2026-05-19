@@ -329,8 +329,8 @@ function VoicePlayer({ voiceKey, isMine = false }: {
               className={cn(
                 'flex-1 rounded-sm transition-colors',
                 isMine
-                  ? played ? 'bg-white'    : 'bg-white/35'
-                  : played ? 'bg-terracotta' : 'bg-terracotta/35',
+                  ? played ? 'bg-white'       : 'bg-white/35'
+                  : played ? 'bg-terracotta'  : 'bg-line',
               )}
               style={{ height: `${h}%` }}
             />
