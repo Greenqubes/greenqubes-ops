@@ -36,7 +36,11 @@ export function StatusSection({ status, role, lang, onStatusChange, onDelete }: 
     if (status === 'scheduled') actions.push({ label: t(lang, 'markComplete'), next: 'completed' })
   }
 
-  const showDeleteBtn = role === 'sales' && status === 'pending' && !!onDelete
+  const showDeleteBtn = (
+    (role === 'sales' && status === 'pending') ||
+    role === 'scheduler' ||
+    role === 'admin'
+  ) && !!onDelete
 
   if (actions.length === 0 && !showDeleteBtn) return null
 

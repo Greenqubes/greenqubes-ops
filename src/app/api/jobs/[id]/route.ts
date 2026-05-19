@@ -23,7 +23,7 @@ export async function DELETE(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (effectiveRole !== 'sales') {
+  if (effectiveRole !== 'sales' && effectiveRole !== 'scheduler') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -35,7 +35,7 @@ export async function DELETE(
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (job.status !== 'pending') {
+  if (effectiveRole === 'sales' && job.status !== 'pending') {
     return NextResponse.json({ error: 'Only pending jobs can be deleted' }, { status: 409 })
   }
 
