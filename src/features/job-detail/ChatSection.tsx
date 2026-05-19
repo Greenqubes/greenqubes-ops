@@ -55,7 +55,7 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
       .map(m => ({
         kind:    'message' as const,
         id:      m.id,
-        author:  m.author?.name ?? null,
+        author:  m.users?.name ?? null,
         content: m.content!,
         ts:      m.ts,
       })),
@@ -64,14 +64,14 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
       .map(m => ({
         kind:     'voice' as const,
         id:       m.id,
-        author:   m.author?.name ?? null,
+        author:   m.users?.name ?? null,
         voiceKey: m.voice_url!,
         ts:       m.ts,
       })),
     ...files.map(f => ({
       kind:     'file' as const,
       id:       f.id,
-      author:   f.uploader?.name ?? null,
+      author:   f.users?.name ?? null,
       r2Key:    f.r2_key,
       filename: f.r2_key.split('/').pop() ?? f.r2_key,
       ts:       f.ts,
@@ -264,8 +264,11 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         payload => {
           const row = payload.new as JobMessage
           if (row.job_id !== jobId) return
+          const withName: JobMessage = row.author_id === userId
+            ? { ...row, users: { name: userName } }
+            : row
           setMessages(prev =>
-            prev.find(m => m.id === row.id) ? prev : [...prev, row]
+            prev.find(m => m.id === withName.id) ? prev : [...prev, withName]
           )
         },
       )
@@ -520,7 +523,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
             <div key={item.id} className="flex items-start gap-2">
               {/* Avatar */}
               <div className={cn(
-                'w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 mt-0.5',
+                'w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 mt-0.5',
                 item.author ? avatarColor(item.author) : 'bg-ink2',
               )}>
                 {item.author ? initials(item.author) : '?'}
@@ -528,9 +531,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
 
               {/* Content */}
               <div className="space-y-0.5 min-w-0">
-                {item.author && (
-                  <p className="text-xs text-muted">{item.author}</p>
-                )}
+                <p className="text-xs text-muted">{item.author ?? 'Unknown'}</p>
                 {item.kind === 'message' ? (
                   <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
                     {item.content}
