@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -138,6 +138,8 @@ function VoicePlayer({ voiceKey, lang }: { voiceKey: string; lang: LangCode }) {
   )
 }
 
+const NUM_BARS = 28
+
 type RecordState = 'idle' | 'recording' | 'uploading'
 
 interface Props {
@@ -158,6 +160,11 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef        = useRef<Blob[]>([])
   const streamRef        = useRef<MediaStream | null>(null)
+  const analyserRef      = useRef<AnalyserNode | null>(null)
+  const audioCtxRef      = useRef<AudioContext | null>(null)
+  const animFrameRef     = useRef<number | null>(null)
+  const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
+  const barsRef          = useRef<HTMLDivElement[]>([])
 
   const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
   const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
@@ -165,6 +172,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const [sending,        setSending]        = useState(false)
   const [uploading,      setUploading]      = useState(false)
   const [recordState,    setRecordState]    = useState<RecordState>('idle')
+  const [recordSecs,     setRecordSecs]     = useState(0)
   const [chatLocked,     setChatLocked]     = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting')
 
@@ -182,7 +190,45 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   }, [messages, files])
 
   useEffect(() => {
-    return () => { streamRef.current?.getTracks().forEach(t => t.stop()) }
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (timerRef.current)    clearInterval(timerRef.current)
+      audioCtxRef.current?.close()
+    }
+  }, [])
+
+  const startWaveform = useCallback((stream: MediaStream) => {
+    const ctx     = new AudioContext()
+    const source  = ctx.createMediaStreamSource(stream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 64
+    source.connect(analyser)
+    audioCtxRef.current = ctx
+    analyserRef.current = analyser
+
+    const data = new Uint8Array(analyser.frequencyBinCount)
+    const draw = () => {
+      analyser.getByteFrequencyData(data)
+      barsRef.current.forEach((bar, i) => {
+        if (!bar) return
+        const idx = Math.floor(i * data.length / NUM_BARS)
+        const pct = Math.max(8, (data[idx] / 255) * 100)
+        bar.style.height = `${pct}%`
+      })
+      animFrameRef.current = requestAnimationFrame(draw)
+    }
+    draw()
+  }, [])
+
+  const stopWaveform = useCallback(() => {
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null }
+    if (timerRef.current)     { clearInterval(timerRef.current); timerRef.current = null }
+    audioCtxRef.current?.close()
+    audioCtxRef.current = null
+    analyserRef.current = null
+    barsRef.current.forEach(bar => { if (bar) bar.style.height = '8%' })
+    setRecordSecs(0)
   }, [])
 
   useEffect(() => {
@@ -245,6 +291,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const handleRecord = async () => {
     if (recordState === 'recording') {
       mediaRecorderRef.current?.stop()
+      stopWaveform()
       return
     }
     if (recordState !== 'idle') return
@@ -294,6 +341,9 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
       recorder.start()
       setRecordState('recording')
+      startWaveform(streamRef.current)
+      setRecordSecs(0)
+      timerRef.current = setInterval(() => setRecordSecs(s => s + 1), 1000)
     } catch {
       showError(t(lang, 'saveError'))
     }
@@ -450,7 +500,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
             title={t(lang, 'recordVoiceNote')}
             className={`shrink-0 transition-colors disabled:opacity-40 ${
               recordState === 'recording'
-                ? 'text-terracotta animate-pulse'
+                ? 'text-terracotta'
                 : recordState === 'uploading'
                   ? 'text-muted'
                   : 'text-muted hover:text-ink'
@@ -461,23 +511,43 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               : <Mic size={16} />}
           </button>
 
-          <input
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-            disabled={inputDisabled}
-            placeholder={t(lang, 'messagePlaceholder')}
-            className="flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50"
-          />
+          {recordState === 'recording' ? (
+            <div className="flex-1 flex items-center gap-2 rounded-lg border border-terracotta bg-terracotta/5 px-3 py-1.5 h-[38px]">
+              <span className="text-xs font-medium text-terracotta tabular-nums w-8 shrink-0">
+                {String(Math.floor(recordSecs / 60)).padStart(2, '0')}:{String(recordSecs % 60).padStart(2, '0')}
+              </span>
+              <div className="flex-1 flex items-center gap-[2px] h-full">
+                {Array.from({ length: NUM_BARS }).map((_, i) => (
+                  <div
+                    key={i}
+                    ref={el => { if (el) barsRef.current[i] = el }}
+                    className="flex-1 bg-terracotta rounded-full"
+                    style={{ height: '8%' }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+              disabled={inputDisabled}
+              placeholder={t(lang, 'messagePlaceholder')}
+              className="flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50"
+            />
+          )}
 
-          <Btn
-            size="sm"
-            onClick={handleSend}
-            disabled={inputDisabled || !text.trim()}
-          >
-            <Send size={13} />
-            {t(lang, 'sendMessage')}
-          </Btn>
+          {recordState !== 'recording' && (
+            <Btn
+              size="sm"
+              onClick={handleSend}
+              disabled={inputDisabled || !text.trim()}
+            >
+              <Send size={13} />
+              {t(lang, 'sendMessage')}
+            </Btn>
+          )}
         </div>
       )}
     </Card>
