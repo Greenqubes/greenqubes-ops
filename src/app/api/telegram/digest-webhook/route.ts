@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const update = await req.json() as TelegramUpdate
 
   if (update.callback_query) {
-    handleCallbackQuery(update.callback_query).catch(err =>
+    await handleCallbackQuery(update.callback_query).catch(err =>
       console.error('[digest webhook] callback_query handler error:', (err as Error).message)
     )
   }
