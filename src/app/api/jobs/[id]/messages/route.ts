@@ -6,7 +6,7 @@ import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplJobChatBatch } from '@/lib/telegram/templates'
 
 const CHAT_OPEN_DAYS = 7
-const THROTTLE_MS    = 5 * 60 * 1000
+const THROTTLE_MS    = 1 * 60 * 1000
 const APP_URL        = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
 export async function POST(
@@ -48,7 +48,7 @@ export async function POST(
   const jobUrl    = `${APP_URL}/jobs/${jobId}`
 
   // ── Throttled Telegram notifications ─────────────────────────────────────────
-  async function notifyParticipantsThrottled(isAttachment = false) {
+  async function notifyParticipantsThrottled(isAttachmentMsg = false) {
     if (!notifData) return
     const { salesPoc, installers } = await getJobRecipients(jobId)
     const recipients = [salesPoc, ...installers].filter(
@@ -57,13 +57,18 @@ export async function POST(
     )
 
     await Promise.all(recipients.map(async r => {
-      const state  = await getJobChatState(jobId, r.id)
-      const lastMs = state?.last_notified_at ? new Date(state.last_notified_at).getTime() : 0
-      if (Date.now() - lastMs < THROTTLE_MS) return
+      // Throttle + count: best-effort. If DB queries fail, fire with count=1.
+      let count = 1
+      try {
+        const state  = await getJobChatState(jobId, r.id)
+        const lastMs = state?.last_notified_at ? new Date(state.last_notified_at).getTime() : 0
+        if (Date.now() - lastMs < THROTTLE_MS) return
 
-      const unseenInDb = await countUnseenMessages(jobId, r.id, state)
-      // Text/voice are already in DB when this runs; attachments are not in messages table.
-      const count = unseenInDb + (isAttachment ? 1 : 0)
+        const unseenInDb = await countUnseenMessages(jobId, r.id, state)
+        count = Math.max(1, unseenInDb + (isAttachmentMsg ? 1 : 0))
+      } catch (err) {
+        console.error('[chat-notif] state/count lookup failed, sending with count=1', err)
+      }
 
       const text = tplJobChatBatch({
         count,
@@ -74,13 +79,12 @@ export async function POST(
         timeEnd:      notifData!.time_end,
         location:     notifData!.location,
       })
-
       await sendTelegramWithKeyboard(
         r.telegram_chat_id!,
         text,
         [[{ text: 'View in app →', url: jobUrl }]],
       )
-      await upsertJobChatNotified(jobId, r.id)
+      try { await upsertJobChatNotified(jobId, r.id) } catch { /* best-effort */ }
     }))
   }
 
