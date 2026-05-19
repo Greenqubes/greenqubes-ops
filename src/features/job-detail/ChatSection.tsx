@@ -236,41 +236,106 @@ function FileAttachment({ r2Key, filename, lang, isMine = false }: {
   )
 }
 
-function VoicePlayer({ voiceKey, lang }: { voiceKey: string; lang: LangCode }) {
-  const [src,     setSrc]     = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+function VoicePlayer({ voiceKey, isMine = false }: {
+  voiceKey: string; isMine?: boolean
+}) {
+  const [src,      setSrc]      = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(false)
+  const [playing,  setPlaying]  = useState(false)
+  const [duration, setDuration] = useState<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const bars     = useMemo(() => waveformBars(voiceKey), [voiceKey])
+  const radius   = isMine ? 'rounded-[14px_14px_3px_14px]' : 'rounded-[14px_14px_14px_3px]'
 
-  const load = async () => {
-    if (src || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/r2/download-url', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key: voiceKey }),
-      })
-      const { url } = await res.json() as { url: string }
-      setSrc(url)
-    } finally {
-      setLoading(false)
+  // Auto-play once the signed URL is fetched
+  useEffect(() => {
+    if (src && audioRef.current) void audioRef.current.play()
+  }, [src])
+
+  const handlePlay = async () => {
+    if (loading) return
+    if (!src) {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/r2/download-url', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ key: voiceKey }),
+        })
+        const { url } = await res.json() as { url: string }
+        setSrc(url)
+      } catch {
+        // silent — button stays idle
+      } finally {
+        setLoading(false)
+      }
+      return
     }
+    if (!audioRef.current) return
+    if (playing) audioRef.current.pause()
+    else void audioRef.current.play()
   }
 
+  const fmtDuration = duration != null
+    ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}`
+    : '0:--'
+
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 min-w-[180px]">
-      <Mic size={13} className="text-muted shrink-0" />
-      {src ? (
-        <audio controls src={src} className="h-7 flex-1 min-w-0" />
-      ) : (
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-ink2 hover:text-ink disabled:opacity-50 transition-colors"
-        >
-          {loading ? t(lang, 'loading') : t(lang, 'playVoiceNote')}
-        </button>
-      )}
+    <div className={cn(
+      'flex items-center gap-3 px-3.5 py-3 min-w-[220px] border',
+      radius,
+      isMine ? 'bg-terracotta border-terracotta' : 'bg-paper border-line',
+    )}>
+      <audio
+        ref={audioRef}
+        src={src ?? undefined}
+        onLoadedMetadata={e => setDuration((e.target as HTMLAudioElement).duration)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={handlePlay}
+        disabled={loading}
+        className={cn(
+          'w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0 transition-opacity disabled:opacity-50',
+          isMine ? 'bg-black/20' : 'bg-terracotta',
+        )}
+      >
+        {loading ? (
+          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : playing ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="ml-0.5">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        )}
+      </button>
+
+      <div className="flex-1 flex items-center gap-[2px] h-7">
+        {bars.map((h, i) => (
+          <div
+            key={i}
+            className={cn('flex-1 rounded-sm', isMine ? 'bg-white/60' : 'bg-terracotta/60')}
+            style={{ height: `${h}%` }}
+          />
+        ))}
+      </div>
+
+      <div className="flex flex-col items-end shrink-0">
+        <span className={cn('text-xs font-medium tabular-nums', isMine ? 'text-white' : 'text-ink2')}>
+          {fmtDuration}
+        </span>
+        <span className={cn('text-[10px]', isMine ? 'text-white/70' : 'text-muted')}>
+          Voice note
+        </span>
+      </div>
     </div>
   )
 }
@@ -703,9 +768,9 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
                       {item.content}
                     </p>
                   ) : item.kind === 'voice' ? (
-                    <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
+                    <VoicePlayer voiceKey={item.voiceKey} isMine={isMine} />
                   ) : (
-                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
+                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} isMine={isMine} />
                   )}
                   <p className="text-[10px] text-muted" suppressHydrationWarning>
                     {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
