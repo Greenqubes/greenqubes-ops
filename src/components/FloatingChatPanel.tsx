@@ -176,7 +176,7 @@ export function FloatingChatPanel({ lang }: Props) {
         <div className={cn(
           'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
           'w-[min(340px,calc(100vw-2rem))]',
-          'bottom-36',           // panel bottom = 144px — 16px above bubble top (80px + 48px)
+          'bottom-[180px]',      // panel bottom clears bubble at 120px (120 + 48 + 12 = 180)
           'max-h-[min(520px,calc(100vh-160px))]',
         )}>
           {/* Header */}
@@ -273,7 +273,7 @@ export function FloatingChatPanel({ lang }: Props) {
       <button
         onClick={() => (isOpen ? handleClose() : setIsOpen(true))}
         className={cn(
-          'fixed right-4 bottom-20 z-[60] w-12 h-12 rounded-full shadow-lg',
+          'fixed right-4 bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg',
           'flex items-center justify-center transition-all duration-200',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'

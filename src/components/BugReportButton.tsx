@@ -229,7 +229,7 @@ export function BugReportButton() {
         className={cn(
           'fixed right-4 z-[59] w-10 h-10 rounded-full shadow-lg',
           'flex items-center justify-center transition-all duration-200',
-          'bottom-[136px]',
+          'bottom-[176px]',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
             : 'bg-ink text-paper hover:bg-terracotta',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { insertMessage } from '@/lib/supabase/queries/jobs'
 import { getJobRecipients, getJobNotifData } from '@/lib/supabase/queries/notifications'
@@ -56,6 +57,22 @@ export async function POST(
   }
 
   const { salesPoc } = await getJobRecipients(jobId)
+
+  // In-app notification for the sales person
+  if (salesPoc) {
+    const service = createServiceClient()
+    await service.from('notifications').insert({
+      user_id: salesPoc.id,
+      type:    'sent_back',
+      job_id:  jobId,
+      title:   job.project_title || job.client,
+      body:    trimmedNote
+        ? `${profile.name}: ${trimmedNote}`
+        : `${profile.name} sent this job back for revision.`,
+    } as never)
+  }
+
+  // Telegram notification
   if (salesPoc?.telegram_chat_id) {
     await sendTelegram(
       salesPoc.telegram_chat_id,

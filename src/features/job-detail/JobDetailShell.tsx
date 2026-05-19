@@ -150,7 +150,7 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     try {
       const res = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
-      router.push('/schedule')
+      router.push(backHref)
     } catch {
       showError(t(lang, 'saveError'))
       setDeleting(false)
