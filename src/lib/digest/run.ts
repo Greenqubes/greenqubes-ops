@@ -17,6 +17,17 @@ function parseMsgs(msgs: Json): ChatMsg[] {
   )
 }
 
+export async function summariseChatForDigest(
+  msgs:  { role: string; content: string }[],
+  topic: string | null,
+): Promise<string> {
+  const cleaned = msgs.map(m => ({
+    ...m,
+    content: m.content.replace(/D-Promote/g, '').trim(),
+  }))
+  return summarise(cleaned as unknown as Json, topic)
+}
+
 async function summarise(msgs: Json, topic: string | null): Promise<string> {
   const conversation = parseMsgs(msgs).map(m => `${m.role}: ${m.content}`).join('\n')
   if (!conversation.trim()) return topic ?? '[No content]'
