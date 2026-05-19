@@ -82,6 +82,18 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_DIGEST_BOT_TOKEN>/setWebhook
 
 ---
 
+## Secret force-promote command — D-Promote
+
+Any conversation where a user message contains the exact string `D-Promote` (case-sensitive) bypasses Haiku's importance scoring entirely and is force-set to importance 5 before saving.
+
+This happens in `tagger.ts` before the Haiku call: if any message in the transcript contains `D-Promote`, return early with `importance: 5` and let Haiku classify the rest of the fields (topic, tags, visibility) normally.
+
+The `D-Promote` text is not stripped from the conversation — it stays in the transcript so the summary Haiku writes on Monday will include the full context.
+
+Only Nic knows this command. It is not documented in the UI or any user-facing surface.
+
+---
+
 ## What does NOT change
 
 - Database schema — no new tables, no migrations

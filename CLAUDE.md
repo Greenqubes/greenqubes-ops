@@ -8,7 +8,8 @@ Before doing anything else:
 2. Read `docs/context.md` top to bottom
 3. Read `docs/nic-checklist.md` top to bottom — list all unchecked items from "Before Pre-Alpha Testing" and "Before Go-Live" as bullet points in your response
 4. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
-5. Do not proceed until Nic confirms you have the right context
+5. Ask Nic: "Any updates to the AI importance scoring categories in the tagger? (1–5 scale in `src/lib/ai/tagger.ts`)"
+6. Do not proceed until Nic confirms you have the right context
 
 ---
 
