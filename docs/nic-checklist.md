@@ -2,15 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-19 (feat-chat — WhatsApp chat, avatars, in-app notifications, waveform, camera, grammar suggest)_
+_Last updated: 2026-05-19 (fix-chat — job chat realtime fixed for all roles)_
 
 ---
 
 ## Pending — Next Session
 
-### Bugs (from 2026-05-19, feat-chat)
+### Features (added 2026-05-19, fix-chat)
 
-- [ ] **[BUG] Job chat: messages not live-updating** — realtime subscription may have broken after the chat refactor. New messages sent by others don't appear without a page refresh. Investigate Supabase channel subscription in `ChatSection.tsx`.
+- [ ] **Chat: attachment thumbnails** — all attachments (voice notes + file attachments) to show thumbnails in the chat. Spec + plan needed next session before coding.
 
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
@@ -62,7 +62,11 @@ _Last updated: 2026-05-19 (feat-chat — WhatsApp chat, avatars, in-app notifica
 
 ---
 
-## Done This Session ✓ (2026-05-19, feat-chat)
+## Done This Session ✓ (2026-05-19, fix-chat)
+
+- [x] **Job chat realtime fixed for all roles** — `createBrowserClient` non-singleton caused constant subscription churn (fixed: `useMemo`); admin not in auth.uid() RLS policy (fixed: migration 0023); `@supabase/ssr` browser client doesn't auto-wire JWT to realtime (fixed: explicit `realtime.setAuth()` before subscribe); RLS policies rewritten as `EXISTS` subqueries for reliability (migration 0024); avatar/name for incoming messages now resolved via name cache + async fetch.
+
+## Done Last Session ✓ (2026-05-19, feat-chat)
 
 - [x] **In-app notifications for send-back events** — bell drawer shows send-back reason; mark all read button in header; selective delete with checkboxes in drawer footer; migration 0022 applied.
 - [x] **Sales POC shown on approval cards** — "Requested by [name]" with icon on each approval card.
