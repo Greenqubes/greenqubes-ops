@@ -40,6 +40,7 @@ export type FormValues = {
   punctuality:             Punctuality
   production_instructions: string
   notes:                   string
+  sales_poc_id:            string
   quote_amount:            string
   supplier_cost:           string
   margin_notes:            string
@@ -92,6 +93,7 @@ export function JobDetailShell({ job, role, userId, userName, lang, installers, 
       punctuality:             job.punctuality,
       production_instructions: job.production_instructions ?? '',
       notes:                   job.notes ?? '',
+      sales_poc_id:            job.sales_poc_id ?? '',
       quote_amount:            job.job_financials?.quote_amount?.toString() ?? '',
       supplier_cost:           job.job_financials?.supplier_cost?.toString() ?? '',
       margin_notes:            job.job_financials?.margin_notes ?? '',
