@@ -37,8 +37,7 @@ export async function runDigestTimeout(): Promise<{ resolved: number }> {
     const refTime   = voteTimes[0] ?? chat.ts
     if (new Date(refTime) > new Date(fiveDaysAgo)) continue
 
-    // Ties → promote
-    const outcome: 'promoted' | 'dismissed' = yesCount >= noCount ? 'promoted' : 'dismissed'
+    const outcome: 'promoted' | 'dismissed' = yesCount / total > 0.5 ? 'promoted' : 'dismissed'
     const chatDate = new Date(chat.ts).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
 
     const text = tplVoteStatusTimeout({
