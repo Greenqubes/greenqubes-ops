@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Users, ExternalLink } from 'lucide-react'
+import { MapPin, Users, ExternalLink, UserCircle } from 'lucide-react'
 import { Card } from '@/components/Card'
 import { Pill } from '@/components/Pill'
 import { Btn } from '@/components/Btn'
@@ -74,6 +74,15 @@ export function ApprovalCard({ job, lang, onApprove, onSendBack }: Props) {
       {/* description */}
       {job.description && (
         <p className="text-xs text-ink2 leading-relaxed line-clamp-2">{job.description}</p>
+      )}
+
+      {/* sales poc */}
+      {job.sales_poc && (
+        <div className="flex items-center gap-1.5 text-xs text-ink2">
+          <UserCircle size={11} className="text-muted shrink-0" />
+          <span className="text-muted">Requested by</span>
+          <span className="font-medium text-ink">{job.sales_poc.name}</span>
+        </div>
       )}
 
       {/* assignees */}
