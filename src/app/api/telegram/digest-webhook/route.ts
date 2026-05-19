@@ -5,7 +5,6 @@ import {
   answerDigestCallbackQuery,
   editDigestTelegramMessage,
   sendDigestTelegram,
-  type InlineKeyboardButton,
 } from '@/lib/telegram/bot'
 import { tplVoteStatus } from '@/lib/telegram/templates'
 
@@ -123,19 +122,12 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
     outcome,
   })
 
-  const keyboard: InlineKeyboardButton[][] = outcome === 'pending'
-    ? [[
-        { text: '✅ Promote', callback_data: `digest_vote:yes:${chatId}` },
-        { text: '❌ Skip',    callback_data: `digest_vote:no:${chatId}`  },
-      ]]
-    : []
-
   if (cq.message) {
     await editDigestTelegramMessage(
       String(cq.message.chat.id),
       cq.message.message_id,
       statusText,
-      keyboard,
+      [], // always remove buttons for the voter once they've voted
     )
   }
 
