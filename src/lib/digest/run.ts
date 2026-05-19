@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
+import { sendDigestTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplDigestHeader, tplDigestItem } from '@/lib/telegram/templates'
 import type { Json } from '@/lib/supabase/types'
 
@@ -81,7 +81,7 @@ export async function runDigest(): Promise<{ sent: number; skipped: string }> {
 
   const weekOf = new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
   for (const voter of voters) {
-    await sendTelegramWithKeyboard(voter.telegram_chat_id, tplDigestHeader({ weekOf, count: toSend.length }), [])
+    await sendDigestTelegramWithKeyboard(voter.telegram_chat_id, tplDigestHeader({ weekOf, count: toSend.length }), [])
   }
 
   let sent = 0
@@ -102,7 +102,7 @@ export async function runDigest(): Promise<{ sent: number; skipped: string }> {
         { text: '❌ Skip',    callback_data: `digest_vote:no:${chat.id}`  },
       ]]
       for (const voter of voters) {
-        await sendTelegramWithKeyboard(voter.telegram_chat_id, text, keyboard)
+        await sendDigestTelegramWithKeyboard(voter.telegram_chat_id, text, keyboard)
       }
       sent++
     } catch (err) {
