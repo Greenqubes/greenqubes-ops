@@ -191,6 +191,14 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
   const animFrameRef     = useRef<number | null>(null)
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
   const barsRef          = useRef<HTMLDivElement[]>([])
+  // userId → display name, seeded from server-loaded messages
+  const nameCacheRef     = useRef<Record<string, string>>(
+    Object.fromEntries(
+      initialMessages
+        .filter(m => m.author_id && m.users?.name)
+        .map(m => [m.author_id!, m.users!.name])
+    )
+  )
 
   const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
   const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
@@ -273,12 +281,33 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
           payload => {
             const row = payload.new as JobMessage
-            const withName: JobMessage = row.author_id === userId
-              ? { ...row, users: { name: userName } }
-              : row
-            setMessages(prev =>
-              prev.find(m => m.id === withName.id) ? prev : [...prev, withName]
-            )
+            if (row.author_id === userId) {
+              // Own message — inject name from props
+              const msg = { ...row, users: { name: userName } }
+              setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
+            } else {
+              const cached = row.author_id ? nameCacheRef.current[row.author_id] : undefined
+              if (cached) {
+                const msg = { ...row, users: { name: cached } }
+                setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
+              } else {
+                // Add immediately (avatar shows '?'), then patch name once fetched
+                setMessages(prev => prev.find(m => m.id === row.id) ? prev : [...prev, row])
+                if (row.author_id) {
+                  const authorId = row.author_id
+                  supabase.from('users').select('name').eq('id', authorId).single()
+                    .then(({ data }) => {
+                      const name = (data as { name: string } | null)?.name
+                      if (name) {
+                        nameCacheRef.current[authorId] = name
+                        setMessages(prev => prev.map(m =>
+                          m.id === row.id ? { ...m, users: { name } } : m
+                        ))
+                      }
+                    })
+                }
+              }
+            }
           },
         )
         .on(
