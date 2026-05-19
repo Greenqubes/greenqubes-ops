@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-14 (chore-jobs — PR dev→main opened; bulk delete design decided)_
+_Last updated: 2026-05-19 (feat-chat — WhatsApp chat layout, avatars, in-app notifications, waveform, camera, grammar suggest)_
 
 ---
 
