@@ -106,7 +106,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   const total = totalVoters ?? 1
 
   const promoted  = yesCount / total > 0.5
-  const dismissed = noCount / total >= 0.5
+  const dismissed = noCount / total > 0.5
   const outcome   = promoted ? 'promoted' : dismissed ? 'dismissed' : 'pending'
 
   const chatDate = new Date(chat.ts).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })

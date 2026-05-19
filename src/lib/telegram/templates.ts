@@ -265,8 +265,33 @@ export function tplVoteStatus(p: {
     `${p.summary}\n` +
     `——————————————————\n`
   )
-  const awaiting = p.totalVoters - p.yesCount - p.noCount
-  if (p.outcome === 'promoted') return header + `✅ Promoted — added to knowledge base.`
-  if (p.outcome === 'dismissed') return header + `❌ Dismissed — skipped.`
-  return header + `📊 ${p.yesCount} Yes · ${p.noCount} No · ${awaiting} awaiting (${p.totalVoters} voters)`
+  const pending = Math.max(0, p.totalVoters - p.yesCount - p.noCount)
+  const pollLine = `📊 ${p.yesCount} Yes · ${p.noCount} No · ${pending} Pending`
+  if (p.outcome === 'promoted') return header + pollLine + `\nInformation Promoted to Vault!`
+  if (p.outcome === 'dismissed') return header + pollLine + `\nInformation Dismissed!`
+  return header + pollLine
+}
+
+export function tplVoteStatusTimeout(p: {
+  topic:       string
+  date:        string
+  importance:  number
+  yesCount:    number
+  noCount:     number
+  totalVoters: number
+  outcome:     'promoted' | 'dismissed'
+}): string {
+  const stars = '★'.repeat(p.importance) + '☆'.repeat(5 - p.importance)
+  const pending = Math.max(0, p.totalVoters - p.yesCount - p.noCount)
+  const pollLine = `📊 ${p.yesCount} Yes · ${p.noCount} No · ${pending} Pending`
+  const resultLine = p.outcome === 'promoted' ? `Information Promoted to Vault!` : `Information Dismissed!`
+  return (
+    `<b>${p.topic}</b>\n` +
+    `${stars}\n` +
+    `<i>${p.date}</i>\n` +
+    `——————————————————\n` +
+    `Majority Vote Shows (Time Out):\n` +
+    pollLine + `\n` +
+    resultLine
+  )
 }
