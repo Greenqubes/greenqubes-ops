@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews: image thumbnail cards, document cards with coloured file-type icons, voice note play-button cards with waveform progress bars)_
+_Last updated: 2026-05-20 (feat-digest — dedicated digest bot, D-Promote command, voting polish, 5-day timeout cron)_
 
 ---
 
@@ -88,6 +88,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-chat | Chat Redesign + In-App Notifications | WhatsApp-style chat layout (own messages right/terracotta, others left with avatar+name); avatars show initials colour-coded by name; Supabase join key bug fixed (author/uploader→users); voice note live waveform; camera capture button; file auto-rename (voice/camera = `{username} {date} {time}`); in-app notifications for send-back events (migration 0022); bell drawer with mark-all-read + selective delete; sales POC shown on approval cards; grammar suggest button in send-back modal (Haiku); [Sent Back] messages wiped from job chat on approval | [feat/feat-chat-20260519-1-note.md](feat/feat-chat-20260519-1-note.md) |
 | fix-chat | Job Chat Realtime Fix | Fixed realtime not delivering messages: createBrowserClient non-singleton → useMemo; admin missing from auth.uid() RLS policy → migration 0023; sales JWT not wired to realtime → explicit realtime.setAuth(); policies rewritten as EXISTS subqueries → migration 0024; avatar/name cache seeded from initialMessages + async fetch for new senders | [fix/fix-chat-20260519-1-note.md](fix/fix-chat-20260519-1-note.md) |
 | feat-chat-2 | Chat Attachment Previews | Image files show inline thumbnail with terracotta footer on own messages; documents show compact card with coloured file-type icon (PDF/Word/Spreadsheet/ZIP) + download arrow; voice notes show play-button card with deterministic waveform bars that animate progress during playback (grey before play → terracotta as audio plays) | [feat/feat-chat-20260520-1-note.md](feat/feat-chat-20260520-1-note.md) |
+| feat-digest | Dedicated Digest Bot + D-Promote + Voting Polish | Separate TELEGRAM_DIGEST_BOT_TOKEN + digest webhook; D-Promote secret command (force importance=5, immediate send to all digest_subscribers, word stripped from summary); strict >50% majority for both promote and dismiss; live poll count always shown on messages; buttons disabled for voter immediately after vote; 5-day timeout cron auto-resolves pending votes (strict majority yes → promoted, else dismissed); digest_subscriber flag controls all recipient queries; CLAUDE.md updated to ask about importance scoring categories each session | [feat/feat-digest-20260520-1-note.md](feat/feat-digest-20260520-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
