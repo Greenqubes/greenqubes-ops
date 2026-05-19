@@ -220,7 +220,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="h-[100dvh] bg-bg flex">
 
       {/* ── Sidebar (desktop only, manages its own hidden md:flex) ── */}
       <HistorySidebar
@@ -231,7 +231,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       />
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-h-screen pb-16">
+      <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* ── Header ── */}
         <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
@@ -266,10 +266,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
           {messages.length > 0 && (
             <button
               onClick={startNewChat}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors shrink-0"
             >
               <RotateCcw size={12} />
-              {t(lang, 'newChat')}
+              <span className="hidden sm:inline">{t(lang, 'newChat')}</span>
             </button>
           )}
         </div>
@@ -298,10 +298,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
           <div ref={bottomRef} />
         </div>
 
-        <BottomNav role={role} />
-
         {/* ── Input bar ── */}
-        <div className="shrink-0 border-t border-line bg-paper px-4 py-3">
+        <div className="shrink-0 border-t border-line bg-paper px-4 py-3 pb-[72px]">
           <div className="max-w-2xl mx-auto flex gap-2 items-end">
             <textarea
               ref={inputRef}
@@ -337,6 +335,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
             </button>
           </div>
         </div>
+
+        <BottomNav role={role} />
       </div>
     </div>
   )
