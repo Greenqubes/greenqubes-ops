@@ -56,6 +56,7 @@ async function sendDigestNow(
   const { data: schedulers } = await db
     .from('users')
     .select('telegram_chat_id')
+    .eq('digest_subscriber', true)
     .not('telegram_chat_id', 'is', null)
 
   if (!schedulers?.length) return
