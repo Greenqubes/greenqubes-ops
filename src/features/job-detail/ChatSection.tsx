@@ -265,8 +265,9 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         payload => {
+          console.log('[chat] message event received, job_id:', payload.new?.job_id, 'expecting:', jobId)
           const row = payload.new as JobMessage
-          if (row.job_id !== jobId) return
+          if (row.job_id !== jobId) { console.log('[chat] filtered — job_id mismatch'); return }
           const withName: JobMessage = row.author_id === userId
             ? { ...row, users: { name: userName } }
             : row
@@ -287,6 +288,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         },
       )
       .subscribe((status, err) => {
+        console.log('[chat] subscription status:', status, err ?? '')
         if (status === 'SUBSCRIBED') setRealtimeStatus('live')
         else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
       })
