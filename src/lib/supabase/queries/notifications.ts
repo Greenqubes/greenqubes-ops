@@ -181,7 +181,7 @@ export async function countUnseenMessages(
     .eq('job_id', jobId)
     .neq('author_id', recipientId)
 
-  if (since) query = query.gt('created_at', since)
+  if (since) query = query.gt('ts', since)
 
   const { count } = await query
   return count ?? 0
