@@ -21,11 +21,12 @@ interface ListViewProps {
   selectable?:  boolean
   selectedIds?: Set<string>
   onToggle?:    (id: string) => void
+  onDelete?:    (id: string) => void
 }
 
 export function ListView({
   jobs, dates, jobsByDate, selectedDate, today, lang, strings, onSelectDate,
-  selectable, selectedIds, onToggle,
+  selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
   const locale  = langToLocale(lang)
   const dayJobs = jobsByDate[selectedDate] ?? []
@@ -119,6 +120,8 @@ export function ListView({
                 selectable={selectable}
                 selected={selectedIds?.has(job.id)}
                 onToggle={onToggle}
+                deletable={selectable}
+                onDelete={() => onDelete?.(job.id)}
               />
             ))}
           </>

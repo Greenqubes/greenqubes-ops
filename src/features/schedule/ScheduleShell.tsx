@@ -72,6 +72,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     })
   }
 
+  async function handleSingleDelete(id: string) {
+    await fetch(`/api/jobs/${id}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
   async function handleBulkDelete() {
     setBulkDeleting(true)
     try {
@@ -315,6 +320,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           selectable={canBulkDelete}
           selectedIds={selectedIds}
           onToggle={toggleJob}
+          onDelete={handleSingleDelete}
         />
       )}
       {viewMode === 'week' && (
