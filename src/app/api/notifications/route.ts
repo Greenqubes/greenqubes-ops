@@ -13,7 +13,7 @@ export type InAppNotif = {
 
 // GET — fetch current user's notifications, newest first
 export async function GET() {
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -30,7 +30,7 @@ export async function GET() {
 // PATCH — mark notifications as read
 // body: { ids?: string[] }  — if ids omitted, marks ALL as read
 export async function PATCH(req: NextRequest) {
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest) {
 // DELETE — delete specific notifications
 // body: { ids: string[] }
 export async function DELETE(req: NextRequest) {
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
