@@ -8,6 +8,10 @@ _Last updated: 2026-05-19 (feat-chat — WhatsApp chat, avatars, in-app notifica
 
 ## Pending — Next Session
 
+### Bugs (from 2026-05-19, feat-chat)
+
+- [ ] **[BUG] Job chat: messages not live-updating** — realtime subscription may have broken after the chat refactor. New messages sent by others don't appear without a page refresh. Investigate Supabase channel subscription in `ChatSection.tsx`.
+
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
 - [ ] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — scheduler clicks "Approve & Schedule" (or "Schedule") on the approval card and gets a save error. Root cause unknown — investigate the approve API route and ApprovalCard submit handler.
