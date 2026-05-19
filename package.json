@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit",
     "obsidian-sync": "node --use-system-ca --import tsx --env-file=.env.local scripts/obsidian-sync.ts",
     "monday-digest": "node --use-system-ca --import tsx --env-file=.env.local scripts/monday-digest.ts",
-    "sync-bugs":     "node --use-system-ca --import tsx --env-file=.env.local scripts/sync-bugs.ts"
+    "sync-bugs": "node --use-system-ca --import tsx --env-file=.env.local scripts/sync-bugs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.0.0",
     "lucide-react": "^0.500.0",
     "next": "^15.0.0",
+    "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.75.0"

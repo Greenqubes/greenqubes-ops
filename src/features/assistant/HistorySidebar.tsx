@@ -113,7 +113,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete }: Pr
 
         {/* Toast */}
         {toast && (
-          <div className="absolute bottom-16 left-2 right-2 px-3 py-2 bg-ink text-white text-xs rounded-lg shadow-md text-center">
+          <div className="absolute bottom-16 left-2 right-2 px-3 py-2 bg-ink text-paper text-xs rounded-lg shadow-md text-center">
             {toast}
           </div>
         )}

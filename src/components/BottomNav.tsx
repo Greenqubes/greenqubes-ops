@@ -26,6 +26,12 @@ const TABS: Record<Role, Tab[]> = {
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
+  admin: [
+    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
+    { href: '/approvals', label: 'Approvals', Icon: Inbox         },
+    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
+    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+  ],
 }
 
 export function BottomNav({ role }: { role: Role }) {

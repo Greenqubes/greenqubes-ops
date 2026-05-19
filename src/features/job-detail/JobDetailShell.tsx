@@ -15,7 +15,9 @@ import { StatusSection } from './StatusSection'
 import { ChatSection } from './ChatSection'
 import { PendingFilesSection } from './PendingFilesSection'
 import { ProductionReadySection } from './ProductionReadySection'
-import { WorkloadPreviewModal } from '@/features/approvals/WorkloadPreviewModal'
+import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import { Modal } from '@/components/Modal'
+import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
@@ -61,20 +63,24 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
   const completed = job.status === 'completed'
   const readOnly  = completed
 
-  const [saving,          setSaving]          = useState(false)
-  const [status,          setStatus]          = useState<JobStatus>(job.status)
-  const [showWorkload,    setShowWorkload]     = useState(false)
+  const [saving,              setSaving]             = useState(false)
+  const [status,              setStatus]             = useState<JobStatus>(job.status)
+  const [clashData,           setClashData]          = useState<ClashesResponse | null>(null)
+  const [showSuccessModal,    setShowSuccessModal]    = useState(false)
+  const [showPushAnywaysModal,setShowPushAnywaysModal]= useState(false)
+  const [showDeleteModal,     setShowDeleteModal]     = useState(false)
+  const [deleting,            setDeleting]            = useState(false)
   const [assignees, setAssignees] = useState(
     job.job_assignees.map(a => a.users).filter(Boolean) as InstallerUser[]
   )
 
-  const { register, handleSubmit, setValue, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
+  const { register, handleSubmit, getValues, setValue, reset, control, watch, formState: { isDirty, errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           job.project_title ?? '',
       date:                    job.date ?? '',
       date_end:                job.date_end ?? '',
-      time_start:              job.time_start ?? '',
-      time_end:                job.time_end ?? '',
+      time_start:              job.time_start?.slice(0, 5) ?? '',
+      time_end:                job.time_end?.slice(0, 5) ?? '',
       client:                  job.client ?? '',
       location:                job.location ?? '',
       description:             job.description ?? '',
@@ -91,27 +97,31 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     },
   })
 
+  const saveValues = async (values: FormValues) => {
+    await supabase.from('jobs').update({
+      project_title:           values.project_title || null,
+      date:                    values.date,
+      date_end:                values.date_end || null,
+      time_start:              values.time_start || null,
+      time_end:                values.time_end || null,
+      client:                  values.client,
+      location:                values.location,
+      description:             values.description || null,
+      client_poc_name:         values.client_poc_name || null,
+      client_poc_phone:        values.client_poc_phone || null,
+      production_ready:        values.production_ready,
+      do_issued:               values.do_issued,
+      punctuality:             values.punctuality,
+      production_instructions: values.production_instructions || null,
+      notes:                   values.notes || null,
+    } as never).eq('id', job.id).throwOnError()
+    reset(values)
+  }
+
   const onSubmit = async (values: FormValues) => {
     setSaving(true)
     try {
-      await supabase.from('jobs').update({
-        project_title:           values.project_title || null,
-        date:                    values.date,
-        date_end:                values.date_end || null,
-        time_start:              values.time_start || null,
-        time_end:                values.time_end || null,
-        client:                  values.client,
-        location:                values.location,
-        description:             values.description || null,
-        client_poc_name:         values.client_poc_name || null,
-        client_poc_phone:        values.client_poc_phone || null,
-        production_ready:        values.production_ready,
-        do_issued:               values.do_issued,
-        punctuality:             values.punctuality,
-        production_instructions: values.production_instructions || null,
-        notes:                   values.notes || null,
-      } as never).eq('id', job.id).throwOnError()
-
+      await saveValues(values)
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
     } catch {
@@ -135,18 +145,88 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
     }
   }
 
-  const handleWorkloadConfirm = async (finalDate: string) => {
-    setShowWorkload(false)
+  const handleDelete = async () => {
+    setDeleting(true)
     try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      router.push('/schedule')
+    } catch {
+      showError(t(lang, 'saveError'))
+      setDeleting(false)
+      setShowDeleteModal(false)
+    }
+  }
+
+  const handleSubmitForApproval = async () => {
+    setSaving(true)
+    try {
+      if (isDirty) await saveValues(getValues())
+      const res = await fetch(`/api/jobs/${job.id}/clashes`)
+      if (!res.ok) throw new Error()
+      const data: ClashesResponse = await res.json()
+      if (data.clashes.length === 0 && data.travelWarnings.length === 0) {
+        const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+        if (!submitRes.ok) throw new Error()
+        setStatus('awaiting_approval')
+        setShowSuccessModal(true)
+      } else {
+        setClashData(data)
+      }
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendToScheduler = async (
+    replacements: Record<string, string | 'keep'>,
+    timeStart: string,
+    timeEnd: string,
+  ) => {
+    try {
+      // Apply staged installer swaps (skip 'keep' entries)
+      for (const [oldId, newId] of Object.entries(replacements)) {
+        if (newId === 'keep') continue
+        await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
+        await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newId } as never)
+      }
+      // Apply time change if different from original
+      if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
+        await supabase.from('jobs').update({
+          time_start: timeStart || null,
+          time_end:   timeEnd   || null,
+        } as never).eq('id', job.id)
+        if (timeStart) setValue('time_start', timeStart)
+        if (timeEnd)   setValue('time_end',   timeEnd)
+      }
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ date: finalDate }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       })
       if (!res.ok) throw new Error()
       setStatus('awaiting_approval')
-      if (finalDate !== job.date) setValue('date', finalDate)
-      showSuccess(t(lang, 'savedSuccessfully'))
+      setClashData(null)
+      setShowSuccessModal(true)
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
+  }
+
+  const handlePushAnyways = async () => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/submit`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error()
+      setStatus('awaiting_approval')
+      setClashData(null)
+      setShowPushAnywaysModal(true)
     } catch {
       showError(t(lang, 'saveError'))
     }
@@ -206,6 +286,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           register={register}
           errors={errors}
           control={control}
+          watch={watch}
+          setValue={setValue}
           readOnly={readOnly}
           lang={lang}
         />
@@ -213,6 +295,8 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
         {role !== 'installer' && (
           <ProductionReadySection
             register={register}
+            watch={watch}
+            setValue={setValue}
             readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
             lang={lang}
             jobId={job.id}
@@ -260,24 +344,67 @@ export function JobDetailShell({ job, role, userId, lang, installers, initialMes
           lang={lang}
           onStatusChange={async (s) => {
             if (role === 'sales' && s === 'awaiting_approval') {
-              setShowWorkload(true)
+              await handleSubmitForApproval()
             } else {
               await handleStatusChange(s)
             }
           }}
+          onDelete={() => setShowDeleteModal(true)}
         />
 
       </div>
 
-      {showWorkload && (
-        <WorkloadPreviewModal
-          jobId={job.id}
-          currentDate={job.date}
+      {clashData && (
+        <ClashResolutionModal
+          jobDate={clashData.jobDate}
+          jobTimeStart={clashData.jobTimeStart}
+          jobTimeEnd={clashData.jobTimeEnd}
+          clashes={clashData.clashes}
+          travelWarnings={clashData.travelWarnings}
+          substitutes={clashData.substitutes}
+          weekDays={clashData.weekDays}
           lang={lang}
-          onConfirm={handleWorkloadConfirm}
-          onClose={() => setShowWorkload(false)}
+          onSendToScheduler={handleSendToScheduler}
+          onCancel={() => setClashData(null)}
         />
       )}
+
+      <Modal isOpen={showSuccessModal} onClose={() => { setShowSuccessModal(false); router.push('/schedule') }}>
+        <div className="space-y-4 text-center">
+          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
+          <Btn variant="primary" size="sm" onClick={() => { setShowSuccessModal(false); router.push('/schedule') }}>
+            OK
+          </Btn>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showPushAnywaysModal} onClose={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
+        <div className="space-y-4 text-center">
+          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
+          <p className="text-sm text-muted">Please check with the Scheduler for approval directly.</p>
+          <Btn variant="primary" size="sm" onClick={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
+            OK
+          </Btn>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'deleteJobConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'deleteJobConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleDelete} disabled={deleting}>
+              {deleting ? t(lang, 'loading') : t(lang, 'deleteJob')}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   )
 }

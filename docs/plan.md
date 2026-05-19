@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised; all callers updated; Obsidian sync wired; pre-alpha testing done — bugs logged for next session)_
+_Last updated: 2026-05-18 (feat-clash-resolution — clash detection, ClashResolutionModal, workload chart, delete job, TimeSelect fixes)_
 
 ---
 
@@ -22,11 +22,17 @@ _Last updated: 2026-05-11 (feat-notifications — Telegram templates finalised; 
 
 ## Current State
 
-Pre-alpha testing complete. Telegram notification templates fully implemented (project title, POC fields, job assigned to installers, bug report redesigned). Obsidian sync wired as git submodule. Testing revealed several bugs and feature requests — logged in nic-checklist.md for next session.
+Admin role fully implemented. `admin` added to `user_role` enum; all RLS policies updated to include admin; hardcoded `ai@greenqubes.com` email gates replaced with `role === 'admin'` checks across all pages and API routes; AdminRoleModal added to UsersTab (confirm + success phases). Vercel cron fixed (overdue was 2-hourly, blocked Hobby plan deployments — changed to daily). Migrations 0018–0020 applied.
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
-**DB migrations:** All migrations 0012–0016 applied. No pending migrations.
+**Major bug (pending fix):** Save fails on the approvals page when scheduler clicks "Approve & Schedule" or "Schedule". Needs root-cause investigation next session.
+
+**Minor bug (pending fix):** AdminRoleModal in UsersTab — "Yes" button requires two presses to confirm. Needs investigation.
+
+**Minor visual bug (pending fix):** Friday bar missing in WeekWorkloadChart inside ClashResolutionModal. Layout fix was attempted (merged bar+label into single button) but not confirmed resolved on preview.
+
+**DB migrations:** All migrations 0012–0021 applied. No pending migrations. Migration 0021 adds `years_experience` (integer) and `skills` (text[]) to `users` table.
 
 ---
 
@@ -72,6 +78,13 @@ Pre-alpha testing complete. Telegram notification templates fully implemented (p
 | feat-assistant-2 | Assistant History Sidebar Implementation | Migrations 0015+0016, 3 new API routes, HistoryList + HistorySidebar components, mobile /assistant/history route, AssistantShell sidebar layout. Delete conversation button not working in preview — investigate next session | [feat/feat-assistant-20260511-2-note.md](feat/feat-assistant-20260511-2-note.md) |
 | fix-assistant | Assistant Delete Button Fix + Delete Modal | Fixed mousedown/click race condition in HistoryList outside-click handler; replaced inline confirm with Delete Permanently modal; made deleteChat idempotent | [fix/fix-assistant-20260511-1-note.md](fix/fix-assistant-20260511-1-note.md) |
 | feat-notifications | Telegram Templates + Obsidian Sync First Run | Finalised all Telegram notification templates (project title, POC fields, job assigned, bug report redesign); updated all 6 caller routes; wired Obsidian vault as git submodule; UI/UX Pro Max design system generated; pre-alpha testing done — bugs + features logged | [feat/feat-notifications-20260511-1-note.md](feat/feat-notifications-20260511-1-note.md) |
+| feat-admin | Pre-Provision Users + Monday Digest Confirmed | Admin can now provision users by email without prior sign-in; migration 0017 (email column + partial unique index); auth callback links auth_id on first sign-in; UserRow shows "Waiting for sign-in" email; Monday digest confirmed working (skips correctly when no important conversations) | [feat/feat-admin-20260512-1-note.md](feat/feat-admin-20260512-1-note.md) |
+| fix-prealphabugs | Pre-Alpha Hotfixes | Overdue cron wired in vercel.json; R2 CORS configured; bug report screenshot upload hardened; voice mic stream reused; attachment Telegram notifications; admin back arrow; role labels title-cased; time_end + description optional; form reset after save; NEXT_PUBLIC_APP_URL in Vercel | [fix/fix-bugs-20260513-1-note.md](fix/fix-bugs-20260513-1-note.md) |
+| feat-admin-2 | Admin Role + Vercel Cron Fix | `admin` added to user_role enum; RLS policies updated; email gates replaced with role checks; AdminRoleModal in UsersTab; BottomNav admin tab; Vercel overdue cron changed to daily (was blocking Hobby plan deployments); migrations 0018–0020 | [feat/feat-admin-20260514-1-note.md](feat/feat-admin-20260514-1-note.md) |
+| feat-jobs | AI Suggest Button | SuggestField component; /api/ai/suggest route (Haiku, SUGGEST_CONFIG); Project Title, Description, Notes, Production Instructions all wired; plain language rule added to CLAUDE.md | [feat/feat-jobs-20260514-1-note.md](feat/feat-jobs-20260514-1-note.md) |
+| feat-design | Dark Mode | next-themes; ThemeProvider wrapper; .dark CSS token block (Claude Warm palette); UserMenu Moon/Sun toggle with localStorage + system preference detection; text-white→text-paper contrast fixes across 8 components | [feat/feat-design-20260514-1-note.md](feat/feat-design-20260514-1-note.md) |
+| chore-jobs | Git + PR + Bulk Delete Design | Resolved rebase conflict (plan.md, nic-checklist.md, CONTEXT.md); PR opened dev→main; bulk delete feature designed (Design A: always-on checkboxes, bottom delete bar); spec + plan pending next session | [chore/chore-jobs-20260514-1-note.md](chore/chore-jobs-20260514-1-note.md) |
+| feat-clash-resolution | Clash Detection + Resolution Modal + Workload Chart | Installer clash detection (proper time-overlap logic, no false positives for non-overlapping times); ClashResolutionModal (substitute selection with free/busy badges, keep-anyway, time shift via TimeSelect); travel-time warning for back-to-back jobs; team workload chart with week navigation (5-level bars, green→red, interactive installer panel); auto-save form before clash check; TimeSelect rolling from current time + HH:MM:SS normalisation; Delete Job button (sales, pending only); migration 0021 (years_experience, skills); major bug: save fails on approval page (approve & schedule); minor: Friday bar missing in chart | [feat/feat-clash-resolution-20260518-1-note.md](feat/feat-clash-resolution-20260518-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

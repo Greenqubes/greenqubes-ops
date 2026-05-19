@@ -157,6 +157,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const fileRef          = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef        = useRef<Blob[]>([])
+  const streamRef        = useRef<MediaStream | null>(null)
 
   const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
   const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
@@ -179,6 +180,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, files])
+
+  useEffect(() => {
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()) }
+  }, [])
 
   useEffect(() => {
     const channel = supabase
@@ -245,8 +250,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     if (recordState !== 'idle') return
 
     try {
-      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      if (!streamRef.current) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const recorder = new MediaRecorder(streamRef.current)
       mediaRecorderRef.current = recorder
       chunksRef.current = []
 
@@ -255,7 +262,6 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       }
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop())
         setRecordState('uploading')
         try {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
@@ -320,6 +326,12 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         uploader_id: userId,
         visibility:  ['public-internal'],
       } as never).throwOnError()
+
+      await fetch(`/api/jobs/${jobId}/messages`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ kind: 'attachment', filename: file.name }),
+      })
 
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {

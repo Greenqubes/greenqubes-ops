@@ -64,7 +64,7 @@ export function AssigneeSection({ jobId, role, lang, assignees, allInstallers, o
     }
   }
 
-  const canEdit = role === 'scheduler' && !readOnly
+  const canEdit = (role === 'scheduler' || role === 'sales') && !readOnly
 
   return (
     <Card className="p-5 space-y-3">
