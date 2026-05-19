@@ -44,26 +44,28 @@ function chatCutoff(completedAt: string): Date {
 }
 
 type ChatItem =
-  | { kind: 'message'; id: string; author: string | null; content: string; ts: string }
-  | { kind: 'voice';   id: string; author: string | null; voiceKey: string; ts: string }
-  | { kind: 'file';    id: string; author: string | null; r2Key: string; filename: string; ts: string }
+  | { kind: 'message'; id: string; authorId: string | null; author: string | null; content: string; ts: string }
+  | { kind: 'voice';   id: string; authorId: string | null; author: string | null; voiceKey: string; ts: string }
+  | { kind: 'file';    id: string; authorId: string | null; author: string | null; r2Key: string; filename: string; ts: string }
 
 function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
   const items: ChatItem[] = [
     ...messages
       .filter(m => m.kind === 'text' && m.content)
       .map(m => ({
-        kind:    'message' as const,
-        id:      m.id,
-        author:  m.users?.name ?? null,
-        content: m.content!,
-        ts:      m.ts,
+        kind:     'message' as const,
+        id:       m.id,
+        authorId: m.author_id,
+        author:   m.users?.name ?? null,
+        content:  m.content!,
+        ts:       m.ts,
       })),
     ...messages
       .filter(m => m.kind === 'voice' && m.voice_url)
       .map(m => ({
         kind:     'voice' as const,
         id:       m.id,
+        authorId: m.author_id,
         author:   m.users?.name ?? null,
         voiceKey: m.voice_url!,
         ts:       m.ts,
@@ -71,6 +73,7 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
     ...files.map(f => ({
       kind:     'file' as const,
       id:       f.id,
+      authorId: f.uploader_id,
       author:   f.users?.name ?? null,
       r2Key:    f.r2_key,
       filename: f.r2_key.split('/').pop() ?? f.r2_key,
@@ -519,34 +522,46 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         {items.length === 0 ? (
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
         ) : (
-          items.map(item => (
-            <div key={item.id} className="flex items-start gap-2">
-              {/* Avatar */}
-              <div className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 mt-0.5',
-                item.author ? avatarColor(item.author) : 'bg-ink2',
-              )}>
-                {item.author ? initials(item.author) : '?'}
-              </div>
-
-              {/* Content */}
-              <div className="space-y-0.5 min-w-0">
-                <p className="text-xs text-muted">{item.author ?? 'Unknown'}</p>
-                {item.kind === 'message' ? (
-                  <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
-                    {item.content}
-                  </p>
-                ) : item.kind === 'voice' ? (
-                  <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
-                ) : (
-                  <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
+          items.map(item => {
+            const isMine = item.authorId === userId
+            return (
+              <div key={item.id} className={cn('flex items-end gap-2', isMine && 'flex-row-reverse')}>
+                {/* Avatar — others only */}
+                {!isMine && (
+                  <div className={cn(
+                    'w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0',
+                    item.author ? avatarColor(item.author) : 'bg-ink2',
+                  )}>
+                    {item.author ? initials(item.author) : '?'}
+                  </div>
                 )}
-                <p className="text-[10px] text-muted" suppressHydrationWarning>
-                  {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
-                </p>
+
+                {/* Content */}
+                <div className={cn('space-y-0.5 min-w-0 max-w-[75%]', isMine && 'items-end flex flex-col')}>
+                  {!isMine && (
+                    <p className="text-xs text-muted">{item.author ?? 'Unknown'}</p>
+                  )}
+                  {item.kind === 'message' ? (
+                    <p className={cn(
+                      'text-sm rounded-2xl px-3 py-2 inline-block',
+                      isMine
+                        ? 'bg-terracotta text-white rounded-br-sm'
+                        : 'bg-bg text-ink rounded-bl-sm',
+                    )}>
+                      {item.content}
+                    </p>
+                  ) : item.kind === 'voice' ? (
+                    <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
+                  ) : (
+                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
+                  )}
+                  <p className="text-[10px] text-muted" suppressHydrationWarning>
+                    {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            )
+          })
         )}
         <div ref={bottomRef} />
       </div>
