@@ -45,6 +45,13 @@ export async function POST(
     .eq('id', jobId)
     .throwOnError()
 
+  // Clean up [Sent back] messages now that the job is approved
+  await supabase
+    .from('messages')
+    .delete()
+    .eq('job_id', jobId)
+    .like('body', '[Sent back]%')
+
   const jobUrl = `${APP_URL}/jobs/${jobId}`
   const { salesPoc, installers } = await getJobRecipients(jobId)
 
