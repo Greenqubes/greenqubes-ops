@@ -40,9 +40,11 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   const [input,         setInput]         = useState('')
   const [isStreaming,   setIsStreaming]   = useState(false)
   const [activeChatId,  setActiveChatId]  = useState<string | undefined>()
+  const [sidebarKey,    setSidebarKey]    = useState(0)
   const bottomRef    = useRef<HTMLDivElement>(null)
   const inputRef     = useRef<HTMLTextAreaElement>(null)
   const messagesRef  = useRef<Message[]>([])
+  const isDirtyRef   = useRef(false)
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
 
@@ -94,13 +96,16 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
   useEffect(() => { messagesRef.current = messages }, [messages])
 
-  // Save on unmount (user navigates away without clicking New Chat)
+  // Save on unmount only if the user actually typed new messages
   useEffect(() => {
-    return () => { saveConversation(messagesRef.current) }
+    return () => { if (isDirtyRef.current) saveConversation(messagesRef.current) }
   }, [saveConversation])
 
   function loadFromHistory(chat: AsstChatRow) {
-    if (messagesRef.current.length >= 2) saveConversation(messagesRef.current)
+    if (isDirtyRef.current && messagesRef.current.length >= 2) {
+      saveConversation(messagesRef.current).then(() => setSidebarKey(k => k + 1))
+    }
+    isDirtyRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
       .map(m => ({ id: uid(), role: m.role, content: m.content }))
     setMessages(msgs)
@@ -109,7 +114,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   function startNewChat() {
-    if (messages.length >= 2) saveConversation(messages)
+    if (isDirtyRef.current && messages.length >= 2) {
+      saveConversation(messages).then(() => setSidebarKey(k => k + 1))
+    }
+    isDirtyRef.current = false
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
@@ -126,6 +134,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   async function sendMessage() {
     const text = input.trim()
     if (!text || isStreaming) return
+
+    isDirtyRef.current = true
 
     const userMsg: Message = { id: uid(), role: 'user', content: text }
     const asstId = uid()
@@ -228,6 +238,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         onLoad={loadFromHistory}
         onNewChat={startNewChat}
         onDelete={handleSidebarDelete}
+        refreshTrigger={sidebarKey}
       />
 
       {/* ── Main content ── */}
