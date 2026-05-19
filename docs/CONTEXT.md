@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-20 (feat-chat-2 — chat attachment previews: image thumbnails, document cards, voice note play-button cards with waveform progress)_
+_Last updated: 2026-05-20 (feat-digest — dedicated digest bot, D-Promote, voting polish, 5-day timeout cron)_
 
 ---
 
@@ -175,16 +175,20 @@ The combined index = the company's institutional brain, growing organically as c
 
 ## Monday digest pattern
 
-Every Monday at 9 AM SGT, a cron job runs `scripts/monday-digest.ts`:
+Every Monday at 9 AM SGT, a Vercel cron (`/api/cron/monday-digest`) runs:
 
-1. Pull last week's conversations with `importance >= 4`
-2. Generate one-paragraph summaries for each
-3. Telegram (or email) to scheduler/owner with one-tap "promote to Obsidian" links
-4. On promote → write a new note to the Obsidian vault with the summary + source link, default `visibility: [public-internal]`, queue for human review of visibility before next sync
+1. Pull conversations with `importance >= 4` that are new or unvoted
+2. Generate one-paragraph summaries for each via Claude Haiku
+3. Send to all `digest_subscriber` users via the **dedicated digest Telegram bot** (`TELEGRAM_DIGEST_BOT_TOKEN`) with Promote / Skip inline buttons
+4. Votes are recorded in `digest_votes`; message edits show live poll count (`📊 X Yes · Y No · Z Pending`)
+5. Once strict majority (>50%) votes Promote → sends all subscribers a link to generate the Obsidian note
+6. A 5-day timeout cron (`/api/cron/digest-timeout`) auto-resolves stalled votes: strict majority yes → promoted, otherwise dismissed
 
-The loop: organic conversations → flagged on Monday → human approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+**D-Promote secret command:** typing `D-Promote` anywhere in an assistant conversation forces `importance = 5` and immediately sends the conversation to all digest subscribers outside the Monday schedule. The word is stripped from the Telegram summary so recipients don't see it.
 
-This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop is the safety mechanism against the AI mis-classifying something as broadly shareable.
+The loop: organic conversations → flagged on Monday (or immediately via D-Promote) → human majority approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+
+This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop majority vote is the safety mechanism against the AI mis-classifying something as broadly shareable.
 
 ---
 
