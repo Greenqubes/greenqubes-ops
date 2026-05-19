@@ -1,13 +1,18 @@
+'use client'
+
 import Link from 'next/link'
-import { MapPin, Users } from 'lucide-react'
+import { MapPin, Users, Check } from 'lucide-react'
 import { Pill } from '@/components/Pill'
 import { cn } from '@/lib/utils/cn'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import { fmtTime, isOverdue } from './utils'
 
 interface JobRowProps {
-  job:         ScheduleJob
+  job:          ScheduleJob
   currentDate?: string
+  selectable?:  boolean
+  selected?:    boolean
+  onToggle?:    (id: string) => void
 }
 
 function daysBetween(a: string, b: string): number {
@@ -16,7 +21,7 @@ function daysBetween(a: string, b: string): number {
   )
 }
 
-export function JobRow({ job, currentDate }: JobRowProps) {
+export function JobRow({ job, currentDate, selectable, selected, onToggle }: JobRowProps) {
   const overdue       = isOverdue(job.status, job.date)
   const isDraft       = job.status === 'pending' || job.status === 'awaiting_approval'
   const isCompleted   = job.status === 'completed'
@@ -38,7 +43,21 @@ export function JobRow({ job, currentDate }: JobRowProps) {
   })()
 
   return (
-    <Link href={`/jobs/${job.id}`} className="block mb-2 group">
+    <div className="flex items-start gap-2 mb-2">
+      {selectable && (
+        <button
+          type="button"
+          onClick={() => onToggle?.(job.id)}
+          className="mt-3 shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors"
+          style={{
+            borderColor: selected ? 'var(--terracotta)' : 'var(--line)',
+            backgroundColor: selected ? 'var(--terracotta)' : 'var(--paper)',
+          }}
+        >
+          {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+        </button>
+      )}
+    <Link href={`/jobs/${job.id}`} className="flex-1 block group">
       <div
         className={cn(
           'rounded-card border p-4 transition-all group-hover:brightness-95',
@@ -117,5 +136,6 @@ export function JobRow({ job, currentDate }: JobRowProps) {
         </div>
       </div>
     </Link>
+    </div>
   )
 }

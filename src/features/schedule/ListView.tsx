@@ -18,10 +18,14 @@ interface ListViewProps {
   lang:         string
   strings:      ListStrings
   onSelectDate: (date: string) => void
+  selectable?:  boolean
+  selectedIds?: Set<string>
+  onToggle?:    (id: string) => void
 }
 
 export function ListView({
   jobs, dates, jobsByDate, selectedDate, today, lang, strings, onSelectDate,
+  selectable, selectedIds, onToggle,
 }: ListViewProps) {
   const locale  = langToLocale(lang)
   const dayJobs = jobsByDate[selectedDate] ?? []
@@ -107,7 +111,16 @@ export function ListView({
                 {strings.flexibleWindow}
               </span>
             </div>
-            {dayJobs.map(job => <JobRow key={job.id} job={job} currentDate={selectedDate} />)}
+            {dayJobs.map(job => (
+              <JobRow
+                key={job.id}
+                job={job}
+                currentDate={selectedDate}
+                selectable={selectable}
+                selected={selectedIds?.has(job.id)}
+                onToggle={onToggle}
+              />
+            ))}
           </>
         )}
       </div>

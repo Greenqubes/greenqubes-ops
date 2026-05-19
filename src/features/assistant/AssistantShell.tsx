@@ -299,7 +299,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         </div>
 
         {/* ── Input bar ── */}
-        <div className="shrink-0 border-t border-line bg-paper px-4 py-3 pb-[72px]">
+        <div className="shrink-0 border-t border-line bg-paper px-4 pt-3 pb-[72px]">
           <div className="max-w-2xl mx-auto flex gap-2 items-end">
             <textarea
               ref={inputRef}
