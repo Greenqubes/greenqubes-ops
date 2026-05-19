@@ -27,7 +27,18 @@
       "Bash(open /tmp/suggest-mockup.html)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "Bash(bash /Users/Nic/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh --project-dir \"/Users/Nic/Desktop/Greenqubes AI/greenqubes-ops\")"
+      "Bash(bash /Users/Nic/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh --project-dir \"/Users/Nic/Desktop/Greenqubes AI/greenqubes-ops\")",
+      "Bash(git push *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\supabase\\\\migrations\" -Filter \"*.sql\")",
+      "Bash(Get-Content)",
+      "Bash(Select-String -Pattern \"notification\" -List)",
+      "Bash(not exist *)",
+      "Bash(git merge *)",
+      "Skill(superpowers:systematic-debugging)",
+      "Skill(superpowers:systematic-debugging:*)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@supabase/ssr/package.json'\\).version\\)\")",
+      "Bash(node -e \"const {createBrowserClient} = require\\('@supabase/ssr'\\); const a = createBrowserClient\\('https://x.supabase.co','anon'\\); const b = createBrowserClient\\('https://x.supabase.co','anon'\\); console.log\\('same ref:', a === b\\)\")",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"

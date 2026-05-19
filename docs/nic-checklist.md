@@ -2,11 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-18 (feat-clash-resolution — clash modal, workload chart, delete job, time fixes)_
+_Last updated: 2026-05-19 (feat-chat — WhatsApp chat, avatars, in-app notifications, waveform, camera, grammar suggest)_
 
 ---
 
 ## Pending — Next Session
+
+### Bugs (from 2026-05-19, feat-chat)
+
+- [ ] **[BUG] Job chat: messages not live-updating** — realtime subscription may have broken after the chat refactor. New messages sent by others don't appear without a page refresh. Investigate Supabase channel subscription in `ChatSection.tsx`.
 
 ### Bugs (from 2026-05-18, feat-clash-resolution)
 
@@ -32,7 +36,7 @@ _Last updated: 2026-05-18 (feat-clash-resolution — clash modal, workload chart
 ### Features (added 2026-05-14, feat-design)
 
 - [x] **Dark mode** — Claude Warm palette; next-themes; UserMenu Moon/Sun toggle; persists in localStorage; auto-detects system preference on first visit; contrast fixes across 8 components.
-- [ ] **Installer clash warning** — when an installer is already assigned to a job on the same day, show a page-level prompt/warning. Nic to explain details next session.
+- [x] **Installer clash warning** — ClashResolutionModal with substitute selection, travel-time warning, keep-anyway flow (done in feat-clash-resolution).
 - [ ] **Bulk delete jobs** — Design A chosen: always-on checkboxes in list view, delete bar at bottom when any ticked. Scheduler on Schedule page (scheduled jobs); Sales on Pending tab (both pending + awaiting_approval). Hard-delete from DB. No API route yet. Spec + plan needed next session before coding.
 
 ### Features (added 2026-05-12)
@@ -45,7 +49,7 @@ _Last updated: 2026-05-18 (feat-clash-resolution — clash modal, workload chart
 
 ### Features (from pre-alpha test 2026-05-11)
 
-- [ ] **Voice note: live audio waveform while recording** — show an animated audio bar (waveform / level indicator) during recording so the user knows it's capturing.
+- [x] **Voice note: live audio waveform while recording** — show an animated audio bar (waveform / level indicator) during recording so the user knows it's capturing.
 - [x] **Job creation/edit/pending: time end optional** — removed required validation from `time_end` in CoreSection. Always optional now.
 - [x] **Job creation/edit/pending: job description optional** — removed required validation from `description` in CoreSection. Always optional now.
 - [x] **Job creation/edit/pending: time fields persist on edit** — fixed: `reset(values)` called after successful save so form baseline syncs with saved data and `isDirty` resets correctly.
@@ -57,6 +61,18 @@ _Last updated: 2026-05-18 (feat-clash-resolution — clash modal, workload chart
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-05-19, feat-chat)
+
+- [x] **In-app notifications for send-back events** — bell drawer shows send-back reason; mark all read button in header; selective delete with checkboxes in drawer footer; migration 0022 applied.
+- [x] **Sales POC shown on approval cards** — "Requested by [name]" with icon on each approval card.
+- [x] **Grammar suggest in send-back modal** — Suggest button calls `/api/suggest-grammar` (Haiku); replaces textarea with corrected text.
+- [x] **Wipe [Sent Back] messages on approval** — `/api/jobs/[id]/approve` deletes all messages starting with `[Sent back]` from job chat when job is approved/scheduled.
+- [x] **Chat: WhatsApp-style layout** — own messages right-aligned in terracotta bubble; others left-aligned with avatar + name above.
+- [x] **Chat: avatars with initials** — colour-coded by name hash (same logic as UserMenu); fixed Supabase join key bug (`author`/`uploader` → `users`) that was causing all avatars to show `?`.
+- [x] **Chat: camera capture button** — separate camera input with `capture="environment"`; auto-renames to `{username} {date} {time}`.
+- [x] **Chat: file auto-rename** — voice notes and camera captures renamed to `{username} {date} {time}`; regular file attachments keep their original filename.
+- [x] **Chat: bigger avatars** — increased from `w-7` to `w-9`.
 
 ## Done This Session ✓ (2026-05-12, feat-admin)
 

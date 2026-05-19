@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -179,7 +179,7 @@ interface Props {
 
 export function ChatSection({ jobId, userId, userName, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const bottomRef        = useRef<HTMLDivElement>(null)
   const fileRef          = useRef<HTMLInputElement>(null)
   const cameraRef        = useRef<HTMLInputElement>(null)
