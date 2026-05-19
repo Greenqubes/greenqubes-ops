@@ -36,13 +36,18 @@ function uid() {
 }
 
 export function AssistantShell({ lang, backHref, role }: Props) {
-  const [messages,      setMessages]      = useState<Message[]>([])
-  const [input,         setInput]         = useState('')
-  const [isStreaming,   setIsStreaming]   = useState(false)
-  const [activeChatId,  setActiveChatId]  = useState<string | undefined>()
-  const bottomRef    = useRef<HTMLDivElement>(null)
-  const inputRef     = useRef<HTMLTextAreaElement>(null)
-  const messagesRef  = useRef<Message[]>([])
+  const [messages,     setMessages]     = useState<Message[]>([])
+  const [input,        setInput]        = useState('')
+  const [isStreaming,  setIsStreaming]  = useState(false)
+  const [activeChatId, setActiveChatId] = useState<string | undefined>()
+  const [sidebarKey,   setSidebarKey]   = useState(0)
+
+  const bottomRef       = useRef<HTMLDivElement>(null)
+  const inputRef        = useRef<HTMLTextAreaElement>(null)
+  const messagesRef     = useRef<Message[]>([])
+  const isDirtyRef      = useRef(false)
+  const activeChatIdRef = useRef<string | undefined>(undefined)
+
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
 
@@ -75,7 +80,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const saveConversation = useCallback(async (msgs: Message[]) => {
+  const saveConversation = useCallback(async (msgs: Message[], existingId?: string) => {
     const payload = msgs
       .filter(m => !m.streaming && !m.error)
       .map(m => ({ role: m.role, content: m.content }))
@@ -85,22 +90,28 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         method:    'POST',
         headers:   { 'Content-Type': 'application/json' },
         keepalive: true,
-        body:      JSON.stringify({ messages: payload }),
+        body:      JSON.stringify({ messages: payload, existingId }),
       })
     } catch {
       // best-effort; don't surface to user
     }
   }, [])
 
-  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => { messagesRef.current    = messages    }, [messages])
+  useEffect(() => { activeChatIdRef.current = activeChatId }, [activeChatId])
 
-  // Save on unmount (user navigates away without clicking New Chat)
+  // Save on unmount only if the user typed new messages in this session
   useEffect(() => {
-    return () => { saveConversation(messagesRef.current) }
+    return () => {
+      if (isDirtyRef.current) saveConversation(messagesRef.current, activeChatIdRef.current)
+    }
   }, [saveConversation])
 
   function loadFromHistory(chat: AsstChatRow) {
-    if (messagesRef.current.length >= 2) saveConversation(messagesRef.current)
+    if (isDirtyRef.current && messagesRef.current.length >= 2) {
+      saveConversation(messagesRef.current, activeChatId).then(() => setSidebarKey(k => k + 1))
+    }
+    isDirtyRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
       .map(m => ({ id: uid(), role: m.role, content: m.content }))
     setMessages(msgs)
@@ -109,7 +120,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   function startNewChat() {
-    if (messages.length >= 2) saveConversation(messages)
+    if (isDirtyRef.current && messages.length >= 2) {
+      saveConversation(messages, activeChatId).then(() => setSidebarKey(k => k + 1))
+    }
+    isDirtyRef.current = false
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
@@ -126,6 +140,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   async function sendMessage() {
     const text = input.trim()
     if (!text || isStreaming) return
+
+    isDirtyRef.current = true
 
     const userMsg: Message = { id: uid(), role: 'user', content: text }
     const asstId = uid()
@@ -228,6 +244,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         onLoad={loadFromHistory}
         onNewChat={startNewChat}
         onDelete={handleSidebarDelete}
+        refreshTrigger={sidebarKey}
       />
 
       {/* ── Main content ── */}
