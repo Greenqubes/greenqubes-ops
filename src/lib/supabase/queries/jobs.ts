@@ -77,7 +77,7 @@ export type JobFile = {
   r2_key:      string
   uploader_id: string | null
   ts:          string
-  uploader:    { name: string } | null
+  users:       { name: string } | null
 }
 
 export type JobMessage = {
@@ -88,7 +88,7 @@ export type JobMessage = {
   content:   string | null
   voice_url: string | null
   ts:        string
-  author:    { name: string } | null
+  users:     { name: string } | null
 }
 
 export type JobDetail = {
