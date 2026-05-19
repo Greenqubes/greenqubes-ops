@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, ReactNode } from 'react'
+import { cn } from '@/lib/utils/cn'
 
 interface Props {
   value:    string
@@ -14,7 +15,7 @@ export function SuggestField({ value, onAccept, readOnly = false, field, childre
   const [loading,    setLoading]    = useState(false)
   const [suggestion, setSuggestion] = useState<string | null>(null)
 
-  const handleSuggest = async () => {
+  const handleImprove = async () => {
     if (!value.trim() || loading) return
     setLoading(true)
     setSuggestion(null)
@@ -40,36 +41,39 @@ export function SuggestField({ value, onAccept, readOnly = false, field, childre
           {showButton && (
             <button
               type="button"
-              onClick={handleSuggest}
-              className="text-xs font-medium text-terracotta hover:bg-terracotta/10 px-2 py-0.5 rounded transition-colors"
+              onClick={handleImprove}
+              className="text-xs font-medium text-muted border border-line bg-paper hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
             >
-              ✦ Suggest
+              ✦ Improve
             </button>
           )}
           {loading && (
-            <span className="text-xs text-muted">loading…</span>
+            <span className="text-xs text-muted">Improving…</span>
           )}
         </div>
       )}
       {children}
       {suggestion && (
-        <div className="mt-2 rounded-lg border border-line bg-bg px-3 py-2.5">
-          <p className="text-xs text-muted mb-1.5">✦ Suggested improvement</p>
-          <p className="text-sm text-ink">{suggestion}</p>
-          <div className="flex gap-2 mt-2.5">
-            <button
-              type="button"
-              onClick={() => { onAccept(suggestion); setSuggestion(null) }}
-              className="text-xs font-medium px-3 py-1.5 rounded-md bg-terracotta text-white"
-            >
-              Accept
-            </button>
+        <div className="mt-2 rounded-xl border-2 border-dashed border-terracotta bg-terracotta/[0.04] px-3.5 py-3">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-terracotta mb-2.5">✦ Improve</p>
+          <p className={cn('text-[10px] font-semibold tracking-wider uppercase text-muted mb-1')}>Your original</p>
+          <p className="text-sm text-muted mb-2.5 leading-relaxed">{value}</p>
+          <p className={cn('text-[10px] font-semibold tracking-wider uppercase text-muted mb-1')}>Suggested</p>
+          <p className="text-sm text-ink mb-3 leading-relaxed">{suggestion}</p>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setSuggestion(null)}
-              className="text-xs font-medium px-3 py-1.5 rounded-md border border-line text-ink2"
+              className="flex-1 py-2 rounded-lg border border-line bg-paper text-sm font-medium text-ink2"
             >
-              Dismiss
+              Keep mine
+            </button>
+            <button
+              type="button"
+              onClick={() => { onAccept(suggestion); setSuggestion(null) }}
+              className="flex-1 py-2 rounded-lg bg-terracotta text-sm font-medium text-white"
+            >
+              Use this
             </button>
           </div>
         </div>
