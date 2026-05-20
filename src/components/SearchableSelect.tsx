@@ -70,6 +70,8 @@ export function SearchableSelect({
     e.stopPropagation()
     if (!onDeleteOption) return
     if (confirmDelete) {
+      setOpen(false)
+      setQuery('')
       const ok = await confirmDelete(opt.label)
       if (!ok) return
     }
