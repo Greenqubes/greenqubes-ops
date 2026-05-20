@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast'
 import { ApprovalCard } from './ApprovalCard'
 import { SendBackModal } from './SendBackModal'
 import { BottomNav } from '@/components/BottomNav'
-import { UserMenu } from '@/components/UserMenu'
+import { CompanyBar } from '@/components/CompanyBar'
 import type { ApprovalJob } from '@/lib/supabase/queries/approvals'
 import type { LangCode } from '@/lib/i18n'
 
@@ -57,14 +57,7 @@ export function ApprovalsShell({ queue: initialQueue, userId: _userId, lang }: P
   return (
     <div className="min-h-screen bg-bg">
       <div className="sticky top-0 z-10 bg-bg border-b border-line">
-        {/* ── Company bar ── */}
-        <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
-            <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
-          </div>
-          <UserMenu lang={lang} />
-        </div>
+        <CompanyBar lang={lang} />
         {/* ── Page title ── */}
         <div className="px-4 pt-3 pb-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">

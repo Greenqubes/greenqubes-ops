@@ -10,9 +10,8 @@ import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
-import { NotificationDrawer } from '@/features/notifications/NotificationDrawer'
+import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
-import { UserMenu } from '@/components/UserMenu'
 import {
   toISO, shiftDate, shiftMonth,
   getWeekDays, getMonthCells, monthLabel, langToLocale,
@@ -189,17 +188,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   return (
     <div className="min-h-screen bg-bg">
 
-      {/* ── Company bar ── */}
-      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
-        <div className="flex items-center gap-2">
-          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
-          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <NotificationDrawer jobs={jobs} lang={lang} />
-          <UserMenu lang={lang} />
-        </div>
-      </div>
+      <CompanyBar lang={lang} />
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">

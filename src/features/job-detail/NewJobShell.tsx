@@ -15,6 +15,9 @@ import type { FormValues } from './JobDetailShell'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { SelectOption } from '@/components/SearchableSelect'
+import { CompanyBar } from '@/components/CompanyBar'
+import { BottomNav } from '@/components/BottomNav'
+import type { Role } from '@/lib/supabase/types'
 
 interface Props {
   userId:          string
@@ -22,9 +25,10 @@ interface Props {
   lang:            LangCode
   salesPocOptions: SelectOption[]
   allInstallers:   InstallerUser[]
+  role:            Role
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
   const [saving,      setSaving]      = useState(false)
@@ -119,15 +123,18 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Pr
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg pb-[57px]">
+      <CompanyBar lang={lang} />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-8">
 
         {/* Back + title */}
-        <div className="flex items-center gap-3">
-          <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
+        <div className="sticky top-[45px] z-20 bg-bg -mx-4 px-4 py-3 mb-2 border-b border-line">
+          <div className="flex items-center gap-3">
+            <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
+              <ArrowLeft size={18} />
+            </Link>
+            <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
+          </div>
         </div>
 
         {/* Core fields */}
@@ -199,6 +206,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Pr
           </button>
         </div>
       </div>
+      <BottomNav role={role} />
     </div>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, X, Hourglass, ArrowRight, RotateCcw, Trash2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
-import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import { createClient } from '@/lib/supabase/client'
 import type { LangCode } from '@/lib/i18n'
 
 type InAppNotif = {
@@ -18,16 +18,11 @@ type InAppNotif = {
   created_at: string
 }
 
-function isOverdueNow(job: ScheduleJob): boolean {
-  if (job.status !== 'scheduled') return false
-  const today = new Date().toISOString().split('T')[0]
-  if (job.date < today) return true
-  if (job.date === today && job.time_end) {
-    const [h, m] = job.time_end.split(':').map(Number)
-    const now = new Date()
-    return now.getHours() * 60 + now.getMinutes() > h * 60 + m
-  }
-  return false
+type OverdueJob = {
+  id:       string
+  client:   string
+  date:     string
+  location: string | null
 }
 
 function timeAgo(iso: string): string {
@@ -39,21 +34,19 @@ function timeAgo(iso: string): string {
 }
 
 interface Props {
-  jobs: ScheduleJob[]
   lang: LangCode
 }
 
-export function NotificationDrawer({ jobs, lang }: Props) {
-  const [open,       setOpen]       = useState(false)
-  const [notifs,     setNotifs]     = useState<InAppNotif[]>([])
-  const [selectMode, setSelectMode] = useState(false)
-  const [selected,   setSelected]   = useState<Set<string>>(new Set())
-  const [deleting,   setDeleting]   = useState(false)
+export function NotificationDrawer({ lang }: Props) {
+  const [open,        setOpen]        = useState(false)
+  const [notifs,      setNotifs]      = useState<InAppNotif[]>([])
+  const [overdueJobs, setOverdueJobs] = useState<OverdueJob[]>([])
+  const [selectMode,  setSelectMode]  = useState(false)
+  const [selected,    setSelected]    = useState<Set<string>>(new Set())
+  const [deleting,    setDeleting]    = useState(false)
 
-  const overdueJobs = useMemo(() => jobs.filter(isOverdueNow), [jobs])
-
-  const unreadCount  = notifs.filter(n => !n.read).length
-  const totalBadge   = unreadCount + overdueJobs.length
+  const unreadCount = notifs.filter(n => !n.read).length
+  const totalBadge  = unreadCount + overdueJobs.length
 
   const fetchNotifs = useCallback(async () => {
     try {
@@ -62,9 +55,43 @@ export function NotificationDrawer({ jobs, lang }: Props) {
     } catch { /* best-effort */ }
   }, [])
 
+  const fetchOverdue = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const nowMins = now.getHours() * 60 + now.getMinutes()
+
+      type JobRow = { id: string; client: string; date: string; time_end: string | null; location: string | null }
+      const { data } = await (supabase
+        .from('jobs')
+        .select('id, client, date, time_end, location')
+        .eq('status', 'scheduled')
+        .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
+
+      if (!data) return
+
+      const overdue = data.filter(j => {
+        if (j.date < today) return true
+        if (j.date === today && j.time_end) {
+          const [h, m] = j.time_end.split(':').map(Number)
+          return nowMins > h * 60 + m
+        }
+        return false
+      })
+
+      setOverdueJobs(overdue.map(j => ({
+        id:       j.id,
+        client:   j.client,
+        date:     j.date,
+        location: j.location ?? null,
+      })))
+    } catch { /* best-effort */ }
+  }, [])
+
   // Fetch on mount and whenever drawer opens
-  useEffect(() => { fetchNotifs() }, [fetchNotifs])
-  useEffect(() => { if (open) fetchNotifs() }, [open, fetchNotifs])
+  useEffect(() => { fetchNotifs(); fetchOverdue() }, [fetchNotifs, fetchOverdue])
+  useEffect(() => { if (open) { fetchNotifs(); fetchOverdue() } }, [open, fetchNotifs, fetchOverdue])
 
   function handleOpen() {
     setOpen(true)
@@ -274,6 +301,7 @@ export function NotificationDrawer({ jobs, lang }: Props) {
                   ))}
                 </div>
               )}
+
             </div>
           )}
         </div>
