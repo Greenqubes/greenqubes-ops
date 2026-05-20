@@ -72,7 +72,6 @@ export function JobDetailShell({
   const supabase = createClient()
 
   const completed = job.status === 'completed'
-  const readOnly  = completed
 
   const initialAssigneeIds = job.job_assignees
     .map(a => a.users?.id)
@@ -80,6 +79,8 @@ export function JobDetailShell({
 
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
+
+  const readOnly  = completed || (role === 'sales' && status === 'awaiting_approval')
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
@@ -533,13 +534,15 @@ export function JobDetailShell({
                     Mark job complete
                   </button>
                 )}
-                <button
-                  type="button"
-                  disabled
-                  className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
-                >
-                  Duplicate (WIP)
-                </button>
+                {!(role === 'sales' && status === 'awaiting_approval') && (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
+                  >
+                    Duplicate (WIP)
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => router.back()}
@@ -551,7 +554,16 @@ export function JobDetailShell({
                   Cancel
                 </button>
               </div>
-              {!readOnly && role === 'sales' ? (
+              {role === 'sales' && status === 'awaiting_approval' ? (
+                <button
+                  type="button"
+                  onClick={() => handleStatusChange('pending')}
+                  disabled={saving}
+                  className="w-full flex items-center justify-center px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Recalling…' : 'Recall'}
+                </button>
+              ) : !readOnly && role === 'sales' ? (
                 <div className="flex gap-2">
                   <button
                     type="button"
