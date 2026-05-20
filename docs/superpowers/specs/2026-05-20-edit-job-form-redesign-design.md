@@ -96,9 +96,10 @@ Fields in order:
 New card in `JobDetailShell` — not inside `CoreSection`.
 
 Fields in order:
-1. **Sales / POC** (SearchableSelect, moved from CoreSection bottom) — wired to `sales_poc_id` form field via `Controller`
-2. **Notes** (SuggestField + textarea, moved from CoreSection) — wired to `register('notes')`
-3. **Installers** (InstallerGrid, replaces AssigneeSection)
+1. **Main Sales / POC** (SearchableSelect, single select) — wired to existing `sales_poc_id` form field via `Controller`. This is the primary owner of the job.
+2. **Sales / POC** (multi-select — UI placeholder this session, see below) — shows selected names as bubble chips. Wiring deferred to next session.
+3. **Notes** (SuggestField + textarea, moved from CoreSection) — wired to `register('notes')`
+4. **Installers** (InstallerGrid, replaces AssigneeSection)
    - `initialSelectedIds`: current `job.job_assignees` IDs pre-selected on mount
    - On save: diff selected IDs against initial IDs → delete removed assignees, insert added assignees via `job_assignees` table
    - `InstallerGrid` gets new optional prop `initialSelectedIds?: string[]`
@@ -166,7 +167,8 @@ When the logged-in user's role is `installer`, `JobDetailShell` renders a read-o
 - **Completion Photos**: upload button **shown** — installer can upload
 
 ### Team Card — installer changes
-- **Sales / POC**: shown as plain text (name only — no SearchableSelect dropdown)
+- **Main Sales / POC**: shown as plain read-only text (name only — no dropdown)
+- **Sales / POC**: shown as read-only bubble chips (same visual style as the edit form multi-select, but no X button and no chevron — non-interactive). Background of the chip box uses `var(--bg)` to signal read-only.
 - **Notes**: shown as plain read-only text (no textarea, no Suggest button)
 - **Installer grid**: shows **only the assigned installers** (no unselected / dimmed cards for unassigned users). Determined by `initialSelectedIds` — only render installer cards whose ID is in the pre-selected set.
 
@@ -202,6 +204,41 @@ const salesPocOptions = salesUsers?.map(u => ({ id: u.id, label: u.name })) ?? [
 ```
 
 Pass `salesPocOptions` as a prop to `JobDetailShell`.
+
+---
+
+## Multi-Select Sales / POC — Next Session Handoff
+
+This feature is **UI placeholder only** in the current session. The field is rendered but not wired to the database. The next session must complete the full implementation.
+
+### What it is
+A second "Sales / POC" row in the Team card, directly below "Main Sales / POC". Allows multiple additional sales/POC users to be tagged on a job (e.g., for notification routing, visibility, or co-ownership).
+
+### Visual spec (already built in this session)
+- **Edit form (Scheduler/Sales):** Multi-select input rendered as a bordered box (`border: 1px solid var(--line); border-radius: 8px`) containing bubble chips for each selected name. Each chip: `padding: 2px 7px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); font-size: 12px`. Chip includes an X (remove) button. Box includes a downward chevron icon on the right for dropdown affordance. "Add more…" placeholder shown when fewer than max selections.
+- **Installer / View job:** Same bubble chip container but with `background: var(--bg)` to signal read-only. Chips show name only — no X button, no chevron, no placeholder text. Non-interactive.
+- Reference mockup: `.superpowers/brainstorm/1710-1779285373/content/edit-form-comparison-v2.html` (Team card section on both phones)
+
+### DB schema required (next session must create)
+New junction table `job_poc_users` — same pattern as `job_assignees`:
+```sql
+create table job_poc_users (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid references jobs(id) on delete cascade,
+  user_id uuid references users(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(job_id, user_id)
+);
+```
+Enable RLS. Policy: scheduler + sales can insert/delete; all roles can select where job is theirs.
+
+### Data loading (next session)
+- On load (`page.tsx`): fetch `job_poc_users` for the job, resolve to user names via `users` table, pass as `pocUserIds: string[]` prop to `JobDetailShell`
+- On save: diff selected IDs against initial IDs → delete removed rows, insert added rows in `job_poc_users` — same pattern as `job_assignees` diff in the same session
+
+### Component changes (next session)
+- `JobDetailShell.tsx`: replace the placeholder `<div>` with a real `Controller`-wired multi-select (use the same `SearchableSelect` component with a `multiple` prop, or build a `MultiSelect` wrapper if `SearchableSelect` doesn't support it)
+- `src/app/jobs/[id]/page.tsx`: load `pocUserIds` alongside `salesPocOptions`
 
 ---
 
