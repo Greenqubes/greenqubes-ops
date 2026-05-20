@@ -18,6 +18,8 @@ import type { FormValues } from './JobDetailShell'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { SelectOption } from '@/components/SearchableSelect'
+import { CompanyBar } from '@/components/CompanyBar'
+import type { Role } from '@/lib/supabase/types'
 
 interface Props {
   userId:          string
@@ -25,9 +27,10 @@ interface Props {
   lang:            LangCode
   salesPocOptions: SelectOption[]
   allInstallers:   InstallerUser[]
+  role:            Role
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
   const [saving,      setSaving]      = useState(false)
@@ -123,6 +126,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers }: Pr
 
   return (
     <div className="min-h-screen bg-bg">
+      <CompanyBar lang={lang} />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-8">
 
         {/* Back + title */}

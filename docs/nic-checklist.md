@@ -67,6 +67,14 @@ _Last updated: 2026-05-21 (fix-jobs — schedule filter chips, InstallerGrid gre
 
 ---
 
+## Done This Session ✓ (2026-05-21, ux-nav)
+
+- [x] **CompanyBar shared component** — new `src/components/CompanyBar.tsx`; renders GreenQubes wordmark + Pre-Alpha + bell + user menu; sticky `top-0 z-30`; used in all 7 shells.
+- [x] **NotificationDrawer decoupled from jobs prop** — now fetches overdue jobs internally via Supabase client on mount and on open; no longer needs `jobs: ScheduleJob[]` passed from parent.
+- [x] **Company bar persistent across whole app** — ScheduleShell, ApprovalsShell, InstallerShell, AssistantShell, AdminShell, JobDetailShell, NewJobShell all use CompanyBar at the top.
+- [x] **AdminShell stacking fixed** — existing admin header moved to `sticky top-[45px]` so it stacks below CompanyBar without overlap.
+- [x] **BottomNav kept on list/dashboard pages only** — removed from job form shells after review (cramped with action bar); remains on Schedule, Approvals, Installer, Assistant, Admin.
+
 ## Done This Session ✓ (2026-05-21, fix-jobs)
 
 - [x] **Schedule filter chips by view** — week view shows only "All" chip; month view hides chips entirely; switching to either view resets filter to "all".
@@ -76,7 +84,7 @@ _Last updated: 2026-05-21 (fix-jobs — schedule filter chips, InstallerGrid gre
 - [x] **AttachmentBuckets silent failures fixed** — `url_link` and `production_instructions` were missing from the DB `file_kind` enum, causing all inserts to fail silently. Migration 0028 adds both values. Also added success/error toasts ("Image uploaded.", "Attachment uploaded.", "URL uploaded.") and a `contentType` fallback for browsers that omit MIME type.
 - [x] **Scheduler notify-assigned on save** — new `/api/jobs/[id]/notify-assigned` route sends `tplJobAssigned` Telegram notification to any newly added installers when a scheduler saves a scheduled job.
 
-## Done Earlier This Session ✓ (2026-05-21, ux-jobs)
+## Done This Session ✓ (2026-05-21, ux-jobs)
 
 - [x] **GreenqubesAI role dropdown locked** — Admin → Users tab hides role dropdown for GreenqubesAI user; shows a read-only label instead so it can't be accidentally changed.
 - [x] **Person-in-Charge + Sub POC / Coordinators labels** — Team card renamed from "Main Sales / POC" and "Sales / POC" to clearer labels.

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
+import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
@@ -249,6 +250,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        <CompanyBar lang={lang} />
 
         {/* ── Header ── */}
         <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">

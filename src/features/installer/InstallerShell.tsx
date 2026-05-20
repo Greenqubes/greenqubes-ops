@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Search, X, Briefcase, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { UserMenu } from '@/components/UserMenu'
+import { CompanyBar } from '@/components/CompanyBar'
 import { t } from '@/lib/i18n'
 import {
   toISO, timeToMinutes, shiftDate, shiftMonth,
@@ -143,13 +143,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
     <div className="min-h-screen bg-bg">
 
       {/* ── Company bar ── */}
-      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
-        <div className="flex items-center gap-2">
-          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
-          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
-        </div>
-        <UserMenu lang={lang} />
-      </div>
+      <CompanyBar lang={lang} />
 
       {/* ── Eyebrow ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">

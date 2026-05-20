@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-21 (fix-jobs — schedule filter chips by view, InstallerGrid brand-green card highlight + readOnly, attachment bucket silent failures fixed + toasts, migration 0028 file_kind enum, notify-assigned route)_
+_Last updated: 2026-05-21 (ux-nav — CompanyBar shared component, persistent sticky top nav across all shells, NotificationDrawer self-fetching overdue jobs)_
 
 ---
 

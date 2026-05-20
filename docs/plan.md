@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-21 (ux-jobs — job form role-based action bar polish, Recall button, scheduled state, GreenqubesAI admin lock)_
+_Last updated: 2026-05-21 (ux-nav — persistent company bar, global sticky top nav, CompanyBar shared component)_
 
 ---
 
@@ -95,6 +95,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | chore-git-cleanup | Git Branch Cleanup | Merged dev into main (3 fix-assistant code patches + session notes); reset dev to match main; deleted feat-job-form-redesign branch locally and from remote; main, dev, and origin all in sync at same commit | [chore/chore-config-20260520-1-note.md](chore/chore-config-20260520-1-note.md) |
 | ux-jobs | Job Form Action Bar Polish | InstallerGrid badge fix; SuggestField "Suggest" rename; upload API production_instructions fix; CoreSection + ProductionReadySection rewrite; NewJobShell Team card; AssigneeSection deleted; GreenqubesAI role dropdown locked; Person-in-Charge + Sub POC labels; X-button revert; sales pending action bar (Save Changes + Push for Approval); scheduler awaiting_approval bar (Send Back + Approve & Notify); Duplicate (WIP) placeholder; sales awaiting_approval: form locked + Recall button; sales scheduled: Push for Approval hidden + Save Changes full width | [ux/ux-jobs-20260521-1-note.md](ux/ux-jobs-20260521-1-note.md) |
 | fix-jobs | Job Form + Schedule Fixes | Schedule: filter chips hidden in week (All only) / month (none) views; InstallerGrid: card highlights brand-green on select (no tick), readOnly prop, isInstallerDirty unlocks Save Changes (sales) + Save & notify (scheduler); back arrow → router.back() + "Back to Schedule"; installer locked for sales on scheduled jobs; AttachmentBuckets: fixed silent failures (url_link + production_instructions missing from file_kind DB enum — migration 0028), added success/error toasts, contentType fallback; new /api/jobs/[id]/notify-assigned route sends tplJobAssigned to newly added installers on scheduler save | [fix/fix-jobs-20260521-1-note.md](fix/fix-jobs-20260521-1-note.md) |
+| ux-nav | Persistent Company Bar + Global Nav | CompanyBar shared component (GreenQubes + bell + user menu) sticky top-0 across all shells; NotificationDrawer refactored to fetch overdue jobs internally (no jobs prop); BottomNav kept on list/dashboard pages only; all 7 shells updated | [ux/ux-nav-20260521-1-note.md](ux/ux-nav-20260521-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

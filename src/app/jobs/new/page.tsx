@@ -4,6 +4,7 @@ import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import type { LangCode } from '@/lib/i18n'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { SelectOption } from '@/components/SearchableSelect'
+import type { Role } from '@/lib/supabase/types'
 
 export default async function NewJobPage() {
   const supabase = await createClient()
@@ -44,6 +45,7 @@ export default async function NewJobPage() {
       lang={(profile.lang as LangCode) ?? 'en'}
       salesPocOptions={salesPocOptions}
       allInstallers={allInstallers}
+      role={profile.role as Role}
     />
   )
 }

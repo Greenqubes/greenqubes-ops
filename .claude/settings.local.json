@@ -69,10 +69,14 @@
       "Skill(superpowers:verification-before-completion)",
       "Skill(superpowers:verification-before-completion:*)",
       "Bash(git reset *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\" -Directory)",
+      "Bash(Select-Object -First 20)",
+      "Bash(mkdir -p \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\src\\\\app\\\\api\\\\jobs\\\\[id]\\\\notify-assigned\")"
     ],
     "additionalDirectories": [
-      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users"
+      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
+      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]"
     ]
   }
 }

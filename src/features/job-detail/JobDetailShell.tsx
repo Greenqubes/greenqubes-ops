@@ -20,6 +20,7 @@ import { InstallerGrid } from './InstallerGrid'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { SendBackModal } from '@/features/approvals/SendBackModal'
 import { Modal } from '@/components/Modal'
+import { CompanyBar } from '@/components/CompanyBar'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -315,7 +316,9 @@ export function JobDetailShell({
   return (
     <div className="min-h-screen bg-bg pb-28">
 
-      {/* ── Header (non-sticky) ─────────────────────────────────── */}
+      <CompanyBar lang={lang} />
+
+      {/* ── Header ──────────────────────────────────────────────── */}
       <div className="px-4 pt-5 pb-3">
         <button
           type="button"
@@ -701,6 +704,8 @@ export function JobDetailShell({
           </div>
         </div>
       </Modal>
+
+
 
     </div>
   )
