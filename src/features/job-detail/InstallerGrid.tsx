@@ -15,12 +15,13 @@ function initials(name: string) {
 }
 
 interface Props {
-  allInstallers: InstallerUser[]
-  onChange:      (selectedIds: string[]) => void
+  allInstallers:       InstallerUser[]
+  onChange:            (selectedIds: string[]) => void
+  initialSelectedIds?: string[]
 }
 
-export function InstallerGrid({ allInstallers, onChange }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = [] }: Props) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedIds))
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
 
@@ -74,14 +75,17 @@ export function InstallerGrid({ allInstallers, onChange }: Props) {
                     : 'border-line bg-paper hover:border-green hover:bg-green/5',
                 )}
               >
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0 transition-shadow relative',
-                    isSelected && 'ring-2 ring-green ring-offset-1',
-                  )}
-                  style={{ background: color }}
-                >
-                  {initials(inst.name)}
+                {/* relative wrapper so badge sits outside the clipped avatar */}
+                <div className="relative shrink-0">
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white transition-shadow',
+                      isSelected && 'ring-2 ring-green ring-offset-1',
+                    )}
+                    style={{ background: color }}
+                  >
+                    {initials(inst.name)}
+                  </div>
                   {isSelected && (
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green flex items-center justify-center">
                       <Check size={8} strokeWidth={3} className="text-white" />
