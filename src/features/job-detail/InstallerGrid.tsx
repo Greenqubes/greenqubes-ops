@@ -18,9 +18,10 @@ interface Props {
   allInstallers:       InstallerUser[]
   onChange:            (selectedIds: string[]) => void
   initialSelectedIds?: string[]
+  readOnly?:           boolean
 }
 
-export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = [] }: Props) {
+export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = [], readOnly = false }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedIds))
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
@@ -38,6 +39,7 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
   }, [])
 
   function toggle(id: string) {
+    if (readOnly) return
     setSelected(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -68,21 +70,24 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                 key={inst.id}
                 type="button"
                 onClick={() => toggle(inst.id)}
+                disabled={readOnly}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
                   isSelected
                     ? 'border-green bg-green/10'
-                    : 'border-line bg-paper hover:border-green hover:bg-green/5',
+                    : 'border-line bg-paper',
+                  !readOnly && !isSelected && 'hover:border-green hover:bg-green/5',
+                  readOnly && 'cursor-default',
                 )}
               >
                 {/* relative wrapper so badge sits outside the clipped avatar */}
                 <div className="relative shrink-0">
                   <div
-                    className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white transition-shadow',
-                      isSelected && 'ring-2 ring-green ring-offset-1',
-                    )}
-                    style={{ background: color }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white"
+                    style={{
+                      background: color,
+                      boxShadow: isSelected ? '0 0 0 2px var(--green), 0 0 0 3.5px white' : undefined,
+                    }}
                   >
                     {initials(inst.name)}
                   </div>

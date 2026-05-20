@@ -25,7 +25,6 @@ import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/querie
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Inbox, Trash2, CheckCircle } from 'lucide-react'
-import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 
 export type FormValues = {
@@ -302,13 +301,14 @@ export function JobDetailShell({
 
       {/* ── Header (non-sticky) ─────────────────────────────────── */}
       <div className="px-4 pt-5 pb-3">
-        <Link
-          href={backHref}
+        <button
+          type="button"
+          onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm text-ink2 hover:text-ink mb-2"
         >
           <ArrowLeft size={14} />
-          {isInstaller ? 'Back to Jobs' : 'Schedule'}
-        </Link>
+          {isInstaller ? 'Back to Jobs' : 'Back to Schedule'}
+        </button>
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="font-display text-xl font-semibold text-ink">
             {isInstaller ? 'View job' : 'Edit job'}
@@ -456,6 +456,7 @@ export function JobDetailShell({
                 allInstallers={installers}
                 initialSelectedIds={initialAssigneeIds}
                 onChange={setSelectedInstallerIds}
+                readOnly={role === 'sales' && status === 'scheduled'}
               />
             )}
           </div>
