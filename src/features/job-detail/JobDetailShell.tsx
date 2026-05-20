@@ -18,6 +18,7 @@ import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid } from './InstallerGrid'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import { SendBackModal } from '@/features/approvals/SendBackModal'
 import { Modal } from '@/components/Modal'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
@@ -84,6 +85,7 @@ export function JobDetailShell({
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
+  const [showSendBackModal,    setShowSendBackModal]   = useState(false)
   const [selectedInstallerIds, setSelectedInstallerIds]= useState<string[]>(initialAssigneeIds)
 
   const {
@@ -183,6 +185,40 @@ export function JobDetailShell({
       showError(t(lang, 'saveError'))
       setDeleting(false)
       setShowDeleteModal(false)
+    }
+  }
+
+  const handleApprove = async () => {
+    setSaving(true)
+    try {
+      if (isDirty) await saveValues(getValues())
+      const res = await fetch(`/api/jobs/${job.id}/approve`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      showSuccess(t(lang, 'approvedSuccess'))
+      router.push('/schedule')
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSendBackFromDetail = async (note: string) => {
+    setShowSendBackModal(false)
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/send-back`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ note }),
+      })
+      if (!res.ok) throw new Error()
+      showSuccess(t(lang, 'sentBack'))
+      router.push('/approvals')
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -535,6 +571,26 @@ export function JobDetailShell({
                     {saving ? t(lang, 'loading') : 'Push for Approval'}
                   </button>
                 </div>
+              ) : !readOnly && role === 'scheduler' && status === 'awaiting_approval' ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSendBackModal(true)}
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Send Back to Sales
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Bell size={14} />
+                    {saving ? t(lang, 'loading') : 'Approve & Notify'}
+                  </button>
+                </div>
               ) : !readOnly ? (
                 <button
                   type="button"
@@ -585,6 +641,15 @@ export function JobDetailShell({
           </Btn>
         </div>
       </Modal>
+
+      {showSendBackModal && (
+        <SendBackModal
+          client={watch('client') || job.client}
+          lang={lang}
+          onConfirm={handleSendBackFromDetail}
+          onClose={() => setShowSendBackModal(false)}
+        />
+      )}
 
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <div className="space-y-4">
