@@ -11,6 +11,7 @@ import { Pill } from '@/components/Pill'
 import { Card } from '@/components/Card'
 import { Field } from '@/components/Field'
 import { SearchableSelect, SelectOption } from '@/components/SearchableSelect'
+import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
 import { AttachmentBuckets } from './AttachmentBuckets'
@@ -58,14 +59,17 @@ interface Props {
   userId:          string
   userName:        string
   lang:            LangCode
-  installers:      InstallerUser[]
-  initialMessages: JobMessage[]
-  salesPocOptions: SelectOption[]
-  backHref?:       string
+  installers:             InstallerUser[]
+  initialMessages:        JobMessage[]
+  salesPocOptions:        SelectOption[]
+  initialCoordinatorIds?: string[]
+  coordinatorOptions?:    Array<{ id: string; label: string }>
+  backHref?:              string
 }
 
 export function JobDetailShell({
-  job, role, userId, userName, lang, installers, initialMessages, salesPocOptions, backHref = '/schedule',
+  job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
+  initialCoordinatorIds = [], coordinatorOptions = [], backHref = '/schedule',
 }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router   = useRouter()
@@ -87,7 +91,8 @@ export function JobDetailShell({
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
   const [showSendBackModal,    setShowSendBackModal]   = useState(false)
-  const [selectedInstallerIds, setSelectedInstallerIds]= useState<string[]>(initialAssigneeIds)
+  const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
+  const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
 
   const {
     register, handleSubmit, getValues, setValue, reset, control, watch,
@@ -150,15 +155,31 @@ export function JobDetailShell({
     return added
   }
 
+  const saveCoordinatorDiff = async (): Promise<string[]> => {
+    const added   = selectedCoordinatorIds.filter(id => !initialCoordinatorIds.includes(id))
+    const removed = initialCoordinatorIds.filter(id => !selectedCoordinatorIds.includes(id))
+    for (const id of removed) {
+      await supabase.from('job_coordinators').delete().eq('job_id', job.id).eq('user_id', id).throwOnError()
+    }
+    for (const id of added) {
+      await supabase.from('job_coordinators').insert({ job_id: job.id, user_id: id } as never).throwOnError()
+    }
+    return added
+  }
+
   const onSubmit = async (values: FormValues) => {
     setSaving(true)
     try {
-      const [, addedIds] = await Promise.all([saveValues(values), saveInstallerDiff()])
-      if (addedIds.length > 0 && role === 'scheduler' && status === 'scheduled') {
+      const [, addedInstallerIds, addedCoordinatorIds] = await Promise.all([
+        saveValues(values), saveInstallerDiff(), saveCoordinatorDiff(),
+      ])
+      const notifyInstallerIds   = (addedInstallerIds.length > 0 && role === 'scheduler' && status === 'scheduled') ? addedInstallerIds : []
+      const notifyCoordinatorIds = addedCoordinatorIds
+      if (notifyInstallerIds.length > 0 || notifyCoordinatorIds.length > 0) {
         await fetch(`/api/jobs/${job.id}/notify-assigned`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ installerIds: addedIds }),
+          body:    JSON.stringify({ installerIds: notifyInstallerIds, coordinatorIds: notifyCoordinatorIds }),
         })
       }
       showSuccess(t(lang, 'savedSuccessfully'))
@@ -422,17 +443,14 @@ export function JobDetailShell({
               )}
             </Field>
 
-            {/* Sub POC / Coordinators — multi-select (UI placeholder; wiring deferred to next session) */}
+            {/* Sub POC / Coordinators */}
             <Field label="Sub POC / Coordinators">
-              {isInstaller ? (
-                <div className="flex flex-wrap gap-2">
-                  {/* populated when multi-select feature ships */}
-                </div>
-              ) : (
-                <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-muted italic cursor-not-allowed">
-                  Coming soon — multi-select
-                </div>
-              )}
+              <MultiUserSelect
+                options={coordinatorOptions}
+                value={selectedCoordinatorIds}
+                onChange={setSelectedCoordinatorIds}
+                disabled={readOnly || isInstaller}
+              />
             </Field>
 
             {/* Notes */}

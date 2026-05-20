@@ -38,6 +38,9 @@ export default async function NewJobPage() {
     .map(u => ({ id: u.id, label: u.name }))
   const allInstallers = (installerRows ?? []) as unknown as InstallerUser[]
 
+  const coordinatorOptions = ((salesRows ?? []) as { id: string; name: string }[])
+    .map(u => ({ id: u.id, label: u.name }))
+
   return (
     <NewJobShell
       userId={profile.id}
@@ -46,6 +49,7 @@ export default async function NewJobPage() {
       salesPocOptions={salesPocOptions}
       allInstallers={allInstallers}
       role={profile.role as Role}
+      coordinatorOptions={coordinatorOptions}
     />
   )
 }
