@@ -73,9 +73,9 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
                   isSelected
-                    ? 'border-green bg-green/20'
+                    ? 'border-brand-green bg-brand-green/20'
                     : 'border-line bg-paper',
-                  !readOnly && !isSelected && 'hover:border-green hover:bg-green/5',
+                  !readOnly && !isSelected && 'hover:border-brand-green hover:bg-brand-green/5',
                   readOnly && 'cursor-default',
                 )}
               >
@@ -90,12 +90,12 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                 <div className="flex-1 min-w-0">
                   <p className={cn(
                     'text-sm font-semibold truncate',
-                    isSelected ? 'text-green' : 'text-ink',
+                    isSelected ? 'text-brand-green' : 'text-ink',
                   )}>
                     {inst.name}
                   </p>
                   {meta && (
-                    <p className={cn('text-[11px] truncate', isSelected ? 'text-green/70' : 'text-muted')}>{meta}</p>
+                    <p className={cn('text-[11px] truncate', isSelected ? 'text-brand-green/70' : 'text-muted')}>{meta}</p>
                   )}
                 </div>
               </button>
