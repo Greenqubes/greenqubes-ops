@@ -310,13 +310,19 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
 
         {editing ? (
           <div className="flex flex-col gap-2.5 mt-2">
-            <select
-              className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-              value={role}
-              onChange={e => handleRoleChange(e.target.value as Role)}
-            >
-              {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
-            </select>
+            {user.name === 'GreenqubesAI' ? (
+              <div className="w-full border border-line rounded-lg px-3 py-2 text-sm text-muted bg-bg opacity-60 cursor-not-allowed">
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </div>
+            ) : (
+              <select
+                className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                value={role}
+                onChange={e => handleRoleChange(e.target.value as Role)}
+              >
+                {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              </select>
+            )}
 
             <div>
               <label className="text-xs text-muted mb-1 block">Telegram Chat ID</label>

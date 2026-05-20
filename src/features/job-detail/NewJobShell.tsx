@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Card } from '@/components/Card'
+import { Field } from '@/components/Field'
+import { SuggestField } from '@/components/SuggestField'
+import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
 import { Lock, ArrowLeft } from 'lucide-react'
@@ -147,8 +150,54 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           readOnly={false}
           lang={lang}
           validateRequired
-          salesPocOptions={salesPocOptions}
         />
+
+        {/* Team fields — Sales/POC, Notes, Production Instructions */}
+        <Card className="p-5 space-y-4">
+          <Field label="Sales / POC">
+            <Controller
+              control={control}
+              name="sales_poc_id"
+              render={({ field }) => (
+                <SearchableSelect
+                  value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
+                  onChange={label => {
+                    const found = salesPocOptions.find(o => o.label === label)
+                    if (found) field.onChange(found.id)
+                  }}
+                  options={salesPocOptions}
+                  disabled={false}
+                />
+              )}
+            />
+          </Field>
+          <Field label="Notes">
+            <SuggestField
+              value={watch('notes')}
+              onAccept={s => setValue('notes', s, { shouldDirty: true })}
+              field="Notes"
+            >
+              <textarea
+                {...register('notes')}
+                rows={2}
+                className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+              />
+            </SuggestField>
+          </Field>
+          <Field label="Production Instructions">
+            <SuggestField
+              value={watch('production_instructions')}
+              onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
+              field="Production Instructions"
+            >
+              <textarea
+                {...register('production_instructions')}
+                rows={2}
+                className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+              />
+            </SuggestField>
+          </Field>
+        </Card>
 
         {/* Installers */}
         <Card className="p-5 space-y-3">

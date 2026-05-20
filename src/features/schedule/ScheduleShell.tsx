@@ -266,7 +266,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}
-              onClick={() => setViewMode(v)}
+              onClick={() => { setViewMode(v); if (v === 'week' || v === 'month') setFilter('all') }}
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
@@ -279,20 +279,22 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           ))}
         </div>
 
-        {filterChips.map(({ v, label }) => (
-          <button
-            key={v}
-            onClick={() => setFilter(v)}
-            className={cn(
-              'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
-              filter === v
-                ? 'bg-terracotta-soft border-terracotta text-terracotta'
-                : 'bg-paper border-line text-ink2 hover:border-ink2'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        {viewMode !== 'month' && filterChips
+          .filter(chip => viewMode === 'week' ? chip.v === 'all' : true)
+          .map(({ v, label }) => (
+            <button
+              key={v}
+              onClick={() => setFilter(v)}
+              className={cn(
+                'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
+                filter === v
+                  ? 'bg-terracotta-soft border-terracotta text-terracotta'
+                  : 'bg-paper border-line text-ink2 hover:border-ink2'
+              )}
+            >
+              {label}
+            </button>
+          ))}
       </div>
 
       {/* ── Views ── */}

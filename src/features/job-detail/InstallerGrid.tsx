@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 
@@ -15,12 +14,14 @@ function initials(name: string) {
 }
 
 interface Props {
-  allInstallers: InstallerUser[]
-  onChange:      (selectedIds: string[]) => void
+  allInstallers:       InstallerUser[]
+  onChange:            (selectedIds: string[]) => void
+  initialSelectedIds?: string[]
+  readOnly?:           boolean
 }
 
-export function InstallerGrid({ allInstallers, onChange }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = [], readOnly = false }: Props) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedIds))
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
 
@@ -37,6 +38,7 @@ export function InstallerGrid({ allInstallers, onChange }: Props) {
   }, [])
 
   function toggle(id: string) {
+    if (readOnly) return
     setSelected(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -67,36 +69,33 @@ export function InstallerGrid({ allInstallers, onChange }: Props) {
                 key={inst.id}
                 type="button"
                 onClick={() => toggle(inst.id)}
+                disabled={readOnly}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
                   isSelected
-                    ? 'border-green bg-green/10'
-                    : 'border-line bg-paper hover:border-green hover:bg-green/5',
+                    ? 'border-brand-green bg-brand-green/20'
+                    : 'border-line bg-paper',
+                  !readOnly && !isSelected && 'hover:border-brand-green hover:bg-brand-green/5',
+                  readOnly && 'cursor-default',
                 )}
               >
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0 transition-shadow relative',
-                    isSelected && 'ring-2 ring-green ring-offset-1',
-                  )}
-                  style={{ background: color }}
-                >
-                  {initials(inst.name)}
-                  {isSelected && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green flex items-center justify-center">
-                      <Check size={8} strokeWidth={3} className="text-white" />
-                    </div>
-                  )}
+                <div className="shrink-0">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white"
+                    style={{ background: color }}
+                  >
+                    {initials(inst.name)}
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn(
                     'text-sm font-semibold truncate',
-                    isSelected ? 'text-green' : 'text-ink',
+                    isSelected ? 'text-brand-green' : 'text-ink',
                   )}>
                     {inst.name}
                   </p>
                   {meta && (
-                    <p className="text-[11px] text-muted truncate">{meta}</p>
+                    <p className={cn('text-[11px] truncate', isSelected ? 'text-brand-green/70' : 'text-muted')}>{meta}</p>
                   )}
                 </div>
               </button>

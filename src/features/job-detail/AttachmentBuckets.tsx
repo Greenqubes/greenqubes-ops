@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import {
   Image as ImageIcon, Paperclip, Link as LinkIcon, Trash2, Plus,
@@ -40,6 +41,7 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
   const [loading,  setLoading]  = useState(true)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const supabase = createClient()
+  const { success: showSuccess, error: showError } = useToast()
 
   async function load() {
     setLoading(true)
@@ -79,19 +81,21 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
     setBuckets(prev => prev.filter(b => b.id !== id))
   }
 
-  async function uploadFile(bucket: AttachmentBucket, file: File) {
+  async function uploadFile(bucket: AttachmentBucket, file: File, isImage: boolean) {
     const userId = (await supabase.auth.getUser()).data.user?.id
-    if (!userId) return
+    if (!userId) { showError('Not signed in.'); return }
 
+    const contentType = file.type || 'application/octet-stream'
     const res = await fetch('/api/r2/upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType: file.type }),
+      body: JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType }),
     })
-    if (!res.ok) return
+    if (!res.ok) { showError('Upload failed. Please try again.'); return }
     const { url, key } = await res.json() as { url: string; key: string }
 
-    await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+    const putRes = await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } })
+    if (!putRes.ok) { showError('Upload failed. Please try again.'); return }
 
     const { data: fileRow, error } = await supabase
       .from('files')
@@ -105,15 +109,16 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
       } as never)
       .select('id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts')
       .single()
-    if (error) return
+    if (error) { showError('Upload failed. Please try again.'); return }
     setBuckets(prev => prev.map(b =>
       b.id === bucket.id ? { ...b, files: [...b.files, fileRow as unknown as BucketFile] } : b,
     ))
+    showSuccess(isImage ? 'Image uploaded.' : 'Attachment uploaded.')
   }
 
   async function addUrl(bucket: AttachmentBucket, url: string) {
     const userId = (await supabase.auth.getUser()).data.user?.id
-    if (!userId) return
+    if (!userId) { showError('Not signed in.'); return }
     const { data: fileRow, error } = await supabase
       .from('files')
       .insert({
@@ -127,10 +132,11 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
       } as never)
       .select('id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts')
       .single()
-    if (error) return
+    if (error) { showError('Failed to save URL. Please try again.'); return }
     setBuckets(prev => prev.map(b =>
       b.id === bucket.id ? { ...b, files: [...b.files, fileRow as unknown as BucketFile] } : b,
     ))
+    showSuccess('URL uploaded.')
   }
 
   async function deleteFile(bucketId: string, fileId: string) {
@@ -163,7 +169,7 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
           readOnly={readOnly}
           onRename={name => renameBucket(bucket.id, name)}
           onDelete={() => deleteBucket(bucket.id)}
-          onUpload={file => uploadFile(bucket, file)}
+          onUpload={(file, isImg) => uploadFile(bucket, file, isImg)}
           onAddUrl={url => addUrl(bucket, url)}
           onDeleteFile={fileId => deleteFile(bucket.id, fileId)}
           onImageClick={src => setLightbox(src)}
@@ -192,7 +198,7 @@ interface BucketCardProps {
   readOnly:       boolean
   onRename:       (name: string) => void
   onDelete:       () => void
-  onUpload:       (file: File) => void
+  onUpload:       (file: File, isImage: boolean) => void
   onAddUrl:       (url: string) => void
   onDeleteFile:   (fileId: string) => void
   onImageClick:   (src: string) => void
@@ -223,11 +229,11 @@ function BucketCard({
         {!readOnly && (
           <div className="flex items-center gap-1 shrink-0">
             <input ref={imgRef} type="file" accept="image/*" multiple className="hidden"
-              onChange={e => { [...(e.target.files ?? [])].forEach(f => onUpload(f)); e.target.value = '' }} />
+              onChange={e => { [...(e.target.files ?? [])].forEach(f => onUpload(f, true)); e.target.value = '' }} />
             <ActionBtn icon={<ImageIcon size={11} />} label="Image" onClick={() => imgRef.current?.click()} />
 
             <input ref={fileRef} type="file" multiple className="hidden"
-              onChange={e => { [...(e.target.files ?? [])].forEach(f => onUpload(f)); e.target.value = '' }} />
+              onChange={e => { [...(e.target.files ?? [])].forEach(f => onUpload(f, false)); e.target.value = '' }} />
             <ActionBtn icon={<Paperclip size={11} />} label="Attachment" onClick={() => fileRef.current?.click()} />
 
             <ActionBtn icon={<LinkIcon size={11} />} label="URL" onClick={() => setUrlModal(true)} />
