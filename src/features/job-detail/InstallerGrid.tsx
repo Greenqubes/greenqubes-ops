@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 
@@ -80,22 +79,13 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                   readOnly && 'cursor-default',
                 )}
               >
-                {/* relative wrapper so badge sits outside the clipped avatar */}
-                <div className="relative shrink-0">
+                <div className="shrink-0">
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white"
-                    style={{
-                      background: color,
-                      boxShadow: isSelected ? '0 0 0 2px var(--green), 0 0 0 3.5px white' : undefined,
-                    }}
+                    style={{ background: color }}
                   >
                     {initials(inst.name)}
                   </div>
-                  {isSelected && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green flex items-center justify-center ring-2 ring-white">
-                      <Check size={10} strokeWidth={3} className="text-white" />
-                    </div>
-                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn(
@@ -105,7 +95,7 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                     {inst.name}
                   </p>
                   {meta && (
-                    <p className="text-[11px] text-muted truncate">{meta}</p>
+                    <p className={cn('text-[11px] truncate', isSelected ? 'text-green/70' : 'text-muted')}>{meta}</p>
                   )}
                 </div>
               </button>
