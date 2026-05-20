@@ -569,19 +569,24 @@ export function JobDetailShell({
                     type="button"
                     onClick={handleSubmit(onSubmit)}
                     disabled={saving || !isDirty}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className={cn(
+                      'flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed',
+                      status === 'scheduled' ? 'w-full' : 'flex-1',
+                    )}
                   >
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmitForApproval}
-                    disabled={saving || status === 'awaiting_approval'}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Bell size={14} />
-                    {saving ? t(lang, 'loading') : 'Push for Approval'}
-                  </button>
+                  {status !== 'scheduled' && (
+                    <button
+                      type="button"
+                      onClick={handleSubmitForApproval}
+                      disabled={saving}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Bell size={14} />
+                      {saving ? t(lang, 'loading') : 'Push for Approval'}
+                    </button>
+                  )}
                 </div>
               ) : !readOnly && role === 'scheduler' && status === 'awaiting_approval' ? (
                 <div className="flex gap-2">
