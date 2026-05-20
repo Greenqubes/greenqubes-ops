@@ -19,22 +19,25 @@ import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { SelectOption } from '@/components/SearchableSelect'
 import { CompanyBar } from '@/components/CompanyBar'
+import { MultiUserSelect } from '@/components/MultiUserSelect'
 import type { Role } from '@/lib/supabase/types'
 
 interface Props {
   userId:          string
   userName:        string
   lang:            LangCode
-  salesPocOptions: SelectOption[]
-  allInstallers:   InstallerUser[]
-  role:            Role
+  salesPocOptions:     SelectOption[]
+  allInstallers:       InstallerUser[]
+  role:                Role
+  coordinatorOptions?: Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError } = useToast()
-  const [saving,      setSaving]      = useState(false)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [saving,                setSaving]               = useState(false)
+  const [selectedIds,           setSelectedIds]          = useState<string[]>([])
+  const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -109,6 +112,17 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         )
       }
 
+      // Insert selected coordinators
+      if (selectedCoordIds.length > 0) {
+        await supabase.from('job_coordinators').insert(
+          selectedCoordIds.map(uid => ({ job_id: job.id, user_id: uid })) as never,
+        )
+        await fetch(`/api/jobs/${job.id}/notify-assigned`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ installerIds: [], coordinatorIds: selectedCoordIds }),
+        })
+      }
+
       // Fire scheduler notification if sending for approval
       if (status === 'awaiting_approval') {
         await fetch(`/api/jobs/${job.id}/submit`, {
@@ -151,7 +165,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
         {/* Team fields — Sales/POC, Notes, Production Instructions */}
         <Card className="p-5 space-y-4">
-          <Field label="Sales / POC">
+          <Field label="Person-in-Charge">
             <Controller
               control={control}
               name="sales_poc_id"
@@ -166,6 +180,13 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                   disabled={false}
                 />
               )}
+            />
+          </Field>
+          <Field label="Sub POC / Coordinators">
+            <MultiUserSelect
+              options={coordinatorOptions}
+              value={selectedCoordIds}
+              onChange={setSelectedCoordIds}
             />
           </Field>
           <Field label="Notes">

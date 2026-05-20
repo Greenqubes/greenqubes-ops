@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getJobById, getInstallerUsers, getJobMessages } from '@/lib/supabase/queries/jobs'
+import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -31,11 +32,13 @@ export default async function JobDetailPage({
 
   const role = await getEffectiveRole(profile.role)
 
-  const [job, installers, messages, salesUsersResult] = await Promise.all([
+  const [job, installers, messages, salesUsersResult, coordinators, coordinatorOptions] = await Promise.all([
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     getJobMessages(id),
     supabase.from('users').select('id, name').eq('role', 'sales').order('name'),
+    getJobCoordinators(id),
+    getAllProvisionedUsers(),
   ])
 
   if (!job) notFound()
@@ -55,6 +58,8 @@ export default async function JobDetailPage({
       installers={installers}
       initialMessages={messages}
       salesPocOptions={salesPocOptions}
+      initialCoordinatorIds={coordinators.map(c => c.id)}
+      coordinatorOptions={coordinatorOptions}
       backHref={backHref}
     />
   )
