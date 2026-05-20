@@ -255,9 +255,10 @@ export function JobDetailShell({
     }
   }
 
-  const isInstaller      = role === 'installer'
-  const showDelete       = (role === 'sales' && status === 'pending') || role === 'scheduler'
-  const showMarkComplete = role === 'scheduler' && status === 'scheduled'
+  const isInstaller        = role === 'installer'
+  const showDelete         = (role === 'sales' && status === 'pending') || role === 'scheduler'
+  const showMarkComplete   = role === 'scheduler' && status === 'scheduled'
+  const originalSalesPocId = job.sales_poc_id ?? ''
 
   return (
     <div className="min-h-screen bg-bg pb-28">
@@ -327,33 +328,46 @@ export function JobDetailShell({
         <Card className="overflow-hidden">
           <div className="p-4 space-y-4">
 
-            {/* Main Sales / POC */}
-            <Field label="Main Sales / POC">
+            {/* Person-in-Charge */}
+            <Field label="Person-in-Charge">
               {isInstaller ? (
                 <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2">
                   {salesPocOptions.find(o => o.id === watch('sales_poc_id'))?.label ?? '—'}
                 </div>
               ) : (
-                <Controller
-                  control={control}
-                  name="sales_poc_id"
-                  render={({ field }) => (
-                    <SearchableSelect
-                      value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
-                      onChange={label => {
-                        const found = salesPocOptions.find(o => o.label === label)
-                        if (found) field.onChange(found.id)
-                      }}
-                      options={salesPocOptions}
-                      disabled={readOnly}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Controller
+                      control={control}
+                      name="sales_poc_id"
+                      render={({ field }) => (
+                        <SearchableSelect
+                          value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
+                          onChange={label => {
+                            const found = salesPocOptions.find(o => o.label === label)
+                            if (found) field.onChange(found.id)
+                          }}
+                          options={salesPocOptions}
+                          disabled={readOnly}
+                        />
+                      )}
                     />
+                  </div>
+                  {watch('sales_poc_id') !== originalSalesPocId && !readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => setValue('sales_poc_id', originalSalesPocId, { shouldDirty: true })}
+                      className="w-7 h-7 flex items-center justify-center rounded-full border border-line bg-bg text-muted hover:text-terracotta hover:border-terracotta transition-colors shrink-0 text-base leading-none"
+                    >
+                      ×
+                    </button>
                   )}
-                />
+                </div>
               )}
             </Field>
 
-            {/* Sales / POC — multi-select (UI placeholder; wiring deferred to next session) */}
-            <Field label="Sales / POC">
+            {/* Sub POC / Coordinators — multi-select (UI placeholder; wiring deferred to next session) */}
+            <Field label="Sub POC / Coordinators">
               {isInstaller ? (
                 <div className="flex flex-wrap gap-2">
                   {/* populated when multi-select feature ships */}
@@ -494,7 +508,27 @@ export function JobDetailShell({
                   Cancel
                 </button>
               </div>
-              {!readOnly && (
+              {!readOnly && role === 'sales' ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSubmit(onSubmit)}
+                    disabled={saving || !isDirty}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitForApproval}
+                    disabled={saving || status === 'awaiting_approval'}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Bell size={14} />
+                    {saving ? t(lang, 'loading') : 'Push for Approval'}
+                  </button>
+                </div>
+              ) : !readOnly ? (
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
@@ -504,7 +538,7 @@ export function JobDetailShell({
                   <Bell size={14} />
                   {saving ? t(lang, 'loading') : 'Save & notify'}
                 </button>
-              )}
+              ) : null}
             </>
           )}
         </div>
