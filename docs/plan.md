@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-20 (chore-git-cleanup — merged dev into main, deleted feat-job-form-redesign, all branches in sync)_
+_Last updated: 2026-05-21 (ux-jobs — job form role-based action bar polish, Recall button, scheduled state, GreenqubesAI admin lock)_
 
 ---
 
@@ -93,6 +93,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | feat-jobs | Job Form Redesign | Attachment buckets (upload, URL link, lightbox, rename, delete); SearchableSelect for company/POC/sales with add-new + confirm-delete; InstallerGrid 2-col toggle; ImageLightbox; production instructions always visible; AttachmentBuckets replaces AttachmentSection on edit page; NewJobShell rebuilt with installer grid + 3-button action bar; admin UsersTab: years_experience + skills chip fields for installer role; migrations 0025 (attachment_buckets + bucket_id/url_text on files) + 0026 (clients + client_contacts); feat-job-form-redesign branch → merged to main directly | [feat/feat-jobs-20260520-1-note.md](feat/feat-jobs-20260520-1-note.md) |
 | feat-notifications-2 | Chat Notification Throttle | Throttled job chat Telegram notifications — at most once per 1 min per recipient; accurate unseen message count per person via job_chat_state table; new tplJobChatBatch template (count, project title, client, time, location, date); View in app → button opens system browser (InlineKeyboardButton url type); chat-read API route marks last_seen_at on chat open; ChatSection calls chat-read on mount; migration 0027 (job_chat_state); fixed ts column name bug (was created_at); CLAUDE.md branch exception removed — all to dev | [feat/feat-notifications-20260520-1-note.md](feat/feat-notifications-20260520-1-note.md) |
 | chore-git-cleanup | Git Branch Cleanup | Merged dev into main (3 fix-assistant code patches + session notes); reset dev to match main; deleted feat-job-form-redesign branch locally and from remote; main, dev, and origin all in sync at same commit | [chore/chore-config-20260520-1-note.md](chore/chore-config-20260520-1-note.md) |
+| ux-jobs | Job Form Action Bar Polish | InstallerGrid badge fix; SuggestField "Suggest" rename; upload API production_instructions fix; CoreSection + ProductionReadySection rewrite; NewJobShell Team card; AssigneeSection deleted; GreenqubesAI role dropdown locked; Person-in-Charge + Sub POC labels; X-button revert; sales pending action bar (Save Changes + Push for Approval); scheduler awaiting_approval bar (Send Back + Approve & Notify); Duplicate (WIP) placeholder; sales awaiting_approval: form locked + Recall button; sales scheduled: Push for Approval hidden + Save Changes full width | [ux/ux-jobs-20260521-1-note.md](ux/ux-jobs-20260521-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
