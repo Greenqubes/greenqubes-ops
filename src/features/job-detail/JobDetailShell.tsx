@@ -21,7 +21,6 @@ import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { SendBackModal } from '@/features/approvals/SendBackModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
-import { BottomNav } from '@/components/BottomNav'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -315,7 +314,7 @@ export function JobDetailShell({
   }, [selectedInstallerIds, initialAssigneeIds])
 
   return (
-    <div className="min-h-screen bg-bg pb-[calc(57px+80px)]">
+    <div className="min-h-screen bg-bg pb-28">
 
       <CompanyBar lang={lang} />
 
@@ -521,7 +520,7 @@ export function JobDetailShell({
       </div>
 
       {/* ── Action bar (sticky bottom) ───────────────────────────── */}
-      <div className="fixed bottom-[57px] left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl mx-auto space-y-2">
           {isInstaller ? (
             <button
@@ -706,7 +705,7 @@ export function JobDetailShell({
         </div>
       </Modal>
 
-      <BottomNav role={role} />
+
 
     </div>
   )
