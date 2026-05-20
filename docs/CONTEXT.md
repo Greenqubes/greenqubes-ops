@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-21 (ux-jobs — job form role-based action bar polish, Recall button, scheduled state, GreenqubesAI admin lock)_
+_Last updated: 2026-05-21 (fix-jobs — schedule filter chips by view, InstallerGrid brand-green card highlight + readOnly, attachment bucket silent failures fixed + toasts, migration 0028 file_kind enum, notify-assigned route)_
 
 ---
 
