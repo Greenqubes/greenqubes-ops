@@ -168,7 +168,7 @@ When the logged-in user's role is `installer`, `JobDetailShell` renders a read-o
 
 ### Team Card — installer changes
 - **Main Sales / POC**: shown as plain read-only text (name only — no dropdown)
-- **Sales / POC**: shown as read-only bubble chips (same visual style as the edit form multi-select, but no X button and no chevron — non-interactive). Background of the chip box uses `var(--bg)` to signal read-only.
+- **Sales / POC**: shown as read-only bubble chips rendered inline (no container box, no border, no chevron). Chips float side by side with `display: flex; flex-wrap: wrap; gap: 5px`. Same chip style as edit form (`ms-tag`) but no X button. No outer box so chips are visible against the card's white background.
 - **Notes**: shown as plain read-only text (no textarea, no Suggest button)
 - **Installer grid**: shows **only the assigned installers** (no unselected / dimmed cards for unassigned users). Determined by `initialSelectedIds` — only render installer cards whose ID is in the pre-selected set.
 
