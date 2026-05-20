@@ -130,13 +130,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-8">
 
         {/* Back + title */}
-        <div className="sticky top-[45px] z-20 bg-bg -mx-4 px-4 py-3 mb-2 border-b border-line">
-          <div className="flex items-center gap-3">
-            <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
-              <ArrowLeft size={18} />
-            </Link>
-            <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
-          </div>
+        <div className="flex items-center gap-3">
+          <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
         </div>
 
         {/* Core fields */}

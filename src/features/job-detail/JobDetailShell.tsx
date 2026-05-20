@@ -318,8 +318,8 @@ export function JobDetailShell({
 
       <CompanyBar lang={lang} />
 
-      {/* ── Header (sticky below company bar) ──────────────────── */}
-      <div className="sticky top-[45px] z-20 bg-bg px-4 pt-3 pb-3 border-b border-line">
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <div className="px-4 pt-5 pb-3">
         <button
           type="button"
           onClick={() => router.back()}
