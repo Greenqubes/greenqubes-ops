@@ -44,18 +44,18 @@ export function SuggestField({ value, onAccept, readOnly = false, field, childre
               onClick={handleImprove}
               className="text-xs font-medium text-muted border border-line bg-paper hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
             >
-              ✦ Improve
+              ✦ Suggest
             </button>
           )}
           {loading && (
-            <span className="text-xs text-muted">Improving…</span>
+            <span className="text-xs text-muted">Suggesting…</span>
           )}
         </div>
       )}
       {children}
       {suggestion && (
         <div className="mt-2 rounded-xl border-2 border-dashed border-terracotta bg-terracotta/[0.04] px-3.5 py-3">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-terracotta mb-2.5">✦ Improve</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-terracotta mb-2.5">✦ Suggest</p>
           <p className={cn('text-[10px] font-semibold tracking-wider uppercase text-muted mb-1')}>Your original</p>
           <p className="text-sm text-muted mb-2.5 leading-relaxed">{value}</p>
           <p className={cn('text-[10px] font-semibold tracking-wider uppercase text-muted mb-1')}>Suggested</p>
