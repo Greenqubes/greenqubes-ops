@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -137,7 +137,7 @@ export function JobDetailShell({
     reset(values)
   }
 
-  const saveInstallerDiff = async () => {
+  const saveInstallerDiff = async (): Promise<string[]> => {
     const added   = selectedInstallerIds.filter(id => !initialAssigneeIds.includes(id))
     const removed = initialAssigneeIds.filter(id => !selectedInstallerIds.includes(id))
     for (const id of removed) {
@@ -146,12 +146,20 @@ export function JobDetailShell({
     for (const id of added) {
       await supabase.from('job_assignees').insert({ job_id: job.id, user_id: id } as never).throwOnError()
     }
+    return added
   }
 
   const onSubmit = async (values: FormValues) => {
     setSaving(true)
     try {
-      await Promise.all([saveValues(values), saveInstallerDiff()])
+      const [, addedIds] = await Promise.all([saveValues(values), saveInstallerDiff()])
+      if (addedIds.length > 0 && role === 'scheduler' && status === 'scheduled') {
+        await fetch(`/api/jobs/${job.id}/notify-assigned`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ installerIds: addedIds }),
+        })
+      }
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
     } catch {
@@ -295,6 +303,14 @@ export function JobDetailShell({
   const showDelete         = (role === 'sales' && status === 'pending') || role === 'scheduler'
   const showMarkComplete   = role === 'scheduler' && status === 'scheduled'
   const originalSalesPocId = job.sales_poc_id ?? ''
+
+  const isInstallerDirty = useMemo(() => {
+    const a = new Set(selectedInstallerIds)
+    const b = new Set(initialAssigneeIds)
+    if (a.size !== b.size) return true
+    for (const id of a) if (!b.has(id)) return true
+    return false
+  }, [selectedInstallerIds, initialAssigneeIds])
 
   return (
     <div className="min-h-screen bg-bg pb-28">
@@ -569,7 +585,7 @@ export function JobDetailShell({
                   <button
                     type="button"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={saving || !isDirty}
+                    disabled={saving || (!isDirty && !isInstallerDirty)}
                     className={cn(
                       'flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed',
                       status === 'scheduled' ? 'w-full' : 'flex-1',
@@ -613,7 +629,7 @@ export function JobDetailShell({
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={saving || !isDirty}
+                  disabled={saving || (!isDirty && !isInstallerDirty)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Bell size={14} />

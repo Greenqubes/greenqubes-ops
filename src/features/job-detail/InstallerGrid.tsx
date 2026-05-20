@@ -74,7 +74,7 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
                   isSelected
-                    ? 'border-green bg-green/10'
+                    ? 'border-green bg-green/20'
                     : 'border-line bg-paper',
                   !readOnly && !isSelected && 'hover:border-green hover:bg-green/5',
                   readOnly && 'cursor-default',
@@ -92,8 +92,8 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                     {initials(inst.name)}
                   </div>
                   {isSelected && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green flex items-center justify-center">
-                      <Check size={8} strokeWidth={3} className="text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green flex items-center justify-center ring-2 ring-white">
+                      <Check size={10} strokeWidth={3} className="text-white" />
                     </div>
                   )}
                 </div>
