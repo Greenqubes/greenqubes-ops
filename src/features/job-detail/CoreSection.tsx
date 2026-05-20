@@ -17,6 +17,8 @@ import type { FormValues } from './JobDetailShell'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
+
 interface Props {
   register:          UseFormRegister<FormValues>
   errors:            FieldErrors<FormValues>
@@ -26,18 +28,14 @@ interface Props {
   readOnly:          boolean
   lang:              LangCode
   validateRequired?: boolean
-  salesPocOptions?:  SelectOption[]
+  installerView?:    boolean
 }
-
-const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
 export function CoreSection({
   register, errors, control, watch, setValue,
-  readOnly, lang, validateRequired = false,
-  salesPocOptions,
+  readOnly, lang, validateRequired = false, installerView = false,
 }: Props) {
-  const req          = validateRequired ? { required: 'Required' } : {}
-  const useDropdowns = !!salesPocOptions
+  const req = validateRequired ? { required: 'Required' } : {}
 
   const [companies,        setCompanies]        = useState<SelectOption[]>([])
   const [contacts,         setContacts]         = useState<SelectOption[]>([])
@@ -47,19 +45,19 @@ export function CoreSection({
   const pendingResolve = useRef<((v: boolean) => void) | null>(null)
 
   const dateValue = watch('date')
-  const dayLabel  = dateValue
-    ? DAYS[new Date(dateValue + 'T00:00:00').getDay()]
+  const dayLabel  = dateValue ? DAYS[new Date(dateValue + 'T00:00:00').getDay()] : '—'
+  const dateDisplay = dateValue
+    ? new Date(dateValue + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : '—'
 
   useEffect(() => {
-    if (!useDropdowns) return
     fetch('/api/clients')
       .then(r => r.json())
       .then((data: { id: string; name: string }[]) =>
         setCompanies(data.map(c => ({ id: c.id, label: c.name }))),
       )
       .catch(() => {})
-  }, [useDropdowns])
+  }, [])
 
   useEffect(() => {
     if (!selectedClientId) { setContacts([]); return }
@@ -120,6 +118,18 @@ export function CoreSection({
     })
   }
 
+  const doIssued = watch('do_issued')
+
+  // Shared read-only display box for installer view
+  const roBox = (value: string, bold = false) => (
+    <div className={cn(
+      'w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2',
+      bold && 'font-semibold text-ink',
+    )}>
+      {value || '—'}
+    </div>
+  )
+
   return (
     <>
       {deleteTarget && (
@@ -135,10 +145,7 @@ export function CoreSection({
                 No
               </Btn>
               <Btn variant="accent" size="sm" disabled={deleteLoading}
-                onClick={() => {
-                  pendingResolve.current?.(true)
-                  setDeleteTarget(null)
-                }}>
+                onClick={() => { pendingResolve.current?.(true); setDeleteTarget(null) }}>
                 Yes
               </Btn>
             </div>
@@ -150,47 +157,45 @@ export function CoreSection({
 
         {/* Project Title */}
         <Field label={t(lang, 'projectTitle')} error={errors.project_title?.message}>
-          <SuggestField
-            value={watch('project_title')}
-            onAccept={s => setValue('project_title', s, { shouldDirty: true })}
-            readOnly={readOnly}
-            field="Project Title"
-          >
-            <Input
-              {...register('project_title', req)}
-              placeholder="e.g. Vivienne Westwood Installation"
-              disabled={readOnly}
-              error={!!errors.project_title}
-            />
-          </SuggestField>
+          {installerView ? roBox(watch('project_title')) : (
+            <SuggestField
+              value={watch('project_title')}
+              onAccept={s => setValue('project_title', s, { shouldDirty: true })}
+              readOnly={readOnly}
+              field="Project Title"
+            >
+              <Input
+                {...register('project_title', req)}
+                placeholder="e.g. Vivienne Westwood Installation"
+                disabled={readOnly}
+                error={!!errors.project_title}
+              />
+            </SuggestField>
+          )}
         </Field>
 
-        {/* Date row — new form: Date + Day; edit form: Date + End Date */}
+        {/* Date + Day */}
         <div className="grid grid-cols-2 gap-4">
           <Field label={t(lang, 'date')} error={errors.date?.message}>
-            <Input
-              type="date"
-              {...register('date', { required: true })}
-              error={!!errors.date}
-              disabled={readOnly}
-            />
+            {installerView ? roBox(dateDisplay, true) : (
+              <Input
+                type="date"
+                {...register('date', { required: true })}
+                error={!!errors.date}
+                disabled={readOnly}
+              />
+            )}
           </Field>
-          {useDropdowns ? (
-            <Field label="Day">
-              <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-amber-600 text-center">
-                {dayLabel}
-              </div>
-            </Field>
-          ) : (
-            <Field label={t(lang, 'dateEnd')}>
-              <Input type="date" {...register('date_end')} disabled={readOnly} />
-            </Field>
-          )}
+          <Field label="Day">
+            <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-amber-600 text-center">
+              {dayLabel}
+            </div>
+          </Field>
         </div>
 
-        {/* Company (dropdown on new form, plain input on edit) */}
+        {/* Company */}
         <Field label="Company" error={errors.client?.message}>
-          {useDropdowns ? (
+          {installerView ? roBox(watch('client')) : (
             <SearchableSelect
               value={watch('client')}
               onChange={label => {
@@ -207,18 +212,12 @@ export function CoreSection({
               onClearOption={clearCompany}
               confirmDelete={confirmDeleteCompany}
             />
-          ) : (
-            <Input
-              {...register('client', { required: true })}
-              error={!!errors.client}
-              disabled={readOnly}
-            />
           )}
         </Field>
 
-        {/* Client POC Name */}
+        {/* Contact Person */}
         <Field label={t(lang, 'clientPOCName')} error={errors.client_poc_name?.message}>
-          {useDropdowns ? (
+          {installerView ? roBox(watch('client_poc_name')) : (
             <SearchableSelect
               value={watch('client_poc_name')}
               onChange={label => setValue('client_poc_name', label, { shouldDirty: true })}
@@ -229,58 +228,70 @@ export function CoreSection({
               onDeleteOption={handleDeleteContact}
               onClearOption={() => setValue('client_poc_name', '', { shouldDirty: true })}
             />
-          ) : (
-            <Input {...register('client_poc_name')} disabled={readOnly} error={!!errors.client_poc_name} />
           )}
         </Field>
 
-        {/* Client Phone — always plain input */}
+        {/* Client Phone */}
         <Field label={t(lang, 'clientPOCPhone')} error={errors.client_poc_phone?.message}>
-          <Input
-            type="tel"
-            {...register('client_poc_phone')}
-            disabled={readOnly || (useDropdowns && !selectedClientId && !watch('client_poc_phone'))}
-            error={!!errors.client_poc_phone}
-          />
+          {installerView ? roBox(watch('client_poc_phone')) : (
+            <Input
+              type="tel"
+              {...register('client_poc_phone')}
+              disabled={readOnly}
+              error={!!errors.client_poc_phone}
+            />
+          )}
         </Field>
 
         {/* Location */}
         <Field label={t(lang, 'locationAddress')} error={errors.location?.message}>
-          <Input {...register('location', req)} disabled={readOnly} error={!!errors.location} />
+          {installerView ? roBox(watch('location')) : (
+            <Input {...register('location', req)} disabled={readOnly} error={!!errors.location} />
+          )}
         </Field>
 
         {/* Description */}
         <Field label={t(lang, 'jobDescription')}>
-          <SuggestField
-            value={watch('description')}
-            onAccept={s => setValue('description', s, { shouldDirty: true })}
-            readOnly={readOnly}
-            field="Job Description"
-          >
-            <textarea {...register('description')} disabled={readOnly} rows={3} className={TEXTAREA} />
-          </SuggestField>
+          {installerView ? (
+            <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2 min-h-[4.5rem] leading-relaxed">
+              {watch('description') || '—'}
+            </div>
+          ) : (
+            <SuggestField
+              value={watch('description')}
+              onAccept={s => setValue('description', s, { shouldDirty: true })}
+              readOnly={readOnly}
+              field="Job Description"
+            >
+              <textarea {...register('description')} disabled={readOnly} rows={3} className={TEXTAREA} />
+            </SuggestField>
+          )}
         </Field>
 
         {/* Times */}
         <div className="grid grid-cols-2 gap-4">
           <Field label={t(lang, 'timeStart')} error={errors.time_start?.message}>
-            <Controller
-              control={control}
-              name="time_start"
-              rules={req}
-              render={({ field }) => (
-                <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} error={!!errors.time_start} />
-              )}
-            />
+            {installerView ? roBox(watch('time_start') || '—', true) : (
+              <Controller
+                control={control}
+                name="time_start"
+                rules={req}
+                render={({ field }) => (
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} error={!!errors.time_start} />
+                )}
+              />
+            )}
           </Field>
           <Field label={t(lang, 'timeEnd')}>
-            <Controller
-              control={control}
-              name="time_end"
-              render={({ field }) => (
-                <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} />
-              )}
-            />
+            {installerView ? roBox(watch('time_end') || '—', true) : (
+              <Controller
+                control={control}
+                name="time_end"
+                render={({ field }) => (
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} />
+                )}
+              />
+            )}
           </Field>
         </div>
 
@@ -298,7 +309,7 @@ export function CoreSection({
                   <button
                     key={opt.v}
                     type="button"
-                    disabled={readOnly}
+                    disabled={readOnly || installerView}
                     onClick={() => field.onChange(opt.v)}
                     className={cn(
                       'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors',
@@ -317,63 +328,30 @@ export function CoreSection({
           />
         </Field>
 
-        {/* Production ready + DO issued */}
-        <div className="grid grid-cols-2 gap-2">
-          {(['production_ready', 'do_issued'] as const).map((field, i) => (
-            <label key={field} className={cn(
-              'flex items-center gap-2.5 px-3 py-2.5 border border-line rounded-lg text-sm text-ink2 select-none transition-colors',
-              readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg',
-            )}>
-              <input type="checkbox" {...register(field)} disabled={readOnly} className="rounded border-line accent-terracotta shrink-0" />
-              {i === 0 ? t(lang, 'productionReady') : t(lang, 'doIssued')}
-            </label>
-          ))}
-        </div>
-
-        {/* Sales / POC — new form only */}
-        {useDropdowns && salesPocOptions && (
-          <Field label="Sales / POC">
-            <Controller
-              control={control}
-              name="sales_poc_id"
-              render={({ field }) => (
-                <SearchableSelect
-                  value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
-                  onChange={label => {
-                    const found = salesPocOptions.find(o => o.label === label)
-                    if (found) field.onChange(found.id)
-                  }}
-                  options={salesPocOptions}
-                  disabled={readOnly}
-                />
-              )}
-            />
-          </Field>
+        {/* Production Ready + DO — or DO status button for installer */}
+        {installerView ? (
+          doIssued ? (
+            <div className="flex items-center justify-center gap-2 w-full px-3 py-3 rounded-lg border border-amber-300 bg-amber-50 text-sm font-semibold text-amber-700">
+              Please Sign DO Provided
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 w-full px-3 py-3 rounded-lg border border-line bg-bg text-sm text-muted opacity-70">
+              No DO Required
+            </div>
+          )
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {(['production_ready', 'do_issued'] as const).map((field, i) => (
+              <label key={field} className={cn(
+                'flex items-center gap-2.5 px-3 py-2.5 border border-line rounded-lg text-sm text-ink2 select-none transition-colors',
+                readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg',
+              )}>
+                <input type="checkbox" {...register(field)} disabled={readOnly} className="rounded border-line accent-terracotta shrink-0" />
+                {i === 0 ? t(lang, 'productionReady') : t(lang, 'doIssued')}
+              </label>
+            ))}
+          </div>
         )}
-
-        {/* Notes */}
-        <Field label={t(lang, 'notes')}>
-          <SuggestField
-            value={watch('notes')}
-            onAccept={s => setValue('notes', s, { shouldDirty: true })}
-            readOnly={readOnly}
-            field="Notes"
-          >
-            <textarea {...register('notes')} disabled={readOnly} rows={2} className={TEXTAREA} />
-          </SuggestField>
-        </Field>
-
-        {/* Production Instructions */}
-        <Field label="Production instructions">
-          <SuggestField
-            value={watch('production_instructions')}
-            onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
-            readOnly={readOnly}
-            field="Production Instructions"
-          >
-            <textarea {...register('production_instructions')} disabled={readOnly} rows={2} className={TEXTAREA} />
-          </SuggestField>
-        </Field>
 
       </Card>
     </>
