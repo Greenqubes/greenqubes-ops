@@ -353,12 +353,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
               onKeyDown={handleKeyDown}
               placeholder={t(lang, 'askPlaceholder')}
               rows={1}
-              disabled={isStreaming}
               className={cn(
                 'flex-1 resize-none rounded-xl border border-line bg-bg px-3.5 py-2.5 text-sm text-ink placeholder:text-muted',
                 'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
                 'transition-colors min-h-[42px] max-h-40 leading-relaxed',
-                'disabled:opacity-50',
               )}
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
