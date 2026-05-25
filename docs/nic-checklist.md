@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-21 (ux-jobs — job form action bar polish, Recall button, GreenqubesAI lock, scheduled state)_
+_Last updated: 2026-05-25 (feat-assistant-3 — bulk delete, live rename, markdown, layout fixes)_
 
 ---
 
@@ -10,7 +10,7 @@ _Last updated: 2026-05-21 (ux-jobs — job form action bar polish, Recall button
 
 ### Polish (from 2026-05-20, fix-assistant-history)
 
-- [ ] **[POLISH] Assistant history sidebar refresh has a noticeable delay** — sidebar re-fetches after save resolves, but the save includes an AI tagging call (Haiku) so there's a 1–2 second lag before the updated chat appears. Needs optimistic update on the sidebar for instant feel. Fine for presentation; defer until after pre-alpha.
+- [x] **[POLISH] Assistant history sidebar refresh has a noticeable delay** — fixed: optimistic "New Conversation" entry appears immediately on first send; live title update via Haiku after first reply; `liveOptimisticIdRef` prevents duplicate entries.
 
 ### Bugs (from 2026-05-20, feat-digest-bot)
 
@@ -66,6 +66,19 @@ _Last updated: 2026-05-21 (ux-jobs — job form action bar polish, Recall button
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-05-25, feat-assistant-3)
+
+- [x] **Per-user history isolation** — migration 0030 drops the cross-read RLS policy on `asst_chats`; each user now only sees their own conversations.
+- [x] **Optimistic "New Conversation" on first send** — sidebar shows new entry immediately when user sends first message; no waiting for save to complete.
+- [x] **Live auto-rename via Haiku** — after AI's first reply, Haiku generates a 3–5 word title and updates the sidebar entry live; manual rename persists and blocks auto-rename.
+- [x] **Rename from ⋮ dropdown** — rename modal with text input; optimistic update + PATCH `/api/assistant/rename`; persists on next load.
+- [x] **Bulk multi-select delete** — "Select" mode with checkboxes on each row; terracotta delete bar at bottom; confirmation modal; parallel DELETE calls.
+- [x] **Message count + star importance hidden** — removed from sidebar and history list UI; still stored in DB for backend use.
+- [x] **Markdown rendering** — `MarkdownMessage` component renders `##/###`, `**bold**`, `*italic*`, `---`, `> blockquote`, `- lists` cleanly; no new npm dependencies; replaces raw `whitespace-pre-wrap` in both AssistantShell and FloatingChatPanel.
+- [x] **Type while AI streams** — textarea no longer disabled during streaming; send button still blocked until reply finishes.
+- [x] **Full-width "← Assistant" sub-header** — moved above sidebar + content row so it spans the full width; sidebar history list starts below it.
+- [x] **New Chat button clears BottomNav** — restored `pb-[72px]` on sidebar footer so New Chat button is not covered by the fixed BottomNav.
 
 ## Done This Session ✓ (2026-05-21, ux-nav)
 
