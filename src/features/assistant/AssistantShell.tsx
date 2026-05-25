@@ -312,7 +312,13 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   return (
-    <div className="h-[100dvh] bg-bg flex">
+    <div className="h-[100dvh] bg-bg flex flex-col">
+
+      {/* ── Company bar spans full width (sidebar + main) ── */}
+      <CompanyBar lang={lang} />
+
+      {/* ── Below company bar: sidebar + main content side by side ── */}
+      <div className="flex-1 flex overflow-hidden relative">
 
       {/* ── Sidebar (desktop only, manages its own hidden md:flex) ── */}
       <HistorySidebar
@@ -326,7 +332,6 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <CompanyBar lang={lang} />
 
         {/* ── Header ── */}
         <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
@@ -449,6 +454,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         </div>
 
         <BottomNav role={role} />
+      </div>
       </div>
     </div>
   )

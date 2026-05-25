@@ -153,7 +153,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
 
   return (
     <>
-      <aside className="hidden md:flex flex-col shrink-0 w-[260px] border-r border-line bg-paper h-screen sticky top-0 overflow-hidden">
+      <aside className="hidden md:flex flex-col shrink-0 w-[260px] border-r border-line bg-paper h-full overflow-hidden">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">History</p>
@@ -218,7 +218,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
         )}
 
         {/* New Chat button */}
-        <div className={`shrink-0 px-3 pt-3 border-t border-line ${isSelecting && selectedCount > 0 ? 'pb-3' : 'pb-[72px]'}`}>
+        <div className="shrink-0 px-3 py-3 border-t border-line">
           <button
             onClick={onNewChat}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-line bg-bg text-ink2 hover:border-ink2 hover:text-ink text-sm font-medium transition-colors"
