@@ -52,7 +52,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   const messagesRef         = useRef<Message[]>([])
   const isDirtyRef          = useRef(false)
   const activeChatIdRef     = useRef<string | undefined>(undefined)
-  const liveOptimisticIdRef = useRef<string | undefined>(undefined)
+  const liveOptimisticIdRef  = useRef<string | undefined>(undefined)
+  const titleGeneratedRef    = useRef(false)
 
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
@@ -142,7 +143,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     if (isDirtyRef.current && messagesRef.current.length >= 2) {
       finishSave(messagesRef.current, activeChatId)
     }
-    isDirtyRef.current = false
+    isDirtyRef.current      = false
+    titleGeneratedRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
       .map(m => ({ id: uid(), role: m.role, content: m.content }))
     setMessages(msgs)
@@ -154,7 +156,8 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     if (isDirtyRef.current && messages.length >= 2) {
       finishSave(messages, activeChatId)
     }
-    isDirtyRef.current = false
+    isDirtyRef.current        = false
+    titleGeneratedRef.current = false
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
@@ -166,6 +169,26 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       setMessages([])
       setActiveChatId(undefined)
     }
+  }
+
+  async function generateLiveTitle(userMsg: string, asstMsg: string) {
+    try {
+      const res = await fetch('/api/assistant/generate-title', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          messages: [
+            { role: 'user',      content: userMsg },
+            { role: 'assistant', content: asstMsg },
+          ],
+        }),
+      })
+      if (!res.ok) return
+      const { title } = await res.json() as { title: string }
+      if (title && liveOptimisticIdRef.current) {
+        setOptimisticChat(prev => prev ? { ...prev, topic: title } : prev)
+      }
+    } catch { /* best-effort */ }
   }
 
   async function sendMessage() {
@@ -261,6 +284,12 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       }
 
       setMessages(prev => prev.map(m => m.id === asstId ? { ...m, streaming: false } : m))
+
+      // Generate a live title after the first exchange in a new chat
+      if (liveOptimisticIdRef.current && !titleGeneratedRef.current && finalContent) {
+        titleGeneratedRef.current = true
+        generateLiveTitle(text, finalContent)
+      }
     } catch {
       setMessages(prev =>
         prev.map(m =>

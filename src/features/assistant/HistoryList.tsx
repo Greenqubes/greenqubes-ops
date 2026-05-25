@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { Pin, MoreVertical, Check, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
-import type { Json } from '@/lib/supabase/types'
 
 interface Props {
   chats:           AsstChatRow[]
@@ -32,16 +31,6 @@ function getGroup(chat: AsstChatRow): Group {
   if (sameDay)      return 'today'
   if (diffDays < 7) return 'week'
   return 'earlier'
-}
-
-function msgCount(msgs: Json): number {
-  if (!Array.isArray(msgs)) return 0
-  return msgs.length
-}
-
-function stars(importance: number | null): string {
-  const n = Math.min(5, Math.max(0, importance ?? 0))
-  return '★'.repeat(n) + '☆'.repeat(5 - n)
 }
 
 const GROUP_LABELS: Record<Group, string> = {
@@ -145,7 +134,6 @@ function ChatRow({
   onLoad, onToggleMenu, onPin, onDeleteClick, onRenameClick, onToggleSelect,
 }: RowProps) {
   const topic = chat.topic ?? 'Untitled conversation'
-  const count = msgCount(chat.msgs)
 
   return (
     <div className="relative group">
@@ -176,10 +164,6 @@ function ChatRow({
           <span className="text-sm font-medium text-ink line-clamp-2 leading-tight">
             {chat.pinned && !isSelecting && <span className="mr-1 text-amber text-[11px]">📌</span>}
             {topic}
-          </span>
-          <span className="text-[11px] text-muted">
-            {count} {count === 1 ? 'message' : 'messages'}
-            {!isSelecting && chat.importance ? <span className="ml-1.5 text-amber">{stars(chat.importance)}</span> : null}
           </span>
         </div>
       </button>
