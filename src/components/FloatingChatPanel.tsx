@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
+import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { LangCode } from '@/lib/i18n'
 
 interface Message {
@@ -308,7 +309,7 @@ function FloatingBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               : 'bg-bg border border-line text-ink rounded-tl-sm',
         )}>
           {msg.content
-            ? <p className="whitespace-pre-wrap">{msg.content}</p>
+            ? <MarkdownMessage content={msg.content} />
             : msg.streaming && (
               <span className="inline-flex items-center gap-1 text-muted">
                 <Loader2 size={11} className="animate-spin" />

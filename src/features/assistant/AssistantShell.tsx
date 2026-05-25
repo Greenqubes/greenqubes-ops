@@ -14,6 +14,7 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
+import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Message {
@@ -481,7 +482,7 @@ function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               : 'bg-paper border border-line text-ink rounded-tl-sm',
         )}>
           {msg.content
-            ? <p className="whitespace-pre-wrap">{msg.content}</p>
+            ? <MarkdownMessage content={msg.content} />
             : msg.streaming && (
               <span className="inline-flex items-center gap-1 text-muted text-xs">
                 <Loader2 size={12} className="animate-spin" />
