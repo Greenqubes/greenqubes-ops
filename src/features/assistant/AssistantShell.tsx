@@ -37,11 +37,12 @@ function uid() {
 }
 
 export function AssistantShell({ lang, backHref, role }: Props) {
-  const [messages,     setMessages]     = useState<Message[]>([])
-  const [input,        setInput]        = useState('')
-  const [isStreaming,  setIsStreaming]  = useState(false)
-  const [activeChatId, setActiveChatId] = useState<string | undefined>()
-  const [sidebarKey,   setSidebarKey]   = useState(0)
+  const [messages,       setMessages]       = useState<Message[]>([])
+  const [input,          setInput]          = useState('')
+  const [isStreaming,    setIsStreaming]    = useState(false)
+  const [activeChatId,   setActiveChatId]   = useState<string | undefined>()
+  const [sidebarKey,     setSidebarKey]     = useState(0)
+  const [optimisticChat, setOptimisticChat] = useState<import('@/lib/supabase/queries/assistant').AsstChatRow | null>(null)
 
   const bottomRef       = useRef<HTMLDivElement>(null)
   const inputRef        = useRef<HTMLTextAreaElement>(null)
@@ -108,9 +109,29 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     }
   }, [saveConversation])
 
+  function buildOptimistic(msgs: Message[], existingId?: string): import('@/lib/supabase/queries/assistant').AsstChatRow {
+    const firstUserMsg = msgs.find(m => m.role === 'user')?.content ?? ''
+    const topic = firstUserMsg.length > 50
+      ? firstUserMsg.slice(0, 47) + '…'
+      : firstUserMsg || 'New conversation'
+    return {
+      id:         existingId ?? `optimistic-${Date.now()}`,
+      topic,
+      msgs:       msgs.map(m => ({ role: m.role, content: m.content })) as never,
+      tags:       null,
+      importance: null,
+      pinned:     false,
+      ts:         new Date().toISOString(),
+    }
+  }
+
   function loadFromHistory(chat: AsstChatRow) {
     if (isDirtyRef.current && messagesRef.current.length >= 2) {
-      saveConversation(messagesRef.current, activeChatId).then(() => setSidebarKey(k => k + 1))
+      setOptimisticChat(buildOptimistic(messagesRef.current, activeChatId))
+      saveConversation(messagesRef.current, activeChatId).then(() => {
+        setOptimisticChat(null)
+        setSidebarKey(k => k + 1)
+      })
     }
     isDirtyRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
@@ -122,7 +143,11 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
   function startNewChat() {
     if (isDirtyRef.current && messages.length >= 2) {
-      saveConversation(messages, activeChatId).then(() => setSidebarKey(k => k + 1))
+      setOptimisticChat(buildOptimistic(messages, activeChatId))
+      saveConversation(messages, activeChatId).then(() => {
+        setOptimisticChat(null)
+        setSidebarKey(k => k + 1)
+      })
     }
     isDirtyRef.current = false
     setMessages([])
@@ -246,6 +271,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         onNewChat={startNewChat}
         onDelete={handleSidebarDelete}
         refreshTrigger={sidebarKey}
+        optimisticChat={optimisticChat}
       />
 
       {/* ── Main content ── */}

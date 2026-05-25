@@ -1,7 +1,7 @@
 // src/features/assistant/HistorySidebar.tsx
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { PlusCircle, Loader2 } from 'lucide-react'
 import { HistoryList } from './HistoryList'
 import { Modal } from '@/components/Modal'
@@ -13,15 +13,25 @@ interface Props {
   onNewChat:       () => void
   onDelete:        (id: string) => void
   refreshTrigger?: number
+  optimisticChat?: AsstChatRow | null
 }
 
-export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refreshTrigger }: Props) {
+export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refreshTrigger, optimisticChat }: Props) {
   const [chats,          setChats]          = useState<AsstChatRow[]>([])
   const [loading,        setLoading]        = useState(true)
   const [toast,          setToast]          = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const displayChats = useMemo(() => {
+    if (!optimisticChat) return chats
+    const existingIdx = chats.findIndex(c => c.id === optimisticChat.id)
+    if (existingIdx !== -1) {
+      return chats.map((c, i) => i === existingIdx ? optimisticChat : c)
+    }
+    return [optimisticChat, ...chats]
+  }, [chats, optimisticChat])
 
   const fetchChats = useCallback(async () => {
     try {
@@ -95,15 +105,15 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
 
         {/* List */}
         <div className="flex-1 overflow-y-auto px-1 py-1">
-          {loading ? (
+          {loading && !optimisticChat ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 size={16} className="animate-spin text-muted" />
             </div>
-          ) : chats.length === 0 ? (
+          ) : displayChats.length === 0 ? (
             <p className="px-3 py-4 text-xs text-muted text-center">No conversations yet</p>
           ) : (
             <HistoryList
-              chats={chats}
+              chats={displayChats}
               activeChatId={activeChatId}
               onLoad={onLoad}
               onPin={handlePin}
