@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, Loader2,
-  ExternalLink, Sparkles, History,
+  ExternalLink, Sparkles, History, ChevronDown,
 } from 'lucide-react'
 import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
@@ -44,11 +44,15 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   const [sidebarKey,     setSidebarKey]     = useState(0)
   const [optimisticChat, setOptimisticChat] = useState<import('@/lib/supabase/queries/assistant').AsstChatRow | null>(null)
 
-  const bottomRef       = useRef<HTMLDivElement>(null)
-  const inputRef        = useRef<HTMLTextAreaElement>(null)
-  const messagesRef     = useRef<Message[]>([])
-  const isDirtyRef      = useRef(false)
-  const activeChatIdRef = useRef<string | undefined>(undefined)
+  const [showScrollDown, setShowScrollDown] = useState(false)
+
+  const bottomRef           = useRef<HTMLDivElement>(null)
+  const scrollContainerRef  = useRef<HTMLDivElement>(null)
+  const inputRef            = useRef<HTMLTextAreaElement>(null)
+  const messagesRef         = useRef<Message[]>([])
+  const isDirtyRef          = useRef(false)
+  const activeChatIdRef     = useRef<string | undefined>(undefined)
+  const liveOptimisticIdRef = useRef<string | undefined>(undefined)
 
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
@@ -115,7 +119,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       ? firstUserMsg.slice(0, 47) + '…'
       : firstUserMsg || 'New conversation'
     return {
-      id:         existingId ?? `optimistic-${Date.now()}`,
+      id:         existingId ?? liveOptimisticIdRef.current ?? `optimistic-${Date.now()}`,
       topic,
       msgs:       msgs.map(m => ({ role: m.role, content: m.content })) as never,
       tags:       null,
@@ -125,13 +129,18 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     }
   }
 
+  function finishSave(msgs: Message[], existingId?: string) {
+    setOptimisticChat(buildOptimistic(msgs, existingId))
+    saveConversation(msgs, existingId).then(() => {
+      liveOptimisticIdRef.current = undefined
+      setOptimisticChat(null)
+      setSidebarKey(k => k + 1)
+    })
+  }
+
   function loadFromHistory(chat: AsstChatRow) {
     if (isDirtyRef.current && messagesRef.current.length >= 2) {
-      setOptimisticChat(buildOptimistic(messagesRef.current, activeChatId))
-      saveConversation(messagesRef.current, activeChatId).then(() => {
-        setOptimisticChat(null)
-        setSidebarKey(k => k + 1)
-      })
+      finishSave(messagesRef.current, activeChatId)
     }
     isDirtyRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
@@ -143,11 +152,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
   function startNewChat() {
     if (isDirtyRef.current && messages.length >= 2) {
-      setOptimisticChat(buildOptimistic(messages, activeChatId))
-      saveConversation(messages, activeChatId).then(() => {
-        setOptimisticChat(null)
-        setSidebarKey(k => k + 1)
-      })
+      finishSave(messages, activeChatId)
     }
     isDirtyRef.current = false
     setMessages([])
@@ -168,6 +173,21 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     if (!text || isStreaming) return
 
     isDirtyRef.current = true
+
+    // First message of a brand-new chat — show "New Conversation" in sidebar immediately
+    if (!activeChatId && messages.length === 0) {
+      const tempId = `optimistic-${Date.now()}`
+      liveOptimisticIdRef.current = tempId
+      setOptimisticChat({
+        id:         tempId,
+        topic:      'New Conversation',
+        msgs:       [] as never,
+        tags:       null,
+        importance: null,
+        pinned:     false,
+        ts:         new Date().toISOString(),
+      })
+    }
 
     const userMsg: Message = { id: uid(), role: 'user', content: text }
     const asstId = uid()
@@ -275,7 +295,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       />
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         <CompanyBar lang={lang} />
 
         {/* ── Header ── */}
@@ -320,7 +340,15 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         </div>
 
         {/* ── Messages ── */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-6 relative"
+          onScroll={() => {
+            const el = scrollContainerRef.current
+            if (!el) return
+            setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 100)
+          }}
+        >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
               <div className="w-12 h-12 rounded-2xl bg-terracotta/10 border border-terracotta/20 flex items-center justify-center">
@@ -342,6 +370,17 @@ export function AssistantShell({ lang, backHref, role }: Props) {
           )}
           <div ref={bottomRef} />
         </div>
+
+        {/* ── Scroll to bottom (mobile only) ── */}
+        {showScrollDown && (
+          <button
+            onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="md:hidden absolute bottom-[100px] right-4 w-9 h-9 rounded-full bg-paper border border-line shadow-md flex items-center justify-center text-ink2 hover:text-ink hover:border-ink2 transition-colors z-10"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown size={16} />
+          </button>
+        )}
 
         {/* ── Input bar ── */}
         <div className="shrink-0 border-t border-line bg-paper px-4 pt-3 pb-[72px]">

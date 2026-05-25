@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Pin, MoreVertical, Check } from 'lucide-react'
+import { Pin, MoreVertical, Check, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 import type { Json } from '@/lib/supabase/types'
@@ -13,6 +13,7 @@ interface Props {
   onLoad:          (chat: AsstChatRow) => void
   onPin:           (id: string, pinned: boolean) => void
   onDelete:        (id: string) => void
+  onRename:        (id: string, currentTopic: string) => void
   mobile?:         boolean
   isSelecting?:    boolean
   selectedIds?:    Set<string>
@@ -52,10 +53,9 @@ const GROUP_LABELS: Record<Group, string> = {
 
 const GROUP_ORDER: Group[] = ['pinned', 'today', 'week', 'earlier']
 
-export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobile, isSelecting, selectedIds, onToggleSelect }: Props) {
+export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRename, mobile, isSelecting, selectedIds, onToggleSelect }: Props) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
-  // Close open menu when clicking outside
   useEffect(() => {
     if (!openMenuId) return
     function handleOutside() { setOpenMenuId(null) }
@@ -63,7 +63,6 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
     return () => document.removeEventListener('click', handleOutside)
   }, [openMenuId])
 
-  // Exit menu when entering select mode
   useEffect(() => {
     if (isSelecting) setOpenMenuId(null)
   }, [isSelecting])
@@ -82,6 +81,11 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
   function handleDeleteClick(id: string) {
     setOpenMenuId(null)
     onDelete(id)
+  }
+
+  function handleRenameClick(id: string, topic: string) {
+    setOpenMenuId(null)
+    onRename(id, topic)
   }
 
   return (
@@ -107,6 +111,7 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, mobi
                 onToggleMenu={() => setOpenMenuId(openMenuId === chat.id ? null : chat.id)}
                 onPin={() => handlePin(chat)}
                 onDeleteClick={() => handleDeleteClick(chat.id)}
+                onRenameClick={() => handleRenameClick(chat.id, chat.topic ?? '')}
                 onToggleSelect={() => onToggleSelect?.(chat.id)}
               />
             ))}
@@ -130,13 +135,14 @@ interface RowProps {
   onToggleMenu:    () => void
   onPin:           () => void
   onDeleteClick:   () => void
+  onRenameClick:   () => void
   onToggleSelect:  () => void
 }
 
 function ChatRow({
   chat, isActive, isMenuOpen, mobile,
   isSelecting, isSelected,
-  onLoad, onToggleMenu, onPin, onDeleteClick, onToggleSelect,
+  onLoad, onToggleMenu, onPin, onDeleteClick, onRenameClick, onToggleSelect,
 }: RowProps) {
   const topic = chat.topic ?? 'Untitled conversation'
   const count = msgCount(chat.msgs)
@@ -156,7 +162,7 @@ function ChatRow({
               : 'hover:bg-bg',
         )}
       >
-        {/* Checkbox (select mode only) */}
+        {/* Checkbox in select mode */}
         {isSelecting && (
           <span className={cn(
             'shrink-0 mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors',
@@ -167,7 +173,7 @@ function ChatRow({
         )}
 
         <div className={cn('flex flex-col gap-0.5 min-w-0 flex-1', !isSelecting && (!mobile ? 'pr-10' : 'pr-8'))}>
-          <span className="text-sm font-medium text-ink truncate leading-tight">
+          <span className="text-sm font-medium text-ink line-clamp-2 leading-tight">
             {chat.pinned && !isSelecting && <span className="mr-1 text-amber text-[11px]">📌</span>}
             {topic}
           </span>
@@ -178,7 +184,7 @@ function ChatRow({
         </div>
       </button>
 
-      {/* Desktop hover actions — hidden in select mode or on mobile */}
+      {/* Desktop hover actions */}
       {!isSelecting && !mobile && (
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
@@ -200,7 +206,7 @@ function ChatRow({
         </div>
       )}
 
-      {/* Mobile ⋮ — always visible, hidden in select mode */}
+      {/* Mobile ⋮ */}
       {!isSelecting && mobile && (
         <button
           onClick={e => { e.stopPropagation(); onToggleMenu() }}
@@ -222,6 +228,13 @@ function ChatRow({
               {chat.pinned ? 'Unpin' : 'Pin'}
             </button>
           )}
+          <button
+            onClick={e => { e.stopPropagation(); onRenameClick() }}
+            className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-bg transition-colors flex items-center gap-2"
+          >
+            <Pencil size={13} className="text-muted" />
+            Rename
+          </button>
           <button
             onClick={e => { e.stopPropagation(); onDeleteClick() }}
             className="w-full text-left px-3 py-2 text-sm text-terracotta hover:bg-bg transition-colors"

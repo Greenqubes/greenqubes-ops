@@ -24,6 +24,8 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
   const [isSelecting,       setIsSelecting]       = useState(false)
   const [selectedIds,       setSelectedIds]       = useState<Set<string>>(new Set())
   const [bulkDeletePending, setBulkDeletePending] = useState(false)
+  const [renameState,       setRenameState]       = useState<{ id: string; topic: string } | null>(null)
+  const [renameInput,       setRenameInput]       = useState('')
 
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -47,7 +49,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
 
   useEffect(() => { fetchChats() }, [fetchChats, refreshTrigger])
 
-  // Clear toast timer on unmount
   useEffect(() => {
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current) }
   }, [])
@@ -72,8 +73,29 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
     })
   }
 
+  function handleRename(id: string, currentTopic: string) {
+    setRenameState({ id, topic: currentTopic })
+    setRenameInput(currentTopic)
+  }
+
+  async function confirmRename() {
+    const state = renameState
+    if (!state) return
+    const newTopic = renameInput.trim()
+    if (!newTopic) return
+    setRenameState(null)
+
+    setChats(prev => prev.map(c => c.id === state.id ? { ...c, topic: newTopic } : c))
+
+    const res = await fetch('/api/assistant/rename', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: state.id, topic: newTopic }),
+    })
+    if (!res.ok) fetchChats()
+  }
+
   async function handlePin(id: string, pinned: boolean) {
-    // Optimistic update
     setChats(prev => prev.map(c => c.id === id ? { ...c, pinned } : c))
 
     const res = await fetch('/api/assistant/pin', {
@@ -84,7 +106,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      // Revert
       setChats(prev => prev.map(c => c.id === id ? { ...c, pinned: !pinned } : c))
       if (body?.reason === 'pin_cap') {
         showToast('You can pin up to 5 conversations')
@@ -97,7 +118,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
     if (!id) return
     setPendingDeleteId(null)
 
-    // Optimistic update
     setChats(prev => prev.filter(c => c.id !== id))
     onDelete(id)
 
@@ -107,9 +127,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
       body:    JSON.stringify({ id }),
     })
 
-    if (!res.ok) {
-      fetchChats()
-    }
+    if (!res.ok) fetchChats()
   }
 
   async function confirmBulkDelete() {
@@ -117,7 +135,6 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
     setBulkDeletePending(false)
     exitSelectMode()
 
-    // Optimistic
     setChats(prev => prev.filter(c => !ids.includes(c.id)))
     ids.forEach(id => onDelete(id))
 
@@ -172,6 +189,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
               onLoad={onLoad}
               onPin={handlePin}
               onDelete={setPendingDeleteId}
+              onRename={handleRename}
               isSelecting={isSelecting}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
@@ -186,7 +204,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
           </div>
         )}
 
-        {/* Bulk delete bar — shown when items are selected */}
+        {/* Bulk delete bar */}
         {isSelecting && selectedCount > 0 && (
           <div className="shrink-0 px-3 pt-2 pb-2 border-t border-line">
             <button
@@ -199,7 +217,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
           </div>
         )}
 
-        {/* New Chat button — pb-[72px] clears the fixed BottomNav (~60px) */}
+        {/* New Chat button */}
         <div className={`shrink-0 px-3 pt-3 border-t border-line ${isSelecting && selectedCount > 0 ? 'pb-3' : 'pb-[72px]'}`}>
           <button
             onClick={onNewChat}
@@ -253,6 +271,36 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
             className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
           >
             Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Rename modal */}
+      <Modal
+        isOpen={renameState !== null}
+        onClose={() => setRenameState(null)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-3">Rename conversation</p>
+        <input
+          value={renameInput}
+          onChange={e => setRenameInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') confirmRename() }}
+          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60 mb-4"
+          autoFocus
+        />
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setRenameState(null)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmRename}
+            disabled={!renameInput.trim()}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Save
           </button>
         </div>
       </Modal>

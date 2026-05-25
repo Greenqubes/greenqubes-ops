@@ -19,6 +19,8 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
   const [isSelecting,       setIsSelecting]       = useState(false)
   const [selectedIds,       setSelectedIds]       = useState<Set<string>>(new Set())
   const [bulkDeletePending, setBulkDeletePending] = useState(false)
+  const [renameState,       setRenameState]       = useState<{ id: string; topic: string } | null>(null)
+  const [renameInput,       setRenameInput]       = useState('')
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchChats = useCallback(async () => {
@@ -32,7 +34,6 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
 
   useEffect(() => { fetchChats() }, [fetchChats])
 
-  // Clear toast timer on unmount
   useEffect(() => {
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current) }
   }, [])
@@ -55,6 +56,28 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
       else next.add(id)
       return next
     })
+  }
+
+  function handleRename(id: string, currentTopic: string) {
+    setRenameState({ id, topic: currentTopic })
+    setRenameInput(currentTopic)
+  }
+
+  async function confirmRename() {
+    const state = renameState
+    if (!state) return
+    const newTopic = renameInput.trim()
+    if (!newTopic) return
+    setRenameState(null)
+
+    setChats(prev => prev.map(c => c.id === state.id ? { ...c, topic: newTopic } : c))
+
+    const res = await fetch('/api/assistant/rename', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: state.id, topic: newTopic }),
+    })
+    if (!res.ok) fetchChats()
   }
 
   async function handlePin(id: string, pinned: boolean) {
@@ -161,6 +184,7 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
             onLoad={handleLoad}
             onPin={handlePin}
             onDelete={setPendingDeleteId}
+            onRename={handleRename}
             mobile
             isSelecting={isSelecting}
             selectedIds={selectedIds}
@@ -231,6 +255,36 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
             className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
           >
             Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Rename modal */}
+      <Modal
+        isOpen={renameState !== null}
+        onClose={() => setRenameState(null)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-3">Rename conversation</p>
+        <input
+          value={renameInput}
+          onChange={e => setRenameInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') confirmRename() }}
+          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60 mb-4"
+          autoFocus
+        />
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setRenameState(null)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmRename}
+            disabled={!renameInput.trim()}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Save
           </button>
         </div>
       </Modal>
