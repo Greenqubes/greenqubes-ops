@@ -317,7 +317,48 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       {/* ── Company bar spans full width (sidebar + main) ── */}
       <CompanyBar lang={lang} />
 
-      {/* ── Below company bar: sidebar + main content side by side ── */}
+      {/* ── Sub-header spans full width (sidebar + main) ── */}
+      <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
+        <Link
+          href={backHref}
+          className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          aria-label={t(lang, 'backToSchedule')}
+        >
+          <ArrowLeft size={16} />
+        </Link>
+
+        <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
+          <Sparkles size={15} className="text-white" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h1 className="font-display text-[15px] font-medium text-ink leading-none">
+            {t(lang, 'assistant')}
+          </h1>
+          <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
+        </div>
+
+        {/* Mobile — History button (hidden on desktop where sidebar is visible) */}
+        <Link
+          href="/assistant/history"
+          className="md:hidden p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          aria-label="Conversation history"
+        >
+          <History size={16} />
+        </Link>
+
+        {messages.length > 0 && (
+          <button
+            onClick={startNewChat}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors shrink-0"
+          >
+            <RotateCcw size={12} />
+            <span className="hidden sm:inline">{t(lang, 'newChat')}</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Below sub-header: sidebar + main content side by side ── */}
       <div className="flex-1 flex overflow-hidden relative">
 
       {/* ── Sidebar (desktop only, manages its own hidden md:flex) ── */}
@@ -332,47 +373,6 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-
-        {/* ── Header ── */}
-        <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
-          <Link
-            href={backHref}
-            className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-            aria-label={t(lang, 'backToSchedule')}
-          >
-            <ArrowLeft size={16} />
-          </Link>
-
-          <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
-            <Sparkles size={15} className="text-white" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display text-[15px] font-medium text-ink leading-none">
-              {t(lang, 'assistant')}
-            </h1>
-            <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
-          </div>
-
-          {/* Mobile — History button (hidden on desktop where sidebar is visible) */}
-          <Link
-            href="/assistant/history"
-            className="md:hidden p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-            aria-label="Conversation history"
-          >
-            <History size={16} />
-          </Link>
-
-          {messages.length > 0 && (
-            <button
-              onClick={startNewChat}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors shrink-0"
-            >
-              <RotateCcw size={12} />
-              <span className="hidden sm:inline">{t(lang, 'newChat')}</span>
-            </button>
-          )}
-        </div>
 
         {/* ── Messages ── */}
         <div

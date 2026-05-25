@@ -218,7 +218,7 @@ export function HistorySidebar({ activeChatId, onLoad, onNewChat, onDelete, refr
         )}
 
         {/* New Chat button */}
-        <div className="shrink-0 px-3 py-3 border-t border-line">
+        <div className="shrink-0 px-3 pt-3 pb-[72px] border-t border-line">
           <button
             onClick={onNewChat}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-line bg-bg text-ink2 hover:border-ink2 hover:text-ink text-sm font-medium transition-colors"
