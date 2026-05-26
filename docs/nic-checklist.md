@@ -2,15 +2,21 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-21 (fix-jobs — schedule filter chips, InstallerGrid green card highlight, attachment bucket fixes, migration 0028, notify-assigned route)_
+_Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding setup complete)_
 
 ---
 
 ## Pending — Next Session
 
+### Onboarding (from 2026-05-25, chore-onboarding)
+
+- [ ] **[NIC] Add Bryan as GitHub collaborator** — go to repo Settings → Collaborators → Add people → Bryan's GitHub username
+- [ ] **[NIC] Send Bryan the `.env.local` file** — share securely (not plain email or WhatsApp)
+- [ ] **[NIC] Add Bryan's Google account to Supabase** — so he can log in to the app once set up
+
 ### Polish (from 2026-05-20, fix-assistant-history)
 
-- [ ] **[POLISH] Assistant history sidebar refresh has a noticeable delay** — sidebar re-fetches after save resolves, but the save includes an AI tagging call (Haiku) so there's a 1–2 second lag before the updated chat appears. Needs optimistic update on the sidebar for instant feel. Fine for presentation; defer until after pre-alpha.
+- [x] **[POLISH] Assistant history sidebar refresh has a noticeable delay** — fixed: optimistic "New Conversation" entry appears immediately on first send; live title update via Haiku after first reply; `liveOptimisticIdRef` prevents duplicate entries.
 
 ### Bugs (from 2026-05-20, feat-digest-bot)
 
@@ -67,6 +73,19 @@ _Last updated: 2026-05-21 (fix-jobs — schedule filter chips, InstallerGrid gre
 
 ---
 
+## Done This Session ✓ (2026-05-25, feat-assistant-3)
+
+- [x] **Per-user history isolation** — migration 0030 drops the cross-read RLS policy on `asst_chats`; each user now only sees their own conversations.
+- [x] **Optimistic "New Conversation" on first send** — sidebar shows new entry immediately when user sends first message; no waiting for save to complete.
+- [x] **Live auto-rename via Haiku** — after AI's first reply, Haiku generates a 3–5 word title and updates the sidebar entry live; manual rename persists and blocks auto-rename.
+- [x] **Rename from ⋮ dropdown** — rename modal with text input; optimistic update + PATCH `/api/assistant/rename`; persists on next load.
+- [x] **Bulk multi-select delete** — "Select" mode with checkboxes on each row; terracotta delete bar at bottom; confirmation modal; parallel DELETE calls.
+- [x] **Message count + star importance hidden** — removed from sidebar and history list UI; still stored in DB for backend use.
+- [x] **Markdown rendering** — `MarkdownMessage` component renders `##/###`, `**bold**`, `*italic*`, `---`, `> blockquote`, `- lists` cleanly; no new npm dependencies; replaces raw `whitespace-pre-wrap` in both AssistantShell and FloatingChatPanel.
+- [x] **Type while AI streams** — textarea no longer disabled during streaming; send button still blocked until reply finishes.
+- [x] **Full-width "← Assistant" sub-header** — moved above sidebar + content row so it spans the full width; sidebar history list starts below it.
+- [x] **New Chat button clears BottomNav** — restored `pb-[72px]` on sidebar footer so New Chat button is not covered by the fixed BottomNav.
+
 ## Done This Session ✓ (2026-05-21, ux-nav)
 
 - [x] **CompanyBar shared component** — new `src/components/CompanyBar.tsx`; renders GreenQubes wordmark + Pre-Alpha + bell + user menu; sticky `top-0 z-30`; used in all 7 shells.
@@ -74,15 +93,6 @@ _Last updated: 2026-05-21 (fix-jobs — schedule filter chips, InstallerGrid gre
 - [x] **Company bar persistent across whole app** — ScheduleShell, ApprovalsShell, InstallerShell, AssistantShell, AdminShell, JobDetailShell, NewJobShell all use CompanyBar at the top.
 - [x] **AdminShell stacking fixed** — existing admin header moved to `sticky top-[45px]` so it stacks below CompanyBar without overlap.
 - [x] **BottomNav kept on list/dashboard pages only** — removed from job form shells after review (cramped with action bar); remains on Schedule, Approvals, Installer, Assistant, Admin.
-
-## Done This Session ✓ (2026-05-21, fix-jobs)
-
-- [x] **Schedule filter chips by view** — week view shows only "All" chip; month view hides chips entirely; switching to either view resets filter to "all".
-- [x] **InstallerGrid: full card green highlight** — removed tick badge; selected card highlights with `brand-green` border + background; readOnly prop locks selection for sales on scheduled jobs.
-- [x] **Back arrow → Back to Schedule** — back arrow on job detail uses `router.back()` (returns to wherever the user came from); label renamed to "Back to Schedule".
-- [x] **Save Changes / Save & notify unlocked on installer change** — `isInstallerDirty` memo compares selected vs saved installer sets; enables the save button even when no form fields changed.
-- [x] **AttachmentBuckets silent failures fixed** — `url_link` and `production_instructions` were missing from the DB `file_kind` enum, causing all inserts to fail silently. Migration 0028 adds both values. Also added success/error toasts ("Image uploaded.", "Attachment uploaded.", "URL uploaded.") and a `contentType` fallback for browsers that omit MIME type.
-- [x] **Scheduler notify-assigned on save** — new `/api/jobs/[id]/notify-assigned` route sends `tplJobAssigned` Telegram notification to any newly added installers when a scheduler saves a scheduled job.
 
 ## Done This Session ✓ (2026-05-21, ux-jobs)
 

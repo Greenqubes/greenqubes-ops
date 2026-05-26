@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
+import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { LangCode } from '@/lib/i18n'
 
 interface Message {
@@ -240,11 +241,10 @@ export function FloatingChatPanel({ lang }: Props) {
                 onKeyDown={handleKeyDown}
                 placeholder={t(lang, 'askPlaceholder')}
                 rows={1}
-                disabled={isStreaming}
                 className={cn(
                   'flex-1 resize-none rounded-xl border border-line bg-bg px-3 py-2 text-[13px] text-ink placeholder:text-muted',
                   'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
-                  'transition-colors min-h-[36px] max-h-28 leading-relaxed disabled:opacity-50',
+                  'transition-colors min-h-[36px] max-h-28 leading-relaxed',
                 )}
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
@@ -309,7 +309,7 @@ function FloatingBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               : 'bg-bg border border-line text-ink rounded-tl-sm',
         )}>
           {msg.content
-            ? <p className="whitespace-pre-wrap">{msg.content}</p>
+            ? <MarkdownMessage content={msg.content} />
             : msg.streaming && (
               <span className="inline-flex items-center gap-1 text-muted">
                 <Loader2 size={11} className="animate-spin" />

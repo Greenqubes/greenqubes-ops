@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
@@ -7,6 +6,7 @@ import {
   sendDigestTelegram,
 } from '@/lib/telegram/bot'
 import { tplVoteStatus } from '@/lib/telegram/templates'
+import { autoPromoteToVault } from '@/lib/digest/autoPromote'
 
 export async function POST(req: NextRequest) {
   const secret = process.env.TELEGRAM_DIGEST_WEBHOOK_SECRET
@@ -132,33 +132,30 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   }
 
   if (promoted) {
-    const promoteUrl = buildPromoteUrl(chatId)
-    const { data: schedulers } = await db
+    // Auto-commit to vault in the background — don't block the webhook response
+    autoPromoteToVault(chatId).then(({ path }) => {
+      console.log(`[digest webhook] vault note committed: ${path}`)
+    }).catch(err => {
+      console.error('[digest webhook] auto-promote failed:', (err as Error).message)
+    })
+
+    const { data: subscribers } = await db
       .from('users')
       .select('telegram_chat_id')
       .eq('digest_subscriber', true)
       .not('telegram_chat_id', 'is', null)
 
-    for (const s of schedulers ?? []) {
+    for (const s of subscribers ?? []) {
       if (s.telegram_chat_id) {
         await sendDigestTelegram(
           s.telegram_chat_id,
-          `📝 <b>${chat.topic ?? 'Conversation'}</b> reached majority — tap to get your Obsidian note:\n${promoteUrl}`,
+          `✅ <b>${chat.topic ?? 'Conversation'}</b> reached majority — note is being written to Obsidian vault automatically.`,
         )
       }
     }
   }
 }
 
-function buildPromoteUrl(chatId: string): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${process.env.VERCEL_URL ?? 'localhost:3001'}`
-  const sig = crypto
-    .createHmac('sha256', process.env.CRON_SECRET!)
-    .update(chatId)
-    .digest('hex')
-    .slice(0, 16)
-  return `${appUrl}/api/digest/promote/${chatId}?sig=${sig}`
-}
 
 type CallbackQuery = {
   id:       string

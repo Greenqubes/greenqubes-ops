@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, Loader2,
-  ExternalLink, Sparkles, History,
+  ExternalLink, Sparkles, History, ChevronDown,
 } from 'lucide-react'
 import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
@@ -14,6 +14,7 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
+import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Message {
@@ -37,17 +38,23 @@ function uid() {
 }
 
 export function AssistantShell({ lang, backHref, role }: Props) {
-  const [messages,     setMessages]     = useState<Message[]>([])
-  const [input,        setInput]        = useState('')
-  const [isStreaming,  setIsStreaming]  = useState(false)
-  const [activeChatId, setActiveChatId] = useState<string | undefined>()
-  const [sidebarKey,   setSidebarKey]   = useState(0)
+  const [messages,       setMessages]       = useState<Message[]>([])
+  const [input,          setInput]          = useState('')
+  const [isStreaming,    setIsStreaming]    = useState(false)
+  const [activeChatId,   setActiveChatId]   = useState<string | undefined>()
+  const [sidebarKey,     setSidebarKey]     = useState(0)
+  const [optimisticChat, setOptimisticChat] = useState<import('@/lib/supabase/queries/assistant').AsstChatRow | null>(null)
 
-  const bottomRef       = useRef<HTMLDivElement>(null)
-  const inputRef        = useRef<HTMLTextAreaElement>(null)
-  const messagesRef     = useRef<Message[]>([])
-  const isDirtyRef      = useRef(false)
-  const activeChatIdRef = useRef<string | undefined>(undefined)
+  const [showScrollDown, setShowScrollDown] = useState(false)
+
+  const bottomRef           = useRef<HTMLDivElement>(null)
+  const scrollContainerRef  = useRef<HTMLDivElement>(null)
+  const inputRef            = useRef<HTMLTextAreaElement>(null)
+  const messagesRef         = useRef<Message[]>([])
+  const isDirtyRef          = useRef(false)
+  const activeChatIdRef     = useRef<string | undefined>(undefined)
+  const liveOptimisticIdRef  = useRef<string | undefined>(undefined)
+  const titleGeneratedRef    = useRef(false)
 
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
@@ -108,11 +115,37 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     }
   }, [saveConversation])
 
+  function buildOptimistic(msgs: Message[], existingId?: string): import('@/lib/supabase/queries/assistant').AsstChatRow {
+    const firstUserMsg = msgs.find(m => m.role === 'user')?.content ?? ''
+    const topic = firstUserMsg.length > 50
+      ? firstUserMsg.slice(0, 47) + '…'
+      : firstUserMsg || 'New conversation'
+    return {
+      id:         existingId ?? liveOptimisticIdRef.current ?? `optimistic-${Date.now()}`,
+      topic,
+      msgs:       msgs.map(m => ({ role: m.role, content: m.content })) as never,
+      tags:       null,
+      importance: null,
+      pinned:     false,
+      ts:         new Date().toISOString(),
+    }
+  }
+
+  function finishSave(msgs: Message[], existingId?: string) {
+    setOptimisticChat(buildOptimistic(msgs, existingId))
+    saveConversation(msgs, existingId).then(() => {
+      liveOptimisticIdRef.current = undefined
+      setOptimisticChat(null)
+      setSidebarKey(k => k + 1)
+    })
+  }
+
   function loadFromHistory(chat: AsstChatRow) {
     if (isDirtyRef.current && messagesRef.current.length >= 2) {
-      saveConversation(messagesRef.current, activeChatId).then(() => setSidebarKey(k => k + 1))
+      finishSave(messagesRef.current, activeChatId)
     }
-    isDirtyRef.current = false
+    isDirtyRef.current      = false
+    titleGeneratedRef.current = false
     const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
       .map(m => ({ id: uid(), role: m.role, content: m.content }))
     setMessages(msgs)
@@ -122,9 +155,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
 
   function startNewChat() {
     if (isDirtyRef.current && messages.length >= 2) {
-      saveConversation(messages, activeChatId).then(() => setSidebarKey(k => k + 1))
+      finishSave(messages, activeChatId)
     }
-    isDirtyRef.current = false
+    isDirtyRef.current        = false
+    titleGeneratedRef.current = false
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
@@ -138,11 +172,46 @@ export function AssistantShell({ lang, backHref, role }: Props) {
     }
   }
 
+  async function generateLiveTitle(userMsg: string, asstMsg: string) {
+    try {
+      const res = await fetch('/api/assistant/generate-title', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          messages: [
+            { role: 'user',      content: userMsg },
+            { role: 'assistant', content: asstMsg },
+          ],
+        }),
+      })
+      if (!res.ok) return
+      const { title } = await res.json() as { title: string }
+      if (title && liveOptimisticIdRef.current) {
+        setOptimisticChat(prev => prev ? { ...prev, topic: title } : prev)
+      }
+    } catch { /* best-effort */ }
+  }
+
   async function sendMessage() {
     const text = input.trim()
     if (!text || isStreaming) return
 
     isDirtyRef.current = true
+
+    // First message of a brand-new chat — show "New Conversation" in sidebar immediately
+    if (!activeChatId && messages.length === 0) {
+      const tempId = `optimistic-${Date.now()}`
+      liveOptimisticIdRef.current = tempId
+      setOptimisticChat({
+        id:         tempId,
+        topic:      'New Conversation',
+        msgs:       [] as never,
+        tags:       null,
+        importance: null,
+        pinned:     false,
+        ts:         new Date().toISOString(),
+      })
+    }
 
     const userMsg: Message = { id: uid(), role: 'user', content: text }
     const asstId = uid()
@@ -216,6 +285,12 @@ export function AssistantShell({ lang, backHref, role }: Props) {
       }
 
       setMessages(prev => prev.map(m => m.id === asstId ? { ...m, streaming: false } : m))
+
+      // Generate a live title after the first exchange in a new chat
+      if (liveOptimisticIdRef.current && !titleGeneratedRef.current && finalContent) {
+        titleGeneratedRef.current = true
+        generateLiveTitle(text, finalContent)
+      }
     } catch {
       setMessages(prev =>
         prev.map(m =>
@@ -237,7 +312,54 @@ export function AssistantShell({ lang, backHref, role }: Props) {
   }
 
   return (
-    <div className="h-[100dvh] bg-bg flex">
+    <div className="h-[100dvh] bg-bg flex flex-col">
+
+      {/* ── Company bar spans full width (sidebar + main) ── */}
+      <CompanyBar lang={lang} />
+
+      {/* ── Sub-header spans full width (sidebar + main) ── */}
+      <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
+        <Link
+          href={backHref}
+          className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          aria-label={t(lang, 'backToSchedule')}
+        >
+          <ArrowLeft size={16} />
+        </Link>
+
+        <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
+          <Sparkles size={15} className="text-white" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h1 className="font-display text-[15px] font-medium text-ink leading-none">
+            {t(lang, 'assistant')}
+          </h1>
+          <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
+        </div>
+
+        {/* Mobile — History button (hidden on desktop where sidebar is visible) */}
+        <Link
+          href="/assistant/history"
+          className="md:hidden p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          aria-label="Conversation history"
+        >
+          <History size={16} />
+        </Link>
+
+        {messages.length > 0 && (
+          <button
+            onClick={startNewChat}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors shrink-0"
+          >
+            <RotateCcw size={12} />
+            <span className="hidden sm:inline">{t(lang, 'newChat')}</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Below sub-header: sidebar + main content side by side ── */}
+      <div className="flex-1 flex overflow-hidden relative">
 
       {/* ── Sidebar (desktop only, manages its own hidden md:flex) ── */}
       <HistorySidebar
@@ -246,55 +368,22 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         onNewChat={startNewChat}
         onDelete={handleSidebarDelete}
         refreshTrigger={sidebarKey}
+        optimisticChat={optimisticChat}
       />
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <CompanyBar lang={lang} />
-
-        {/* ── Header ── */}
-        <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
-          <Link
-            href={backHref}
-            className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-            aria-label={t(lang, 'backToSchedule')}
-          >
-            <ArrowLeft size={16} />
-          </Link>
-
-          <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
-            <Sparkles size={15} className="text-white" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display text-[15px] font-medium text-ink leading-none">
-              {t(lang, 'assistant')}
-            </h1>
-            <p className="text-[10px] text-muted mt-0.5">{t(lang, 'assistantSubtitle')}</p>
-          </div>
-
-          {/* Mobile — History button (hidden on desktop where sidebar is visible) */}
-          <Link
-            href="/assistant/history"
-            className="md:hidden p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-            aria-label="Conversation history"
-          >
-            <History size={16} />
-          </Link>
-
-          {messages.length > 0 && (
-            <button
-              onClick={startNewChat}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-line bg-bg text-ink2 hover:border-ink2 text-xs font-medium transition-colors shrink-0"
-            >
-              <RotateCcw size={12} />
-              <span className="hidden sm:inline">{t(lang, 'newChat')}</span>
-            </button>
-          )}
-        </div>
+      <div className="flex-1 flex flex-col overflow-hidden relative">
 
         {/* ── Messages ── */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-6 relative"
+          onScroll={() => {
+            const el = scrollContainerRef.current
+            if (!el) return
+            setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 100)
+          }}
+        >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 text-center max-w-sm mx-auto">
               <div className="w-12 h-12 rounded-2xl bg-terracotta/10 border border-terracotta/20 flex items-center justify-center">
@@ -317,6 +406,17 @@ export function AssistantShell({ lang, backHref, role }: Props) {
           <div ref={bottomRef} />
         </div>
 
+        {/* ── Scroll to bottom (mobile only) ── */}
+        {showScrollDown && (
+          <button
+            onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
+            className="md:hidden absolute bottom-[100px] right-4 w-9 h-9 rounded-full bg-paper border border-line shadow-md flex items-center justify-center text-ink2 hover:text-ink hover:border-ink2 transition-colors z-10"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown size={16} />
+          </button>
+        )}
+
         {/* ── Input bar ── */}
         <div className="shrink-0 border-t border-line bg-paper px-4 pt-3 pb-[72px]">
           <div className="max-w-2xl mx-auto flex gap-2 items-end">
@@ -327,12 +427,10 @@ export function AssistantShell({ lang, backHref, role }: Props) {
               onKeyDown={handleKeyDown}
               placeholder={t(lang, 'askPlaceholder')}
               rows={1}
-              disabled={isStreaming}
               className={cn(
                 'flex-1 resize-none rounded-xl border border-line bg-bg px-3.5 py-2.5 text-sm text-ink placeholder:text-muted',
                 'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
                 'transition-colors min-h-[42px] max-h-40 leading-relaxed',
-                'disabled:opacity-50',
               )}
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
@@ -356,6 +454,7 @@ export function AssistantShell({ lang, backHref, role }: Props) {
         </div>
 
         <BottomNav role={role} />
+      </div>
       </div>
     </div>
   )
@@ -389,7 +488,7 @@ function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               : 'bg-paper border border-line text-ink rounded-tl-sm',
         )}>
           {msg.content
-            ? <p className="whitespace-pre-wrap">{msg.content}</p>
+            ? <MarkdownMessage content={msg.content} />
             : msg.streaming && (
               <span className="inline-flex items-center gap-1 text-muted text-xs">
                 <Loader2 size={12} className="animate-spin" />

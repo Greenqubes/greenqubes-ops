@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 import { HistoryList } from '@/features/assistant/HistoryList'
 import { Modal } from '@/components/Modal'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
@@ -12,10 +12,15 @@ interface Props { lang: LangCode }
 
 export function MobileHistoryShell({ lang: _lang }: Props) {
   const router = useRouter()
-  const [chats,           setChats]           = useState<AsstChatRow[]>([])
-  const [loading,         setLoading]         = useState(true)
-  const [toast,           setToast]           = useState<string | null>(null)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [chats,             setChats]             = useState<AsstChatRow[]>([])
+  const [loading,           setLoading]           = useState(true)
+  const [toast,             setToast]             = useState<string | null>(null)
+  const [pendingDeleteId,   setPendingDeleteId]   = useState<string | null>(null)
+  const [isSelecting,       setIsSelecting]       = useState(false)
+  const [selectedIds,       setSelectedIds]       = useState<Set<string>>(new Set())
+  const [bulkDeletePending, setBulkDeletePending] = useState(false)
+  const [renameState,       setRenameState]       = useState<{ id: string; topic: string } | null>(null)
+  const [renameInput,       setRenameInput]       = useState('')
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchChats = useCallback(async () => {
@@ -29,7 +34,6 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
 
   useEffect(() => { fetchChats() }, [fetchChats])
 
-  // Clear toast timer on unmount
   useEffect(() => {
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current) }
   }, [])
@@ -38,6 +42,42 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     setToast(msg)
     toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+  }
+
+  function exitSelectMode() {
+    setIsSelecting(false)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function handleRename(id: string, currentTopic: string) {
+    setRenameState({ id, topic: currentTopic })
+    setRenameInput(currentTopic)
+  }
+
+  async function confirmRename() {
+    const state = renameState
+    if (!state) return
+    const newTopic = renameInput.trim()
+    if (!newTopic) return
+    setRenameState(null)
+
+    setChats(prev => prev.map(c => c.id === state.id ? { ...c, topic: newTopic } : c))
+
+    const res = await fetch('/api/assistant/rename', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: state.id, topic: newTopic }),
+    })
+    if (!res.ok) fetchChats()
   }
 
   async function handlePin(id: string, pinned: boolean) {
@@ -68,22 +108,66 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
     if (!res.ok) fetchChats()
   }
 
+  async function confirmBulkDelete() {
+    const ids = [...selectedIds]
+    setBulkDeletePending(false)
+    exitSelectMode()
+
+    setChats(prev => prev.filter(c => !ids.includes(c.id)))
+
+    const results = await Promise.all(
+      ids.map(id => fetch('/api/assistant/delete', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id }),
+      }))
+    )
+
+    if (results.some(r => !r.ok)) fetchChats()
+  }
+
   function handleLoad(chat: AsstChatRow) {
     router.push(`/assistant?chat=${chat.id}`)
   }
+
+  const selectedCount = selectedIds.size
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       {/* Header */}
       <div className="shrink-0 border-b border-line bg-paper px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => router.back()}
-          className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          aria-label="Back"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <h1 className="font-display text-[15px] font-medium text-ink">History</h1>
+        {isSelecting ? (
+          <>
+            <h1 className="font-display text-[15px] font-medium text-ink flex-1">
+              {selectedCount > 0 ? `${selectedCount} selected` : 'Select conversations'}
+            </h1>
+            <button
+              onClick={exitSelectMode}
+              className="text-sm font-medium text-ink2 hover:text-ink transition-colors"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => router.back()}
+              className="p-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+              aria-label="Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <h1 className="font-display text-[15px] font-medium text-ink flex-1">History</h1>
+            {chats.length > 0 && (
+              <button
+                onClick={() => setIsSelecting(true)}
+                className="text-sm font-medium text-ink2 hover:text-ink transition-colors"
+              >
+                Select
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {/* List */}
@@ -100,10 +184,27 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
             onLoad={handleLoad}
             onPin={handlePin}
             onDelete={setPendingDeleteId}
+            onRename={handleRename}
             mobile
+            isSelecting={isSelecting}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
           />
         )}
       </div>
+
+      {/* Bulk delete bar */}
+      {isSelecting && selectedCount > 0 && (
+        <div className="shrink-0 px-4 py-3 border-t border-line bg-paper">
+          <button
+            onClick={() => setBulkDeletePending(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
+          >
+            <Trash2 size={14} />
+            Delete {selectedCount} {selectedCount === 1 ? 'conversation' : 'conversations'}
+          </button>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -112,7 +213,7 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Single delete modal */}
       <Modal
         isOpen={pendingDeleteId !== null}
         onClose={() => setPendingDeleteId(null)}
@@ -131,6 +232,59 @@ export function MobileHistoryShell({ lang: _lang }: Props) {
             className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
           >
             Yes
+          </button>
+        </div>
+      </Modal>
+
+      {/* Bulk delete modal */}
+      <Modal
+        isOpen={bulkDeletePending}
+        onClose={() => setBulkDeletePending(false)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-1">Delete {selectedCount} {selectedCount === 1 ? 'Conversation' : 'Conversations'}?</p>
+        <p className="text-sm text-ink2 mb-5">These conversations will be permanently removed and cannot be recovered.</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setBulkDeletePending(false)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmBulkDelete}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Rename modal */}
+      <Modal
+        isOpen={renameState !== null}
+        onClose={() => setRenameState(null)}
+      >
+        <p className="font-display text-base font-medium text-ink mb-3">Rename conversation</p>
+        <input
+          value={renameInput}
+          onChange={e => setRenameInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') confirmRename() }}
+          className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60 mb-4"
+          autoFocus
+        />
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setRenameState(null)}
+            className="px-4 py-2 rounded-xl border border-line text-ink2 text-sm font-medium hover:border-ink2 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmRename}
+            disabled={!renameInput.trim()}
+            className="px-4 py-2 rounded-xl bg-terracotta text-white text-sm font-medium hover:bg-terracotta/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Save
           </button>
         </div>
       </Modal>

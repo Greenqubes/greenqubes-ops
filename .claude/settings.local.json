@@ -72,7 +72,12 @@
       "Bash(git branch *)",
       "Bash(Get-ChildItem -Path \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\" -Directory)",
       "Bash(Select-Object -First 20)",
-      "Bash(mkdir -p \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\src\\\\app\\\\api\\\\jobs\\\\[id]\\\\notify-assigned\")"
+      "Bash(mkdir -p \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\src\\\\app\\\\api\\\\jobs\\\\[id]\\\\notify-assigned\")",
+      "Bash(git fetch *)",
+      "Bash(del \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\supabase\\\\migrations\\\\0029_asst_chats_user_isolation.sql\")",
+      "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\assistant-onboarding.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\assistant-onboarding.md\")",
+      "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\bryan-checklist.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\bryan-checklist.md\")",
+      "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\CLAUDE-bryan.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\CLAUDE-bryan.md\")"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
