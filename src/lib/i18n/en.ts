@@ -79,6 +79,11 @@ export const en = {
   workloadFreeDay: 'Free',
   workloadCurrentDate: 'current date',
   workloadSelectPrompt: 'Tap a date to reschedule (optional)',
+  deleteJob: 'Delete Job',
+  deleteJobConfirmTitle: 'Delete this job?',
+  deleteJobConfirmBody: 'This will permanently remove the job and cannot be undone.',
+  workloadSendingTo: 'Sending to scheduler',
+  workloadBusyWarning: 'jobs already on this day — busier than usual',
 
   // ── Completion ─────────────────────────────────────────────────────────────
   completeJob: 'Mark job complete',

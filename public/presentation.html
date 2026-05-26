@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GreenQubes Ops — Management Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #F4F1EC;
+    --paper: #FFFFFF;
+    --ink: #1A1815;
+    --ink2: #5C564E;
+    --muted: #8B8478;
+    --line: #E8E2D7;
+    --terracotta: #B5523D;
+    --green: #3F7D5C;
+    --blue: #3D6FB5;
+    --amber: #C8893D;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ── Progress bar ── */
+  #progress {
+    position: fixed; top: 0; left: 0;
+    height: 3px; background: var(--terracotta);
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  /* ── Slide counter ── */
+  #counter {
+    position: fixed; bottom: 24px; right: 28px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    z-index: 100;
+  }
+
+  /* ── Nav arrows ── */
+  .nav-btn {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px;
+    background: rgba(244,241,236,0.15);
+    border: 1px solid rgba(244,241,236,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 100;
+    transition: background 0.2s;
+    color: white; font-size: 18px;
+    user-select: none;
+  }
+  .nav-btn:hover { background: rgba(244,241,236,0.3); }
+  #nav-prev { left: 16px; }
+  #nav-next { right: 16px; }
+
+  /* ── Slide wrapper ── */
+  #slides {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 80px;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0);
+    pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0; transform: translateX(-40px);
+  }
+
+  /* ── Slide themes ── */
+  .slide-dark  { background: var(--ink); color: white; }
+  .slide-warm  { background: var(--bg); color: var(--ink); }
+  .slide-paper { background: var(--paper); color: var(--ink); }
+  .slide-terra { background: var(--terracotta); color: white; }
+  .slide-green { background: var(--green); color: white; }
+
+  /* ── Inner card ── */
+  .card {
+    background: var(--paper);
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    padding: 48px 56px;
+    width: 100%; max-width: 900px;
+  }
+  .card-dark {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: white;
+  }
+
+  /* ── Typography ── */
+  .display {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    font-weight: 500;
+    line-height: 1.1;
+  }
+  .display-sm {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .body { font-size: 16px; line-height: 1.65; color: var(--ink2); }
+  .body-white { font-size: 16px; line-height: 1.65; color: rgba(255,255,255,0.75); }
+  .body-sm { font-size: 14px; line-height: 1.6; color: var(--ink2); }
+
+  /* ── Utility ── */
+  .terra  { color: var(--terracotta); }
+  .green  { color: var(--green); }
+  .blue   { color: var(--blue); }
+  .amber  { color: var(--amber); }
+  .muted  { color: var(--muted); }
+  .gap4   { display: flex; flex-direction: column; gap: 4px; }
+  .gap8   { display: flex; flex-direction: column; gap: 8px; }
+  .gap16  { display: flex; flex-direction: column; gap: 16px; }
+  .gap24  { display: flex; flex-direction: column; gap: 24px; }
+  .gap32  { display: flex; flex-direction: column; gap: 32px; }
+  .row    { display: flex; gap: 16px; align-items: flex-start; }
+  .row-c  { display: flex; gap: 16px; align-items: center; }
+  .grid2  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── Feature box ── */
+  .feat-box {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .feat-box-dark {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .feat-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .feat-body  { font-size: 13px; line-height: 1.55; color: var(--muted); }
+  .feat-body-white { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.6); }
+
+  /* ── Role pill ── */
+  .role-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px; font-weight: 600;
+  }
+  .role-sales     { background: rgba(61,111,181,0.12); color: var(--blue); }
+  .role-scheduler { background: rgba(200,137,61,0.12); color: var(--amber); }
+  .role-installer { background: rgba(63,125,92,0.12);  color: var(--green); }
+  .role-admin     { background: rgba(181,82,61,0.12);  color: var(--terracotta); }
+
+  /* ── Step list ── */
+  .steps { display: flex; flex-direction: column; gap: 14px; }
+  .step  {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 14px 18px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--terracotta); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+  .step-num-green { background: var(--green); }
+  .step-num-amber { background: var(--amber); }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+  .step-body  { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+
+  /* ── Flow arrow ── */
+  .flow {
+    display: flex; align-items: center; gap: 0; flex-wrap: nowrap;
+    justify-content: center;
+  }
+  .flow-node {
+    text-align: center; padding: 18px 22px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    min-width: 150px;
+  }
+  .flow-node-active {
+    background: var(--terracotta); color: white;
+    border-color: var(--terracotta);
+  }
+  .flow-arrow {
+    font-size: 20px; color: var(--muted); padding: 0 8px; flex-shrink: 0;
+  }
+  .flow-label { font-size: 13px; font-weight: 600; }
+  .flow-sub   { font-size: 11px; margin-top: 4px; opacity: 0.65; }
+
+  /* ── Wordmark ── */
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem; font-weight: 500;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .wordmark span { color: var(--terracotta); }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* ── Divider ── */
+  hr.div { border: none; border-top: 1px solid var(--line); margin: 4px 0; }
+  hr.div-white { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 4px 0; }
+
+  /* ── Icon circle ── */
+  .icon-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+
+  /* ── Keyboard hint ── */
+  #hint {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: rgba(255,255,255,0.35);
+    letter-spacing: 0.06em;
+    z-index: 100;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter">1 / 14</div>
+<div id="hint">← → to navigate &nbsp;·&nbsp; Space to advance</div>
+
+<div class="nav-btn" id="nav-prev">&#8592;</div>
+<div class="nav-btn" id="nav-next">&#8594;</div>
+
+<div id="slides">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — Title
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark active" data-index="0">
+    <div style="text-align:center; max-width:700px; color:white;">
+      <div class="wordmark" style="color:white; margin-bottom:32px; opacity:0.5;">
+        Green<span>qubes</span>
+      </div>
+      <div class="display" style="color:white; margin-bottom:16px;">
+        Operations Platform
+      </div>
+      <div class="body-white" style="margin-bottom:40px; font-size:18px;">
+        A single place to manage every job — from quote to completion.
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <span class="badge" style="background:rgba(181,82,61,0.2); color:#E8826A;">Management Preview</span>
+        <span class="badge" style="background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.5);">May 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 — The Problem
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="1">
+    <div class="card gap32" style="max-width:860px;">
+      <div>
+        <div class="label muted" style="margin-bottom:10px;">Before this platform</div>
+        <div class="display-sm">How jobs get lost between the cracks</div>
+      </div>
+      <div class="grid2" style="gap:14px;">
+        <div class="feat-box">
+          <div class="feat-title">📱 WhatsApp chains</div>
+          <div class="feat-body">Job details buried in group chats. Hard to find, easy to miss.</div>
+        </div>
+        <div class="feat-box">
+          <div class="feat-title">📋 Spreadsheet scheduling</div>
+          <div class="feat-body">No clash detection. Two jobs, same installer, same day — only found out on-site.</div>
+        </div>
+        <div class="feat-box">
+          <div class="feat-title">📞 Manual follow-ups</div>
+          <div class="feat-body">Calling installers to check status. No visibility until the call connects.</div>
+        </div>
+        <div class="feat-box">
+          <div class="feat-title">📄 Paper delivery orders</div>
+          <div class="feat-body">Photos sent over WhatsApp, filed manually. No central record.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 — What We Built
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark" data-index="2">
+    <div class="card card-dark gap32" style="max-width:860px;">
+      <div>
+        <div class="label" style="color:rgba(255,255,255,0.4); margin-bottom:10px;">What we built</div>
+        <div class="display-sm" style="color:white;">One platform. Every role. Every job.</div>
+      </div>
+      <div class="grid3" style="gap:14px;">
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">🗓 Job Scheduling</div>
+          <div class="feat-body-white">Calendar, week, and list views. Automatic clash detection before any job is confirmed.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">✅ Approval Workflow</div>
+          <div class="feat-body-white">Sales creates. Scheduler reviews and approves. Everyone is notified instantly.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">💬 Live Job Chat</div>
+          <div class="feat-body-white">Text and voice notes, all attached to the job — not buried in WhatsApp.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">📲 Telegram Alerts</div>
+          <div class="feat-body-white">Instant notifications when jobs are assigned, approved, or overdue.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">🤖 AI Assistant</div>
+          <div class="feat-body-white">Ask anything about jobs, clients, or company knowledge — instant answers.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">📁 File Management</div>
+          <div class="feat-body-white">Permits, photos, DOs — all stored against the job, accessible anywhere.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 — The Four Roles
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="3">
+    <div class="card gap32" style="max-width:820px;">
+      <div>
+        <div class="label muted" style="margin-bottom:10px;">Access control</div>
+        <div class="display-sm">Everyone sees exactly what they need</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="step">
+          <div class="icon-circle" style="background:rgba(61,111,181,0.12);">🧑‍💼</div>
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+              <div class="feat-title">Sales</div>
+              <span class="role-pill role-sales">sales</span>
+            </div>
+            <div class="step-body">Creates jobs, adds clients and installers, pushes to scheduler for approval. Sees all costs and quotes.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="icon-circle" style="background:rgba(200,137,61,0.12);">📅</div>
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+              <div class="feat-title">Scheduler</div>
+              <span class="role-pill role-scheduler">scheduler</span>
+            </div>
+            <div class="step-body">Reviews submissions, checks workload and clashes, approves jobs and notifies installers.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="icon-circle" style="background:rgba(63,125,92,0.12);">🔧</div>
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+              <div class="feat-title">Installer</div>
+              <span class="role-pill role-installer">installer</span>
+            </div>
+            <div class="step-body">Sees only their assigned jobs. Chats with the team, uploads completion photos, signs digital DOs. No access to pricing.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="icon-circle" style="background:rgba(181,82,61,0.12);">⚙️</div>
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+              <div class="feat-title">Admin</div>
+              <span class="role-pill role-admin">admin</span>
+            </div>
+            <div class="step-body">Manages users, monitors system health, reviews crash logs and bug reports.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 5 — The Full Flow
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark" data-index="4">
+    <div style="text-align:center; max-width:900px; color:white; width:100%;">
+      <div class="label" style="color:rgba(255,255,255,0.4); margin-bottom:12px;">How a job moves through the system</div>
+      <div class="display-sm" style="color:white; margin-bottom:40px;">From quote to completion</div>
+      <div class="flow" style="gap:0; justify-content:center;">
+        <div class="flow-node" style="background:rgba(61,111,181,0.2); border-color:rgba(61,111,181,0.4); color:white;">
+          <div class="flow-label" style="color:#7BAEE8;">Sales</div>
+          <div class="flow-sub">Creates job</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="background:rgba(181,82,61,0.25); border-color:rgba(181,82,61,0.5); color:white;">
+          <div class="flow-label" style="color:#E8826A;">Scheduler</div>
+          <div class="flow-sub">Reviews + approves</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="background:rgba(63,125,92,0.25); border-color:rgba(63,125,92,0.5); color:white;">
+          <div class="flow-label" style="color:#6DBF96;">Installer</div>
+          <div class="flow-sub">Executes + uploads</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.15); color:white;">
+          <div class="flow-label">Complete ✓</div>
+          <div class="flow-sub">Photos + DO signed</div>
+        </div>
+      </div>
+      <div style="margin-top:36px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; text-align:left;">
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white; font-size:13px;">Clash detection</div>
+          <div class="feat-body-white">Automatically flags double-booked installers before the job is submitted.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white; font-size:13px;">Send back loop</div>
+          <div class="feat-body-white">Scheduler can return the job to sales with a reason — no WhatsApp needed.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white; font-size:13px;">Real-time updates</div>
+          <div class="feat-body-white">Every status change fires a Telegram notification to the right people.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 6 — Sales Flow
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="5">
+    <div class="card gap28" style="max-width:820px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
+        <span class="role-pill role-sales" style="font-size:12px;">sales</span>
+        <div class="display-sm">Creating a job</div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Fill in job details</div>
+            <div class="step-body">Project title, client company, contact person, date, time, location, description, and production instructions. AI can suggest wording for any field.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">Attach files</div>
+            <div class="step-body">Upload permits, BCA documents, designer JOs, or any other files into named buckets. Add URLs for external documents.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">Push for Approval</div>
+            <div class="step-body">System checks for installer clashes automatically. If all clear, job goes to the scheduler's approvals queue. Sales gets a Telegram confirmation.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-title">Track status</div>
+            <div class="step-body">Job moves from Pending → Awaiting Approval → Scheduled. Sales can recall and edit at any point before the scheduler approves.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 7 — Scheduler Flow
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="6">
+    <div class="card gap28" style="max-width:820px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
+        <span class="role-pill role-scheduler" style="font-size:12px;">scheduler</span>
+        <div class="display-sm">Approving & scheduling</div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num" style="background:var(--amber);">1</div>
+          <div>
+            <div class="step-title">Review the approval queue</div>
+            <div class="step-body">All pending submissions appear with job details, client, and the sales person who created it. Badge shows the count.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--amber);">2</div>
+          <div>
+            <div class="step-title">Check team workload</div>
+            <div class="step-body">Interactive workload chart shows how loaded each installer is for the week. Navigate forward and back to pick the best fit.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--amber);">3</div>
+          <div>
+            <div class="step-title">Approve & Notify — or Send Back</div>
+            <div class="step-body">One tap approves the job, adds it to the schedule, and sends a Telegram to the assigned installers. Or send back to sales with a written reason.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--amber);">4</div>
+          <div>
+            <div class="step-title">Monitor the live schedule</div>
+            <div class="step-body">Calendar, week, and list views with status colour-coding. Filter by installer, status, or date range.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 8 — Installer Flow
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="7">
+    <div class="card gap28" style="max-width:820px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
+        <span class="role-pill role-installer" style="font-size:12px;">installer</span>
+        <div class="display-sm">On the job</div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num" style="background:var(--green);">1</div>
+          <div>
+            <div class="step-title">Receive Telegram notification</div>
+            <div class="step-body">When the scheduler approves a job, the assigned installers get an instant Telegram message with the date, time, location, and a link to the job.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--green);">2</div>
+          <div>
+            <div class="step-title">Sign in and view the job</div>
+            <div class="step-body">Personal Gmail works. Installers see only their jobs: Today, Up Next, This Week. Job details, production instructions, and all attached files are right there.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--green);">3</div>
+          <div>
+            <div class="step-title">Chat with the team</div>
+            <div class="step-body">WhatsApp-style job chat with voice notes and photo capture. All messages stay attached to the job — visible to sales and scheduler too.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:var(--green);">4</div>
+          <div>
+            <div class="step-title">Upload completion photos</div>
+            <div class="step-body">Photos are required before marking done. Scheduler can override if needed. All photos stored securely — no WhatsApp albums to dig through.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 9 — Smart Features
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark" data-index="8">
+    <div class="card card-dark gap32" style="max-width:860px;">
+      <div>
+        <div class="label" style="color:rgba(255,255,255,0.4); margin-bottom:10px;">Beyond the basics</div>
+        <div class="display-sm" style="color:white;">Built-in intelligence</div>
+      </div>
+      <div class="grid2" style="gap:14px;">
+        <div class="feat-box-dark" style="grid-column:1/-1;">
+          <div style="display:flex; gap:16px; align-items:flex-start;">
+            <div class="icon-circle" style="background:rgba(181,82,61,0.2); font-size:20px;">🤖</div>
+            <div>
+              <div class="feat-title" style="color:white; font-size:15px;">AI Assistant</div>
+              <div class="feat-body-white" style="font-size:14px;">Ask anything — job history, client preferences, supplier contacts, company SOPs. The assistant has web search and remembers past conversations. The more the team uses it, the smarter it gets. A Monday digest surfaces the most important conversations for the team's knowledge base.</div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">⚡ Clash Detection</div>
+          <div class="feat-body-white">Catches double-booked installers the moment sales tries to submit. Shows alternatives and lets you shift the time or swap the installer — all in the same screen.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">📲 Telegram Notifications</div>
+          <div class="feat-body-white">Job assigned, approved, sent back, or overdue — the right person gets the right message. No manual follow-ups. Notifications link directly to the job in the app.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">🌐 Three Languages</div>
+          <div class="feat-body-white">Full English, Simplified Chinese, and Bengali UI. Each user picks their preferred language — all date and day labels stay in English.</div>
+        </div>
+        <div class="feat-box-dark">
+          <div class="feat-title" style="color:white;">🌙 Dark Mode</div>
+          <div class="feat-body-white">Full dark theme available on all devices. Auto-detects system preference. Toggle from the user menu anytime.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 10 — Telegram Setup
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="9">
+    <div class="card gap28" style="max-width:860px;">
+      <div>
+        <div class="label muted" style="margin-bottom:10px;">One-time setup — takes 1 minute</div>
+        <div class="display-sm">Connecting to Telegram</div>
+      </div>
+      <div class="grid2" style="gap:16px; align-items:start;">
+        <div class="feat-box">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+            <div class="icon-circle" style="background:rgba(61,111,181,0.1); font-size:22px;">📲</div>
+            <div>
+              <div class="feat-title" style="font-size:15px;">GreenqubesOps_bot</div>
+              <div style="font-size:12px; color:var(--muted);">Job notifications</div>
+            </div>
+          </div>
+          <div class="steps" style="gap:10px;">
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0;">1</div>
+              <div class="step-body">Open Telegram → search <strong>@GreenqubesOps_bot</strong></div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0;">2</div>
+              <div class="step-body">Tap <strong>Start</strong></div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0;">3</div>
+              <div class="step-body">Search <strong>@userinfobot</strong> → tap Start → it replies with your numeric User ID</div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0;">4</div>
+              <div class="step-body">Send Nic your name + User ID — he links your account in Admin → Users</div>
+            </div>
+          </div>
+          <div style="margin-top:14px; padding:10px 14px; background:rgba(61,111,181,0.07); border-radius:10px; font-size:12px; color:var(--blue); font-weight:500;">
+            For: Sales · Schedulers · Installers
+          </div>
+        </div>
+        <div class="feat-box">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+            <div class="icon-circle" style="background:rgba(63,125,92,0.1); font-size:22px;">📋</div>
+            <div>
+              <div class="feat-title" style="font-size:15px;">Greenqubes_digest_bot</div>
+              <div style="font-size:12px; color:var(--muted);">Monday knowledge digest</div>
+            </div>
+          </div>
+          <div class="steps" style="gap:10px;">
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0; background:var(--green);">1</div>
+              <div class="step-body">Open Telegram → search <strong>@Greenqubes_digest_bot</strong></div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0; background:var(--green);">2</div>
+              <div class="step-body">Tap <strong>Start</strong></div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0; background:var(--green);">3</div>
+              <div class="step-body">Search <strong>@userinfobot</strong> → tap Start → it replies with your numeric User ID</div>
+            </div>
+            <div class="step" style="padding:10px 14px;">
+              <div class="step-num" style="width:24px; height:24px; font-size:11px; flex-shrink:0; background:var(--green);">4</div>
+              <div class="step-body">Tell Nic your name + User ID — he adds you as a digest subscriber</div>
+            </div>
+          </div>
+          <div style="margin-top:14px; padding:10px 14px; background:rgba(63,125,92,0.07); border-radius:10px; font-size:12px; color:var(--green); font-weight:500;">
+            For: Directors · Management · Schedulers
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(63,125,92,0.07); border:1px solid rgba(63,125,92,0.2); border-radius:12px; padding:14px 18px; font-size:13px; color:var(--green); font-weight:500; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:18px;">✓</span> Once linked, all notifications are fully automatic — no action needed from team members.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 11 — Live Demo
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark" data-index="10">
+    <div style="width:100%; max-width:900px;">
+      <div style="text-align:center; margin-bottom:32px;">
+        <div class="label" style="color:rgba(255,255,255,0.4); margin-bottom:10px;">Live right now</div>
+        <div class="display-sm" style="color:white;">Let's try it together</div>
+      </div>
+      <div class="grid2" style="gap:16px; align-items:start;">
+        <!-- Left: steps -->
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="feat-box-dark" style="display:flex; gap:14px; align-items:flex-start;">
+            <div style="width:30px; height:30px; border-radius:50%; background:rgba(181,82,61,0.35); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#E8826A; flex-shrink:0;">1</div>
+            <div>
+              <div class="feat-title" style="color:white;">Start @GreenqubesOps_bot</div>
+              <div class="feat-body-white">Open Telegram, search the bot, tap Start. Tell Nic your name.</div>
+            </div>
+          </div>
+          <div class="feat-box-dark" style="display:flex; gap:14px; align-items:flex-start;">
+            <div style="width:30px; height:30px; border-radius:50%; background:rgba(181,82,61,0.35); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#E8826A; flex-shrink:0;">2</div>
+            <div>
+              <div class="feat-title" style="color:white;">Nic provisions your account</div>
+              <div class="feat-body-white">Admin → Users → your name → paste Telegram ID → Save.</div>
+            </div>
+          </div>
+          <div class="feat-box-dark" style="display:flex; gap:14px; align-items:flex-start;">
+            <div style="width:30px; height:30px; border-radius:50%; background:rgba(181,82,61,0.35); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#E8826A; flex-shrink:0;">3</div>
+            <div>
+              <div class="feat-title" style="color:white;">Nic creates a test job and assigns you</div>
+              <div class="feat-body-white">New job → fills in details → picks your name as installer → Approve & Notify.</div>
+            </div>
+          </div>
+          <div class="feat-box-dark" style="display:flex; gap:14px; align-items:flex-start;">
+            <div style="width:30px; height:30px; border-radius:50%; background:rgba(63,125,92,0.4); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#6DBF96; flex-shrink:0;">✓</div>
+            <div>
+              <div class="feat-title" style="color:#6DBF96;">Notification fires to your phone</div>
+              <div class="feat-body-white">You'll receive the message shown on the right — with a link directly to the job.</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right: Telegram message mockup -->
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="font-size:11px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:4px;">What it looks like on your phone</div>
+          <!-- Telegram bubble -->
+          <div style="background:#1e2b3c; border-radius:16px; padding:20px; font-family:'IBM Plex Sans', sans-serif;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div style="width:36px; height:36px; border-radius:50%; background:#2B5278; display:flex; align-items:center; justify-content:center; font-size:18px;">🤖</div>
+              <div>
+                <div style="color:white; font-size:13px; font-weight:600;">GreenqubesOps_bot</div>
+                <div style="color:rgba(255,255,255,0.4); font-size:11px;">just now</div>
+              </div>
+            </div>
+            <div style="background:#2B5278; border-radius:12px 12px 12px 4px; padding:14px 16px; margin-bottom:10px;">
+              <div style="color:white; font-size:14px; line-height:1.6;">
+                🔔 <strong>New Job Assigned</strong><br/><br/>
+                <span style="color:rgba(255,255,255,0.75);">
+                  📋 <strong style="color:white;">Gel Kayano 33 Campaign Setup</strong><br/>
+                  🏢 ASICS Singapore<br/>
+                  📅 Wed, 22 May 2026<br/>
+                  🕗 08:00 – 17:00<br/>
+                  📍 ASICS Plaza Singapura #02-01
+                </span>
+              </div>
+            </div>
+            <div style="background:#17212B; border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;">
+              <span style="font-size:13px;">🔗</span>
+              <span style="color:#5AADE5; font-size:13px; font-weight:500;">View Job in App</span>
+            </div>
+          </div>
+          <!-- Chat notification bubble -->
+          <div style="background:#1e2b3c; border-radius:16px; padding:16px 20px; font-family:'IBM Plex Sans', sans-serif;">
+            <div style="background:#2B5278; border-radius:12px 12px 12px 4px; padding:12px 14px;">
+              <div style="color:white; font-size:13px; line-height:1.6;">
+                💬 <strong>3 New Messages</strong><br/>
+                <span style="color:rgba(255,255,255,0.7); font-size:12px;">Gel Kayano 33 Campaign Setup · ASICS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 10 — Cost & Infrastructure
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-warm" data-index="9">
+    <div class="card gap32" style="max-width:820px;">
+      <div>
+        <div class="label muted" style="margin-bottom:10px;">Cost & infrastructure</div>
+        <div class="display-sm">Built to stay lean</div>
+      </div>
+      <div class="grid2" style="gap:14px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="feat-box">
+            <div class="feat-title">🌐 Hosting — Vercel</div>
+            <div class="feat-body">Serverless. Auto-scales. Preview deployments for every change before it goes live.</div>
+          </div>
+          <div class="feat-box">
+            <div class="feat-title">🗄 Database — Supabase</div>
+            <div class="feat-body">Postgres with built-in auth, real-time sync, and role-level security. Data never leaves the DB without permission checks.</div>
+          </div>
+          <div class="feat-box">
+            <div class="feat-title">📦 File Storage — Cloudflare R2</div>
+            <div class="feat-body">Zero egress fees — installers downloading photos on mobile data costs nothing extra.</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="feat-box" style="background:rgba(63,125,92,0.06); border-color:rgba(63,125,92,0.2);">
+            <div class="feat-title green">Monthly cost (current team)</div>
+            <div style="font-size:28px; font-weight:600; color:var(--green); margin:8px 0;">~S$48–84</div>
+            <div class="feat-body">All-in: hosting, database, AI, file storage, image processing.</div>
+          </div>
+          <div class="feat-box">
+            <div class="feat-title">📈 If the team triples</div>
+            <div class="feat-body">Architecture doesn't change. Cost moves to ~S$145–210/mo — still cheaper than a single SaaS licence per person.</div>
+          </div>
+          <div class="feat-box">
+            <div class="feat-title">🔒 Security</div>
+            <div class="feat-body">Row-level security on every table. Installers cannot see pricing. No sensitive data in AI context. Google OAuth only.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 11 — What's Next
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-dark" data-index="10">
+    <div class="card card-dark gap32" style="max-width:820px;">
+      <div>
+        <div class="label" style="color:rgba(255,255,255,0.4); margin-bottom:10px;">Rollout plan</div>
+        <div class="display-sm" style="color:white;">From today to go-live</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="feat-box-dark" style="display:flex; gap:16px; align-items:center;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(181,82,61,0.3); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:#E8826A; flex-shrink:0;">1</div>
+          <div>
+            <div class="feat-title" style="color:white;">Pre-Alpha — Solo testing (Now)</div>
+            <div class="feat-body-white">End-to-end run through every flow by the founder. Every bug gets a version increment. No team access yet.</div>
+          </div>
+          <div style="margin-left:auto;"><span class="badge" style="background:rgba(181,82,61,0.2); color:#E8826A;">Current</span></div>
+        </div>
+        <div class="feat-box-dark" style="display:flex; gap:16px; align-items:center;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(200,137,61,0.2); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--amber); flex-shrink:0;">2</div>
+          <div>
+            <div class="feat-title" style="color:white;">Alpha — Scheduler joins</div>
+            <div class="feat-body-white">Real approval workflow tested with live-ish data. Hotfix loop until green light.</div>
+          </div>
+        </div>
+        <div class="feat-box-dark" style="display:flex; gap:16px; align-items:center;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(200,137,61,0.2); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:var(--amber); flex-shrink:0;">3</div>
+          <div>
+            <div class="feat-title" style="color:white;">Beta — Full team (Sales + Scheduler)</div>
+            <div class="feat-body-white">All three roles tested simultaneously. Telegram notifications, file uploads, and financials all live.</div>
+          </div>
+        </div>
+        <div class="feat-box-dark" style="display:flex; gap:16px; align-items:center;">
+          <div style="width:36px; height:36px; border-radius:50%; background:rgba(63,125,92,0.3); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:#6DBF96; flex-shrink:0;">4</div>
+          <div>
+            <div class="feat-title" style="color:white;">Go-Live — V1.0</div>
+            <div class="feat-body-white">Production cutover. Custom domain. Telegram webhook on live URL. Full team onboarded.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 12 — Q&A
+  ══════════════════════════════════════════ -->
+  <div class="slide slide-terra" data-index="11">
+    <div style="text-align:center; max-width:600px; color:white;">
+      <div class="wordmark" style="color:white; opacity:0.5; margin-bottom:32px;">Green<span style="color:white;">qubes</span></div>
+      <div class="display" style="color:white; margin-bottom:16px;">Questions?</div>
+      <div style="font-size:18px; color:rgba(255,255,255,0.7); line-height:1.6; margin-bottom:40px;">
+        The platform is live on Vercel preview.<br/>We can walk through any flow right now.
+      </div>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <div style="background:rgba(255,255,255,0.12); border-radius:12px; padding:14px 22px; font-size:14px;">
+          <div style="font-weight:600; margin-bottom:4px;">Preview URL</div>
+          <div style="opacity:0.75;">greenqubes-ops.vercel.app</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12); border-radius:12px; padding:14px 22px; font-size:14px;">
+          <div style="font-weight:600; margin-bottom:4px;">Sign in</div>
+          <div style="opacity:0.75;">Any Google account</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12); border-radius:12px; padding:14px 22px; font-size:14px;">
+          <div style="font-weight:600; margin-bottom:4px;">Built for</div>
+          <div style="opacity:0.75;">Mobile + desktop</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const total = slides.length;
+  let current = 0;
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current < n ? current : current].classList.remove('exit'), 450);
+
+    const prev = current;
+    current = n;
+
+    slides[current].classList.add('active');
+    setTimeout(() => slides[prev].classList.remove('exit'), 450);
+
+    counter.textContent = `${current + 1} / ${total}`;
+    progress.style.width = `${((current + 1) / total) * 100}%`;
+
+    // Hide hint after first advance
+    if (current > 0) document.getElementById('hint').style.opacity = '0';
+  }
+
+  document.getElementById('nav-next').addEventListener('click', () => goTo(current + 1));
+  document.getElementById('nav-prev').addEventListener('click', () => goTo(current - 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+  });
+
+  // Touch/swipe support
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) goTo(dx < 0 ? current + 1 : current - 1);
+  });
+
+  // Init progress
+  progress.style.width = `${(1 / total) * 100}%`;
+</script>
+</body>
+</html>

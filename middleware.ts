@@ -29,9 +29,10 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
+  const isWebhookRoute = pathname.startsWith('/api/telegram/') || pathname.startsWith('/api/cron/')
 
   // Unauthenticated users can only access auth routes
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isWebhookRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -49,6 +50,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|presentation\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

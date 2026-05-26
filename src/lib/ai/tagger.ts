@@ -20,6 +20,8 @@ export async function tagConversation(
     .join('\n')
     .slice(0, 4000)
 
+  const forcePromote = msgs.some(m => m.content.includes('D-Promote'))
+
   let text = '{}'
   try {
     const res = await anthropic.messages.create({
@@ -50,10 +52,10 @@ Return ONLY valid JSON with these exact fields:
       topic:      typeof json.topic === 'string'      ? json.topic : 'General',
       entities:   Array.isArray(json.entities)        ? (json.entities as string[]) : [],
       tags:       Array.isArray(json.tags)            ? (json.tags as string[])     : [],
-      importance: typeof json.importance === 'number' ? Math.max(1, Math.min(5, json.importance)) : 2,
+      importance: forcePromote ? 5 : (typeof json.importance === 'number' ? Math.max(1, Math.min(5, json.importance)) : 2),
       visibility: Array.isArray(json.visibility)      ? (json.visibility as string[]) : ['public-internal'],
     }
   } catch {
-    return { topic: 'General', entities: [], tags: [], importance: 2, visibility: ['public-internal'] }
+    return { topic: 'General', entities: [], tags: [], importance: forcePromote ? 5 : 2, visibility: ['public-internal'] }
   }
 }

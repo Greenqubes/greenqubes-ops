@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
-import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
+import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { LangCode } from '@/lib/i18n'
 
 interface Message {
@@ -26,10 +27,20 @@ function uid() {
 
 export function FloatingChatPanel({ lang }: Props) {
   const pathname    = usePathname()
-  const [isOpen,       setIsOpen]       = useState(false)
-  const [messages,     setMessages]     = useState<Message[]>([])
-  const [input,        setInput]        = useState('')
-  const [isStreaming,  setIsStreaming]  = useState(false)
+  const router      = useRouter()
+  const [isOpen,        setIsOpen]        = useState(false)
+  const [messages,      setMessages]      = useState<Message[]>([])
+  const [input,         setInput]         = useState('')
+  const [isStreaming,   setIsStreaming]   = useState(false)
+  const [pendingExpand, setPendingExpand] = useState(false)
+
+  // Navigate to /assistant once streaming finishes if expand was clicked mid-stream
+  useEffect(() => {
+    if (!isStreaming && pendingExpand) {
+      setPendingExpand(false)
+      router.push('/assistant')
+    }
+  }, [isStreaming, pendingExpand, router])
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
@@ -140,11 +151,7 @@ export function FloatingChatPanel({ lang }: Props) {
         }
       }
 
-      setMessages(prev => {
-        const finalised = prev.map(m => m.id === asstId ? { ...m, streaming: false } : m)
-        saveConversation(finalised)
-        return finalised
-      })
+      setMessages(prev => prev.map(m => m.id === asstId ? { ...m, streaming: false } : m))
     } catch {
       setMessages(prev => prev.map(m =>
         m.id === asstId
@@ -170,7 +177,7 @@ export function FloatingChatPanel({ lang }: Props) {
         <div className={cn(
           'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
           'w-[min(340px,calc(100vw-2rem))]',
-          'bottom-36',           // panel bottom = 144px — 16px above bubble top (80px + 48px)
+          'bottom-[180px]',      // panel bottom clears bubble at 120px (120 + 48 + 12 = 180)
           'max-h-[min(520px,calc(100vh-160px))]',
         )}>
           {/* Header */}
@@ -181,6 +188,16 @@ export function FloatingChatPanel({ lang }: Props) {
             <p className="flex-1 font-display text-[13px] font-medium text-ink leading-none">
               {t(lang, 'assistant')}
             </p>
+            <button
+              onClick={() => isStreaming ? setPendingExpand(true) : router.push('/assistant')}
+              className="p-1.5 rounded-lg text-muted hover:text-ink2 hover:bg-bg transition-colors"
+              title={isStreaming ? 'Opening after reply…' : 'Open full assistant'}
+            >
+              {pendingExpand
+                ? <Loader2 size={13} className="animate-spin" />
+                : <Maximize2 size={13} />
+              }
+            </button>
             {messages.length > 0 && (
               <button
                 onClick={handleNewChat}
@@ -224,11 +241,10 @@ export function FloatingChatPanel({ lang }: Props) {
                 onKeyDown={handleKeyDown}
                 placeholder={t(lang, 'askPlaceholder')}
                 rows={1}
-                disabled={isStreaming}
                 className={cn(
                   'flex-1 resize-none rounded-xl border border-line bg-bg px-3 py-2 text-[13px] text-ink placeholder:text-muted',
                   'focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta/60',
-                  'transition-colors min-h-[36px] max-h-28 leading-relaxed disabled:opacity-50',
+                  'transition-colors min-h-[36px] max-h-28 leading-relaxed',
                 )}
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
@@ -257,7 +273,7 @@ export function FloatingChatPanel({ lang }: Props) {
       <button
         onClick={() => (isOpen ? handleClose() : setIsOpen(true))}
         className={cn(
-          'fixed right-4 bottom-20 z-[60] w-12 h-12 rounded-full shadow-lg',
+          'fixed right-4 bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg',
           'flex items-center justify-center transition-all duration-200',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
@@ -293,7 +309,7 @@ function FloatingBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               : 'bg-bg border border-line text-ink rounded-tl-sm',
         )}>
           {msg.content
-            ? <p className="whitespace-pre-wrap">{msg.content}</p>
+            ? <MarkdownMessage content={msg.content} />
             : msg.streaming && (
               <span className="inline-flex items-center gap-1 text-muted">
                 <Loader2 size={11} className="animate-spin" />

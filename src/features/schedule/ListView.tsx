@@ -18,10 +18,15 @@ interface ListViewProps {
   lang:         string
   strings:      ListStrings
   onSelectDate: (date: string) => void
+  selectable?:  boolean
+  selectedIds?: Set<string>
+  onToggle?:    (id: string) => void
+  onDelete?:    (id: string) => void
 }
 
 export function ListView({
   jobs, dates, jobsByDate, selectedDate, today, lang, strings, onSelectDate,
+  selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
   const locale  = langToLocale(lang)
   const dayJobs = jobsByDate[selectedDate] ?? []
@@ -50,7 +55,7 @@ export function ListView({
                   'relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl border shrink-0 min-w-[52px]',
                   'transition-colors text-xs font-medium',
                   active
-                    ? 'bg-ink border-ink text-white'
+                    ? 'bg-ink border-ink text-paper'
                     : hasOverdue
                       ? 'bg-bad-soft border-bad text-bad'
                       : 'bg-paper border-line text-ink2 hover:border-ink2'
@@ -107,7 +112,18 @@ export function ListView({
                 {strings.flexibleWindow}
               </span>
             </div>
-            {dayJobs.map(job => <JobRow key={job.id} job={job} currentDate={selectedDate} />)}
+            {dayJobs.map(job => (
+              <JobRow
+                key={job.id}
+                job={job}
+                currentDate={selectedDate}
+                selectable={selectable}
+                selected={selectedIds?.has(job.id)}
+                onToggle={onToggle}
+                deletable={selectable}
+                onDelete={() => onDelete?.(job.id)}
+              />
+            ))}
           </>
         )}
       </div>

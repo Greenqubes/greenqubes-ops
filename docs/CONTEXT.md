@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-08 (Session 17.7 complete — required fields, end date, custom time picker, multi-day calendar, optional contact fields, scheduled job layout, project_title save fix, router.refresh cache bust; 19 next)_
+_Last updated: 2026-05-26 (feat-vault — Obsidian vault convention, auto-write on digest promotion, nightly sync script)_
 
 ---
 
@@ -20,7 +20,7 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migrating from a 5,400-line single-file React prototype (`docs/prototype-archive.jsx`) to a feature-folder Next.js app with Supabase backend. Migration plan at the bottom of this file.
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is in pre-production on Vercel preview. Next milestone: Session 19 pre-alpha testing.
 
 ---
 
@@ -175,16 +175,20 @@ The combined index = the company's institutional brain, growing organically as c
 
 ## Monday digest pattern
 
-Every Monday at 9 AM SGT, a cron job runs `scripts/monday-digest.ts`:
+Every Monday at 9 AM SGT, a Vercel cron (`/api/cron/monday-digest`) runs:
 
-1. Pull last week's conversations with `importance >= 4`
-2. Generate one-paragraph summaries for each
-3. Telegram (or email) to scheduler/owner with one-tap "promote to Obsidian" links
-4. On promote → write a new note to the Obsidian vault with the summary + source link, default `visibility: [public-internal]`, queue for human review of visibility before next sync
+1. Pull conversations with `importance >= 4` that are new or unvoted
+2. Generate one-paragraph summaries for each via Claude Haiku
+3. Send to all `digest_subscriber` users via the **dedicated digest Telegram bot** (`TELEGRAM_DIGEST_BOT_TOKEN`) with Promote / Skip inline buttons
+4. Votes are recorded in `digest_votes`; message edits show live poll count (`📊 X Yes · Y No · Z Pending`)
+5. Once strict majority (>50%) votes Promote → sends all subscribers a link to generate the Obsidian note
+6. A 5-day timeout cron (`/api/cron/digest-timeout`) auto-resolves stalled votes: strict majority yes → promoted, otherwise dismissed
 
-The loop: organic conversations → flagged on Monday → human approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+**D-Promote secret command:** typing `D-Promote` anywhere in an assistant conversation forces `importance = 5` and immediately sends the conversation to all digest subscribers outside the Monday schedule. The word is stripped from the Telegram summary so recipients don't see it.
 
-This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop is the safety mechanism against the AI mis-classifying something as broadly shareable.
+The loop: organic conversations → flagged on Monday (or immediately via D-Promote) → human majority approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+
+This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop majority vote is the safety mechanism against the AI mis-classifying something as broadly shareable.
 
 ---
 
@@ -249,61 +253,26 @@ greenqubes/
 │   ├── monday-digest.ts          # weekly importance digest
 │   └── backup.sh                 # rclone cold archive
 ├── docs/
-│   ├── architecture.md
-│   ├── data-model.md
-│   ├── deploy.md
-│   ├── prototype-archive.jsx     # original 5400-line prototype
-│   └── conversation-archive-1.md # design conversations
-└── CONTEXT.md                    # you are here
+│   ├── plan.md                   # session build plan
+│   ├── CONTEXT.md                # you are here
+│   ├── greenqubes-phase0.jsx     # design reference (active — used in CLAUDE.md)
+│   ├── session*-note.md          # per-session notes
+│   └── nic-checklist.md          # owner checklist
+└── CLAUDE.md                     # Claude Code session instructions
 ```
 
 ---
 
 ## Migration plan
 
-- [x] Prototype built (single-file JSX, ~5,400 lines) — `docs/prototype-archive.jsx`
-- [x] **Session 1** — Project scaffold: Next.js 15 + TypeScript strict + Tailwind, design tokens, fonts, Supabase client/server, i18n stubs, all feature folders. Notes: `docs/plan.md`.
-- [x] **Session 2** — DB schema + RLS: 9 tables, enums, `updated_at` triggers, pgvector extension, RLS policies, `get_my_id()` + `get_my_role()` helpers, indexes (B-tree, GIN, IVFFlat). Seed data applied. Notes: `docs/session2.md`.
-- [x] **Session 3** — Auth: Google OAuth (not magic links), login page, OAuth callback route, middleware, home page, `SignOutButton`. Provisioning flow documented. Notes: `docs/session2.md` (Sessions 2 + 3 done in one sitting).
-- [x] **Session 4** — Shared component library: `Card`, `Pill`, `Btn`, `Field`, `Input`, `Select`, `Toast` (with `ToastProvider` + `useToast` hook), `Modal`, `cn()` utility. Notes: `docs/session4-note.md`.
-- [x] **Session 5** — Schedule feature (read-only): list/week/month views, search, filter chips, role access via RLS. Notes: `docs/session5-note.md`.
-- [x] **Session 6** — `job-detail`: full edit form, assignees, financials, file gallery, status transitions, live chat with file attachments (R2 upload/download), 7-day post-completion chat window. Notes: `docs/session6-note.md`.
-- [x] **Session 7** — `approvals`: workload preview modal (sales), scheduler approvals queue at `/approvals`, approve & schedule, send back with optional note posted to job chat. Approvals badge on schedule page for scheduler. Notes: `docs/session7-note.md`.
-- [x] **Session 8** — `notifications` + Telegram bot webhook: Telegram utility + placeholder templates, approve/send-back API routes with notifications, overdue cron (every 2h, dedup via events), in-app bell + overdue drawer (all roles), webhook handler stub. Notes: `docs/session8-note.md`.
-- [x] **Session 9** — `installer` features (dashboard, history, job view)
-- [x] **Session 10** — `chat-thread`: voice notes (record + playback), back-nav fix for installer, realtime approvals badge; Session 8 TODO wired (`tplJobSubmittedForApproval`)
-- [x] **Session 11** — `assistant` + retrieval + auto-tagger
-- [x] **Session 12** — `obsidian-sync` (nightly vault → `kb_chunks`) + `monday-digest` with Telegram majority voting system (`digest_votes` table, inline keyboard, webhook handler). Notes: `docs/session12-note.md`.
-- [x] **Session 13 (audit)** — Full design audit against `docs/greenqubes-phase0.jsx`. 12 findings across Btn variants, colour token class names, display typography, border-radius, page headers, and installer "Now" card. Broken into sub-sessions below. Notes: `docs/session13(extended)-note.md`.
-- [x] **Session 13.1** — `Btn`: add `accent` (terracotta) variant, fix `primary` → ink-bg; update all call sites
-- [x] **Session 13.2** — Colour token class-name fixes + `Pill` reuse (`InstallerShell`, `ApprovalCard`, `InstallerJobCard` radius + display font)
-- [x] **Session 13.3** — Page header polish: `ApprovalsShell`, `AssistantShell` avatar, `JobDetailShell` sticky header font
-- [x] **Session 13.4** — Installer "Now" card: active-job detection + big-card visual treatment
-- [x] **Session 13.5** — `WeekView` + `MonthView` audit and fixes
-- [x] **Session 13.6** — `InstallerShell` eyebrow greeting (`Hi, firstName`); `BottomNav` full-width web/mobile fix; `UserMenu` avatar component (Google initials + sign-out dropdown). Notes: `docs/session13.6-note.md`.
-- [x] **Session 13.7** — Bottom tab bar: role-aware fixed bottom nav matching prototype layout (`BottomNav.tsx`). Notes: `docs/session13.6-note.md`.
-- [x] **Session 13.8** — Schedule "+ New" button + `/jobs/new` creation route (`NewJobShell.tsx`, `CoreSection` + `FinancialSection` reused). Notes: `docs/session13.8-note.md`.
-- [x] **Session 14** — `admin` page: Users tab (provision + inline edit), Digest tab (subscriber management + per-item send), Health tab (system checks + API usage tracker + anomaly detection + key rotation links). Notes: `docs/session14-note.md`.
-- [x] **Session 15** — Crash log: React ErrorBoundary → `/api/crash` → `crash_logs` table + local `.md` file (dev); Admin Crash Log tab with timeline, stack viewer, markdown download, dismiss. Notes: `docs/session15-note.md`.
-- [x] **Session 16** — R2 signed-URL upload helpers + Cloudflare Images binding; `backup.sh` rclone cold-archive + cron
-- [x] **Session 17** — Deploy preview to Vercel
-- [x] **Session 17.1** — Live-chat bug: simplified RLS policy on messages + files (auth.uid() direct, no SECURITY DEFINER); favicon.ico
-- [x] **Session 17.2** — Calendar nav timezone fix (toISO UTC→local) + live schedule (router.refresh() on jobs realtime); migration 0010; Vercel–GitHub auto-deploy wired
-- [x] **Session 17.3** — Migration 0011 (REPLICA IDENTITY FULL on jobs) + 2-min polling fallback; hydration error #418 fix attempts force-reverted (did not resolve in production); polling kept; error remains in console but non-blocking
-- [x] **Session 18** — Full design review (audit + fix pass done 2026-05-05; 17 of 19 findings fixed; notes: `docs/session18-note.md`)
-- [x] **Session 18.1** — Additional design edits from owner review of Session 18 preview (notes: `docs/session18.1-note.md`)
-- [x] **Session 18.2** — Pill casing (Pending/Completed/Overdue), completed jobs hidden from schedule tab, Strict on-time legend colour #D14545, admin role-switcher deferred to 17.4
-- [x] **Session 18.3** — Label renames (Customer, Job Description, etc.), Push for Approval flow, schedule filter (pending/awaiting_approval hidden), financials gated, Job Chat Live indicator + locked title, whole-job lock, PendingFilesSection (multi-file + URL links as url_link files), Files/URL section, Project Title field + migration 0012
-- [x] **Session 17.4** — Admin role-switcher: ai@greenqubes.com can preview UI as Sales / Scheduler / Installer. Notes: `docs/session17.4-note.md`.
-- [x] **Session 17.5** — Persistent floating AI chatbot on all pages except /assistant; full RAG + web search via existing /api/assistant/chat endpoint. Notes: `docs/session17.5-note.md`.
-- [x] **Session 17.6 (remainder)** — Pending tab sales-only, time picker 15-min intervals, production ready instructions, floating chat handoff, pending/completed tab fix, pre-schedule locks, financials removed. Notes: `docs/session17.6-note.md`.
-- [x] **Session 17.7** — Required fields, end date, custom TimeSelect, multi-day calendar, optional contact fields, scheduled job layout matches pending (chat open), project_title SELECT fix, reactive header, router.refresh after save. Notes: `docs/session17.7-note.md`.
-- [ ] **Session 19** (Pre-Alpha — Myself) — Internal testing by myself; versioning starts V.0.0.0.1
-- [ ] **Session 20** (Pre-Alpha Feedback) — User feedback + hotfix; iterate V.0.0.0.X until green light
-- [ ] **Session 21** (Alpha — Scheduler) — Testing with Me + Scheduler; hotfix; iterate V.0.0.X.0 until green light
-- [ ] **Session 22** (Beta — Management) — Testing with Me + Scheduler + Sales; hotfix; iterate V.0.X.0.0 until green light
-- [ ] **Session 23** (Launch) — Production cutover → V.1.0.0.0 + hotfix
-- [ ] **Session 24** (Post-Launch) — New features (to be defined); versioning V.1.X.0.0
+All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
+
+- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
+- [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
+- [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
+- [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
+- [ ] **Session 23** — Launch; production cutover → V.1.0.0.0
+- [ ] **Session 24** — Post-launch features (to be defined)
 
 ---
 
@@ -325,20 +294,6 @@ When something in this file is wrong or out of date, **flag it** in your respons
 
 ---
 
-## Layman analogies (for explaining the stack to non-technical stakeholders)
+## Layman analogies
 
-Useful when the boss asks "what does X do?" and a technical answer won't land:
-
-| Service | Plain-English analogy |
-|---|---|
-| Vercel | The shop space we rent online — anyone with the link can walk in |
-| Supabase | The filing cabinet — schedule, logins, every chat, instantly synced |
-| Cloudflare R2 | The photo locker — phones upload site photos directly here |
-| Cloudflare Images | The auto-shrinker — turns 8MB phone photos into fast-loading thumbnails |
-| Claude | The chatbot's brain — answers, drafts, looks things up online |
-| Voyage AI | The librarian — knows where every idea lives so the brain can find it instantly |
-| Telegram bot | The runner — pings the right phone when something needs attention |
-| Obsidian | The company notebook — what we've learned, survives staff turnover |
-| Local PC + drive | The safety deposit box — offline copy of everything, never deleted |
-
-These are also the descriptions used in the boss-facing architecture brief.
+See `docs/stack-explainer.md`.

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
@@ -8,7 +8,8 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import {
   Send, Paperclip, Download, FileText, Image as ImageIcon,
-  Mic, StopCircle,
+  Mic, StopCircle, Camera, Maximize2, Minimize2,
+  FileSpreadsheet, FileArchive,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
@@ -16,41 +17,114 @@ import type { LangCode } from '@/lib/i18n'
 
 const CHAT_OPEN_DAYS = 7
 
+// ── Avatar helpers (same logic as UserMenu) ──────────────────────────────────
+const AVATAR_COLORS = ['bg-terracotta','bg-brand-green','bg-brand-blue','bg-brand-amber','bg-ink2']
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+function avatarColor(name: string) {
+  const hash = [...name].reduce((sum, c) => sum + c.charCodeAt(0), 0)
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+// ── Upload filename formatter ─────────────────────────────────────────────────
+function uploadName(userName: string, ext: string): string {
+  const now  = new Date()
+  const date = now.toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' })
+  const time = now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' })
+  return `${userName} ${date} ${time}.${ext}`
+}
+
 function chatCutoff(completedAt: string): Date {
   const d = new Date(completedAt)
   d.setDate(d.getDate() + CHAT_OPEN_DAYS)
   return d
 }
 
+// ── File-kind helpers ────────────────────────────────────────────────────────
+type FileKind = 'image' | 'pdf' | 'xls' | 'doc' | 'zip' | 'other'
+type DocKind  = Exclude<FileKind, 'image'>
+
+function fileKind(filename: string): FileKind {
+  if (/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) return 'image'
+  if (/\.pdf$/i.test(filename))                      return 'pdf'
+  if (/\.xlsx?$/i.test(filename))                    return 'xls'
+  if (/\.docx?$/i.test(filename))                    return 'doc'
+  if (/\.zip$/i.test(filename))                      return 'zip'
+  return 'other'
+}
+
+const FILE_TYPE_LABEL: Record<DocKind, string> = {
+  pdf:   'PDF',
+  xls:   'Spreadsheet',
+  doc:   'Word Document',
+  zip:   'ZIP Archive',
+  other: 'File',
+}
+
+const DOC_ICON_CONFIG: Record<DocKind, { bg: string; color: string }> = {
+  pdf:   { bg: 'bg-[#FDECEA]', color: 'text-[#C0392B]' },
+  xls:   { bg: 'bg-[#E8F5E9]', color: 'text-[#2E7D32]' },
+  doc:   { bg: 'bg-[#EEF2FB]', color: 'text-[#3D6FB5]' },
+  zip:   { bg: 'bg-[#FFF8E1]', color: 'text-amber' },
+  other: { bg: 'bg-[#EEF2FB]', color: 'text-ink2' },
+}
+
+function docIconComponent(kind: DocKind) {
+  if (kind === 'xls') return FileSpreadsheet
+  if (kind === 'zip') return FileArchive
+  return FileText
+}
+
+// ── Waveform helper ──────────────────────────────────────────────────────────
+// Deterministic bar heights derived from the voice key so they are stable
+// across re-renders.
+function waveformBars(key: string, count = 12): number[] {
+  let h = 0
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) >>> 0
+  }
+  return Array.from({ length: count }, () => {
+    h = (h * 1664525 + 1013904223) >>> 0
+    return 30 + (h % 66) // 30–95
+  })
+}
+
 type ChatItem =
-  | { kind: 'message'; id: string; author: string | null; content: string; ts: string }
-  | { kind: 'voice';   id: string; author: string | null; voiceKey: string; ts: string }
-  | { kind: 'file';    id: string; author: string | null; r2Key: string; filename: string; ts: string }
+  | { kind: 'message'; id: string; authorId: string | null; author: string | null; content: string; ts: string }
+  | { kind: 'voice';   id: string; authorId: string | null; author: string | null; voiceKey: string; ts: string }
+  | { kind: 'file';    id: string; authorId: string | null; author: string | null; r2Key: string; filename: string; ts: string }
 
 function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
   const items: ChatItem[] = [
     ...messages
       .filter(m => m.kind === 'text' && m.content)
       .map(m => ({
-        kind:    'message' as const,
-        id:      m.id,
-        author:  m.author?.name ?? null,
-        content: m.content!,
-        ts:      m.ts,
+        kind:     'message' as const,
+        id:       m.id,
+        authorId: m.author_id,
+        author:   m.users?.name ?? null,
+        content:  m.content!,
+        ts:       m.ts,
       })),
     ...messages
       .filter(m => m.kind === 'voice' && m.voice_url)
       .map(m => ({
         kind:     'voice' as const,
         id:       m.id,
-        author:   m.author?.name ?? null,
+        authorId: m.author_id,
+        author:   m.users?.name ?? null,
         voiceKey: m.voice_url!,
         ts:       m.ts,
       })),
     ...files.map(f => ({
       kind:     'file' as const,
       id:       f.id,
-      author:   f.uploader?.name ?? null,
+      authorId: f.uploader_id,
+      author:   f.users?.name ?? null,
       r2Key:    f.r2_key,
       filename: f.r2_key.split('/').pop() ?? f.r2_key,
       ts:       f.ts,
@@ -59,90 +133,231 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
   return items.sort((a, b) => a.ts.localeCompare(b.ts))
 }
 
-function FileAttachment({ r2Key, filename, lang }: { r2Key: string; filename: string; lang: LangCode }) {
-  const [loading, setLoading] = useState(false)
-  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(filename)
+function FileAttachment({ r2Key, filename, lang, isMine = false }: {
+  r2Key: string; filename: string; lang: LangCode; isMine?: boolean
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null)
+  const [dlLoading, setDlLoading] = useState(false)
+  const kind = fileKind(filename)
+  const radius = isMine ? 'rounded-[14px_14px_3px_14px]' : 'rounded-[14px_14px_14px_3px]'
 
-  const handleDownload = async () => {
-    setLoading(true)
+  // Eagerly fetch signed URL for images so the thumbnail shows on render
+  useEffect(() => {
+    if (kind !== 'image') return
+    fetch('/api/r2/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: r2Key }),
+    })
+      .then(r => r.json())
+      .then((data: { url: string }) => setSignedUrl(data.url))
+      .catch(() => { /* thumbnail stays as placeholder icon */ })
+  }, [r2Key, kind])
+
+  const download = async () => {
+    setDlLoading(true)
     try {
-      const res = await fetch('/api/r2/download-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: r2Key }),
-      })
-      const { url } = await res.json() as { url: string }
+      const url = await (async () => {
+        if (signedUrl) return signedUrl
+        const res = await fetch('/api/r2/download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: r2Key }),
+        })
+        const { url: fetchedUrl } = await res.json() as { url: string }
+        return fetchedUrl
+      })()
       const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      a.target = '_blank'
-      a.rel = 'noopener'
+      a.href = url; a.download = filename; a.target = '_blank'; a.rel = 'noopener'
       a.click()
     } finally {
-      setLoading(false)
+      setDlLoading(false)
     }
   }
+
+  // ── Image card ─────────────────────────────────────────────────────────────
+  if (kind === 'image') {
+    return (
+      <div className={cn('overflow-hidden border border-line bg-paper w-[220px]', radius)}>
+        <div className="h-[160px] bg-line flex items-center justify-center">
+          {signedUrl
+            ? <img src={signedUrl} alt={filename} className="w-full h-full object-cover" />
+            : <ImageIcon size={24} className="text-muted" />}
+        </div>
+        <div className={cn('flex items-center gap-2 px-3 py-2', isMine ? 'bg-terracotta' : 'bg-paper')}>
+          <ImageIcon size={13} className={cn('shrink-0', isMine ? 'text-white/70' : 'text-muted')} />
+          <span className={cn('flex-1 text-xs truncate min-w-0', isMine ? 'text-white' : 'text-ink2')}>
+            {filename}
+          </span>
+          <button
+            type="button"
+            onClick={download}
+            disabled={dlLoading}
+            className="shrink-0 disabled:opacity-50"
+          >
+            <Download size={16} className={isMine ? 'text-white/75' : 'text-muted'} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Document card ──────────────────────────────────────────────────────────
+  const docKind = kind as DocKind
+  const { bg: iconBg, color: iconColor } = DOC_ICON_CONFIG[docKind]
+  const DocIcon = docIconComponent(docKind)
 
   return (
     <button
       type="button"
-      onClick={handleDownload}
-      disabled={loading}
-      className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink hover:bg-line transition-colors disabled:opacity-50"
+      onClick={download}
+      disabled={dlLoading}
+      className={cn(
+        'flex items-center gap-3 px-3.5 py-3 min-w-[220px] border transition-colors disabled:opacity-50',
+        radius,
+        isMine
+          ? 'bg-terracotta border-terracotta hover:bg-terracotta/90'
+          : 'bg-paper border-line hover:bg-bg',
+      )}
     >
-      {isImage
-        ? <ImageIcon size={14} className="text-muted shrink-0" />
-        : <FileText  size={14} className="text-muted shrink-0" />}
-      <span className="truncate max-w-[180px]">{filename}</span>
-      <Download size={12} className="text-muted shrink-0 ml-auto" />
+      <div className={cn('w-11 h-11 rounded-[10px] flex items-center justify-center shrink-0', isMine ? 'bg-white/20' : iconBg)}>
+        <DocIcon size={22} className={isMine ? 'text-white' : iconColor} strokeWidth={2} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-sm font-medium truncate', isMine ? 'text-white' : 'text-ink')}>
+          {filename}
+        </p>
+        <p className={cn('text-xs mt-0.5', isMine ? 'text-white/70' : 'text-muted')}>
+          {FILE_TYPE_LABEL[docKind]}
+        </p>
+      </div>
+      <Download size={16} className={cn('shrink-0', isMine ? 'text-white/75' : 'text-muted')} />
     </button>
   )
 }
 
-function VoicePlayer({ voiceKey, lang }: { voiceKey: string; lang: LangCode }) {
-  const [src,     setSrc]     = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+function VoicePlayer({ voiceKey, isMine = false }: {
+  voiceKey: string; isMine?: boolean
+}) {
+  const [src,         setSrc]         = useState<string | null>(null)
+  const [loading,     setLoading]     = useState(false)
+  const [playing,     setPlaying]     = useState(false)
+  const [duration,    setDuration]    = useState<number | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const bars     = useMemo(() => waveformBars(voiceKey), [voiceKey])
+  const radius   = isMine ? 'rounded-[14px_14px_3px_14px]' : 'rounded-[14px_14px_14px_3px]'
 
-  const load = async () => {
-    if (src || loading) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/r2/download-url', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key: voiceKey }),
-      })
-      const { url } = await res.json() as { url: string }
-      setSrc(url)
-    } finally {
-      setLoading(false)
+  // Auto-play once the signed URL is fetched
+  useEffect(() => {
+    if (src && audioRef.current) void audioRef.current.play()
+  }, [src])
+
+  const handlePlay = async () => {
+    if (loading) return
+    if (!src) {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/r2/download-url', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ key: voiceKey }),
+        })
+        const { url } = await res.json() as { url: string }
+        setSrc(url)
+      } catch {
+        // silent — button stays idle
+      } finally {
+        setLoading(false)
+      }
+      return
     }
+    if (!audioRef.current) return
+    if (playing) audioRef.current.pause()
+    else void audioRef.current.play()
   }
 
+  const fmtDuration = duration != null
+    ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}`
+    : '0:--'
+
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2 min-w-[180px]">
-      <Mic size={13} className="text-muted shrink-0" />
-      {src ? (
-        <audio controls src={src} className="h-7 flex-1 min-w-0" />
-      ) : (
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="text-xs text-ink2 hover:text-ink disabled:opacity-50 transition-colors"
-        >
-          {loading ? t(lang, 'loading') : t(lang, 'playVoiceNote')}
-        </button>
-      )}
+    <div className={cn(
+      'flex items-center gap-3 px-3.5 py-3 min-w-[220px] border',
+      radius,
+      isMine ? 'bg-terracotta border-terracotta' : 'bg-paper border-line',
+    )}>
+      <audio
+        ref={audioRef}
+        src={src ?? undefined}
+        onLoadedMetadata={e => setDuration((e.target as HTMLAudioElement).duration)}
+        onTimeUpdate={e => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCurrentTime(0) }}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={handlePlay}
+        disabled={loading}
+        className={cn(
+          'w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0 transition-opacity disabled:opacity-50',
+          isMine ? 'bg-black/20' : 'bg-terracotta',
+        )}
+      >
+        {loading ? (
+          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : playing ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white" className="ml-0.5">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        )}
+      </button>
+
+      <div className="flex-1 flex items-center gap-[2px] h-7">
+        {bars.map((h, i) => {
+          const played = duration ? (i / bars.length) < (currentTime / duration) : false
+          return (
+            <div
+              key={i}
+              className={cn(
+                'flex-1 rounded-sm transition-colors',
+                isMine
+                  ? played ? 'bg-white'       : 'bg-white/35'
+                  : played ? 'bg-terracotta'  : 'bg-line',
+              )}
+              style={{ height: `${h}%` }}
+            />
+          )
+        })}
+      </div>
+
+      <div className="flex flex-col items-end shrink-0">
+        <span className={cn('text-xs font-medium tabular-nums', isMine ? 'text-white' : 'text-ink2')}>
+          {fmtDuration}
+        </span>
+        <span className={cn('text-[10px]', isMine ? 'text-white/70' : 'text-muted')}>
+          Voice note
+        </span>
+      </div>
     </div>
   )
 }
+
+const NUM_BARS = 28
 
 type RecordState = 'idle' | 'recording' | 'uploading'
 
 interface Props {
   jobId:              string
   userId:             string
+  userName:           string
   lang:               LangCode
   completedAt:        string | null
   initialMessages:    JobMessage[]
@@ -150,13 +365,28 @@ interface Props {
   preScheduleLocked?: boolean
 }
 
-export function ChatSection({ jobId, userId, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
+export function ChatSection({ jobId, userId, userName, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const bottomRef        = useRef<HTMLDivElement>(null)
   const fileRef          = useRef<HTMLInputElement>(null)
+  const cameraRef        = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef        = useRef<Blob[]>([])
+  const streamRef        = useRef<MediaStream | null>(null)
+  const analyserRef      = useRef<AnalyserNode | null>(null)
+  const audioCtxRef      = useRef<AudioContext | null>(null)
+  const animFrameRef     = useRef<number | null>(null)
+  const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
+  const barsRef          = useRef<HTMLDivElement[]>([])
+  // userId → display name, seeded from server-loaded messages
+  const nameCacheRef     = useRef<Record<string, string>>(
+    Object.fromEntries(
+      initialMessages
+        .filter(m => m.author_id && m.users?.name)
+        .map(m => [m.author_id!, m.users!.name])
+    )
+  )
 
   const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
   const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
@@ -164,8 +394,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const [sending,        setSending]        = useState(false)
   const [uploading,      setUploading]      = useState(false)
   const [recordState,    setRecordState]    = useState<RecordState>('idle')
+  const [recordSecs,     setRecordSecs]     = useState(0)
   const [chatLocked,     setChatLocked]     = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting')
+  const [fullscreen,     setFullscreen]     = useState(false)
 
   const cutoff = completedAt ? chatCutoff(completedAt) : null
 
@@ -174,6 +406,10 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
     if (cutoff) setChatLocked(new Date() > cutoff)
   }, [cutoff])
 
+  useEffect(() => {
+    fetch(`/api/jobs/${jobId}/chat-read`, { method: 'POST' }).catch(() => {})
+  }, [jobId])
+
   const inputDisabled = preScheduleLocked || chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {
@@ -181,36 +417,112 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   }, [messages, files])
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`job-chat-${jobId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        payload => {
-          const row = payload.new as JobMessage
-          if (row.job_id !== jobId) return
-          setMessages(prev =>
-            prev.find(m => m.id === row.id) ? prev : [...prev, row]
-          )
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'files' },
-        payload => {
-          const row = payload.new as JobFile
-          if (row.job_id !== jobId || row.kind !== 'attachment') return
-          setFiles(prev =>
-            prev.find(f => f.id === row.id) ? prev : [...prev, row]
-          )
-        },
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') setRealtimeStatus('live')
-        else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
-      })
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      if (timerRef.current)    clearInterval(timerRef.current)
+      audioCtxRef.current?.close()
+    }
+  }, [])
 
-    return () => { supabase.removeChannel(channel) }
+  const startWaveform = useCallback((stream: MediaStream) => {
+    const ctx     = new AudioContext()
+    const source  = ctx.createMediaStreamSource(stream)
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 64
+    source.connect(analyser)
+    audioCtxRef.current = ctx
+    analyserRef.current = analyser
+
+    const data = new Uint8Array(analyser.frequencyBinCount)
+    const draw = () => {
+      analyser.getByteFrequencyData(data)
+      barsRef.current.forEach((bar, i) => {
+        if (!bar) return
+        const idx = Math.floor(i * data.length / NUM_BARS)
+        const pct = Math.max(8, (data[idx] / 255) * 100)
+        bar.style.height = `${pct}%`
+      })
+      animFrameRef.current = requestAnimationFrame(draw)
+    }
+    draw()
+  }, [])
+
+  const stopWaveform = useCallback(() => {
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null }
+    if (timerRef.current)     { clearInterval(timerRef.current); timerRef.current = null }
+    audioCtxRef.current?.close()
+    audioCtxRef.current = null
+    analyserRef.current = null
+    barsRef.current.forEach(bar => { if (bar) bar.style.height = '8%' })
+    setRecordSecs(0)
+  }, [])
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+
+      channel = supabase
+        .channel(`job-chat-${jobId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+          payload => {
+            const row = payload.new as JobMessage
+            if (row.author_id === userId) {
+              // Own message — inject name from props
+              const msg = { ...row, users: { name: userName } }
+              setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
+            } else {
+              const cached = row.author_id ? nameCacheRef.current[row.author_id] : undefined
+              if (cached) {
+                const msg = { ...row, users: { name: cached } }
+                setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg])
+              } else {
+                // Add immediately (avatar shows '?'), then patch name once fetched
+                setMessages(prev => prev.find(m => m.id === row.id) ? prev : [...prev, row])
+                if (row.author_id) {
+                  const authorId = row.author_id
+                  supabase.from('users').select('name').eq('id', authorId).single()
+                    .then(({ data }) => {
+                      const name = (data as { name: string } | null)?.name
+                      if (name) {
+                        nameCacheRef.current[authorId] = name
+                        setMessages(prev => prev.map(m =>
+                          m.id === row.id ? { ...m, users: { name } } : m
+                        ))
+                      }
+                    })
+                }
+              }
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` },
+          payload => {
+            const row = payload.new as JobFile
+            if (row.kind !== 'attachment') return
+            setFiles(prev =>
+              prev.find(f => f.id === row.id) ? prev : [...prev, row]
+            )
+          },
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') setRealtimeStatus('live')
+          else if (err || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtimeStatus('error')
+        })
+    })
+
+    return () => {
+      active = false
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [jobId, supabase])
 
   const handleSend = async () => {
@@ -240,13 +552,16 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const handleRecord = async () => {
     if (recordState === 'recording') {
       mediaRecorderRef.current?.stop()
+      stopWaveform()
       return
     }
     if (recordState !== 'idle') return
 
     try {
-      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      if (!streamRef.current) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+      const recorder = new MediaRecorder(streamRef.current)
       mediaRecorderRef.current = recorder
       chunksRef.current = []
 
@@ -255,7 +570,6 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
       }
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop())
         setRecordState('uploading')
         try {
           const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
@@ -263,7 +577,7 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
           const urlRes = await fetch('/api/r2/upload-url', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ jobId, kind: 'voice', filename: `${Date.now()}.webm`, contentType: 'audio/webm' }),
+            body:    JSON.stringify({ jobId, kind: 'voice', filename: uploadName(userName, 'webm'), contentType: 'audio/webm' }),
           })
           const { url, key } = await urlRes.json() as { url: string; key: string }
 
@@ -288,6 +602,9 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
       recorder.start()
       setRecordState('recording')
+      startWaveform(streamRef.current)
+      setRecordSecs(0)
+      timerRef.current = setInterval(() => setRecordSecs(s => s + 1), 1000)
     } catch {
       showError(t(lang, 'saveError'))
     }
@@ -321,6 +638,57 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
         visibility:  ['public-internal'],
       } as never).throwOnError()
 
+      await fetch(`/api/jobs/${jobId}/messages`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ kind: 'attachment', filename: file.name }),
+      })
+
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    const ext      = file.name.split('.').pop() ?? 'jpg'
+    const filename = uploadName(userName, ext)
+
+    setUploading(true)
+    try {
+      const urlRes = await fetch('/api/r2/upload-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ jobId, kind: 'attachment', filename, contentType: file.type || 'image/jpeg' }),
+      })
+      const { url, key } = await urlRes.json() as { url: string; key: string }
+
+      await fetch(url, {
+        method:  'PUT',
+        headers: { 'Content-Type': file.type || 'image/jpeg' },
+        body:    file,
+      })
+
+      await supabase.from('files').insert({
+        job_id:      jobId,
+        kind:        'attachment',
+        r2_key:      key,
+        uploader_id: userId,
+        visibility:  ['public-internal'],
+      } as never).throwOnError()
+
+      await fetch(`/api/jobs/${jobId}/messages`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ kind: 'attachment', filename }),
+      })
+
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
       showError(t(lang, 'saveError'))
@@ -332,15 +700,18 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
   const items = toItems(messages, files)
 
   return (
-    <Card className="flex flex-col overflow-hidden">
+    <Card className={cn(
+      'flex flex-col overflow-hidden',
+      fullscreen && 'fixed inset-0 z-[60] rounded-none',
+    )}>
       {/* header */}
-      <div className="px-5 py-3 border-b border-line flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-line flex items-center justify-between shrink-0">
         <h3 className="text-sm font-medium text-ink">
           {chatLocked ? t(lang, 'jobChatTitleLocked') : t(lang, 'jobChatTitle')}
         </h3>
         <div className="flex items-center gap-3">
           {cutoff && !chatLocked && (
-            <span className="text-xs text-muted">
+            <span className="text-xs text-muted hidden sm:inline">
               {t(lang, 'chatOpenUntil')} {cutoff.toLocaleDateString()}
             </span>
           )}
@@ -363,33 +734,65 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               </span>
             </span>
           )}
+          {/* Enlarge / shrink — mobile only */}
+          <button
+            onClick={() => setFullscreen(f => !f)}
+            className="md:hidden p-1.5 text-muted hover:text-ink transition-colors rounded"
+            aria-label={fullscreen ? 'Exit fullscreen' : 'Expand chat'}
+          >
+            {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
         </div>
       </div>
 
       {/* messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[200px] max-h-[400px]">
+      <div className={cn(
+        'flex-1 overflow-y-auto px-5 py-4 space-y-3',
+        fullscreen ? 'min-h-0' : 'min-h-[280px] max-h-[520px]',
+      )}>
         {items.length === 0 ? (
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
         ) : (
-          items.map(item => (
-            <div key={item.id} className="space-y-0.5">
-              {item.author && (
-                <p className="text-xs text-muted">{item.author}</p>
-              )}
-              {item.kind === 'message' ? (
-                <p className="text-sm text-ink bg-bg rounded-lg px-3 py-2 inline-block max-w-[85%]">
-                  {item.content}
-                </p>
-              ) : item.kind === 'voice' ? (
-                <VoicePlayer voiceKey={item.voiceKey} lang={lang} />
-              ) : (
-                <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} />
-              )}
-              <p className="text-[10px] text-muted" suppressHydrationWarning>
-                {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
-              </p>
-            </div>
-          ))
+          items.map(item => {
+            const isMine = item.authorId === userId
+            return (
+              <div key={item.id} className={cn('flex items-end gap-2', isMine && 'flex-row-reverse')}>
+                {/* Avatar — others only */}
+                {!isMine && (
+                  <div className={cn(
+                    'w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0',
+                    item.author ? avatarColor(item.author) : 'bg-ink2',
+                  )}>
+                    {item.author ? initials(item.author) : '?'}
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className={cn('space-y-0.5 min-w-0 max-w-[75%]', isMine && 'items-end flex flex-col')}>
+                  {!isMine && (
+                    <p className="text-xs text-muted">{item.author ?? 'Unknown'}</p>
+                  )}
+                  {item.kind === 'message' ? (
+                    <p className={cn(
+                      'text-sm rounded-2xl px-3 py-2 inline-block',
+                      isMine
+                        ? 'bg-terracotta text-white rounded-br-sm'
+                        : 'bg-bg text-ink rounded-bl-sm',
+                    )}>
+                      {item.content}
+                    </p>
+                  ) : item.kind === 'voice' ? (
+                    <VoicePlayer voiceKey={item.voiceKey} isMine={isMine} />
+                  ) : (
+                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} isMine={isMine} />
+                  )}
+                  <p className="text-[10px] text-muted" suppressHydrationWarning>
+                    {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
+                  </p>
+                </div>
+              </div>
+            )
+          })
         )}
         <div ref={bottomRef} />
       </div>
@@ -410,13 +813,21 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
       {/* input bar */}
       {!preScheduleLocked && !chatLocked && (
-        <div className="px-4 py-3 border-t border-line flex items-center gap-2">
+        <div className="px-4 py-3 border-t border-line flex items-center gap-4">
           <input
             type="file"
             ref={fileRef}
             onChange={handleFileChange}
             className="hidden"
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+          />
+          <input
+            type="file"
+            ref={cameraRef}
+            onChange={handleCameraCapture}
+            className="hidden"
+            accept="image/*"
+            capture="environment"
           />
 
           <button
@@ -433,12 +844,22 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
 
           <button
             type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={inputDisabled}
+            title="Take photo"
+            className="text-muted hover:text-ink transition-colors disabled:opacity-40 shrink-0"
+          >
+            <Camera size={16} />
+          </button>
+
+          <button
+            type="button"
             onClick={handleRecord}
             disabled={chatLocked || sending || uploading}
             title={t(lang, 'recordVoiceNote')}
             className={`shrink-0 transition-colors disabled:opacity-40 ${
               recordState === 'recording'
-                ? 'text-terracotta animate-pulse'
+                ? 'text-terracotta'
                 : recordState === 'uploading'
                   ? 'text-muted'
                   : 'text-muted hover:text-ink'
@@ -449,23 +870,43 @@ export function ChatSection({ jobId, userId, lang, completedAt, initialMessages,
               : <Mic size={16} />}
           </button>
 
-          <input
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-            disabled={inputDisabled}
-            placeholder={t(lang, 'messagePlaceholder')}
-            className="flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50"
-          />
+          {recordState === 'recording' ? (
+            <div className="flex-1 flex items-center gap-2 rounded-lg border border-terracotta bg-terracotta/5 px-3 py-1.5 h-[38px]">
+              <span className="text-xs font-medium text-terracotta tabular-nums w-8 shrink-0">
+                {String(Math.floor(recordSecs / 60)).padStart(2, '0')}:{String(recordSecs % 60).padStart(2, '0')}
+              </span>
+              <div className="flex-1 flex items-center gap-[2px] h-full">
+                {Array.from({ length: NUM_BARS }).map((_, i) => (
+                  <div
+                    key={i}
+                    ref={el => { if (el) barsRef.current[i] = el }}
+                    className="flex-1 bg-terracotta rounded-full"
+                    style={{ height: '8%' }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <input
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+              disabled={inputDisabled}
+              placeholder={t(lang, 'messagePlaceholder')}
+              className="flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50"
+            />
+          )}
 
-          <Btn
-            size="sm"
-            onClick={handleSend}
-            disabled={inputDisabled || !text.trim()}
-          >
-            <Send size={13} />
-            {t(lang, 'sendMessage')}
-          </Btn>
+          {recordState !== 'recording' && (
+            <Btn
+              size="sm"
+              onClick={handleSend}
+              disabled={inputDisabled || !text.trim()}
+              aria-label={t(lang, 'sendMessage')}
+            >
+              <Send size={13} />
+            </Btn>
+          )}
         </div>
       )}
     </Card>

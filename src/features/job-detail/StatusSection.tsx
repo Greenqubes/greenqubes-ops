@@ -12,9 +12,10 @@ interface Props {
   role:           Role
   lang:           LangCode
   onStatusChange: (s: JobStatus) => Promise<void>
+  onDelete?:      () => void
 }
 
-export function StatusSection({ status, role, lang, onStatusChange }: Props) {
+export function StatusSection({ status, role, lang, onStatusChange, onDelete }: Props) {
   const actions: Array<{ label: string; next: JobStatus; variant?: 'primary' | 'secondary' | 'ghost' }> = []
 
   if (role === 'sales') {
@@ -35,7 +36,13 @@ export function StatusSection({ status, role, lang, onStatusChange }: Props) {
     if (status === 'scheduled') actions.push({ label: t(lang, 'markComplete'), next: 'completed' })
   }
 
-  if (actions.length === 0) return null
+  const showDeleteBtn = (
+    (role === 'sales' && status === 'pending') ||
+    role === 'scheduler' ||
+    role === 'admin'
+  ) && !!onDelete
+
+  if (actions.length === 0 && !showDeleteBtn) return null
 
   return (
     <Card className="p-4 flex flex-wrap items-center gap-3">
@@ -44,6 +51,11 @@ export function StatusSection({ status, role, lang, onStatusChange }: Props) {
         <Pill variant={status} />
       </div>
       <div className="flex gap-2 flex-wrap">
+        {showDeleteBtn && (
+          <Btn variant="ghost" size="sm" onClick={onDelete}>
+            {t(lang, 'deleteJob')}
+          </Btn>
+        )}
         {actions.map(a => (
           <Btn
             key={a.next}

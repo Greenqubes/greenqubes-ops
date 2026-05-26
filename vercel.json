@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/monday-digest",
       "schedule": "0 1 * * 1"
+    },
+    {
+      "path": "/api/cron/digest-timeout",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/notifications/overdue",
+      "schedule": "0 10 * * *"
     }
   ]
 }

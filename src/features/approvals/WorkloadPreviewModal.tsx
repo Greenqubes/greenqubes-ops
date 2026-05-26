@@ -20,6 +20,12 @@ interface Props {
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+const BUSY_THRESHOLD = 5
+
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
+}
+
 function getMondayOf(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   const day = d.getDay()
@@ -52,7 +58,8 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
   const [selected,  setSelected]  = useState(currentDate)
   const [workload,  setWorkload]  = useState<WorkloadDay[]>([])
   const [loading,   setLoading]   = useState(true)
-  const [saving,    setSaving]    = useState(false)
+  const [saving,         setSaving]         = useState(false)
+  const [schedulerNames, setSchedulerNames] = useState<string[]>([])
 
   const weekEnd = addDays(weekStart, 6)
 
@@ -101,6 +108,18 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
     fetchWorkload(weekStart, weekEnd)
   }, [weekStart, weekEnd, fetchWorkload])
 
+  useEffect(() => {
+    async function fetchSchedulers() {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('users')
+        .select('name')
+        .eq('role', 'scheduler')
+      setSchedulerNames((data ?? []).map((u: { name: string }) => u.name))
+    }
+    fetchSchedulers()
+  }, [])
+
   async function handleConfirm() {
     setSaving(true)
     try {
@@ -111,6 +130,7 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
   }
 
   const today = new Date().toISOString().slice(0, 10)
+  const selectedDayCount = workload.find(d => d.date === selected)?.jobCount ?? 0
 
   return (
     <Modal isOpen onClose={onClose}>
@@ -123,6 +143,30 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
           </h2>
           <p className="mt-1 text-xs text-muted">{t(lang, 'workloadSubtitle')}</p>
         </div>
+
+        {/* scheduler banner */}
+        {schedulerNames.length > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue text-[11px] font-semibold text-paper">
+              {getInitials(schedulerNames[0])}
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                {t(lang, 'workloadSendingTo')}
+              </p>
+              <p className="text-xs font-semibold text-ink">
+                {schedulerNames.join(', ')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* busy warning */}
+        {!loading && selectedDayCount >= BUSY_THRESHOLD && (
+          <div className="rounded-lg border border-amber bg-amber-soft px-3 py-2 text-xs text-amber">
+            ⚠ {selectedDayCount} {t(lang, 'workloadBusyWarning')}
+          </div>
+        )}
 
         {/* week navigation */}
         <div className="flex items-center justify-between gap-2">
