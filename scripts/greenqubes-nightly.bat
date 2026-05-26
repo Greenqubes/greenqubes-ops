@@ -36,7 +36,7 @@ call :log "Greenqubes nightly — START"
 call :log "========================================"
 
 REM ── Step 1: Pull latest vault notes from GitHub ───────────────────────────
-call :log "[1/3] Pulling vault from GitHub..."
+call :log "[1/4] Pulling vault from GitHub..."
 cd /d "%VAULT%"
 if errorlevel 1 (
   call :log "ERROR: vault folder not found at %VAULT% - skipping obsidian-sync"
@@ -51,7 +51,7 @@ if errorlevel 1 (
 
 REM ── Step 2: Index vault notes to Supabase ─────────────────────────────────
 :step2
-call :log "[2/3] Running obsidian-sync..."
+call :log "[2/4] Running obsidian-sync..."
 cd /d "%REPO%"
 call npm run obsidian-sync >> "%LOG%" 2>&1
 if errorlevel 1 (

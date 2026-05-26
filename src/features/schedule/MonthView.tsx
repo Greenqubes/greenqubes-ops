@@ -61,7 +61,7 @@ export function MonthView({
                 'aspect-square rounded-md border flex flex-col items-center justify-start pt-1 px-0.5',
                 'text-xs transition-colors cursor-pointer',
                 isSelected
-                  ? 'bg-ink border-ink text-white'
+                  ? 'bg-ink border-ink text-paper'
                   : isToday
                     ? 'border-terracotta text-terracotta font-semibold bg-paper'
                     : 'border-line text-ink2 bg-paper hover:border-ink2'

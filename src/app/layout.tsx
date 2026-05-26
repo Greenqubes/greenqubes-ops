@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, IBM_Plex_Sans } from 'next/font/google'
 import { Suspense } from 'react'
+import { ThemeProvider }       from '@/components/ThemeProvider'
 import { ToastProvider }       from '@/components/Toast'
 import { ErrorBoundary }       from '@/components/ErrorBoundary'
 import { FloatingChatWrapper } from '@/components/FloatingChatWrapper'
@@ -28,20 +29,22 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${ibmPlexSans.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${ibmPlexSans.variable}`} suppressHydrationWarning>
       <head>
         {/* CJK + Bengali: system fonts handle these on all target devices */}
       </head>
       <body className="font-body antialiased">
-        <ErrorBoundary>
-          <ToastProvider>
-            {children}
-            <BugReportButton />
-          </ToastProvider>
-          <Suspense fallback={null}>
-            <FloatingChatWrapper />
-          </Suspense>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <ToastProvider>
+              {children}
+              <BugReportButton />
+            </ToastProvider>
+            <Suspense fallback={null}>
+              <FloatingChatWrapper />
+            </Suspense>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   )

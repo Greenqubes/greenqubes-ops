@@ -12,6 +12,7 @@ const styles: Record<PillVariant, string> = {
   sales:             'bg-brand-blue-soft  text-brand-blue',
   scheduler:         'bg-brand-amber-soft text-brand-amber',
   installer:         'bg-brand-green-soft text-brand-green',
+  admin:             'bg-terracotta/10 text-terracotta',
 }
 
 const label: Record<PillVariant, string> = {
@@ -20,9 +21,10 @@ const label: Record<PillVariant, string> = {
   awaiting_approval: 'awaiting approval',
   completed:         'Completed',
   overdue:           'Overdue',
-  sales:             'sales',
-  scheduler:         'scheduler',
-  installer:         'installer',
+  sales:             'Sales',
+  scheduler:         'Scheduler',
+  installer:         'Installer',
+  admin:             'Admin',
 }
 
 interface PillProps {

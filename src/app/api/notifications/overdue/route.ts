@@ -52,17 +52,23 @@ export async function GET(req: NextRequest) {
     const timeEnd = job.time_end
       ? (() => {
           const [h, m] = job.time_end!.split(':').map(Number)
-          const suffix = h >= 12 ? 'pm' : 'am'
+          const suffix = h >= 12 ? 'PM' : 'AM'
           const h12    = h % 12 || 12
-          return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`
+          return m === 0 ? `${h12} ${suffix}` : `${h12}:${String(m).padStart(2, '0')} ${suffix}`
         })()
       : 'end of day'
 
+    const jobUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'}/jobs/${job.id}`
+
     const msg = tplJobOverdue({
-      jobClient: job.client,
-      jobDate:   job.date,
+      projectTitle: job.project_title,
+      jobClient:    job.client,
+      pocName:      job.client_poc_name,
+      pocPhone:     job.client_poc_phone,
+      jobDate:      job.date,
       timeEnd,
-      location:  job.location,
+      location:     job.location,
+      jobUrl,
     })
 
     if (job.sales_poc?.telegram_chat_id) {

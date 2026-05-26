@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUploadUrlForKind, validateContentType } from '@/lib/storage/r2'
 import type { FileKind } from '@/lib/supabase/types'
 
-const VALID_KINDS = new Set<FileKind>(['photo', 'completion', 'voice', 'do', 'attachment'])
+const VALID_KINDS = new Set<FileKind>(['photo', 'completion', 'voice', 'do', 'attachment', 'production_instructions'])
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()

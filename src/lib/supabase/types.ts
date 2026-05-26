@@ -4,7 +4,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer'
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
 export type MessageKind = 'text' | 'voice'
@@ -18,6 +18,7 @@ export interface Database {
         Row: {
           id:                string
           auth_id:           string | null
+          email:             string | null
           name:              string
           role:              Role
           telegram_chat_id:  string | null
@@ -25,6 +26,8 @@ export interface Database {
           phone:             string | null
           digest_subscriber: boolean
           visibility:        string[]
+          years_experience:  number | null
+          skills:            string[]
           created_at:        string
         }
         Insert: Omit<Database['public']['Tables']['users']['Row'], 'id' | 'created_at'> & {
@@ -96,6 +99,8 @@ export interface Database {
           kind:        FileKind
           r2_key:      string
           uploader_id: string | null
+          bucket_id:   string | null
+          url_text:    string | null
           visibility:  string[]
           ts:          string
         }
@@ -136,6 +141,7 @@ export interface Database {
           entities:   string[] | null
           tags:       string[] | null
           importance: number | null
+          pinned:     boolean
           visibility: string[]
           ts:         string
           updated_at: string
@@ -149,6 +155,7 @@ export interface Database {
           entities?:   string[] | null
           tags?:       string[] | null
           importance?: number | null
+          pinned?:     boolean
           visibility:  string[]
           ts?:         string
           updated_at?: string
@@ -162,6 +169,7 @@ export interface Database {
           entities?:   string[] | null
           tags?:       string[] | null
           importance?: number | null
+          pinned?:     boolean
           visibility?: string[]
           ts?:         string
           updated_at?: string
@@ -269,6 +277,35 @@ export interface Database {
           resolved?:    boolean
         }
         Update: Partial<Database['public']['Tables']['crash_logs']['Insert']>
+        Relationships: []
+      }
+
+      attachment_buckets: {
+        Row: {
+          id:         string
+          job_id:     string
+          name:       string
+          position:   number
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['attachment_buckets']['Row'], 'id' | 'created_at'> & {
+          id?: string; created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['attachment_buckets']['Insert']>
+        Relationships: []
+      }
+
+      clients: {
+        Row:    { id: string; name: string }
+        Insert: { id?: string; name: string }
+        Update: Partial<{ id: string; name: string }>
+        Relationships: []
+      }
+
+      client_contacts: {
+        Row:    { id: string; client_id: string; name: string }
+        Insert: { id?: string; client_id: string; name: string }
+        Update: Partial<{ id: string; client_id: string; name: string }>
         Relationships: []
       }
 

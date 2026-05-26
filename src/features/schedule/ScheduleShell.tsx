@@ -10,9 +10,8 @@ import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
-import { NotificationDrawer } from '@/features/notifications/NotificationDrawer'
+import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
-import { UserMenu } from '@/components/UserMenu'
 import {
   toISO, shiftDate, shiftMonth,
   getWeekDays, getMonthCells, monthLabel, langToLocale,
@@ -58,6 +57,38 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const [query,        setQuery]        = useState('')
   const [showSearch,   setShowSearch]   = useState(false)
   const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [confirmBulk,  setConfirmBulk]  = useState(false)
+
+  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending')
+
+  function toggleJob(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleSingleDelete(id: string) {
+    await fetch(`/api/jobs/${id}`, { method: 'DELETE' })
+    router.refresh()
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true)
+    try {
+      await Promise.all(
+        [...selectedIds].map(id => fetch(`/api/jobs/${id}`, { method: 'DELETE' }))
+      )
+      setSelectedIds(new Set())
+      setConfirmBulk(false)
+      router.refresh()
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   const locale = langToLocale(lang)
 
@@ -157,17 +188,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   return (
     <div className="min-h-screen bg-bg">
 
-      {/* ── Company bar ── */}
-      <div className="px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line">
-        <div className="flex items-center gap-2">
-          <span className="font-display font-semibold text-[22px] text-ink tracking-tight leading-none">GreenQubes</span>
-          <span className="text-[10px] font-medium text-terracotta/50 tracking-wide">Pre-Alpha</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <NotificationDrawer jobs={jobs} lang={lang} />
-          <UserMenu lang={lang} />
-        </div>
-      </div>
+      <CompanyBar lang={lang} />
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
@@ -197,7 +218,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             className={cn(
               'p-2 rounded-lg border transition-colors',
               showSearch
-                ? 'bg-ink border-ink text-white'
+                ? 'bg-ink border-ink text-paper'
                 : 'bg-paper border-line text-ink2 hover:border-ink2'
             )}
           >
@@ -245,11 +266,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}
-              onClick={() => setViewMode(v)}
+              onClick={() => { setViewMode(v); if (v === 'week' || v === 'month') setFilter('all') }}
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
-                viewMode === v ? 'bg-ink text-white' : 'text-muted hover:text-ink'
+                viewMode === v ? 'bg-ink text-paper' : 'text-muted hover:text-ink'
               )}
             >
               <Icon size={11} />
@@ -258,20 +279,22 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           ))}
         </div>
 
-        {filterChips.map(({ v, label }) => (
-          <button
-            key={v}
-            onClick={() => setFilter(v)}
-            className={cn(
-              'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
-              filter === v
-                ? 'bg-terracotta-soft border-terracotta text-terracotta'
-                : 'bg-paper border-line text-ink2 hover:border-ink2'
-            )}
-          >
-            {label}
-          </button>
-        ))}
+        {viewMode !== 'month' && filterChips
+          .filter(chip => viewMode === 'week' ? chip.v === 'all' : true)
+          .map(({ v, label }) => (
+            <button
+              key={v}
+              onClick={() => setFilter(v)}
+              className={cn(
+                'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
+                filter === v
+                  ? 'bg-terracotta-soft border-terracotta text-terracotta'
+                  : 'bg-paper border-line text-ink2 hover:border-ink2'
+              )}
+            >
+              {label}
+            </button>
+          ))}
       </div>
 
       {/* ── Views ── */}
@@ -285,6 +308,10 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           lang={lang}
           strings={listStrings}
           onSelectDate={setSelectedDate}
+          selectable={canBulkDelete}
+          selectedIds={selectedIds}
+          onToggle={toggleJob}
+          onDelete={handleSingleDelete}
         />
       )}
       {viewMode === 'week' && (
@@ -305,6 +332,57 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           onSelectDate={setSelectedDate}
           onDrillDown={drillDown}
         />
+      )}
+
+      {/* Bulk delete bar — sits above BottomNav */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
+          {confirmBulk ? (
+            <>
+              <p className="text-sm font-medium text-ink">
+                Delete {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''}? This can&apos;t be undone.
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setConfirmBulk(false)}
+                  disabled={bulkDeleting}
+                  className="px-3 py-1.5 text-xs font-medium text-ink2 border border-line rounded-lg hover:border-ink2 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--terracotta)' }}
+                >
+                  {bulkDeleting ? 'Deleting…' : 'Confirm'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-ink2">
+                <span className="font-semibold text-ink">{selectedIds.size}</span> selected
+              </p>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-3 py-1.5 text-xs font-medium text-ink2 border border-line rounded-lg hover:border-ink2 transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setConfirmBulk(true)}
+                  className="px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--terracotta)' }}
+                >
+                  Delete {selectedIds.size}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       <BottomNav role={role ?? 'sales'} />

@@ -6,12 +6,15 @@ import type { Role, LangCode }  from '@/lib/supabase/types'
 export type AdminUser = {
   id:                string
   auth_id:           string | null
+  email:             string | null
   name:              string
   role:              Role
   telegram_chat_id:  string | null
   lang:              LangCode
   phone:             string | null
   digest_subscriber: boolean
+  years_experience:  number | null
+  skills:            string[]
   created_at:        string
 }
 
@@ -19,7 +22,7 @@ export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, name, role, telegram_chat_id, lang, phone, digest_subscriber, created_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at')
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as AdminUser[]
@@ -33,25 +36,19 @@ export async function provisionUser(
 ): Promise<AdminUser> {
   const db = createServiceClient()
 
-  // Find auth user by email via admin API
-  const { data: authData, error: authErr } = await db.auth.admin.listUsers()
-  if (authErr) throw authErr
-
-  const authUser = authData.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-  if (!authUser) throw new Error(`No Google account found for ${email}. The user must sign in at least once first.`)
-
-  // Prevent duplicate provisioning
+  // Prevent duplicate provisioning by email
   const { data: existing } = await db
     .from('users')
     .select('id')
-    .eq('auth_id', authUser.id)
+    .eq('email', email.toLowerCase())
     .maybeSingle()
   if (existing) throw new Error(`${email} is already provisioned.`)
 
   const { data, error } = await db
     .from('users')
     .insert({
-      auth_id:           authUser.id,
+      email:             email.toLowerCase(),
+      auth_id:           null,
       name,
       role,
       lang,
@@ -60,13 +57,16 @@ export async function provisionUser(
     } as never)
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (error.code === '23505') throw new Error(`${email} is already provisioned.`)
+    throw error
+  }
   return data as unknown as AdminUser
 }
 
 export async function updateUser(
   id:    string,
-  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone'>>,
+  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone' | 'years_experience' | 'skills'>>,
 ): Promise<void> {
   const db = createServiceClient()
   const { error } = await db.from('users').update(patch as never).eq('id', id)

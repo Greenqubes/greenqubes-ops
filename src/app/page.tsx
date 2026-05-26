@@ -25,7 +25,7 @@ export default async function Home() {
     .maybeSingle() as { data: Profile | null; error: unknown }
 
   if (profile) {
-    const effectiveRole = await getEffectiveRole(profile.role, user.email)
+    const effectiveRole = await getEffectiveRole(profile.role)
     if (effectiveRole === 'installer') redirect('/installer')
     if (effectiveRole === 'sales' || effectiveRole === 'scheduler') redirect('/schedule')
   }

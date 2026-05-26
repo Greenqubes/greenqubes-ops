@@ -10,6 +10,7 @@ export interface AsstChatRow {
   msgs:       Json
   tags:       string[] | null
   importance: number | null
+  pinned:     boolean
   ts:         string
 }
 
@@ -17,10 +18,69 @@ export async function getRecentChats(limit = 20): Promise<AsstChatRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('asst_chats')
-    .select('id, topic, msgs, tags, importance, ts')
-    .order('ts', { ascending: false })
+    .select('id, topic, msgs, tags, importance, pinned, ts')
+    .order('pinned', { ascending: false })
+    .order('ts',     { ascending: false })
     .limit(limit)
   return (data ?? []) as AsstChatRow[]
+}
+
+export async function pinChat(id: string, pinned: boolean): Promise<boolean> {
+  const supabase = await createClient()
+  const { count, error } = await supabase
+    .from('asst_chats')
+    .update({ pinned } as never, { count: 'exact' })
+    .eq('id', id)
+  return !error && (count ?? 0) > 0
+}
+
+export async function deleteChat(id: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('asst_chats')
+    .delete()
+    .eq('id', id)
+  if (error) console.error('[deleteChat] error', error)
+  return !error
+}
+
+export async function updateChat(
+  id:   string,
+  msgs: { role: string; content: string }[],
+  tag:  ChatTag,
+): Promise<string | null> {
+  const supabase = createServiceClient()
+
+  let embeddingStr: string | null = null
+  try {
+    const text   = msgs.map(m => m.content).join(' ').slice(0, 2000)
+    const vec    = await embed(text)
+    embeddingStr = `[${vec.join(',')}]`
+  } catch { /* embedding optional */ }
+
+  // Fetch original topic so the title stays the same across the conversation
+  const { data: original } = await supabase
+    .from('asst_chats')
+    .select('topic')
+    .eq('id', id)
+    .single()
+
+  if (!original) return null  // row was deleted; caller should fall back to insert
+
+  const { error } = await supabase
+    .from('asst_chats')
+    .update({
+      msgs:       msgs as unknown as Json,
+      embedding:  embeddingStr,
+      topic:      original.topic ?? tag.topic,
+      tags:       tag.tags,
+      importance: tag.importance,
+      ts:         new Date().toISOString(),
+    } as never)
+    .eq('id', id)
+
+  if (error) { console.error('updateChat error', error); return null }
+  return id
 }
 
 export async function saveChat(

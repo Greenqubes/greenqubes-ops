@@ -14,6 +14,7 @@ export type ApprovalJob = {
   description:  string | null
   created_at:   string
   sales_poc_id: string | null
+  sales_poc:    { id: string; name: string } | null
   job_assignees: Array<{ users: { id: string; name: string } | null }>
   job_financials: { quote_amount: number | null; supplier_cost: number | null } | null
 }
@@ -25,6 +26,7 @@ export async function getApprovalQueue(): Promise<ApprovalJob[]> {
     .select(`
       id, status, date, time_start, time_end,
       client, location, description, created_at, sales_poc_id,
+      sales_poc:users!jobs_sales_poc_id_fkey ( id, name ),
       job_assignees ( users ( id, name ) ),
       job_financials ( quote_amount, supplier_cost )
     `)

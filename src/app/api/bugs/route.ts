@@ -175,9 +175,14 @@ export async function POST(req: NextRequest) {
     // Telegram notification (best-effort)
     try {
       const tgMsg = tplBugReport({
-        priority: body.priority, sgtTime, platform, os,
-        screen:   body.screen, ip, userEmail, userRole,
-        route:    body.route, message: body.message,
+        priority:      body.priority,
+        sgtTime,
+        platform,
+        os,
+        userEmail,
+        userRole,
+        route:         body.route,
+        message:       body.message,
         screenshotUrl: screenshotUrl || undefined,
       })
       await sendBugTelegram(tgMsg)
