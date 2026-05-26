@@ -2,11 +2,16 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding setup complete)_
+_Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly sync script)_
 
 ---
 
 ## Pending — Next Session
+
+### Features (from 2026-05-26, vault-convention)
+
+- [ ] **R2 human-readable folder names** — right now job files are stored under UUID folder names (e.g. `jobs/717c82f7-.../`). Rename to `{date}_{client-slug}_{short-id}` format (e.g. `2026-05-20_Greentech-Plaza_717c82f7`) so rclone backups on local server are browsable by job. Requires migrating existing R2 keys + updating `files` table. Do before go-live while data is still clean. Needs design + plan.
+- [ ] **Task Scheduler — nightly obsidian sync** — set up on server PC when next there. Script is ready at `scripts/nightly-obsidian-sync.bat`. Instructions at `docs/setup-task-scheduler-obsidian-sync.md`. Trigger: daily 2:30 AM (after backup at 2:00 AM).
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
@@ -72,6 +77,14 @@ _Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding setup complete)
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-05-26, feat-vault)
+
+- [x] **[Nic] Vault folder scaffolding** — created clients, suppliers, sops, jobs, templates, contacts, digest folders in greenqubes-kb; committed + pushed to vault repo; submodule pointer updated in main repo.
+- [x] **[Nic] GitHub vault token** — fine-grained PAT created for greenqubes-kb (Contents: Read+Write); GITHUB_VAULT_REPO + GITHUB_VAULT_TOKEN added to .env.local and Vercel dashboard.
+- [x] **Obsidian vault convention** — naming, tagging, visibility rules specced and documented at docs/superpowers/specs/2026-05-26-obsidian-vault-convention-design.md.
+- [x] **Auto-write on digest promotion** — majority Telegram vote now auto-commits a Sonnet-generated .md note to vault/digest/ via GitHub API; promote route replaced (copy-paste HTML → JSON auto-commit); digest webhook fires auto-promote on majority; tested end-to-end on production.
+- [x] **Nightly obsidian sync script** — scripts/nightly-obsidian-sync.bat created (git pull vault + obsidian-sync.ts); Task Scheduler setup guide at docs/setup-task-scheduler-obsidian-sync.md.
 
 ## Done This Session ✓ (2026-05-25, feat-assistant-3)
 
