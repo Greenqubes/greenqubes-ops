@@ -8,14 +8,24 @@ Do this when you're on the server PC. Takes about 5 minutes.
 
 You don't need VS Code or Claude for this — just open **PowerShell** directly.
 
-Press the **Windows key**, type **PowerShell**, open it. Then run these one at a time:
+Press the **Windows key**, type **PowerShell**, open it.
+
+First, find where the repo is cloned on this server PC. Run:
 
 ```
-cd C:\Greenqubes_GitHub\greenqubes-ops
+dir C:\ /b
+```
+
+Look for a folder named `greenqubes-ops` or `Greenqubes_GitHub`. Once you find it, `cd` into it and pull:
+
+```
+cd C:\<wherever the repo is>\greenqubes-ops
 git pull
 ```
 
 This downloads the `scripts/nightly-obsidian-sync.bat` file onto the server PC.
+
+> **Note:** Also check the path inside `nightly-obsidian-sync.bat` after pulling — it references `C:\Greenqubes_GitHub\greenqubes-ops\vault` which is your workstation path. Update both paths in the file to match wherever the repo lives on this server PC.
 
 ---
 
