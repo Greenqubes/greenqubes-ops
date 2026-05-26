@@ -99,7 +99,27 @@ kb_chunks in Supabase updated → AI can retrieve it
 
 ---
 
+## Server PC setup — progress log
+
+Attempted in same session (2026-05-26) from server PC directly.
+
+**What was completed:**
+- `C:\greenqubes-ops` folder created
+- Repo cloned via `git clone https://github.com/Greenqubes/greenqubes-ops.git .`
+- `npm install` completed
+- `.env.local` copied manually from workstation
+- Vault submodule initialized (`git submodule update --init`) and checked out onto `main` branch (was in detached HEAD state)
+- `scripts/nightly-obsidian-sync.bat` updated to use `tsx.cmd` instead of `tsx` (Windows requires the `.cmd` wrapper) — pushed to main
+
+**What's left:**
+- Run `git pull` to get the tsx.cmd fix, then test the bat file (Step 6 in the guide)
+- If bat runs cleanly (vault pull + obsidian-sync.ts embeds), proceed to Task Scheduler setup (Steps 7–10)
+
+**Install VSCode on server PC first** so Claude Code can run the remaining setup steps directly.
+
+---
+
 ## Pending from this session
 
-- [ ] **Task Scheduler setup** — set up `nightly-obsidian-sync.bat` on server PC when next there (instructions at `docs/setup-task-scheduler-obsidian-sync.md`)
+- [ ] **Task Scheduler setup** — repo ready on server PC, just needs bat file test + Task Scheduler entry. Install VSCode on server PC, open Claude Code, run from there.
 - [ ] **R2 human-readable folder names** — currently job files stored under UUID; rename to `{date}_{client-slug}_{short-id}` before go-live; needs design + plan
