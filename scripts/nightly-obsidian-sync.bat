@@ -6,4 +6,4 @@ cd /d C:\Greenqubes_GitHub\greenqubes-ops\vault
 git pull
 
 cd /d C:\Greenqubes_GitHub\greenqubes-ops
-node --use-system-ca --env-file=.env.local node_modules/.bin/tsx scripts/obsidian-sync.ts
+node --use-system-ca --env-file=.env.local node_modules\.bin\tsx.cmd scripts/obsidian-sync.ts
