@@ -6,12 +6,16 @@ Do this when you're on the server PC. Takes about 5 minutes.
 
 ## Step 1 — Pull the latest repo
 
-Open PowerShell and run these one at a time:
+You don't need VS Code or Claude for this — just open **PowerShell** directly.
+
+Press the **Windows key**, type **PowerShell**, open it. Then run these one at a time:
 
 ```
 cd C:\Greenqubes_GitHub\greenqubes-ops
 git pull
 ```
+
+This downloads the `scripts/nightly-obsidian-sync.bat` file onto the server PC.
 
 ---
 
