@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-25 (feat-assistant-3 — bulk delete, per-user isolation, live auto-rename, markdown rendering, full-width sub-header layout)_
+_Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding setup, docs-bryan/ folder, dev-bryan branch, CLAUDE.md startup workflow updates)_
 
 ---
 
@@ -97,6 +97,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | fix-jobs | Job Form + Schedule Fixes | Schedule: filter chips by view; InstallerGrid brand-green card highlight + readOnly; back arrow → router.back(); isInstallerDirty unlocks save buttons; AttachmentBuckets silent failures fixed (migration 0028); notify-assigned route | [fix/fix-jobs-20260521-1-note.md](fix/fix-jobs-20260521-1-note.md) |
 | ux-nav | Persistent Company Bar + Global Nav | CompanyBar shared component (GreenQubes + bell + user menu) sticky top-0 across all shells; NotificationDrawer refactored to fetch overdue jobs internally (no jobs prop); BottomNav kept on list/dashboard pages only; all 7 shells updated | [ux/ux-nav-20260521-1-note.md](ux/ux-nav-20260521-1-note.md) |
 | feat-assistant-3 | Assistant Polish — Bulk Delete, Live Rename, Markdown, Layout | Per-user history isolation (migration 0030 drops cross-read RLS policy); optimistic "New Conversation" on first send; live auto-rename via Haiku after first response; bulk multi-select delete with confirmation modal; rename from ⋮ dropdown with persistence; message count + star importance hidden from UI; markdown rendering (MarkdownMessage — no new deps); allow typing while AI streams; full-width "← Assistant" sub-header above sidebar + content; New Chat button pb-[72px] clears BottomNav | [feat/feat-assistant-20260525-1-note.md](feat/feat-assistant-20260525-1-note.md) |
+| chore-onboarding [Nic] | Bryan Onboarding Setup | docs-bryan/ folder created; assistant-onboarding.md, bryan-checklist.md, CLAUDE-bryan.md written and moved to docs-bryan/; dev-bryan branch created and pushed; CLAUDE.md updated — startup pull + dev-bryan merge/clash check + cross-checklist tagging; CLAUDE-bryan.md — branch rules, session end auto-commit/push, plan.md/context.md tagging, [Bryan] cross-checklist update | [chore/chore-config-20260525-1-note.md](chore/chore-config-20260525-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

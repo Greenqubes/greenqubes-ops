@@ -2,11 +2,17 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-25 (feat-assistant-3 — bulk delete, live rename, markdown, layout fixes)_
+_Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding setup complete)_
 
 ---
 
 ## Pending — Next Session
+
+### Onboarding (from 2026-05-25, chore-onboarding)
+
+- [ ] **[NIC] Add Bryan as GitHub collaborator** — go to repo Settings → Collaborators → Add people → Bryan's GitHub username
+- [ ] **[NIC] Send Bryan the `.env.local` file** — share securely (not plain email or WhatsApp)
+- [ ] **[NIC] Add Bryan's Google account to Supabase** — so he can log in to the app once set up
 
 ### Polish (from 2026-05-20, fix-assistant-history)
 

@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-21 (ux-nav — CompanyBar shared component, persistent sticky top nav across all shells, NotificationDrawer self-fetching overdue jobs)_
+_Last updated: 2026-05-25 (chore-onboarding — Bryan onboarding docs, dev-bryan branch, CLAUDE.md dual-dev workflow)_
 
 ---
 

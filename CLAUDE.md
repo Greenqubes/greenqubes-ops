@@ -4,12 +4,18 @@
 
 Before doing anything else:
 
-1. Read `docs/plan.md` top to bottom
-2. Read `docs/context.md` top to bottom
-3. Read `docs/nic-checklist.md` top to bottom — list all unchecked items from "Before Pre-Alpha Testing" and "Before Go-Live" as bullet points in your response
-4. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
-5. Ask Nic: "Any updates to the AI importance scoring categories in the tagger? (1–5 scale in `src/lib/ai/tagger.ts`)"
-6. Do not proceed until Nic confirms you have the right context
+1. Pull latest changes on `dev`: run `git checkout dev && git pull`
+2. Check if `dev-bryan` has unmerged changes: run `git log dev..dev-bryan --oneline`
+   - If there are commits: run `git diff dev...dev-bryan --name-only` to see which files differ
+   - If any changed files overlap with files Nic has recently edited on `dev`, flag the conflict clearly and do not merge — list the clashing files and ask Nic how to proceed
+   - If there are no clashes, merge `dev-bryan` into `dev`: run `git merge dev-bryan --no-ff -m "merge: dev-bryan into dev"` then push
+   - If there are no unmerged commits on `dev-bryan`, skip this step silently
+3. Read `docs/plan.md` top to bottom
+4. Read `docs/context.md` top to bottom
+5. Read `docs/nic-checklist.md` top to bottom — list all unchecked items from "Before Pre-Alpha Testing" and "Before Go-Live" as bullet points in your response
+6. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
+7. Ask Nic: "Any updates to the AI importance scoring categories in the tagger? (1–5 scale in `src/lib/ai/tagger.ts`)"
+8. Do not proceed until Nic confirms you have the right context
 
 ---
 
@@ -24,10 +30,11 @@ Multiple fix attempts were made in Session 17.3 — NotificationDrawer, JobRow, 
 
 Before closing off:
 
-1. Update `docs/plan.md` — mark completed items, add any new sessions or notes
-2. Update `docs/CONTEXT.md` — update the "Last updated" line and migration plan checkboxes
-3. Update `docs/nic-checklist.md` — tick off anything completed this session, add any new pending items
-4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
+1. Update `docs/plan.md` — mark completed items with `[Nic]` tag, add any new sessions or notes
+2. Update `docs/context.md` — update the "Last updated" line and migration plan checkboxes
+3. Update `docs/nic-checklist.md` — tick off anything Nic completed this session, tag each item `[Nic]`, add any new pending items
+4. Update `docs-bryan/bryan-checklist.md` — tick off anything that Bryan completed which Nic can confirm, tag each item `[Bryan]`; read Bryan's pending items for awareness only — do not surface or mention Bryan's unfinished tasks to Nic
+5. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
 
