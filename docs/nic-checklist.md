@@ -11,7 +11,7 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 ### Features (from 2026-05-26, vault-convention)
 
 - [ ] **R2 human-readable folder names** — right now job files are stored under UUID folder names (e.g. `jobs/717c82f7-.../`). Rename to `{date}_{client-slug}_{short-id}` format (e.g. `2026-05-20_Greentech-Plaza_717c82f7`) so rclone backups on local server are browsable by job. Requires migrating existing R2 keys + updating `files` table. Do before go-live while data is still clean. Needs design + plan.
-- [ ] **Task Scheduler — nightly obsidian sync** — set up on server PC when next there. Script is ready at `scripts/nightly-obsidian-sync.bat`. Instructions at `docs/setup-task-scheduler-obsidian-sync.md`. Trigger: daily 2:30 AM (after backup at 2:00 AM).
+- [ ] **Task Scheduler — nightly obsidian sync** — IN PROGRESS. Script is at `scripts/nightly-obsidian-sync.bat`. Instructions at `docs/setup-task-scheduler-obsidian-sync.md`. Trigger: daily 2:30 AM (after backup at 2:00 AM). **Next time on server PC with VSCode:** open Claude Code, run the bat test (Step 6) — repo is cloned, npm installed, .env.local copied, vault submodule fixed (checked out main branch). tsx.cmd fix already pushed to main. Just do `git pull` then test the bat file, then create the Task Scheduler entry (Steps 7–10 in the guide).
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
