@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly sync script)_
+_Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)_
 
 ---
 
@@ -77,7 +77,11 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 
 ---
 
-## Done This Session ✓ (2026-05-26, infra-config)
+## Done This Session ✓ (2026-05-28, fix-bugs)
+
+- [x] Bryan's Vercel build error resolved — migration conflict (0015 → 0031) fixed, TypeScript types updated; Bryan needs to pull dev into dev-bryan to pick up the fix.
+
+## Done Last Session ✓ (2026-05-26, infra-config)
 
 - [x] **[Nic] Task Scheduler entry created** — server PC (E drive) configured for daily 2:30 AM nightly obsidian sync; bat file tested and confirmed working.
 
@@ -214,7 +218,7 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 - [ ] **Provision team accounts** — Admin → Users tab → Provision new user. Each person must sign in via Google at least once first before you can provision them.
 - [ ] **Collect Telegram chat IDs** — each team member messages your bot once; copy their chat ID into their user row from Admin → Users tab → Edit.
 - [ ] **Set digest subscribers** — Admin → Digest tab → Subscriber panel → check the box for each person who should receive the Monday digest.
-- [ ] **Schedule Obsidian nightly sync** — once manual sync is confirmed working, set up Windows Task Scheduler on the server PC:
+- [x] **[Nic] Schedule Obsidian nightly sync** — once manual sync is confirmed working, set up Windows Task Scheduler on the server PC:
   - Program: `node`
   - Arguments: `--env-file=.env.local node_modules/.bin/tsx scripts/obsidian-sync.ts`
   - Start in: `C:\Greenqubes_GitHub\greenqubes-ops`

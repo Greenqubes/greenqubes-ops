@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-26 (infra-config — Task Scheduler nightly obsidian sync setup)_
+_Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)_
 
 ---
 
@@ -100,6 +100,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | chore-onboarding [Nic] | Bryan Onboarding Setup | docs-bryan/ folder created; assistant-onboarding.md, bryan-checklist.md, CLAUDE-bryan.md written and moved to docs-bryan/; dev-bryan branch created and pushed; CLAUDE.md updated — startup pull + dev-bryan merge/clash check + cross-checklist tagging; CLAUDE-bryan.md — branch rules, session end auto-commit/push, plan.md/context.md tagging, [Bryan] cross-checklist update | [chore/chore-config-20260525-1-note.md](chore/chore-config-20260525-1-note.md) |
 | feat-vault [Nic] | Obsidian Vault Convention + Auto-Write | Vault folder scaffolding (clients, suppliers, sops, jobs, templates, contacts, digest) in greenqubes-kb; visibility + tagging convention spec; auto-write on Telegram digest promotion — majority vote → Sonnet generates note → GitHub API commits to vault/digest/; promote route replaced (copy-paste → auto-commit JSON); digest webhook fires auto-promote on majority; GITHUB_VAULT_REPO + GITHUB_VAULT_TOKEN env vars; nightly-obsidian-sync.bat (git pull + obsidian-sync); Task Scheduler setup guide | [feat/feat-vault-20260526-1-note.md](feat/feat-vault-20260526-1-note.md) |
 | infra-config [Nic] | Task Scheduler — Nightly Obsidian Sync | Task Scheduler entry created on server PC (E drive) for nightly vault sync; trigger set to 2:30 AM daily; bat file tested and confirmed working; nightly-obsidian-sync.bat (git pull vault + obsidian-sync.ts) executes per schedule | [infra/infra-config-20260526-1-note.md](infra/infra-config-20260526-1-note.md) |
+| fix-bugs | Bryan Migration Conflict + TS Build Fix | Renamed Bryan's 0015_bug_github_issue.sql → 0031 (0015 was taken); added github_issue_url to bug_reports Row type in types.ts; made it optional in Insert type and insertBugReport signature; DB already up to date (Bryan's agent had run db push) | [fix/fix-bugs-20260528-1-note.md](fix/fix-bugs-20260528-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
