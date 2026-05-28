@@ -325,17 +325,19 @@ export interface Database {
           browser:        string | null
           os:             string | null
           screen:         string | null
-          created_at:     string
-          resolved_at:    string | null
+          created_at:       string
+          resolved_at:      string | null
+          github_issue_url: string | null
         }
         Insert: Omit<
           Database['public']['Tables']['bug_reports']['Row'],
-          'id' | 'created_at' | 'status' | 'resolved_at'
+          'id' | 'created_at' | 'status' | 'resolved_at' | 'github_issue_url'
         > & {
-          id?:          string
-          created_at?:  string
-          status?:      'open' | 'fixed'
-          resolved_at?: string | null
+          id?:               string
+          created_at?:       string
+          status?:           'open' | 'fixed'
+          resolved_at?:      string | null
+          github_issue_url?: string | null
         }
         Update: Partial<Database['public']['Tables']['bug_reports']['Insert']>
         Relationships: []

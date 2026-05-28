@@ -142,6 +142,9 @@ async function main() {
   }
 
   console.log(`[obsidian-sync] done — ${upserted} upserted, ${failed} error${failed !== 1 ? 's' : ''}`)
+
+  await db.from('events').insert({ kind: 'obsidian_sync', actor_id: null, target_id: null, target_table: null, payload: null, visibility: [] })
+
   if (failed) process.exit(1)
 }
 

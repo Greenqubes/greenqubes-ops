@@ -58,6 +58,7 @@ Always explain in plain, everyday language. Avoid coding terms unless necessary.
 
 ## Hard rules
 
+- Never commit or share the `.env.local` file — ask Nic for it; keep it local only.
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
 - Never add or remove roles without explicit user confirmation.

@@ -1,3 +1,5 @@
+import { logApiUsage } from '@/lib/supabase/queries/admin'
+
 const TELEGRAM_API = 'https://api.telegram.org'
 
 // Sends a plain-text message to a single Telegram chat.
@@ -186,6 +188,7 @@ async function digestPost(
     console.error('[telegram-digest] sendMessage failed', res.status, await res.text())
     return null
   }
+  void logApiUsage({ service: 'telegram', endpoint: 'sendMessage', estimated_cost: 0 })
   return res
 }
 
@@ -220,5 +223,6 @@ async function telegramPost(
     console.error('[telegram] sendMessage failed', res.status, await res.text())
     return null
   }
+  void logApiUsage({ service: 'telegram', endpoint: 'sendMessage', estimated_cost: 0 })
   return res
 }

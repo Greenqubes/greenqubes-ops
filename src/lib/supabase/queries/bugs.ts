@@ -24,7 +24,7 @@ export type BugReport = {
 }
 
 export async function insertBugReport(
-  data: Omit<BugReport, 'id' | 'created_at' | 'status' | 'resolved_at'>,
+  data: Omit<BugReport, 'id' | 'created_at' | 'status' | 'resolved_at' | 'github_issue_url'>,
 ): Promise<string | null> {
   const db = createServiceClient()
   const { data: row, error } = await db

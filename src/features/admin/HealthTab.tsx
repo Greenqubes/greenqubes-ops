@@ -204,11 +204,16 @@ function UnusualFeed({ events }: { events: UnusualEvent[] }) {
             return (
               <div key={ev.id} className="flex items-start gap-3 p-3 bg-brand-amber/5 border border-brand-amber/20 rounded-lg">
                 <span className="text-brand-amber text-base shrink-0">⚠</span>
-                <div className="min-w-0">
+                <div className="min-w-0 w-full">
                   <p className="text-xs font-medium text-ink">
                     {label} SGT · {ev.service} / {ev.endpoint}
                   </p>
                   <p className="text-xs text-muted mt-0.5">{ev.reason}</p>
+                  {ev.location && (
+                    <p className="text-xs font-medium text-ink2 mt-1">
+                      📍 {ev.location}
+                    </p>
+                  )}
                   {ev.ip_address && (
                     <p className="text-xs font-mono text-muted mt-0.5">IP: {ev.ip_address}</p>
                   )}

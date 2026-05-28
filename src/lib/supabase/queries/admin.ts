@@ -156,6 +156,7 @@ export type UnusualEvent = {
   reason:      string
   ip_address:  string | null
   called_by:   string | null
+  location?:   string
 }
 
 export async function getUsageSummary(days = 30): Promise<UsageSummary[]> {
@@ -183,6 +184,34 @@ export async function getUsageSummary(days = 30): Promise<UsageSummary[]> {
   return [...map.values()].sort((a, b) => b.estimated_cost - a.estimated_cost)
 }
 
+type GeoResult = { city: string; country: string; org: string; countryCode: string }
+
+async function geolocate(ip: string): Promise<GeoResult | null> {
+  // Skip private / loopback addresses
+  if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|localhost)/.test(ip)) return null
+  try {
+    const res = await fetch(`https://ipinfo.io/${ip}/json`, {
+      signal:  AbortSignal.timeout(4000),
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return null
+    const geo = await res.json() as { city?: string; country?: string; org?: string }
+    return {
+      city:        geo.city        ?? 'Unknown city',
+      country:     geo.country     ?? 'Unknown',
+      countryCode: geo.country     ?? 'Unknown',
+      org:         geo.org         ?? '',
+    }
+  } catch {
+    return null
+  }
+}
+
+function fmtLocation(g: GeoResult): string {
+  const parts = [g.city, g.country].filter(s => s && s !== 'Unknown').join(', ')
+  return g.org ? `${parts} · ${g.org}` : parts
+}
+
 export async function getUnusualActivity(days = 7): Promise<UnusualEvent[]> {
   const db    = createServiceClient()
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
@@ -195,17 +224,40 @@ export async function getUnusualActivity(days = 7): Promise<UnusualEvent[]> {
     .limit(500)
   if (error) throw error
 
+  const rows = data ?? []
+
+  // Geolocate all unique non-null IPs in parallel
+  const uniqueIps = [...new Set(rows.map(r => r.ip_address).filter(Boolean))] as string[]
+  const geoResults = await Promise.all(uniqueIps.map(ip => geolocate(ip)))
+  const geoMap = new Map<string, GeoResult | null>(
+    uniqueIps.map((ip, i) => [ip, geoResults[i]]),
+  )
+
   const events: UnusualEvent[] = []
-  for (const row of data ?? []) {
-    // Convert to SGT (UTC+8) and check for off-hours calls (before 7am or after 10pm)
+  const seenNonSgIps = new Set<string>()
+
+  for (const row of rows) {
     const sgt  = new Date(new Date(row.ts).getTime() + 8 * 60 * 60 * 1000)
     const hour = sgt.getUTCHours()
+    const geo  = row.ip_address ? geoMap.get(row.ip_address) ?? null : null
+    const location = geo ? fmtLocation(geo) : undefined
+
+    // Rule 1: off-hours call (before 7 AM or after 10 PM SGT)
     if (hour < 7 || hour >= 22) {
       events.push({
-        id: row.id, service: row.service, endpoint: row.endpoint,
-        ts: row.ts,
-        reason: `Off-hours call at ${sgt.toUTCString().slice(17, 22)} SGT (before 7 AM or after 10 PM)`,
-        ip_address: row.ip_address, called_by: row.called_by,
+        id: row.id, service: row.service, endpoint: row.endpoint, ts: row.ts,
+        reason:     `Off-hours call at ${sgt.toUTCString().slice(17, 22)} SGT (before 7 AM or after 10 PM)`,
+        ip_address: row.ip_address, called_by: row.called_by, location,
+      })
+    }
+
+    // Rule 2: call from outside Singapore (one event per unique IP)
+    if (geo && geo.countryCode !== 'SG' && row.ip_address && !seenNonSgIps.has(row.ip_address)) {
+      seenNonSgIps.add(row.ip_address)
+      events.push({
+        id: `${row.id}-geo`, service: row.service, endpoint: row.endpoint, ts: row.ts,
+        reason:     `Call from outside Singapore`,
+        ip_address: row.ip_address, called_by: row.called_by, location,
       })
     }
   }

@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 import type { FileKind } from '@/lib/supabase/types'
+import { logApiUsage } from '@/lib/supabase/queries/admin'
 
 const r2 = new S3Client({
   region: 'auto',
@@ -53,15 +54,18 @@ export async function getUploadUrlForKind(
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
     { expiresIn: 300 },
   )
+  void logApiUsage({ service: 'r2', endpoint: 'put', estimated_cost: 0 })
   return { url, key }
 }
 
 export async function getDownloadUrl(key: string): Promise<string> {
-  return getSignedUrl(
+  const url = await getSignedUrl(
     r2,
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
     { expiresIn: 3600 },
   )
+  void logApiUsage({ service: 'r2', endpoint: 'get', estimated_cost: 0 })
+  return url
 }
 
 export async function getBugScreenshotUploadUrl(
@@ -75,5 +79,6 @@ export async function getBugScreenshotUploadUrl(
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
     { expiresIn: 300 },
   )
+  void logApiUsage({ service: 'r2', endpoint: 'put', estimated_cost: 0 })
   return { url, key }
 }

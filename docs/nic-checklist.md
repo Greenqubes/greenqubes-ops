@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly sync script)_
+_Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)_
 
 ---
 
@@ -11,13 +11,12 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 ### Features (from 2026-05-26, vault-convention)
 
 - [ ] **R2 human-readable folder names** — right now job files are stored under UUID folder names (e.g. `jobs/717c82f7-.../`). Rename to `{date}_{client-slug}_{short-id}` format (e.g. `2026-05-20_Greentech-Plaza_717c82f7`) so rclone backups on local server are browsable by job. Requires migrating existing R2 keys + updating `files` table. Do before go-live while data is still clean. Needs design + plan.
-- [ ] **Task Scheduler — nightly obsidian sync** — IN PROGRESS. Script is at `scripts/nightly-obsidian-sync.bat`. Instructions at `docs/setup-task-scheduler-obsidian-sync.md`. Trigger: daily 2:30 AM (after backup at 2:00 AM). **Next time on server PC with VSCode:** open Claude Code, run the bat test (Step 6) — repo is cloned, npm installed, .env.local copied, vault submodule fixed (checked out main branch). tsx.cmd fix already pushed to main. Just do `git pull` then test the bat file, then create the Task Scheduler entry (Steps 7–10 in the guide).
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
-- [ ] **[NIC] Add Bryan as GitHub collaborator** — go to repo Settings → Collaborators → Add people → Bryan's GitHub username
-- [ ] **[NIC] Send Bryan the `.env.local` file** — share securely (not plain email or WhatsApp)
-- [ ] **[NIC] Add Bryan's Google account to Supabase** — so he can log in to the app once set up
+- [x] **[Nic] Add Bryan as GitHub collaborator** — done 2026-05-28
+- [x] **[Nic] Send Bryan the `.env.local` file** — done 2026-05-28
+- [x] **[Nic] Add Bryan's Google account to Supabase** — done 2026-05-28
 
 ### Polish (from 2026-05-20, fix-assistant-history)
 
@@ -78,7 +77,15 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 
 ---
 
-## Done This Session ✓ (2026-05-26, feat-vault)
+## Done This Session ✓ (2026-05-28, fix-bugs)
+
+- [x] Bryan's Vercel build error resolved — migration conflict (0015 → 0031) fixed, TypeScript types updated; Bryan needs to pull dev into dev-bryan to pick up the fix.
+
+## Done Last Session ✓ (2026-05-26, infra-config)
+
+- [x] **[Nic] Task Scheduler entry created** — server PC (E drive) configured for daily 2:30 AM nightly obsidian sync; bat file tested and confirmed working.
+
+## Done Last Session ✓ (2026-05-26, feat-vault)
 
 - [x] **[Nic] Vault folder scaffolding** — created clients, suppliers, sops, jobs, templates, contacts, digest folders in greenqubes-kb; committed + pushed to vault repo; submodule pointer updated in main repo.
 - [x] **[Nic] GitHub vault token** — fine-grained PAT created for greenqubes-kb (Contents: Read+Write); GITHUB_VAULT_REPO + GITHUB_VAULT_TOKEN added to .env.local and Vercel dashboard.
@@ -211,7 +218,7 @@ _Last updated: 2026-05-26 (feat-vault — vault convention, auto-write, nightly 
 - [ ] **Provision team accounts** — Admin → Users tab → Provision new user. Each person must sign in via Google at least once first before you can provision them.
 - [ ] **Collect Telegram chat IDs** — each team member messages your bot once; copy their chat ID into their user row from Admin → Users tab → Edit.
 - [ ] **Set digest subscribers** — Admin → Digest tab → Subscriber panel → check the box for each person who should receive the Monday digest.
-- [ ] **Schedule Obsidian nightly sync** — once manual sync is confirmed working, set up Windows Task Scheduler on the server PC:
+- [x] **[Nic] Schedule Obsidian nightly sync** — once manual sync is confirmed working, set up Windows Task Scheduler on the server PC:
   - Program: `node`
   - Arguments: `--env-file=.env.local node_modules/.bin/tsx scripts/obsidian-sync.ts`
   - Start in: `C:\Greenqubes_GitHub\greenqubes-ops`
