@@ -16,6 +16,7 @@ export type AdminUser = {
   years_experience:  number | null
   skills:            string[]
   created_at:        string
+  deleted_at:        string | null
 }
 
 export async function getAllUsers(): Promise<AdminUser[]> {
@@ -71,6 +72,47 @@ export async function updateUser(
   const db = createServiceClient()
   const { error } = await db.from('users').update(patch as never).eq('id', id)
   if (error) throw error
+}
+
+export async function removeUserAccess(id: string): Promise<void> {
+  const db = createServiceClient()
+
+  // Fetch the user to check safety guards
+  const { data: user, error: fetchError } = await db
+    .from('users')
+    .select('id, name, auth_id, deleted_at')
+    .eq('id', id)
+    .single()
+  if (fetchError) throw fetchError
+  if (!user) throw new Error(`User with id ${id} not found`)
+
+  // Safety guard: never delete GreenqubesAI
+  if (user.name === 'GreenqubesAI') {
+    throw new Error('Cannot delete GreenqubesAI user')
+  }
+
+  // Safety guard: cannot operate on already soft-deleted users
+  if (user.deleted_at !== null) {
+    throw new Error(`User ${id} is already deleted`)
+  }
+
+  // Path A: Provisioned user (auth_id is null, never signed in) — hard delete
+  if (user.auth_id === null) {
+    const { error: deleteError } = await db.from('users').delete().eq('id', id)
+    if (deleteError) throw deleteError
+    return
+  }
+
+  // Path B: Active/past employee (auth_id is not null) — soft delete + revoke auth
+  const { error: softDeleteError } = await db
+    .from('users')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (softDeleteError) throw softDeleteError
+
+  // Revoke Supabase Auth access using admin client
+  const { error: authError } = await db.auth.admin.deleteUser(user.auth_id)
+  if (authError) throw authError
 }
 
 // ── Digest ─────────────────────────────────────────────────────────────────────
