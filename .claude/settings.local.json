@@ -90,7 +90,10 @@
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
-      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]"
+      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]",
+      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\lib\\supabase\\queries",
+      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\jobs\\[id]",
+      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]\\notify-assigned"
     ]
   }
 }
