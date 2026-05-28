@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { JobStatus, FileKind, Punctuality } from '@/lib/supabase/types'
 
-// ── Schedule list ────────────────────────────────────────────────────────────
+// â”€â”€ Schedule list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type ScheduleJob = {
   id:               string
@@ -63,7 +63,7 @@ export async function getPendingJobs(): Promise<ScheduleJob[]> {
   return (data ?? []) as unknown as ScheduleJob[]
 }
 
-// ── Job detail ───────────────────────────────────────────────────────────────
+// â”€â”€ Job detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type InstallerUser = {
   id:               string
@@ -206,6 +206,7 @@ export async function getInstallerUsers(): Promise<InstallerUser[]> {
     .from('users')
     .select('id, name, phone, role, years_experience, skills')
     .eq('role', 'installer')
+    .is('deleted_at', null)
     .order('name')
   if (error) throw error
   return (data ?? []) as InstallerUser[]
@@ -229,7 +230,7 @@ export async function removeJobAssignee(jobId: string, userId: string): Promise<
   if (error) throw error
 }
 
-// ── Messages ─────────────────────────────────────────────────────────────────
+// â”€â”€ Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getJobMessages(jobId: string): Promise<JobMessage[]> {
   const supabase = await createClient()
@@ -284,7 +285,7 @@ export async function insertVoiceMessage(
   return data as unknown as JobMessage
 }
 
-// ── Files ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function insertFile(
   jobId:      string,
@@ -308,7 +309,7 @@ export async function insertFile(
   return data as unknown as JobFile
 }
 
-// ── Attachment Buckets ────────────────────────────────────────────────────────
+// â”€â”€ Attachment Buckets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type BucketFile = {
   id:          string
@@ -352,3 +353,4 @@ export async function createDefaultBuckets(jobId: string): Promise<void> {
   const { error } = await supabase.from('attachment_buckets').insert(buckets as never)
   if (error) throw error
 }
+
