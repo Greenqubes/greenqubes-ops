@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }             from '@/lib/supabase/server'
-import { updateUser, removeUserAccess } from '@/lib/supabase/queries/admin'
+import { updateUser, removeUserAccess, UserRemovalValidationError } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode }      from '@/lib/supabase/types'
 
 async function guardAdmin(): Promise<boolean> {
@@ -51,11 +51,7 @@ export async function DELETE(
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = (err as Error).message
-    const status = [
-      'This account cannot be removed.',
-      'This user has already been removed.',
-      'User not found.',
-    ].includes(message) ? 400 : 500
+    const status = err instanceof UserRemovalValidationError ? 400 : 500
     return NextResponse.json({ error: message }, { status })
   }
 }

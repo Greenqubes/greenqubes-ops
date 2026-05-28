@@ -1,6 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Role, LangCode }  from '@/lib/supabase/types'
 
+export class UserRemovalValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'UserRemovalValidationError'
+  }
+}
+
 // ── User management ────────────────────────────────────────────────────────────
 
 export type AdminUser = {
@@ -84,17 +91,17 @@ export async function removeUserAccess(id: string): Promise<void> {
     .eq('id', id)
     .maybeSingle()
   if (fetchError) throw fetchError
-  if (!user) throw new Error('User not found.')
+  if (!user) throw new UserRemovalValidationError('User not found.')
 
   // Safety guard: never delete GreenqubesAI
   if (user.name === 'GreenqubesAI') {
-    throw new Error('This account cannot be removed.')
+    throw new UserRemovalValidationError('This account cannot be removed.')
   }
   // TODO: replace with a stable system-user flag
 
   // Safety guard: cannot operate on already soft-deleted users
   if (user.deleted_at !== null) {
-    throw new Error('This user has already been removed.')
+    throw new UserRemovalValidationError('This user has already been removed.')
   }
 
   // Path A: Provisioned user (auth_id is null, never signed in) — hard delete
