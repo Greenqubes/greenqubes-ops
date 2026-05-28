@@ -27,16 +27,16 @@ async function checkSupabase(): Promise<HealthCheck> {
   }
 }
 
-async function checkTelegram(): Promise<HealthCheck> {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token) return { label: 'Telegram bot', status: 'warn', detail: 'TELEGRAM_BOT_TOKEN not set' }
+async function checkTelegramBot(label: string, tokenEnvVar: string): Promise<HealthCheck> {
+  const token = process.env[tokenEnvVar]
+  if (!token) return { label, status: 'warn', detail: `${tokenEnvVar} not set` }
   try {
     const res  = await fetch(`https://api.telegram.org/bot${token}/getMe`, { cache: 'no-store' })
     const json = await res.json() as { ok: boolean; result?: { username?: string } }
     if (!json.ok) throw new Error('Bot token invalid')
-    return { label: 'Telegram bot', status: 'ok', detail: `@${json.result?.username ?? 'bot'} active` }
+    return { label, status: 'ok', detail: `@${json.result?.username ?? 'bot'} active` }
   } catch (err) {
-    return { label: 'Telegram bot', status: 'error', detail: (err as Error).message }
+    return { label, status: 'error', detail: (err as Error).message }
   }
 }
 
@@ -71,7 +71,14 @@ export async function GET() {
   if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const [checks, usage, unusual] = await Promise.all([
-    Promise.all([checkSupabase(), checkTelegram(), checkLastSync(), checkLastOverdueCron()]),
+    Promise.all([
+      checkSupabase(),
+      checkTelegramBot('Telegram ops bot',    'TELEGRAM_BOT_TOKEN'),
+      checkTelegramBot('Telegram digest bot', 'TELEGRAM_DIGEST_BOT_TOKEN'),
+      checkTelegramBot('Telegram bugs bot',   'TELEGRAM_BUG_BOT_TOKEN'),
+      checkLastSync(),
+      checkLastOverdueCron(),
+    ]),
     getUsageSummary(30),
     getUnusualActivity(7),
   ])
