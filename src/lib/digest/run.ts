@@ -50,6 +50,7 @@ export async function runDigest(): Promise<{ sent: number; skipped: string }> {
     .from('users')
     .select('id, name, telegram_chat_id')
     .eq('digest_subscriber', true)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
 
   if (schedErr) throw schedErr

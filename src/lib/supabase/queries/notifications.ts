@@ -46,6 +46,7 @@ export async function getSchedulers(): Promise<NotifRecipient[]> {
     .from('users')
     .select('id, name, telegram_chat_id')
     .eq('role', 'scheduler')
+    .is('deleted_at', null)
   return (data ?? []) as NotifRecipient[]
 }
 
