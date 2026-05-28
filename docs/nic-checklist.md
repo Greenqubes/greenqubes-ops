@@ -14,9 +14,9 @@ _Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
-- [ ] **Add Bryan as GitHub collaborator** — go to repo Settings → Collaborators → Add people → Bryan's GitHub username
-- [ ] **Send Bryan the `.env.local` file** — share securely (not plain email or WhatsApp)
-- [ ] **Add Bryan's Google account to Supabase** — so he can log in to the app once set up
+- [x] **[Nic] Add Bryan as GitHub collaborator** — done 2026-05-28
+- [x] **[Nic] Send Bryan the `.env.local` file** — done 2026-05-28
+- [x] **[Nic] Add Bryan's Google account to Supabase** — done 2026-05-28
 
 ### Polish (from 2026-05-20, fix-assistant-history)
 

@@ -6,6 +6,7 @@ import {
   wasRecentlyNotified,
   recordOverdueNotification,
 } from '@/lib/supabase/queries/notifications'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // Called by Vercel cron every 2 hours (see vercel.json).
 // Also callable manually: GET /api/notifications/overdue
@@ -83,6 +84,9 @@ export async function GET(req: NextRequest) {
     await recordOverdueNotification(job.id)
     results.sent++
   }
+
+  const db = createServiceClient()
+  await db.from('events').insert({ kind: 'overdue_check', actor_id: null, target_id: null, target_table: null, payload: null, visibility: [] })
 
   return NextResponse.json({ ok: true, ...results })
 }
