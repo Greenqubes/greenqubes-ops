@@ -1,4 +1,4 @@
-﻿import { createServiceClient } from '@/lib/supabase/service'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { Role, LangCode }  from '@/lib/supabase/types'
 
 export class UserRemovalValidationError extends Error {
