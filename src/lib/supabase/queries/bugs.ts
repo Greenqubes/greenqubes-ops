@@ -78,6 +78,12 @@ export async function getBugMarkdownFile(id: string): Promise<string | null> {
   return data?.markdown_file ?? null
 }
 
+export async function deleteBugReport(id: string): Promise<void> {
+  const db = createServiceClient()
+  const { error } = await db.from('bug_reports').delete().eq('id', id)
+  if (error) console.error('[bugs] delete failed', error)
+}
+
 export async function updateGitHubIssueUrl(id: string, issueUrl: string): Promise<void> {
   const db = createServiceClient()
   const { error } = await db
