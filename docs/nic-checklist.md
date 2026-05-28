@@ -77,6 +77,18 @@ _Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)
 
 ---
 
+## Done This Session ✓ (2026-05-28, feat-admin)
+
+- [x] **[Nic] TELEGRAM_BUG_BOT_TOKEN + TELEGRAM_BUG_CHAT_ID added to Vercel** — bug report Telegram notifications now fire.
+- [x] **Admin Bugs tab forbidden error fixed** — admin role now allowed in GET/PATCH /api/bugs routes.
+- [x] **Screenshot modal** — bug report screenshots open in an inline modal instead of a new tab.
+- [x] **Health tab: three Telegram bots** — ops, digest, and bugs bots all shown in system checks.
+- [x] **Health tab: obsidian sync + overdue cron last-run time** — both now write events table rows; health tab shows last run instead of "unknown".
+- [x] **API usage logging for Voyage, Telegram, R2** — all three now appear in the usage tracker.
+- [x] **Unusual activity: non-Singapore IP rule + geolocation** — non-SG calls flagged with city/country/ISP.
+- [x] **Bug tab: delete fixed bugs** — single delete button per card + multi-select bulk delete.
+- [x] **Bug tab: sort controls** — open bugs sortable by received date; fixed bugs sortable by fixed or received date.
+
 ## Done This Session ✓ (2026-05-28, fix-bugs)
 
 - [x] Bryan's Vercel build error resolved — migration conflict (0015 → 0031) fixed, TypeScript types updated; Bryan needs to pull dev into dev-bryan to pick up the fix.
