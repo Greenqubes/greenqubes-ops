@@ -204,7 +204,6 @@ function DeleteUserModal({
             size="sm"
             onClick={onConfirm}
             disabled={busy}
-            className="bg-terracotta hover:bg-terracotta/80 border-terracotta hover:border-terracotta/80"
           >
             {busy ? 'Removing…' : 'Remove'}
           </Btn>
@@ -320,7 +319,9 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
       if (!res.ok) {
-        const body = await res.json() as { error?: string }
+        const body = res.headers.get('content-type')?.includes('application/json')
+          ? await res.json() as { error?: string }
+          : {} as { error?: string }
         if (res.status >= 400 && res.status < 500) {
           throw new Error(body.error ?? `HTTP ${res.status}`)
         }
