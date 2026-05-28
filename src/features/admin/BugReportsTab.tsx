@@ -1,9 +1,54 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Card }   from '@/components/Card'
 import { cn }     from '@/lib/utils/cn'
 import type { BugReport, BugPriority } from '@/lib/supabase/queries/bugs'
+
+function ScreenshotModal({ url, onClose }: { url: string; onClose: () => void }) {
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+      onClick={e => { if (e.target === overlayRef.current) onClose() }}
+    >
+      <div className="relative max-w-3xl w-full bg-paper rounded-card shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+          <p className="text-sm font-medium text-ink">Screenshot</p>
+          <div className="flex items-center gap-3">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue underline underline-offset-2 hover:text-ink2"
+            >
+              Open in new tab
+            </a>
+            <button
+              onClick={onClose}
+              className="text-muted hover:text-ink text-lg leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="overflow-auto max-h-[75vh] bg-bg flex items-center justify-center p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="Bug report screenshot" className="max-w-full h-auto rounded" />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const PRIORITY_PILL: Record<BugPriority, string> = {
   low:    'bg-muted/10 text-muted border-muted/30',
@@ -29,13 +74,14 @@ function BugCard({
   bug:     BugReport
   onFixed: (id: string) => void
 }) {
-  const [expanded,   setExpanded]   = useState(false)
-  const [fixing,     setFixing]     = useState(false)
+  const [expanded,      setExpanded]      = useState(false)
+  const [fixing,        setFixing]        = useState(false)
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null)
-  const [loadingUrl, setLoadingUrl] = useState(false)
+  const [loadingUrl,    setLoadingUrl]    = useState(false)
+  const [showModal,     setShowModal]     = useState(false)
 
   async function handleViewScreenshot() {
-    if (screenshotUrl) { window.open(screenshotUrl, '_blank'); return }
+    if (screenshotUrl) { setShowModal(true); return }
     if (!bug.screenshot_key) return
     setLoadingUrl(true)
     try {
@@ -46,7 +92,7 @@ function BugCard({
       })
       const { url } = await res.json() as { url: string }
       setScreenshotUrl(url)
-      window.open(url, '_blank')
+      setShowModal(true)
     } finally {
       setLoadingUrl(false)
     }
@@ -63,6 +109,10 @@ function BugCard({
   }
 
   return (
+    <>
+    {showModal && screenshotUrl && (
+      <ScreenshotModal url={screenshotUrl} onClose={() => setShowModal(false)} />
+    )}
     <Card className="p-4">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
@@ -140,6 +190,7 @@ function BugCard({
         )}
       </div>
     </Card>
+    </>
   )
 }
 
