@@ -23,7 +23,7 @@ export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at, deleted_at')
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as AdminUser[]
@@ -82,18 +82,19 @@ export async function removeUserAccess(id: string): Promise<void> {
     .from('users')
     .select('id, name, auth_id, deleted_at')
     .eq('id', id)
-    .single()
+    .maybeSingle()
   if (fetchError) throw fetchError
-  if (!user) throw new Error(`User with id ${id} not found`)
+  if (!user) throw new Error('User not found.')
 
   // Safety guard: never delete GreenqubesAI
   if (user.name === 'GreenqubesAI') {
-    throw new Error('Cannot delete GreenqubesAI user')
+    throw new Error('This account cannot be removed.')
   }
+  // TODO: replace with a stable system-user flag
 
   // Safety guard: cannot operate on already soft-deleted users
   if (user.deleted_at !== null) {
-    throw new Error(`User ${id} is already deleted`)
+    throw new Error('This user has already been removed.')
   }
 
   // Path A: Provisioned user (auth_id is null, never signed in) — hard delete
@@ -103,16 +104,17 @@ export async function removeUserAccess(id: string): Promise<void> {
     return
   }
 
-  // Path B: Active/past employee (auth_id is not null) — soft delete + revoke auth
+  // Path B: Active/past employee (auth_id is not null) — revoke auth first, then soft delete
+  // Revoke Supabase Auth access using admin client — if this fails, nothing is written (retryable)
+  const { error: authError } = await db.auth.admin.deleteUser(user.auth_id)
+  if (authError) throw authError
+
+  // Then stamp the row — auth is already gone at this point
   const { error: softDeleteError } = await db
     .from('users')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
   if (softDeleteError) throw softDeleteError
-
-  // Revoke Supabase Auth access using admin client
-  const { error: authError } = await db.auth.admin.deleteUser(user.auth_id)
-  if (authError) throw authError
 }
 
 // ── Digest ─────────────────────────────────────────────────────────────────────
