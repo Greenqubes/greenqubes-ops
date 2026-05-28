@@ -26,11 +26,13 @@ export default async function NewJobPage() {
       .from('users')
       .select('id, name')
       .in('role', ['sales', 'scheduler', 'admin'])
+      .is('deleted_at', null)
       .order('name'),
     supabase
       .from('users')
       .select('id, name, phone, role, years_experience, skills')
       .eq('role', 'installer')
+      .is('deleted_at', null)
       .order('name'),
   ])
 

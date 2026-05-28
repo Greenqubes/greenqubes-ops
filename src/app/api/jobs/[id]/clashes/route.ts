@@ -196,7 +196,8 @@ export async function GET(
   const { data: allInstallers } = await supabase
     .from('users')
     .select('id, name, role, years_experience, skills')
-    .eq('role', 'installer') as { data: UserRow[] | null; error: unknown }
+    .eq('role', 'installer')
+    .is('deleted_at', null) as { data: UserRow[] | null; error: unknown }
 
   const currentAssigneeIds = new Set(assigneeIds)
   const substitutes: Substitute[] = (allInstallers ?? [])

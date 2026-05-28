@@ -21,6 +21,7 @@ export async function runDigestTimeout(): Promise<{ resolved: number }> {
     .from('users')
     .select('id, telegram_chat_id')
     .eq('digest_subscriber', true)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
 
   const total = (allVoters ?? []).length || 1

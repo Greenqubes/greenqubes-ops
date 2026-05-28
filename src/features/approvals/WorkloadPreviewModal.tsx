@@ -115,6 +115,7 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
         .from('users')
         .select('name')
         .eq('role', 'scheduler')
+        .is('deleted_at', null)
       setSchedulerNames((data ?? []).map((u: { name: string }) => u.name))
     }
     fetchSchedulers()

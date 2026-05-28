@@ -20,9 +20,9 @@ export async function GET(request: Request) {
         .from('users')
         .select('deleted_at')
         .eq('auth_id', authId)
-        .single()
+        .maybeSingle()
 
-      if (!lookupError && user?.deleted_at !== null) {
+      if (!lookupError && user !== null && user.deleted_at !== null) {
         // User is soft-deleted; sign them out and redirect
         await supabase.auth.signOut()
         return NextResponse.redirect(`${origin}/login?error=account_removed`)
