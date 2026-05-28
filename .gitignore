@@ -17,8 +17,10 @@ build/
 .env.test.local
 .env.production.local
 
-# claude code skills (local dev tool, reinstall with: npx uipro-cli init --ai claude)
+# claude code — per-machine config (settings, hooks, skills are local to each laptop)
 .claude/skills/
+.claude/settings.local.json
+.claude/hooks/
 
 # large doc files not needed in repo
 docs/conversation-archive-1.md
