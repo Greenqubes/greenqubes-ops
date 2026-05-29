@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-05-26 (feat-vault — Obsidian vault convention, auto-write on digest promotion, nightly sync script)_
+_Last updated: 2026-05-29 (chore-config — checklist cleanup, AdminRoleModal + bulk delete confirmed done)_
 
 ---
 

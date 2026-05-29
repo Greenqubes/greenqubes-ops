@@ -50,13 +50,13 @@ _Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 
 ### Bugs (from 2026-05-14)
 
-- [ ] **AdminRoleModal double-Yes bug** — when editing a user's role to Admin in UsersTab, "Yes" in the confirm modal requires two presses before it fires. Likely a state update race condition between `handleRoleChange` setting `modalPhase` and the dropdown `value` re-render.
+- [x] **[Nic] AdminRoleModal double-Yes bug** — not a code bug; modal just needed time to load. Confirmed working.
 
 ### Features (added 2026-05-14, feat-design)
 
 - [x] **Dark mode** — Claude Warm palette; next-themes; UserMenu Moon/Sun toggle; persists in localStorage; auto-detects system preference on first visit; contrast fixes across 8 components.
 - [x] **Installer clash warning** — ClashResolutionModal with substitute selection, travel-time warning, keep-anyway flow (done in feat-clash-resolution).
-- [ ] **Bulk delete jobs** — Design A chosen: always-on checkboxes in list view, delete bar at bottom when any ticked. Scheduler on Schedule page (scheduled jobs); Sales on Pending tab (both pending + awaiting_approval). Hard-delete from DB. No API route yet. Spec + plan needed next session before coding.
+- [x] **Bulk delete jobs** — fully implemented: checkboxes in list view, delete bar at bottom, confirm step, parallel DELETE calls per job. Already live on dev preview.
 
 ### Features (added 2026-05-12)
 
