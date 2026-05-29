@@ -10,7 +10,7 @@ _Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
-- [ ] **[Nic] Run `npx supabase db push`** — applies migration 0032 (`deleted_at` column + partial index on `users` table). Required for the Remove User feature to work in production. Run from `C:\Greenqubes_GitHub\greenqubes-ops` with `.env.local` present.
+- [x] **[Nic] Run `npx supabase db push`** — migration 0032 applied. `deleted_at` column + partial index live on remote DB.
 
 ### Features (from 2026-05-26, vault-convention)
 
