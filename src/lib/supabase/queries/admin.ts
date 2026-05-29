@@ -1,7 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import type { Role, LangCode }  from '@/lib/supabase/types'
 
-// ── User management ────────────────────────────────────────────────────────────
+export class UserRemovalValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'UserRemovalValidationError'
+  }
+}
+
+// â”€â”€ User management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type AdminUser = {
   id:                string
@@ -16,13 +23,15 @@ export type AdminUser = {
   years_experience:  number | null
   skills:            string[]
   created_at:        string
+  deleted_at:        string | null
 }
 
 export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at, deleted_at')
+    .is('deleted_at', null)
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as AdminUser[]
@@ -73,7 +82,50 @@ export async function updateUser(
   if (error) throw error
 }
 
-// ── Digest ─────────────────────────────────────────────────────────────────────
+export async function removeUserAccess(id: string): Promise<void> {
+  const db = createServiceClient()
+
+  // Fetch the user to check safety guards
+  const { data: user, error: fetchError } = await db
+    .from('users')
+    .select('id, name, auth_id, deleted_at')
+    .eq('id', id)
+    .maybeSingle()
+  if (fetchError) throw fetchError
+  if (!user) throw new UserRemovalValidationError('User not found.')
+
+  // Safety guard: never delete GreenqubesAI
+  if (user.name === 'GreenqubesAI') {
+    throw new UserRemovalValidationError('This account cannot be removed.')
+  }
+  // TODO: replace with a stable system-user flag
+
+  // Safety guard: cannot operate on already soft-deleted users
+  if (user.deleted_at !== null) {
+    throw new UserRemovalValidationError('This user has already been removed.')
+  }
+
+  // Path A: Provisioned user (auth_id is null, never signed in) â€” hard delete
+  if (user.auth_id === null) {
+    const { error: deleteError } = await db.from('users').delete().eq('id', id)
+    if (deleteError) throw deleteError
+    return
+  }
+
+  // Path B: Active/past employee (auth_id is not null) â€” revoke auth first, then soft delete
+  // Revoke Supabase Auth access using admin client â€” if this fails, nothing is written (retryable)
+  const { error: authError } = await db.auth.admin.deleteUser(user.auth_id)
+  if (authError) throw authError
+
+  // Then stamp the row â€” auth is already gone at this point
+  const { error: softDeleteError } = await db
+    .from('users')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  if (softDeleteError) throw softDeleteError
+}
+
+// â”€â”€ Digest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type DigestItem = {
   id:         string
@@ -132,13 +184,14 @@ export async function getDigestSubscribers(): Promise<DigestSubscriber[]> {
   const { data, error } = await db
     .from('users')
     .select('id, name, role, telegram_chat_id, digest_subscriber')
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
     .order('name')
   if (error) throw error
   return (data ?? []) as unknown as DigestSubscriber[]
 }
 
-// ── API usage ──────────────────────────────────────────────────────────────────
+// â”€â”€ API usage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type UsageSummary = {
   service:          string
@@ -209,7 +262,7 @@ async function geolocate(ip: string): Promise<GeoResult | null> {
 
 function fmtLocation(g: GeoResult): string {
   const parts = [g.city, g.country].filter(s => s && s !== 'Unknown').join(', ')
-  return g.org ? `${parts} · ${g.org}` : parts
+  return g.org ? `${parts} Â· ${g.org}` : parts
 }
 
 export async function getUnusualActivity(days = 7): Promise<UnusualEvent[]> {
@@ -265,7 +318,7 @@ export async function getUnusualActivity(days = 7): Promise<UnusualEvent[]> {
   return events.slice(0, 20)
 }
 
-// Shared helper — call from any API route to record usage. Never throws.
+// Shared helper â€” call from any API route to record usage. Never throws.
 export async function logApiUsage(entry: {
   service:         string
   endpoint:        string
@@ -285,7 +338,7 @@ export async function logApiUsage(entry: {
   }
 }
 
-// ── System health ──────────────────────────────────────────────────────────────
+// â”€â”€ System health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type HealthCheck = {
   label:   string
@@ -304,3 +357,5 @@ export async function getLastEventTime(kind: string): Promise<string | null> {
     .maybeSingle()
   return data?.ts ?? null
 }
+
+

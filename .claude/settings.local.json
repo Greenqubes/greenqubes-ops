@@ -77,7 +77,13 @@
       "Bash(del \"c:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\supabase\\\\migrations\\\\0029_asst_chats_user_isolation.sql\")",
       "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\assistant-onboarding.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\assistant-onboarding.md\")",
       "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\bryan-checklist.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\bryan-checklist.md\")",
-      "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\CLAUDE-bryan.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\CLAUDE-bryan.md\")"
+      "PowerShell(Move-Item \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs\\\\CLAUDE-bryan.md\" \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\docs-bryan\\\\CLAUDE-bryan.md\")",
+      "Bash(git config *)",
+      "Bash(vercel ls *)",
+      "Bash(node --env-file=.env.local --input-type=module -e ' *)",
+      "Bash(node --use-system-ca --env-file=.env.local --input-type=module -e ' *)",
+      "PowerShell(\\(Get-Command bash\\).Source)",
+      "Bash(git diff *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",

@@ -47,10 +47,10 @@ export async function POST(
   type TgRow = { telegram_chat_id: string | null }
   const [{ data: installers }, { data: coordinators }] = await Promise.all([
     safeInstallerIds.length > 0
-      ? supabase.from('users').select('telegram_chat_id').in('id', safeInstallerIds) as unknown as Promise<{ data: TgRow[] | null }>
+      ? supabase.from('users').select('telegram_chat_id').in('id', safeInstallerIds).is('deleted_at', null) as unknown as Promise<{ data: TgRow[] | null }>
       : Promise.resolve({ data: [] as TgRow[] }),
     safeCoordinatorIds.length > 0
-      ? supabase.from('users').select('telegram_chat_id').in('id', safeCoordinatorIds) as unknown as Promise<{ data: TgRow[] | null }>
+      ? supabase.from('users').select('telegram_chat_id').in('id', safeCoordinatorIds).is('deleted_at', null) as unknown as Promise<{ data: TgRow[] | null }>
       : Promise.resolve({ data: [] as TgRow[] }),
   ])
 

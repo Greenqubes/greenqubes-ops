@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-05-28 (feat-admin — admin panel improvements, health checks, API logging, bug tab)_
+_Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access, soft delete, migration 0032)_
 
 ---
 
@@ -102,6 +102,8 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | infra-config [Nic] | Task Scheduler — Nightly Obsidian Sync | Task Scheduler entry created on server PC (E drive) for nightly vault sync; trigger set to 2:30 AM daily; bat file tested and confirmed working; nightly-obsidian-sync.bat (git pull vault + obsidian-sync.ts) executes per schedule | [infra/infra-config-20260526-1-note.md](infra/infra-config-20260526-1-note.md) |
 | fix-bugs | Bryan Migration Conflict + TS Build Fix | Renamed Bryan's 0015_bug_github_issue.sql → 0031 (0015 was taken); added github_issue_url to bug_reports Row type in types.ts; made it optional in Insert type and insertBugReport signature; DB already up to date (Bryan's agent had run db push) | [fix/fix-bugs-20260528-1-note.md](fix/fix-bugs-20260528-1-note.md) |
 | feat-admin [Nic] | Admin Panel Improvements | Bugs tab forbidden fix (admin role); screenshot modal; three-bot health checks; obsidian sync + overdue cron event logging; Voyage/Telegram/R2 API usage logging; IP geolocation + non-SG anomaly rule; bug delete + multi-select + sort controls | [feat/feat-admin-20260528-1-note.md](feat/feat-admin-20260528-1-note.md) |
+| feat-admin-3 [Nic] | Remove User / Revoke Access | Soft delete for active employees (deleted_at + Supabase Auth revocation); hard delete for provisioned users; migration 0032 (deleted_at column + partial index); removeUserAccess() with UserRemovalValidationError; DELETE /api/admin/users/[id]; auth callback blocks deleted re-login; middleware blocks deleted sessions; deleted_at IS NULL filters across all user queries; DeleteUserModal (two variants) + Remove button in UsersTab; pushed to dev preview; DB migration pending (npx supabase db push) | [feat/feat-admin-20260529-1-note.md](feat/feat-admin-20260529-1-note.md) |
+| chore-config [Nic] | Checklist Cleanup | AdminRoleModal double-Yes confirmed not a bug (just load time); bulk delete jobs confirmed already fully implemented (checkboxes + delete bar + confirm step + parallel DELETE calls); checklist updated | [chore/chore-config-20260529-1-note.md](chore/chore-config-20260529-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

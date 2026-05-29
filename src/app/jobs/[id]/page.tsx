@@ -36,7 +36,7 @@ export default async function JobDetailPage({
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     getJobMessages(id),
-    supabase.from('users').select('id, name').eq('role', 'sales').order('name'),
+    supabase.from('users').select('id, name').eq('role', 'sales').is('deleted_at', null).order('name'),
     getJobCoordinators(id),
     getAllProvisionedUsers(),
   ])

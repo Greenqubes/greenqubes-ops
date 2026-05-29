@@ -38,6 +38,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Soft-deleted users are signed out
+  if (user && !isAuthRoute) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('deleted_at')
+      .eq('auth_id', user.id)
+      .maybeSingle()
+    if (profile?.deleted_at) {
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('error', 'account_removed')
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Authenticated users don't need to see the login page
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()

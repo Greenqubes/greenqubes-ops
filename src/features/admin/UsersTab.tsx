@@ -168,20 +168,68 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
   )
 }
 
+// ── Delete user confirmation modal ────────────────────────────────────────────
+
+function DeleteUserModal({
+  user,
+  onConfirm,
+  onCancel,
+  busy,
+  err,
+}: {
+  user:      AdminUser
+  onConfirm: () => void
+  onCancel:  () => void
+  busy:      boolean
+  err:       string | null
+}) {
+  const isProvisioned = user.auth_id === null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4">
+      <div className="bg-paper border border-line rounded-card shadow-lg w-full max-w-sm p-6 flex flex-col gap-4">
+        <p className="font-display font-medium text-ink text-base">
+          {isProvisioned ? 'Remove provisioned user?' : 'Remove access?'}
+        </p>
+        <p className="text-sm text-ink2">
+          {isProvisioned
+            ? `${user.name} hasn't signed in yet. This will delete them permanently.`
+            : `${user.name} will no longer be able to sign in. Their name will remain on past jobs and messages.`}
+        </p>
+        {err && <p className="text-xs text-red-500">{err}</p>}
+        <div className="flex gap-2 justify-end">
+          <Btn variant="ghost" size="sm" onClick={onCancel} disabled={busy}>Cancel</Btn>
+          <Btn
+            variant="accent"
+            size="sm"
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? 'Removing…' : 'Remove'}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── User row ───────────────────────────────────────────────────────────────────
 
 function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
-  const [editing,     setEditing]     = useState(false)
-  const [role,        setRole]        = useState<Role>(user.role)
-  const [tgId,        setTgId]        = useState(user.telegram_chat_id ?? '')
-  const [digestSub,   setDigestSub]   = useState(user.digest_subscriber)
-  const [yearsExp,    setYearsExp]    = useState<number | string>(user.years_experience ?? '')
-  const [skills,      setSkills]      = useState<string[]>(user.skills ?? [])
-  const [skillInput,  setSkillInput]  = useState('')
-  const [busy,        setBusy]        = useState(false)
-  const [err,         setErr]         = useState<string | null>(null)
-  const [modalPhase,  setModalPhase]  = useState<'confirm' | 'success' | null>(null)
-  const [prevRole,    setPrevRole]    = useState<Role>(user.role)
+  const [editing,       setEditing]       = useState(false)
+  const [role,          setRole]          = useState<Role>(user.role)
+  const [tgId,          setTgId]          = useState(user.telegram_chat_id ?? '')
+  const [digestSub,     setDigestSub]     = useState(user.digest_subscriber)
+  const [yearsExp,      setYearsExp]      = useState<number | string>(user.years_experience ?? '')
+  const [skills,        setSkills]        = useState<string[]>(user.skills ?? [])
+  const [skillInput,    setSkillInput]    = useState('')
+  const [busy,          setBusy]          = useState(false)
+  const [err,           setErr]           = useState<string | null>(null)
+  const [modalPhase,    setModalPhase]    = useState<'confirm' | 'success' | null>(null)
+  const [prevRole,      setPrevRole]      = useState<Role>(user.role)
+  const [showDelete,    setShowDelete]    = useState(false)
+  const [deleteBusy,    setDeleteBusy]    = useState(false)
+  const [deleteErr,     setDeleteErr]     = useState<string | null>(null)
 
   function addSkill(raw: string) {
     const tag = raw.trim().replace(/,+$/, '').trim()
@@ -266,6 +314,28 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
     }
   }
 
+  async function confirmDelete() {
+    setDeleteBusy(true); setDeleteErr(null)
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = res.headers.get('content-type')?.includes('application/json')
+          ? await res.json() as { error?: string }
+          : {} as { error?: string }
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error(body.error ?? `HTTP ${res.status}`)
+        }
+        throw new Error('Something went wrong. Please try again.')
+      }
+      setShowDelete(false)
+      onSaved()
+    } catch (err) {
+      setDeleteErr((err as Error).message)
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
+
   function cancel() {
     setRole(user.role)
     setTgId(user.telegram_chat_id ?? '')
@@ -292,6 +362,15 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
           onClose={closeSuccessModal}
         />
       )}
+      {showDelete && (
+        <DeleteUserModal
+          user={user}
+          onConfirm={confirmDelete}
+          onCancel={() => { setShowDelete(false); setDeleteErr(null) }}
+          busy={deleteBusy}
+          err={deleteErr}
+        />
+      )}
       <Card className={cn('p-4 transition-colors', editing && 'ring-2 ring-terracotta/30')}>
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="min-w-0">
@@ -299,12 +378,22 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
             <p className="text-xs text-muted truncate">{joined}</p>
           </div>
           {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="text-xs text-muted hover:text-ink2 underline underline-offset-2 shrink-0"
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-muted hover:text-ink2 underline underline-offset-2"
+              >
+                Edit
+              </button>
+              {user.name !== 'GreenqubesAI' && (
+                <button
+                  onClick={() => { setDeleteErr(null); setShowDelete(true) }}
+                  className="text-xs text-terracotta hover:text-terracotta/80 underline underline-offset-2"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           )}
         </div>
 

@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
     .from('users')
     .select('id, name, telegram_chat_id')
     .in('id', subscriberIds)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
   if (usersErr) return NextResponse.json({ error: usersErr.message }, { status: 500 })
 

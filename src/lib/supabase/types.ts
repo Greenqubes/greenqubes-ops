@@ -29,6 +29,7 @@ export interface Database {
           years_experience:  number | null
           skills:            string[]
           created_at:        string
+          deleted_at:        string | null
         }
         Insert: Omit<Database['public']['Tables']['users']['Row'], 'id' | 'created_at'> & {
           id?:         string

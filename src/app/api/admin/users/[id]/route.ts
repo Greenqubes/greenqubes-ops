@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }             from '@/lib/supabase/server'
-import { updateUser }               from '@/lib/supabase/queries/admin'
+import { updateUser, removeUserAccess, UserRemovalValidationError } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode }      from '@/lib/supabase/types'
 
 async function guardAdmin(): Promise<boolean> {
@@ -35,5 +35,23 @@ export async function PATCH(
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ok = await guardAdmin()
+  if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  try {
+    const { id } = await params
+    await removeUserAccess(id)
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const message = (err as Error).message
+    const status = err instanceof UserRemovalValidationError ? 400 : 500
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type CoordinatorRow = {
   user_id: string
@@ -13,7 +13,7 @@ type UserRow = {
   name: string
 }
 
-// ── Queries ───────────────────────────────────────────────────────────────────
+// â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getJobCoordinators(
   jobId: string,
@@ -75,8 +75,10 @@ export async function getAllProvisionedUsers(): Promise<Array<{ id: string; labe
     .from('users')
     .select('id, name')
     .neq('role', 'installer')
+    .is('deleted_at', null)
     .order('name', { ascending: true })
   if (error) throw error
   const rows = (data ?? []) as unknown as UserRow[]
   return rows.map((row) => ({ id: row.id, label: row.name }))
 }
+

@@ -2,11 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)_
+_Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 
 ---
 
 ## Pending — Next Session
+
+### Setup (from 2026-05-29, feat-admin-3)
+
+- [x] **[Nic] Run `npx supabase db push`** — migration 0032 applied. `deleted_at` column + partial index live on remote DB.
 
 ### Features (from 2026-05-26, vault-convention)
 
@@ -46,13 +50,13 @@ _Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)
 
 ### Bugs (from 2026-05-14)
 
-- [ ] **AdminRoleModal double-Yes bug** — when editing a user's role to Admin in UsersTab, "Yes" in the confirm modal requires two presses before it fires. Likely a state update race condition between `handleRoleChange` setting `modalPhase` and the dropdown `value` re-render.
+- [x] **[Nic] AdminRoleModal double-Yes bug** — not a code bug; modal just needed time to load. Confirmed working.
 
 ### Features (added 2026-05-14, feat-design)
 
 - [x] **Dark mode** — Claude Warm palette; next-themes; UserMenu Moon/Sun toggle; persists in localStorage; auto-detects system preference on first visit; contrast fixes across 8 components.
 - [x] **Installer clash warning** — ClashResolutionModal with substitute selection, travel-time warning, keep-anyway flow (done in feat-clash-resolution).
-- [ ] **Bulk delete jobs** — Design A chosen: always-on checkboxes in list view, delete bar at bottom when any ticked. Scheduler on Schedule page (scheduled jobs); Sales on Pending tab (both pending + awaiting_approval). Hard-delete from DB. No API route yet. Spec + plan needed next session before coding.
+- [x] **Bulk delete jobs** — fully implemented: checkboxes in list view, delete bar at bottom, confirm step, parallel DELETE calls per job. Already live on dev preview.
 
 ### Features (added 2026-05-12)
 
@@ -77,7 +81,11 @@ _Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)
 
 ---
 
-## Done This Session ✓ (2026-05-28, feat-admin)
+## Done This Session ✓ (2026-05-29, feat-admin-3)
+
+- [x] **[Nic] Remove User feature — tested on preview** — removed a user via Admin → Users tab; modal confirmed correct. Feature live on Vercel preview. DB migration still needs applying (see pending above).
+
+## Done Last Session ✓ (2026-05-28, feat-admin)
 
 - [x] **[Nic] TELEGRAM_BUG_BOT_TOKEN + TELEGRAM_BUG_CHAT_ID added to Vercel** — bug report Telegram notifications now fire.
 - [x] **Admin Bugs tab forbidden error fixed** — admin role now allowed in GET/PATCH /api/bugs routes.
