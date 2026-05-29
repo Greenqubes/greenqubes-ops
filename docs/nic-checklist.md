@@ -2,11 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)_
+_Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 
 ---
 
 ## Pending — Next Session
+
+### Setup (from 2026-05-29, feat-admin-3)
+
+- [ ] **[Nic] Run `npx supabase db push`** — applies migration 0032 (`deleted_at` column + partial index on `users` table). Required for the Remove User feature to work in production. Run from `C:\Greenqubes_GitHub\greenqubes-ops` with `.env.local` present.
 
 ### Features (from 2026-05-26, vault-convention)
 
@@ -77,7 +81,11 @@ _Last updated: 2026-05-28 (fix-bugs — Bryan migration conflict + TS build fix)
 
 ---
 
-## Done This Session ✓ (2026-05-28, feat-admin)
+## Done This Session ✓ (2026-05-29, feat-admin-3)
+
+- [x] **[Nic] Remove User feature — tested on preview** — removed a user via Admin → Users tab; modal confirmed correct. Feature live on Vercel preview. DB migration still needs applying (see pending above).
+
+## Done Last Session ✓ (2026-05-28, feat-admin)
 
 - [x] **[Nic] TELEGRAM_BUG_BOT_TOKEN + TELEGRAM_BUG_CHAT_ID added to Vercel** — bug report Telegram notifications now fire.
 - [x] **Admin Bugs tab forbidden error fixed** — admin role now allowed in GET/PATCH /api/bugs routes.

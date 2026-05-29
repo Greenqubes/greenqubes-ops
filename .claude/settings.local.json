@@ -83,17 +83,11 @@
       "Bash(node --env-file=.env.local --input-type=module -e ' *)",
       "Bash(node --use-system-ca --env-file=.env.local --input-type=module -e ' *)",
       "PowerShell(\\(Get-Command bash\\).Source)",
-      "Bash(git diff *)",
-      "Bash(ls -la \"C:\\\\Greenqubes_GitHub\\\\greenqubes-ops\\\\supabase\\\\migrations\\\\\" | tail -20)",
-      "Read(//c/Greenqubes_GitHub/greenqubes-ops/supabase/**)",
-      "Read(//c/Greenqubes_GitHub/greenqubes-ops/**)"
+      "Bash(git diff *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
-      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]",
-      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\lib\\supabase\\queries",
-      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\jobs\\[id]",
-      "C:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]\\notify-assigned"
+      "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\jobs\\[id]"
     ]
   }
 }
