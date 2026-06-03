@@ -111,7 +111,7 @@ async function main() {
       const chunks = chunkText(body)
 
       for (let i = 0; i < chunks.length; i++) {
-        const vector = await embed(chunks[i])
+        const vector = await embed(`File: ${sourcePath}\n\n${chunks[i]}`)
         const { error } = await db.from('kb_chunks').upsert(
           {
             source_path: sourcePath,
