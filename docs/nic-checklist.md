@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
+_Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table rendering)_
 
 ---
 
@@ -84,6 +84,13 @@ _Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-06-03, fix-rag)
+
+- [x] **[Nic] Supplier pricing added to Obsidian vault** — DAMA acrylic pricelist + Jacky Printing pricelist created in vault/suppliers/; synced to Supabase kb_chunks; assistant can now answer supplier pricing questions.
+- [x] **RAG retrieval fixed** — Voyage AI input_type (query/document) added; kb_chunks match threshold tuned to 0.35; filename prepended to embeddings for supplier name searchability.
+- [x] **Table rendering in assistant chat** — MarkdownMessage now renders markdown tables with headers, borders, and alternating row shading.
+- [x] **Merged dev → main** — all fixes live on production.
 
 ## Done This Session ✓ (2026-05-29, feat-admin-3)
 
