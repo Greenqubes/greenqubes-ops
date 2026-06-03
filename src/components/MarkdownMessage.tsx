@@ -55,6 +55,47 @@ export function MarkdownMessage({ content }: { content: string }) {
         </p>
       )
 
+    // Table — collect all consecutive | lines
+    } else if (line.startsWith('|')) {
+      const rows: string[][] = []
+      while (i < lines.length && lines[i].startsWith('|')) {
+        const cells = lines[i].split('|').slice(1, -1).map(c => c.trim())
+        rows.push(cells)
+        i++
+      }
+      // Second row is the separator (---|---) — skip it
+      const headerCells = rows[0] ?? []
+      const dataRows = rows.length > 2 ? rows.slice(2) : rows.slice(1)
+      const isSeparator = (row: string[]) => row.every(c => /^:?-+:?$/.test(c))
+      const filtered = dataRows.filter(r => !isSeparator(r))
+      elements.push(
+        <div key={`table-${i}`} className="overflow-x-auto my-1.5">
+          <table className="text-[12px] border-collapse w-full">
+            <thead>
+              <tr>
+                {headerCells.map((h, j) => (
+                  <th key={j} className="border border-line bg-[var(--bg)] px-2.5 py-1.5 text-left font-semibold text-ink whitespace-nowrap">
+                    {renderInline(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row, ri) => (
+                <tr key={ri} className={ri % 2 === 1 ? 'bg-[var(--bg)]' : 'bg-paper'}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="border border-line px-2.5 py-1.5 text-ink2">
+                      {renderInline(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+      continue
+
     // Bullet list — collect consecutive items
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       const items: string[] = []

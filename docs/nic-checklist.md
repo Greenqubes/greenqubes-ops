@@ -36,6 +36,10 @@ _Last updated: 2026-05-29 (feat-admin-3 — remove user / revoke access)_
 - [x] **[MAJOR] Approval page: Save failed on Approve & Schedule click** — fixed.
 - [x] **[MINOR] Friday bar missing in WeekWorkloadChart** — fixed.
 
+### Features (from 2026-05-29)
+
+- [ ] **Scheduler: view-only of all sales jobs (including unconfirmed)** — scheduler currently only sees scheduled jobs and the approvals queue. Add a read-only view of all pending/awaiting_approval jobs so scheduler has full visibility. Placement TBD: either a new tab in the Approvals bottom nav, or a separate section. Spec + placement decision needed before coding.
+
 ### Features (from 2026-05-18, feat-clash-resolution)
 
 - [ ] **Schedule page visual overhaul** — Nic to share screenshot of target design. Full visual redesign of the /schedule page. Spec + plan needed before coding.
