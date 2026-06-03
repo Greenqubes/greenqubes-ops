@@ -20,7 +20,7 @@ export async function retrieveContext(query: string): Promise<RetrievedContext> 
   // in this SDK version — at runtime the values are correct.
   const args = (a: object) => a as never
   const [kbRes, chatRes] = await Promise.all([
-    supabase.rpc('match_kb_chunks',  args({ query_embedding: embedding, match_threshold: 0.5, match_count: 5 })),
+    supabase.rpc('match_kb_chunks',  args({ query_embedding: embedding, match_threshold: 0.35, match_count: 5 })),
     supabase.rpc('match_asst_chats', args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3 })),
   ])
 
