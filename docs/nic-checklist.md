@@ -2,11 +2,18 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table rendering)_
+_Last updated: 2026-06-05 (chore-jobs — workflow v2 design + plan)_
 
 ---
 
 ## Pending — Next Session
+
+### Workflow V2 (from 2026-06-05, chore-jobs)
+
+- [ ] **Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — 25-task plan ready at `docs/superpowers/plans/2026-06-05-workflow-v2.md`. Branch `feat-workflow-v2` created. Phase 1 covers: 3 new DB roles (designer/coordinator/production), remove approval workflow, sales pushes directly to scheduled, scheduler notified on new job, updated nav per role, admin UI updated.
+- [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)**
+- [ ] **Workflow V2 — Phase 3 (FCFS board)**
+- [ ] **Workflow V2 — Phase 4 (external temp links + sub-installer + task list + external POC bucket)**
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
@@ -14,7 +21,7 @@ _Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table 
 
 ### Features (from 2026-05-26, vault-convention)
 
-- [ ] **R2 human-readable folder names** — right now job files are stored under UUID folder names (e.g. `jobs/717c82f7-.../`). Rename to `{date}_{client-slug}_{short-id}` format (e.g. `2026-05-20_Greentech-Plaza_717c82f7`) so rclone backups on local server are browsable by job. Requires migrating existing R2 keys + updating `files` table. Do before go-live while data is still clean. Needs design + plan.
+- [ ] **R2 human-readable folder names** — new pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`. Folder uses `jobs.date`, `jobs.client`, `jobs.client_poc_name`, `jobs.project_title`. Requires: (1) make `client_poc_name` + `project_title` compulsory fields on the job form; (2) cap `project_title` at 50 chars; (3) update `generateKey()` in `r2.ts` + upload API to build readable folder; (4) one-off migration script to rename existing R2 keys + update `files.r2_key`. Do before go-live while data is still clean.
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
@@ -84,6 +91,12 @@ _Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table 
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-06-05, infra-config)
+
+- [x] **[Nic] Overdue cron moved to 8am SGT** — `vercel.json` updated from `0 10 * * *` (6pm SGT) to `0 0 * * *` (midnight UTC = 8am SGT).
+- [x] **R2 folder naming pattern agreed** — new format: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`; 4 sub-tasks captured in checklist for next coding session.
+- [x] **plan.md session note link fixed** — last session note was linked to a non-existent file; corrected to `fix/fix-assistant-20260603-1-note.md`.
 
 ## Done This Session ✓ (2026-06-03, fix-rag)
 
