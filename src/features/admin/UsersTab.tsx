@@ -8,7 +8,7 @@ import { cn }      from '@/lib/utils/cn'
 import type { AdminUser } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode } from '@/lib/supabase/types'
 
-const ROLES: Role[]     = ['sales', 'scheduler', 'installer', 'admin']
+const ROLES: Role[]     = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'admin']
 const LANGS: LangCode[] = ['en', 'zh', 'bn']
 
 // ── Admin role confirmation modal ──────────────────────────────────────────
