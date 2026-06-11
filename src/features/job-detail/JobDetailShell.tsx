@@ -19,14 +19,13 @@ import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid } from './InstallerGrid'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
-import { SendBackModal } from '@/features/approvals/SendBackModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
-import { ArrowLeft, Bell, Inbox, Trash2, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Bell, Trash2, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 export type FormValues = {
@@ -84,13 +83,12 @@ export function JobDetailShell({
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
 
-  const readOnly  = completed || (role === 'sales' && status === 'awaiting_approval')
+  const readOnly  = completed
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
-  const [showSendBackModal,    setShowSendBackModal]   = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
 
@@ -218,41 +216,7 @@ export function JobDetailShell({
     }
   }
 
-  const handleApprove = async () => {
-    setSaving(true)
-    try {
-      if (isDirty) await saveValues(getValues())
-      const res = await fetch(`/api/jobs/${job.id}/approve`, { method: 'POST' })
-      if (!res.ok) throw new Error()
-      showSuccess(t(lang, 'approvedSuccess'))
-      router.push('/schedule')
-    } catch {
-      showError(t(lang, 'saveError'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSendBackFromDetail = async (note: string) => {
-    setShowSendBackModal(false)
-    setSaving(true)
-    try {
-      const res = await fetch(`/api/jobs/${job.id}/send-back`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ note }),
-      })
-      if (!res.ok) throw new Error()
-      showSuccess(t(lang, 'sentBack'))
-      router.push('/approvals')
-    } catch {
-      showError(t(lang, 'saveError'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSubmitForApproval = async () => {
+  const handlePushToSchedule = async () => {
     setSaving(true)
     try {
       if (isDirty) await saveValues(getValues())
@@ -265,7 +229,7 @@ export function JobDetailShell({
           body: JSON.stringify({}),
         })
         if (!submitRes.ok) throw new Error()
-        setStatus('awaiting_approval')
+        setStatus('scheduled')
         setShowSuccessModal(true)
       } else {
         setClashData(data)
@@ -298,7 +262,7 @@ export function JobDetailShell({
         body: JSON.stringify({}),
       })
       if (!res.ok) throw new Error()
-      setStatus('awaiting_approval')
+      setStatus('scheduled')
       setClashData(null)
       setShowSuccessModal(true)
     } catch {
@@ -313,7 +277,7 @@ export function JobDetailShell({
         body: JSON.stringify({}),
       })
       if (!res.ok) throw new Error()
-      setStatus('awaiting_approval')
+      setStatus('scheduled')
       setClashData(null)
       setShowPushAnywaysModal(true)
     } catch {
@@ -356,21 +320,6 @@ export function JobDetailShell({
           <Pill variant={status} />
         </div>
       </div>
-
-      {/* Awaiting-approval banner */}
-      {status === 'awaiting_approval' && (
-        <div className="mx-4 mb-2 rounded-card border border-terracotta bg-terracotta-soft px-4 py-3 flex gap-3 items-start">
-          <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center shrink-0 mt-0.5">
-            <Inbox size={14} className="text-terracotta" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-widest font-medium text-terracotta mb-0.5">
-              {t(lang, 'awaitingApproval')}
-            </p>
-            <p className="text-sm text-ink2">{t(lang, 'awaitingApprovalDetail')}</p>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-2xl mx-auto px-4 space-y-4">
 
@@ -572,15 +521,13 @@ export function JobDetailShell({
                     Mark job complete
                   </button>
                 )}
-                {!(role === 'sales' && status === 'awaiting_approval') && (
-                  <button
-                    type="button"
-                    disabled
-                    className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
-                  >
-                    Duplicate (WIP)
-                  </button>
-                )}
+                <button
+                  type="button"
+                  disabled
+                  className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
+                >
+                  Duplicate (WIP)
+                </button>
                 <button
                   type="button"
                   onClick={() => router.back()}
@@ -592,16 +539,7 @@ export function JobDetailShell({
                   Cancel
                 </button>
               </div>
-              {role === 'sales' && status === 'awaiting_approval' ? (
-                <button
-                  type="button"
-                  onClick={() => handleStatusChange('pending')}
-                  disabled={saving}
-                  className="w-full flex items-center justify-center px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Recalling…' : 'Recall'}
-                </button>
-              ) : !readOnly && role === 'sales' ? (
+              {!readOnly && role === 'sales' ? (
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -617,34 +555,14 @@ export function JobDetailShell({
                   {status !== 'scheduled' && (
                     <button
                       type="button"
-                      onClick={handleSubmitForApproval}
+                      onClick={handlePushToSchedule}
                       disabled={saving}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Bell size={14} />
-                      {saving ? t(lang, 'loading') : 'Push for Approval'}
+                      {saving ? t(lang, 'loading') : 'Push to Schedule'}
                     </button>
                   )}
-                </div>
-              ) : !readOnly && role === 'scheduler' && status === 'awaiting_approval' ? (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSendBackModal(true)}
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Send Back to Sales
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApprove}
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Bell size={14} />
-                    {saving ? t(lang, 'loading') : 'Approve & Notify'}
-                  </button>
                 </div>
               ) : !readOnly ? (
                 <button
@@ -680,7 +598,7 @@ export function JobDetailShell({
 
       <Modal isOpen={showSuccessModal} onClose={() => { setShowSuccessModal(false); router.push('/schedule') }}>
         <div className="space-y-4 text-center">
-          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
+          <p className="font-display text-lg font-medium text-ink">Pushed to Schedule!</p>
           <Btn variant="primary" size="sm" onClick={() => { setShowSuccessModal(false); router.push('/schedule') }}>
             OK
           </Btn>
@@ -689,22 +607,13 @@ export function JobDetailShell({
 
       <Modal isOpen={showPushAnywaysModal} onClose={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
         <div className="space-y-4 text-center">
-          <p className="font-display text-lg font-medium text-ink">Pushed for Approval!</p>
-          <p className="text-sm text-muted">Please check with the Scheduler for approval directly.</p>
+          <p className="font-display text-lg font-medium text-ink">Pushed to Schedule!</p>
+          <p className="text-sm text-muted">The Scheduler has been notified to assign installers.</p>
           <Btn variant="primary" size="sm" onClick={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
             OK
           </Btn>
         </div>
       </Modal>
-
-      {showSendBackModal && (
-        <SendBackModal
-          client={watch('client') || job.client}
-          lang={lang}
-          onConfirm={handleSendBackFromDetail}
-          onClose={() => setShowSendBackModal(false)}
-        />
-      )}
 
       <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <div className="space-y-4">

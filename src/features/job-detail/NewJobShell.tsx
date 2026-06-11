@@ -65,7 +65,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
     },
   })
 
-  async function saveJob(status: 'pending' | 'awaiting_approval') {
+  async function saveJob(mode: 'pending' | 'push_to_schedule') {
     const values = watch()
     setSaving(true)
     const supabase = createClient()
@@ -73,7 +73,9 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       const { data: job, error: insertError } = await (supabase
         .from('jobs')
         .insert({
-          status,
+          // Always insert as pending — the submit route flips it to
+          // scheduled and notifies schedulers when pushing.
+          status: 'pending',
           sales_poc_id:            values.sales_poc_id || userId,
           project_title:           values.project_title || null,
           date:                    values.date,
@@ -123,8 +125,9 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         })
       }
 
-      // Fire scheduler notification if sending for approval
-      if (status === 'awaiting_approval') {
+      // Push directly onto the schedule — sets status to scheduled and
+      // notifies all schedulers to assign installers.
+      if (mode === 'push_to_schedule') {
         await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -265,11 +268,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           </button>
           <button
             type="button"
-            onClick={() => saveJob('awaiting_approval')}
+            onClick={() => saveJob('push_to_schedule')}
             disabled={saving}
             className="px-4 py-2 rounded-lg bg-terracotta text-sm font-medium text-white hover:brightness-90 disabled:opacity-50 transition-colors"
           >
-            {saving ? 'Sending…' : 'Send for approval'}
+            {saving ? 'Pushing…' : 'Push to Schedule'}
           </button>
         </div>
       </div>
