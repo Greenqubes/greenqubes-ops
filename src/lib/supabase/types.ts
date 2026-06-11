@@ -4,7 +4,7 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin'
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
 export type MessageKind = 'text' | 'voice'
@@ -87,8 +87,18 @@ export interface Database {
       }
 
       job_assignees: {
-        Row:    { job_id: string; user_id: string }
-        Insert: Database['public']['Tables']['job_assignees']['Row']
+        Row: {
+          job_id:           string
+          user_id:          string
+          is_suggestion:    boolean
+          suggested_by:     string | null
+          is_sub_installer: boolean
+        }
+        Insert: Omit<Database['public']['Tables']['job_assignees']['Row'], 'is_suggestion' | 'suggested_by' | 'is_sub_installer'> & {
+          is_suggestion?:    boolean
+          suggested_by?:     string | null
+          is_sub_installer?: boolean
+        }
         Update: Partial<Database['public']['Tables']['job_assignees']['Row']>
         Relationships: []
       }
