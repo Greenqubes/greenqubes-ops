@@ -25,7 +25,7 @@ function dateLine(date: string, timeStart: string | null, timeEnd: string | null
 
 // ─── Job notifications ────────────────────────────────────────────────────────
 
-export function tplJobSubmittedForApproval(p: {
+export function tplNewJobCreated(p: {
   projectTitle: string | null
   jobClient:    string
   pocName:      string | null
@@ -33,39 +33,19 @@ export function tplJobSubmittedForApproval(p: {
   jobDate:      string
   timeStart:    string | null
   timeEnd:      string | null
+  location:     string
   salesName:    string
   jobUrl:       string
 }): string {
   return (
-    `📋 <b>Approval Requested</b>\n` +
+    `📋 <b>New Job — Assign Installer</b>\n` +
     (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
     `Client: ${p.jobClient}\n` +
     `${pocLines(p.pocName, p.pocPhone)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
-    `Submitted by: ${p.salesName}\n\n` +
-    `<a href="${p.jobUrl}">View in app →</a>`
-  )
-}
-
-export function tplJobApproved(p: {
-  projectTitle:  string | null
-  jobClient:     string
-  pocName:       string | null
-  pocPhone:      string | null
-  jobDate:       string
-  timeStart:     string | null
-  timeEnd:       string | null
-  schedulerName: string
-  jobUrl:        string
-}): string {
-  return (
-    `✅ <b>Job Approved</b>\n` +
-    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
-    `Client: ${p.jobClient}\n` +
-    `${pocLines(p.pocName, p.pocPhone)}\n` +
-    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
-    `Approved by: ${p.schedulerName}\n\n` +
-    `<a href="${p.jobUrl}">View in app →</a>`
+    `📍 ${p.location}\n` +
+    `Created by: ${p.salesName}\n\n` +
+    `<a href="${p.jobUrl}">View & assign installer →</a>`
   )
 }
 
@@ -87,31 +67,6 @@ export function tplJobAssigned(p: {
     `${pocLines(p.pocName, p.pocPhone)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
     `📍 ${p.location}\n\n` +
-    `<a href="${p.jobUrl}">View in app →</a>`
-  )
-}
-
-export function tplJobSentBack(p: {
-  projectTitle:  string | null
-  jobClient:     string
-  pocName:       string | null
-  pocPhone:      string | null
-  jobDate:       string
-  schedulerName: string
-  sentAt:        string
-  note?:         string
-  jobUrl:        string
-}): string {
-  const noteLine = p.note ? `Note: <i>"${p.note}"</i>\n` : ''
-  return (
-    `↩️ <b>Job Sent Back</b>\n` +
-    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
-    `Client: ${p.jobClient}\n` +
-    `${pocLines(p.pocName, p.pocPhone)}\n` +
-    `Date: ${formatDate(p.jobDate)}\n` +
-    `Sent back by: ${p.schedulerName}\n` +
-    `Sent at: ${p.sentAt}\n` +
-    noteLine + `\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
