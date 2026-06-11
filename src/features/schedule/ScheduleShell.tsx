@@ -133,10 +133,19 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     [filtered]
   )
 
-  const dates = useMemo(
-    () => Object.keys(jobsByDate).sort(),
-    [jobsByDate]
-  )
+  const dates = useMemo(() => {
+    const jobDates = Object.keys(jobsByDate).sort()
+    if (jobDates.length === 0) return [today]
+    const start = jobDates[0] < today ? jobDates[0] : today
+    const end   = jobDates[jobDates.length - 1] > today ? jobDates[jobDates.length - 1] : today
+    const result: string[] = []
+    let cur = start
+    while (cur <= end) {
+      result.push(cur)
+      cur = shiftDate(cur, 1)
+    }
+    return result
+  }, [jobsByDate, today])
 
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])
   const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate])
