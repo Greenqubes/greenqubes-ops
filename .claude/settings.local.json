@@ -83,7 +83,11 @@
       "Bash(node --env-file=.env.local --input-type=module -e ' *)",
       "Bash(node --use-system-ca --env-file=.env.local --input-type=module -e ' *)",
       "PowerShell(\\(Get-Command bash\\).Source)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(git submodule *)",
+      "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops\" status)",
+      "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops/vault\" restore .obsidian/workspace.json)",
+      "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops/vault\" status)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
