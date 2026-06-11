@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-06-05 (chore-jobs — workflow v2 design + 25-task implementation plan)_
+_Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip + feat-workflow-v2 branch)_
 
 ---
 
@@ -107,6 +107,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | fix-rag [Nic] | RAG + Knowledge Base Fixes | Voyage AI input_type fix (query/document); kb_chunks match threshold tuned to 0.35 for tabular price data; filename prepended to chunk embeddings for supplier name searchability; table rendering added to MarkdownMessage; supplier-template.md + DAMA.md + Jacky Printing pricelist added to vault; obsidian-sync workflow documented | [fix/fix-assistant-20260603-1-note.md](fix/fix-assistant-20260603-1-note.md) |
 | infra-config [Nic] | Cron Schedule + R2 Folder Design | Overdue cron moved from 6pm SGT to 8am SGT (vercel.json); plan.md session note link discrepancy fixed; R2 human-readable folder pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`; 4 sub-tasks noted in checklist for next session | [infra/infra-config-20260605-1-note.md](infra/infra-config-20260605-1-note.md) |
 | chore-jobs [Nic] | Workflow V2 — Design + Plan | Full workflow redesign: 7 roles (+ designer, coordinator, production), approval workflow removed (sales pushes directly to scheduled), FCFS board replaces approvals tab, installer suggestion (yellow) vs formal assignment (green), external installer temp links (48hr), sub-installer relationship, task list bucket, external installer POC bucket (multi-team placeholder card). Branch `feat-workflow-v2` created. 25-task implementation plan written across 4 phases. No code written this session. | [chore/chore-jobs-20260605-1-note.md](chore/chore-jobs-20260605-1-note.md) |
+| fix-schedule [Nic] | Vercel 404 Fix + Schedule Date Strip | Moved Workflow V2 mockups from `docs/superpowers/mockups/` → `public/mockups/workflow-v2/` so Vercel serves them as static assets (Next.js only serves `public/`). Schedule list view date strip now shows all dates in the full range (earliest job → latest job), not just dates with assigned jobs. `feat-workflow-v2` branch merged up to date with dev and pushed to remote — Vercel generates a separate preview for it. | [fix/fix-schedule-20260611-1-note.md](fix/fix-schedule-20260611-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

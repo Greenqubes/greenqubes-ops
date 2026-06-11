@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-05 (chore-jobs — workflow v2 design + plan)_
+_Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip + feat-workflow-v2 branch)_
 
 ---
 
@@ -91,6 +91,12 @@ _Last updated: 2026-06-05 (chore-jobs — workflow v2 design + plan)_
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-06-11, fix-schedule)
+
+- [x] **Mockup 404 fixed** — Workflow V2 HTML mockups moved to `public/mockups/workflow-v2/`; now accessible on Vercel preview at `/mockups/workflow-v2/index.html`.
+- [x] **Schedule date strip shows all dates** — list view carousel now shows every day from earliest job to latest (filling gaps between jobs), not just days with assigned jobs.
+- [x] **feat-workflow-v2 branch pushed** — merged up to date with dev and pushed to remote; Vercel generates a separate preview URL for this branch automatically.
 
 ## Done This Session ✓ (2026-06-05, infra-config)
 
