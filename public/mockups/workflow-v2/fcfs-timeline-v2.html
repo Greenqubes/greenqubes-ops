@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCFS — Day Timeline v4</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 48px; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+  .callout { background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 16px; max-width: 980px; line-height: 1.6; }
+
+  /* PC frame */
+  .pc-frame { background: #F4F1EC; border: 2px solid #1A1815; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.12); width: 100%; max-width: 980px; display: flex; flex-direction: column; height: 640px; }
+  .pc-titlebar { background: #1A1815; height: 28px; display: flex; align-items: center; padding: 0 12px; gap: 6px; flex-shrink: 0; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #B5523D; } .dot.y { background: #C8893D; } .dot.g { background: #3F7D5C; }
+  .company-bar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .company-name { font-size: 14px; font-weight: 700; }
+  .pre-alpha-chip { font-size: 10px; background: #C8893D; color: white; padding: 2px 7px; border-radius: 4px; font-weight: 600; margin-left: 8px; }
+  .company-right { display: flex; align-items: center; gap: 12px; }
+  .bell-btn { width: 28px; height: 28px; background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .bell-dot { width: 6px; height: 6px; background: #C8893D; border-radius: 50%; position: absolute; top: 4px; right: 4px; border: 1px solid #fff; }
+  .user-menu { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 3px 8px; border-radius: 8px; border: 1px solid #E8E2D7; background: #F4F1EC; }
+  .user-avatar { width: 22px; height: 22px; background: #3F7D5C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; font-weight: 700; }
+  .user-name-pc { font-size: 12px; font-weight: 600; }
+
+  /* Toolbar — two rows on PC */
+  .pc-toolbar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 7px 20px 6px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .toolbar-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .toolbar-row.between { justify-content: space-between; }
+  .page-title-pc { font-size: 15px; font-weight: 700; }
+  .nav-btn { background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 6px; padding: 4px 9px; font-size: 12px; color: #5C564E; cursor: pointer; display: flex; align-items: center; gap: 3px; }
+  .week-label-pc { font-size: 13px; font-weight: 600; }
+  .today-btn { background: #fff; border: 1px solid #E8E2D7; border-radius: 6px; padding: 4px 9px; font-size: 12px; color: #5C564E; cursor: pointer; }
+  .clash-chip { background: #fdecea; border: 1px solid #f5c6c0; border-radius: 6px; padding: 4px 9px; font-size: 12px; color: #B5523D; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+  /* Toggle groups */
+  .toggle-group { display: flex; background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 8px; overflow: hidden; }
+  .tg-btn { font-size: 11px; font-weight: 600; padding: 4px 11px; color: #8B8478; cursor: pointer; border-right: 1px solid #E8E2D7; white-space: nowrap; user-select: none; }
+  .tg-btn:last-child { border-right: none; }
+  .tg-btn.active { background: #1A1815; color: #fff; }
+  .tr-group .tg-btn.active { background: #3D6FB5; color: #fff; }
+
+  .toolbar-divider { width: 1px; height: 20px; background: #E8E2D7; flex-shrink: 0; }
+
+  /* Gantt scaffold */
+  .pc-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .gantt-wrap { flex: 1; overflow-x: auto; overflow-y: auto; }
+  .gantt-inner { display: flex; flex-direction: column; }
+
+  /* Header */
+  .gantt-header { display: flex; background: #fff; border-bottom: 2px solid #D8D2C7; position: sticky; top: 0; z-index: 10; }
+  .gantt-job-col { width: 170px; min-width: 170px; flex-shrink: 0; border-right: 1px solid #E8E2D7; padding: 5px 12px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8B8478; display: flex; align-items: center; }
+  .time-header-area { flex: 1; display: flex; }
+  .period-marker { width: 40px; min-width: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #E8E2D7; border-right: 2px solid #B5523D; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; color: #B5523D; }
+  .period-marker.pm-m { border-right-color: #3D6FB5; color: #3D6FB5; }
+  .period-marker.end-m { border-right: none; border-left: 2px solid #B5523D; }
+  .period-marker.simple-start { border-right-color: #8B8478; color: #8B8478; }
+  .period-marker.simple-end   { border-right: none; border-left-color: #8B8478; color: #8B8478; }
+  .period-slots { flex: 1; display: grid; grid-template-columns: repeat(var(--slot-count, 48), 1fr); }
+  .ts { border-right: 1px solid #F4F1EC; padding: 2px 0 2px 2px; display: flex; flex-direction: column; justify-content: flex-end; min-height: 28px; }
+  .ts.major { border-right-color: #D8D2C7; background: #fafaf8; }
+  .ts-label { font-size: 9px; color: #C8C2B8; white-space: nowrap; overflow: hidden; line-height: 1; }
+  .ts-label.major { color: #5C564E; font-weight: 700; font-size: 10px; }
+  .ts-label.half  { color: #8B8478; font-size: 8px; }
+
+  /* Data rows */
+  .gantt-row { display: flex; border-bottom: 1px solid #E8E2D7; }
+  .gantt-row:last-child { border-bottom: none; }
+  .gantt-job { width: 170px; min-width: 170px; flex-shrink: 0; border-right: 1px solid #E8E2D7; padding: 0 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #fff; }
+  .job-rank { font-size: 10px; font-weight: 800; color: #8B8478; }
+  .job-name { font-size: 12px; font-weight: 600; color: #1A1815; line-height: 1.3; }
+  .job-name.clash-job { color: #B5523D; }
+  .job-rank.sug-rank  { color: #C8893D; }
+  .gantt-time-area { flex: 1; position: relative; display: flex; }
+  .period-cells { flex: 1; display: grid; grid-template-columns: repeat(var(--slot-count, 48), 1fr); }
+  .gc { border-right: 1px solid #F4F1EC; }
+  .gc.major { border-right-color: #D8D2C7; }
+  .period-bg     { width: 40px; min-width: 40px; flex-shrink: 0; background: rgba(0,0,0,0.025); border-right: 2px solid #D4CFC8; }
+  .period-bg.end { border-right: none; border-left: 2px solid #D4CFC8; }
+
+  /* ── Installer bars ─────────────────────────────────────────────── */
+  .inst-bar {
+    position: absolute; height: 22px;
+    border-radius: 4px; display: flex; align-items: center;
+    padding: 0 7px; gap: 5px; cursor: pointer; overflow: hidden;
+    border: 1px solid transparent; z-index: 2;
+  }
+  /* Blue = Flexible window (matches blue button in job form) */
+  .inst-bar.flex         { background: #3D6FB5; border-color: #2d5a9e; }
+  /* Red = Strict on time (matches red button in job form) */
+  .inst-bar.strict       { background: #B5523D; border-color: #9a4433; }
+  /* Brighter red = Strict + hard clash with another strict job */
+  .inst-bar.strict-clash { background: #C8302A; border-color: #9e1a12; box-shadow: 0 0 0 1px #C8302A; }
+  /* Blue + amber dashed border = Flexible window overlaps a strict job (soft warning) */
+  .inst-bar.flex-warn    { background: #3D6FB5; border: 2px dashed #C8893D; }
+  /* Amber = Sales suggestion, not yet formally confirmed */
+  .inst-bar.sug          { background: #C8893D; border-color: #a87030; opacity: 0.9; }
+  .ib-name { font-size: 10px; font-weight: 700; color: #fff; white-space: nowrap; flex-shrink: 0; }
+  .ib-time { font-size: 8px; color: rgba(255,255,255,0.75); white-space: nowrap; margin-left: auto; padding-left: 5px; flex-shrink: 0; }
+
+  /* Legend */
+  .gantt-legend { display: flex; align-items: center; gap: 16px; padding: 6px 20px; background: #F4F1EC; border-top: 1px solid #E8E2D7; flex-wrap: wrap; flex-shrink: 0; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #5C564E; }
+  .legend-swatch { width: 24px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .legend-swatch.flex-warn-sw { background: #3D6FB5; border: 2px dashed #C8893D; }
+  .legend-right { margin-left: auto; font-size: 10px; color: #8B8478; display: flex; align-items: center; gap: 6px; }
+
+  /* Bottom nav */
+  .bottom-nav-pc { background: #fff; border-top: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .bn-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 32px; font-size: 11px; color: #8B8478; cursor: pointer; border-right: 1px solid #F4F1EC; min-width: 110px; }
+  .bn-item:last-child { border-right: none; }
+  .bn-item.active { color: #B5523D; }
+
+  /* Mobile */
+  .phone { width: 360px; background: #F4F1EC; border-radius: 28px; border: 2px solid #1A1815; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.15); margin-top: 16px; }
+  .mob-company-bar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .mob-company-name { font-size: 13px; font-weight: 700; }
+  .mob-right { display: flex; align-items: center; gap: 10px; }
+  .mob-bell-wrap { position: relative; }
+  .mob-bell-dot { width: 5px; height: 5px; background: #C8893D; border-radius: 50%; position: absolute; top: 0; right: 0; border: 1px solid #fff; }
+  .mob-avatar { width: 26px; height: 26px; background: #3F7D5C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 700; }
+  .mob-toolbar { padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #E8E2D7; }
+  .mob-title { font-size: 15px; font-weight: 700; }
+  .mob-nav-row { display: flex; align-items: center; gap: 5px; }
+  .mob-nav-btn { background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 5px; padding: 4px 10px; font-size: 13px; color: #5C564E; font-weight: 500; }
+  .mob-today { font-size: 10px; color: #5C564E; background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 5px; padding: 3px 7px; }
+  .mob-view-row { display: flex; margin: 6px 16px 2px; background: #E8E2D7; border-radius: 8px; padding: 3px; gap: 2px; overflow-x: auto; }
+  .mvt { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 4px 9px; border-radius: 5px; color: #8B8478; cursor: pointer; }
+  .mvt.active { background: #fff; color: #1A1815; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .mob-time-row { display: flex; margin: 0 16px 5px; background: #E8E2D7; border-radius: 8px; padding: 3px; gap: 2px; overflow-x: auto; }
+  .mtr { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 5px; color: #8B8478; cursor: pointer; }
+  .mtr.active { background: #3D6FB5; color: #fff; }
+  .mob-clash-bar { margin: 0 16px 5px; background: #fdecea; border: 1px solid #f5c6c0; border-radius: 7px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .mob-clash-text { font-size: 11px; color: #B5523D; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .mob-clash-link { font-size: 10px; color: #B5523D; text-decoration: underline; }
+  .mob-gantt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 0; }
+  .mob-bottom-nav { background: #fff; border-top: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: space-around; padding: 8px 0 12px; }
+  .mob-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #8B8478; min-width: 56px; }
+  .mob-nav-item.active { color: #B5523D; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>FCFS Day Timeline — Strict / Flexible punctuality bars</h1>
+<div class="callout">
+  <strong>Bar colours match the job form punctuality buttons:</strong>
+  <strong style="color:#3D6FB5;">Blue</strong> = Flexible window (installer can arrive anytime in range) ·
+  <strong style="color:#B5523D;">Red</strong> = Strict on time (fixed slot) ·
+  <strong style="color:#C8302A;">Bright red</strong> = Strict vs Strict hard clash — must resolve ·
+  <strong>Blue + amber dashed</strong> = Flexible window overlaps a strict slot — soft warning only ·
+  <strong style="color:#C8893D;">Amber</strong> = Sales suggestion, not yet confirmed.
+  <br><br>
+  <strong>Clash rules:</strong> Strict + Strict overlap = hard clash (red, coordinator must fix). Flexible + Flexible overlap = no clash (coordinator staggers them). Flexible overlapping Strict = soft warning (installer might miss the strict time).
+</div>
+
+<!-- ===== PC VIEW ===== -->
+<div class="section">
+  <h2>PC View</h2>
+  <div class="pc-frame">
+    <div class="pc-titlebar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+
+    <div class="company-bar">
+      <div style="display:flex;align-items:center;">
+        <span class="company-name">GreenQubes</span>
+        <span class="pre-alpha-chip">Pre-Alpha</span>
+      </div>
+      <div class="company-right">
+        <div class="bell-btn">
+          <div class="bell-dot"></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-menu">
+          <div class="user-avatar">SC</div>
+          <span class="user-name-pc">Scheduler</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="pc-toolbar">
+      <div class="toolbar-row">
+        <span class="page-title-pc">FCFS Board</span>
+        <button class="nav-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Prev
+        </button>
+        <span class="week-label-pc">Wednesday, 10 June 2026</span>
+        <button class="nav-btn">Next
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="today-btn">Today</button>
+        <div class="clash-chip">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B5523D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Ravi — 1 clash
+        </div>
+      </div>
+      <div class="toolbar-row between">
+        <div class="toggle-group" id="pcViewToggle">
+          <div class="tg-btn active">Day</div>
+          <div class="tg-btn">Week</div>
+          <div class="tg-btn">Month</div>
+          <div class="tg-btn">By Project</div>
+          <div class="tg-btn">By Installer</div>
+        </div>
+        <div class="toggle-group tr-group" id="pcTimeRange">
+          <div class="tg-btn" data-range="am">AM</div>
+          <div class="tg-btn" data-range="pm">PM</div>
+          <div class="tg-btn active" data-range="ampm">AM/PM</div>
+          <div class="tg-btn" data-range="biz">9am–6pm</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pc-content">
+      <div class="gantt-wrap" id="pcGanttWrap">
+        <div class="gantt-inner" id="pcGanttInner"></div>
+      </div>
+      <div class="gantt-legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#3D6FB5;border:1px solid #2d5a9e;"></div>Flexible window</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#B5523D;border:1px solid #9a4433;"></div>Strict on time</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#C8302A;border:1px solid #9e1a12;"></div>Strict clash — fix required</div>
+        <div class="legend-item"><div class="legend-swatch flex-warn-sw"></div>Flexible overlaps strict — warning</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#C8893D;opacity:0.9;"></div>Suggestion (unconfirmed)</div>
+        <div class="legend-right" id="pcLegendRight">Wed 10 Jun 2026 · AM/PM view · 15-min grid</div>
+      </div>
+    </div>
+
+    <div class="bottom-nav-pc">
+      <div class="bn-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Schedule
+      </div>
+      <div class="bn-item active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B5523D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        FCFS Board
+      </div>
+      <div class="bn-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Assistant
+      </div>
+    </div>
+  </div>
+  <div class="screen-label">
+    Vivienne WW + ION Orchard: Ravi is strict on both — bright red clash. Capitol Build: Sarah flexible 11am–6pm overlapping her strict Raffles 2pm slot — blue+amber dashed warning. MBS Lobby: Kai flexible, no clash.
+  </div>
+</div>
+
+<!-- ===== MOBILE VIEW ===== -->
+<div class="section">
+  <h2>Mobile View</h2>
+  <div class="phone">
+    <div class="mob-company-bar">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="mob-company-name">GreenQubes</span>
+        <span style="font-size:9px;background:#C8893D;color:white;padding:1px 5px;border-radius:3px;font-weight:700;">Pre-Alpha</span>
+      </div>
+      <div class="mob-right">
+        <div class="mob-bell-wrap">
+          <div class="mob-bell-dot"></div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="mob-avatar">SC</div>
+      </div>
+    </div>
+    <div class="mob-toolbar">
+      <span class="mob-title">FCFS Board</span>
+      <div class="mob-nav-row">
+        <div class="mob-nav-btn">‹</div>
+        <div class="mob-nav-btn">›</div>
+        <div class="mob-today">Today</div>
+      </div>
+    </div>
+    <div class="mob-view-row">
+      <div class="mvt active">Day</div>
+      <div class="mvt">Week</div>
+      <div class="mvt">Month</div>
+      <div class="mvt">Project</div>
+      <div class="mvt">Installer</div>
+    </div>
+    <div class="mob-time-row">
+      <div class="mtr">AM</div>
+      <div class="mtr">PM</div>
+      <div class="mtr active">AM/PM</div>
+      <div class="mtr">9am–6pm</div>
+    </div>
+    <div class="mob-clash-bar">
+      <span class="mob-clash-text">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B5523D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Ravi — 1 clash
+      </span>
+      <span class="mob-clash-link">View</span>
+    </div>
+    <div class="mob-gantt-wrap" id="mobGanttWrap">
+      <div style="min-width:1600px;display:flex;flex-direction:column;" id="mobGanttInner"></div>
+    </div>
+    <div style="text-align:center;font-size:9px;color:#8B8478;padding:3px 0;">swipe left / right to scroll</div>
+    <div class="mob-bottom-nav">
+      <div class="mob-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Schedule
+      </div>
+      <div class="mob-nav-item active">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B5523D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        FCFS
+      </div>
+      <div class="mob-nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Assistant
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Job data ─────────────────────────────────────────────────────
+// Bar types:
+//   flex         = blue  = flexible window, no issue
+//   strict       = red   = strict on time, no clash
+//   strict-clash = bright red = strict, double-booked with another strict
+//   flex-warn    = blue + amber dashed = flexible window overlapping a strict slot
+//   sug          = amber = sales suggestion, not confirmed
+const JOBS = [
+  {
+    id:'viv', rank:'#1', name:'Vivienne WW', nameClass:'clash-job',
+    installers:[
+      { startH:9,  startM:0,  endH:13, endM:0,  name:'Ravi',   type:'strict-clash' },
+      { startH:9,  startM:0,  endH:13, endM:0,  name:'Marcus', type:'strict'       },
+    ]
+  },
+  {
+    id:'mbs', rank:'#2', name:'MBS Lobby', nameClass:'',
+    installers:[
+      { startH:8,  startM:0,  endH:18, endM:0,  name:'Kai',    type:'flex'         },
+    ]
+  },
+  {
+    id:'ion', rank:'#3', name:'ION Orchard', nameClass:'clash-job',
+    installers:[
+      { startH:10, startM:0,  endH:14, endM:0,  name:'Ravi',   type:'strict-clash' },
+    ]
+  },
+  {
+    // Sarah has a FLEX window 11am-6pm on Capitol AND a STRICT slot 2pm on Raffles
+    // → her Capitol bar gets flex-warn because her window overlaps her strict Raffles time
+    id:'cap', rank:'#4', name:'Capitol Build', nameClass:'',
+    installers:[
+      { startH:11, startM:0,  endH:18, endM:0,  name:'Sarah',  type:'flex-warn'    },
+    ]
+  },
+  {
+    id:'raf', rank:'#5', name:'Raffles Hotel', nameClass:'',
+    installers:[
+      { startH:14, startM:0,  endH:17, endM:0,  name:'Sarah',  type:'strict'       },
+      { startH:14, startM:0,  endH:17, endM:0,  name:'Kai',    type:'flex'         },
+    ]
+  },
+  {
+    id:'orc', rank:'#6', name:'Orchard Ctr', nameClass:'',
+    rankClass:'sug-rank',
+    installers:[
+      { startH:11, startM:0,  endH:15, endM:0,  name:'Ali',    type:'sug'          },
+    ]
+  },
+];
+
+// ─── View range config ───────────────────────────────────────────
+const RANGES = {
+  am:   { startH:0,  endH:12, label:'AM',       scrollH:8,  hasMarkers:false },
+  pm:   { startH:12, endH:24, label:'PM',        scrollH:13, hasMarkers:false },
+  ampm: { startH:0,  endH:24, label:'AM/PM',     scrollH:8,  hasMarkers:true  },
+  biz:  { startH:9,  endH:18, label:'9am–6pm',   scrollH:9,  hasMarkers:false },
+};
+
+let currentRange = localStorage.getItem('fcfs-time-range') || 'ampm';
+
+// ─── Helpers ─────────────────────────────────────────────────────
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls)  e.className = cls;
+  if (text !== undefined) e.textContent = String(text);
+  return e;
+}
+function fmtTime(h, m) {
+  const p = h < 12 ? 'am' : 'pm';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return h12 + (m ? ':' + String(m).padStart(2,'0') : '') + p;
+}
+function barStyle(inst, cfg) {
+  const rangeStartMin = cfg.startH * 60;
+  const totalMin      = (cfg.endH - cfg.startH) * 60;
+  const barStart = Math.max(inst.startH * 60 + inst.startM, rangeStartMin);
+  const barEnd   = Math.min(inst.endH   * 60 + inst.endM,   cfg.endH * 60);
+  if (barEnd <= barStart) return null;
+  return {
+    left:  ((barStart - rangeStartMin) / totalMin * 100).toFixed(3) + '%',
+    width: ((barEnd - barStart)        / totalMin * 100).toFixed(3) + '%',
+  };
+}
+
+// ─── Build time header ────────────────────────────────────────────
+function buildHeader(container, cfg) {
+  const header = el('div','gantt-header');
+  header.appendChild(el('div','gantt-job-col','Job / Project'));
+  const area = el('div','time-header-area');
+  if (cfg.hasMarkers) {
+    area.appendChild(makeMarker('AM','period-marker'));
+    area.appendChild(makeSlotRow(0, 12, 48));
+    area.appendChild(makeMarker('PM','period-marker pm-m'));
+    area.appendChild(makeSlotRow(12, 24, 48));
+    area.appendChild(makeMarker('AM','period-marker end-m'));
+  } else {
+    const startLabel = cfg.startH === 0 ? '12am' : fmtTime(cfg.startH, 0);
+    const endLabel   = cfg.endH === 24 ? '12am' : fmtTime(cfg.endH, 0);
+    area.appendChild(makeMarker(startLabel, 'period-marker simple-start'));
+    area.appendChild(makeSlotRow(cfg.startH, cfg.endH, (cfg.endH - cfg.startH) * 4));
+    area.appendChild(makeMarker(endLabel, 'period-marker simple-end'));
+  }
+  header.appendChild(area);
+  container.appendChild(header);
+}
+function makeMarker(text, cls) { return el('div', cls, text); }
+function makeSlotRow(startH, endH, count) {
+  const wrap = el('div','period-slots');
+  wrap.style.setProperty('--slot-count', count);
+  for (let i = 0; i < count; i++) {
+    const h = startH + Math.floor(i / 4);
+    const m = (i % 4) * 15;
+    const isHour = m === 0, isHalf = m === 30;
+    const cell = el('div','ts' + (isHour ? ' major' : ''));
+    const lbl  = el('span','ts-label' + (isHour ? ' major' : isHalf ? ' half' : ''));
+    if (isHour)      lbl.textContent = (h % 12 === 0 ? 12 : h % 12).toString();
+    else if (isHalf) lbl.textContent = ':30';
+    else if (m===15) lbl.textContent = ':15';
+    cell.appendChild(lbl);
+    wrap.appendChild(cell);
+  }
+  return wrap;
+}
+
+// ─── Build a single job row ───────────────────────────────────────
+function buildJobRow(job, cfg) {
+  const BAR_H = 22, BAR_GAP = 3, PAD_TOP = 4, PAD_BOT = 4;
+  const count = job.installers.length;
+  const rowH  = PAD_TOP + count * BAR_H + (count - 1) * BAR_GAP + PAD_BOT;
+
+  const row = el('div','gantt-row');
+  row.style.minHeight = rowH + 'px';
+
+  const jobCell = el('div','gantt-job');
+  jobCell.append(
+    el('span','job-rank' + (job.rankClass ? ' ' + job.rankClass : ''), job.rank),
+    el('span','job-name' + (job.nameClass ? ' ' + job.nameClass : ''), job.name),
+  );
+  row.appendChild(jobCell);
+
+  const timeArea = el('div','gantt-time-area');
+  if (cfg.hasMarkers) {
+    timeArea.appendChild(makeCellsBg());
+    timeArea.appendChild(makeCellsGrid(48));
+    timeArea.appendChild(makeCellsBg());
+    timeArea.appendChild(makeCellsGrid(48));
+    timeArea.appendChild(makeCellsBg('end'));
+  } else {
+    const slots = (cfg.endH - cfg.startH) * 4;
+    timeArea.appendChild(makeCellsBg());
+    timeArea.appendChild(makeCellsGrid(slots));
+    timeArea.appendChild(makeCellsBg('end'));
+  }
+
+  job.installers.forEach((inst, idx) => {
+    const style = barStyle(inst, cfg);
+    if (!style) return;
+    const bar = el('div','inst-bar ' + inst.type);
+    bar.style.left   = style.left;
+    bar.style.width  = style.width;
+    bar.style.top    = (PAD_TOP + idx * (BAR_H + BAR_GAP)) + 'px';
+    bar.style.height = BAR_H + 'px';
+    bar.appendChild(el('span','ib-name', inst.name));
+    bar.appendChild(el('span','ib-time', fmtTime(inst.startH, inst.startM) + '–' + fmtTime(inst.endH, inst.endM)));
+    timeArea.appendChild(bar);
+  });
+
+  row.appendChild(timeArea);
+  return row;
+}
+function makeCellsBg(variant) { return el('div','period-bg' + (variant === 'end' ? ' end' : '')); }
+function makeCellsGrid(count) {
+  const wrap = el('div','period-cells');
+  wrap.style.setProperty('--slot-count', count);
+  for (let i = 0; i < count; i++) wrap.appendChild(el('div','gc' + (i % 4 === 3 ? ' major' : '')));
+  return wrap;
+}
+
+// ─── Render full gantt ────────────────────────────────────────────
+function renderGantt(wrapperId, innerId, cfg) {
+  const inner = document.getElementById(innerId);
+  inner.innerHTML = '';
+  const slots = (cfg.endH - cfg.startH) * 4;
+  const markers = cfg.hasMarkers ? 3 : 2;
+  inner.style.minWidth = (170 + markers * 40 + slots * 22) + 'px';
+  buildHeader(inner, cfg);
+  JOBS.forEach(job => inner.appendChild(buildJobRow(job, cfg)));
+}
+
+function scrollToHour(h, cfg) {
+  setTimeout(() => {
+    const wrap  = document.getElementById('pcGanttWrap');
+    const inner = document.getElementById('pcGanttInner');
+    if (!wrap || !inner) return;
+    const jobColW    = 170;
+    const markers    = cfg.hasMarkers ? 3 : 2;
+    const scrollable = inner.scrollWidth - jobColW - markers * 40;
+    const fraction   = (h - cfg.startH) / (cfg.endH - cfg.startH);
+    wrap.scrollLeft  = jobColW + markers * 20 + scrollable * fraction - 60;
+  }, 50);
+}
+
+function applyRange(key) {
+  currentRange = key;
+  localStorage.setItem('fcfs-time-range', key);
+  const cfg = RANGES[key];
+  document.querySelectorAll('#pcTimeRange .tg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.range === key);
+  });
+  const lr = document.getElementById('pcLegendRight');
+  if (lr) lr.textContent = 'Wed 10 Jun 2026 · ' + cfg.label + ' view · 15-min grid';
+  renderGantt('pcGanttWrap','pcGanttInner', cfg);
+  scrollToHour(cfg.scrollH, cfg);
+}
+
+document.querySelectorAll('#pcTimeRange .tg-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyRange(btn.dataset.range));
+});
+
+applyRange(currentRange);
+
+renderGantt('mobGanttWrap','mobGanttInner', RANGES['ampm']);
+setTimeout(() => {
+  const w = document.getElementById('mobGanttWrap');
+  const i = document.getElementById('mobGanttInner');
+  if (w && i) {
+    const scrollable = i.scrollWidth - 170 - 120;
+    w.scrollLeft = 170 + 60 + scrollable * (480/1440) - 40;
+  }
+}, 80);
+</script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task List Section — Job Form</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 52px; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+  .callout { background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 24px; max-width: 860px; line-height: 1.6; }
+  .row-flex { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Form card shell */
+  .form-card {
+    width: 360px; background: #fff;
+    border: 1.5px solid #D8D2C7; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  }
+  .card-header {
+    padding: 12px 16px; border-bottom: 1px solid #E8E2D7;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title { font-size: 13px; font-weight: 700; color: #1A1815; display: flex; align-items: center; gap: 7px; }
+  .optional-badge { font-size: 10px; font-weight: 600; color: #8B8478; background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 4px; padding: 1px 6px; }
+  .card-toggle { font-size: 11px; color: #3D6FB5; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+  /* Empty state */
+  .empty-state {
+    padding: 28px 20px; display: flex; flex-direction: column;
+    align-items: center; gap: 10px; text-align: center;
+  }
+  .empty-icon { width: 44px; height: 44px; background: #F4F1EC; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .empty-title { font-size: 13px; font-weight: 600; color: #1A1815; }
+  .empty-sub   { font-size: 11px; color: #8B8478; line-height: 1.6; max-width: 240px; }
+  .add-first-btn {
+    margin-top: 4px; background: #F4F1EC; border: 1.5px dashed #C8C2B8;
+    border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600;
+    color: #5C564E; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Task items */
+  .task-list { padding: 8px 0; }
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 16px; border-bottom: 1px solid #F4F1EC; }
+  .task-item:last-child { border-bottom: none; }
+
+  /* drag handle */
+  .drag-handle { width: 14px; flex-shrink: 0; margin-top: 3px; display: flex; flex-direction: column; gap: 2.5px; cursor: grab; padding-top: 1px; }
+  .drag-dot-row { display: flex; gap: 2.5px; }
+  .drag-dot { width: 3px; height: 3px; background: #C8C2B8; border-radius: 50%; }
+
+  /* checkbox — editable (hollow) */
+  .cb-edit { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #D8D2C7; flex-shrink: 0; margin-top: 1px; background: #fff; }
+  /* checkbox — ticked */
+  .cb-done { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #3F7D5C; background: #3F7D5C; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+  /* checkbox — sub-installer interactive */
+  .cb-interactive { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #D8D2C7; flex-shrink: 0; margin-top: 1px; background: #fff; cursor: pointer; }
+  .cb-interactive.checked { background: #3F7D5C; border-color: #3F7D5C; display: flex; align-items: center; justify-content: center; }
+
+  .task-text { flex: 1; font-size: 13px; color: #1A1815; line-height: 1.5; padding-top: 1px; }
+  .task-text.done { color: #8B8478; text-decoration: line-through; }
+  .task-text-input { flex: 1; font-size: 13px; color: #1A1815; background: transparent; border: none; outline: none; line-height: 1.5; padding: 0; }
+  .task-del { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; margin-top: 1px; }
+  .task-del:hover { background: #FCEAE7; }
+
+  /* Add task row */
+  .add-task-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px 12px; border-top: 1px solid #F4F1EC; }
+  .add-task-input { flex: 1; background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 7px; padding: 7px 10px; font-size: 12px; color: #8B8478; }
+  .add-task-btn { width: 28px; height: 28px; background: #3D6FB5; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+
+  /* Progress bar (sub-installer view) */
+  .progress-strip { padding: 10px 16px 6px; border-bottom: 1px solid #F4F1EC; }
+  .progress-label { font-size: 11px; color: #8B8478; margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .progress-bar-bg { height: 6px; background: #E8E2D7; border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: #3F7D5C; border-radius: 3px; transition: width 0.3s; }
+
+  /* Role tag */
+  .role-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-bottom: 8px; }
+  .role-tag.sales { background: #E8F0FC; color: #3D6FB5; }
+  .role-tag.coord { background: #FEF3E7; color: #C8893D; }
+  .role-tag.sub   { background: #E8F4EE; color: #3F7D5C; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>Task List — Job Form Section</h1>
+<div class="subtitle">Optional section · editable by sales and coordinator · consumed by sub-installers on site</div>
+
+<div class="callout">
+  <strong>Optional:</strong> If no tasks are added, this section collapses and shows an "Add task list" button. Tasks are drag-reorderable. Sub-installers see the same list as interactive checkboxes with a progress bar — they tick off each step as they go.
+</div>
+
+<!-- ══ STATE 1 — Collapsed / empty ═══════════════════════════ -->
+<div class="section">
+  <h2>State 1 — Empty (section collapsed)</h2>
+  <div class="row-flex">
+    <div class="form-card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Task List
+          <span class="optional-badge">Optional</span>
+        </div>
+      </div>
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div class="empty-title">No tasks yet</div>
+        <div class="empty-sub">Add step-by-step tasks for sub-installers to follow on site. Leave empty if not needed.</div>
+        <div class="add-first-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add task list
+        </div>
+      </div>
+    </div>
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Section is visible in the form but takes up minimal space when empty. Sales or coordinator can expand it at any time by tapping <strong>Add task list</strong>.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 1 — No tasks added, section collapsed to minimal footprint</div>
+</div>
+
+<!-- ══ STATE 2 — Sales / Coordinator editing ═════════════════ -->
+<div class="section">
+  <h2>State 2 — Editing (Sales or Coordinator view)</h2>
+  <div class="row-flex">
+
+    <!-- Sales -->
+    <div>
+      <div class="role-tag sales">Sales</div>
+      <div class="form-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Task List
+            <span class="optional-badge">Optional</span>
+          </div>
+          <div class="card-toggle">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3D6FB5" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Clear all
+          </div>
+        </div>
+        <div class="task-list">
+          <div class="task-item">
+            <div class="drag-handle"><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div></div>
+            <div class="cb-edit"></div>
+            <div class="task-text">Unbox and inspect all display units</div>
+            <div class="task-del"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          <div class="task-item">
+            <div class="drag-handle"><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div></div>
+            <div class="cb-edit"></div>
+            <div class="task-text">Mount bracket on Level 3 window frame</div>
+            <div class="task-del"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          <div class="task-item">
+            <div class="drag-handle"><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div></div>
+            <div class="cb-edit"></div>
+            <div class="task-text">Attach display units to bracket</div>
+            <div class="task-del"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          <div class="task-item">
+            <div class="drag-handle"><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div></div>
+            <div class="cb-edit"></div>
+            <div class="task-text">Cable management and tidy up</div>
+            <div class="task-del"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+          <div class="task-item">
+            <div class="drag-handle"><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div><div class="drag-dot-row"><div class="drag-dot"></div><div class="drag-dot"></div></div></div>
+            <div class="cb-edit"></div>
+            <div class="task-text">Photo sign-off with store manager</div>
+            <div class="task-del"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#C8C2B8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          </div>
+        </div>
+        <div class="add-task-row">
+          <div class="add-task-input">Add a task…</div>
+          <div class="add-task-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:28px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Sales and coordinator see the same editable view — drag handles to reorder, X to delete, input at the bottom to add more.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Checkboxes are decorative in edit mode — they show how the list will look to the sub-installer, but you can't tick them here.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 2 — Editable task list (Sales and Coordinator see identical view)</div>
+</div>
+
+<!-- ══ STATE 3 — Sub-installer view (on job link page) ═══════ -->
+<div class="section">
+  <h2>State 3 — Sub-installer view (on their job link page)</h2>
+  <div class="row-flex">
+
+    <!-- In progress -->
+    <div>
+      <div class="role-tag sub">Sub-installer — in progress</div>
+      <div class="form-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Tasks
+          </div>
+        </div>
+        <div class="progress-strip">
+          <div class="progress-label"><span>2 of 5 done</span><span style="font-weight:600;color:#3F7D5C;">40%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:40%;"></div></div>
+        </div>
+        <div class="task-list">
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Unbox and inspect all display units</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Mount bracket on Level 3 window frame</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive"></div>
+            <div class="task-text">Attach display units to bracket</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive"></div>
+            <div class="task-text">Cable management and tidy up</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive"></div>
+            <div class="task-text">Photo sign-off with store manager</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All done -->
+    <div>
+      <div class="role-tag sub">Sub-installer — all done</div>
+      <div class="form-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F7D5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Tasks
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#3F7D5C;display:flex;align-items:center;gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3F7D5C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            All done
+          </div>
+        </div>
+        <div class="progress-strip">
+          <div class="progress-label"><span>5 of 5 done</span><span style="font-weight:600;color:#3F7D5C;">100%</span></div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:100%;"></div></div>
+        </div>
+        <div class="task-list">
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Unbox and inspect all display units</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Mount bracket on Level 3 window frame</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Attach display units to bracket</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Cable management and tidy up</div>
+          </div>
+          <div class="task-item">
+            <div class="cb-interactive checked"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="task-text done">Photo sign-off with store manager</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:200px;padding-top:28px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Sub-installer sees this on their job link page (same page as the external installer link). Tap a checkbox to tick it off — progress bar updates live.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">When all tasks are done, the header shows <strong style="color:#3F7D5C;">All done</strong> and the bar fills green.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 3 — Sub-installer ticking off tasks on site</div>
+</div>
+
+</body>
+</html>
