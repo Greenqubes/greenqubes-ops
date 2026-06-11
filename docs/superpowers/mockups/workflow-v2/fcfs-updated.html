@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCFS — Updated Design</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 40px; }
+  .screen-row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+
+  /* Phone */
+  .phone { width: 360px; background: #F4F1EC; border-radius: 28px; border: 2px solid #1A1815; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+
+  /* Company bar */
+  .company-bar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .company-name { font-size: 13px; font-weight: 600; }
+  .company-right { display: flex; align-items: center; gap: 10px; }
+  .bell-icon { width: 22px; height: 22px; background: #C8893D; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .avatar { width: 26px; height: 26px; background: #3F7D5C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 700; }
+
+  .page-header { padding: 10px 16px 6px; }
+  .page-title { font-size: 17px; font-weight: 700; }
+
+  .week-nav { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: #fff; border-bottom: 1px solid #E8E2D7; }
+  .week-nav button { background: none; border: none; color: #8B8478; font-size: 16px; cursor: pointer; }
+  .week-label { font-size: 12px; font-weight: 600; }
+
+  /* Filter toggle */
+  .view-toggle { display: flex; margin: 10px 16px 6px; background: #E8E2D7; border-radius: 8px; padding: 3px; gap: 3px; }
+  .toggle-btn { flex: 1; text-align: center; font-size: 11px; font-weight: 600; padding: 5px 8px; border-radius: 6px; color: #8B8478; cursor: pointer; }
+  .toggle-btn.active { background: #fff; color: #1A1815; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+  .clash-banner { margin: 0 16px 8px; background: #fdecea; border: 1px solid #f5c6c0; border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .clash-banner-text { font-size: 11px; color: #B5523D; font-weight: 600; }
+  .clash-banner-link { font-size: 11px; color: #B5523D; text-decoration: underline; font-weight: 600; }
+
+  /* JOBS VIEW — grid */
+  .fcfs-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .fcfs-table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 11px; }
+  .fcfs-table th { padding: 5px 6px; text-align: center; color: #8B8478; font-weight: 600; font-size: 10px; background: #fff; border-bottom: 1px solid #E8E2D7; white-space: nowrap; }
+  .fcfs-table th.installer-col { text-align: left; padding-left: 14px; min-width: 60px; }
+  .fcfs-table td { padding: 5px 3px; vertical-align: top; border-top: 1px solid #E8E2D7; }
+  .fcfs-table td.installer-name { font-size: 11px; font-weight: 600; color: #1A1815; padding-left: 14px; white-space: nowrap; vertical-align: middle; }
+  .job-block { border-radius: 6px; border: 1px solid #E8E2D7; background: #fff; padding: 4px 5px; margin-bottom: 3px; }
+  .job-block.clashed { border-color: #B5523D; background: #fff8f7; }
+  .job-block-header { display: flex; align-items: center; gap: 3px; margin-bottom: 1px; }
+  .rank-badge { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #1A1815; color: white; }
+  .rank-badge.clash { background: #B5523D; }
+  .clash-icon { font-size: 10px; color: #B5523D; }
+  .job-title { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68px; }
+  .job-time { font-size: 9px; color: #5C564E; }
+
+  /* INSTALLER VIEW */
+  .installer-list { padding: 8px 16px 80px; }
+  .installer-row { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .installer-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #E8E2D7; }
+  .installer-header-left { display: flex; align-items: center; gap: 8px; }
+  .installer-avatar { width: 28px; height: 28px; border-radius: 50%; background: #3F7D5C; color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .installer-avatar.r { background: #3D6FB5; }
+  .installer-avatar.k { background: #C8893D; }
+  .installer-avatar.a { background: #3F7D5C; }
+  .installer-name-big { font-size: 13px; font-weight: 700; color: #1A1815; }
+  .installer-job-count { font-size: 11px; color: #8B8478; }
+  .clash-pill { background: #fdecea; color: #B5523D; border: 1px solid #f5c6c0; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .installer-jobs { padding: 8px 12px 10px; }
+  .booked-slot { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid #F4F1EC; position: relative; }
+  .booked-slot:last-child { border-bottom: none; }
+  .slot-day { font-size: 10px; color: #8B8478; font-weight: 600; min-width: 40px; padding-top: 1px; }
+  .slot-card { flex: 1; background: #F4F1EC; border-radius: 7px; padding: 6px 8px; border-left: 3px solid #3F7D5C; }
+  .slot-card.clash { background: #fff8f7; border-left-color: #B5523D; }
+  .slot-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .slot-rank { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; background: #1A1815; color: white; }
+  .slot-rank.c { background: #B5523D; }
+  .slot-title { font-size: 11px; font-weight: 600; color: #1A1815; }
+  .slot-time { font-size: 10px; color: #5C564E; }
+  .slot-clash-note { font-size: 9px; color: #B5523D; margin-top: 2px; font-weight: 600; }
+
+  /* Bottom sheet — clash accordion */
+  .bottom-sheet { background: #fff; border-top: 2px solid #E8E2D7; border-radius: 16px 16px 0 0; padding: 14px 16px 4px; }
+  .sheet-handle { width: 36px; height: 4px; background: #E8E2D7; border-radius: 2px; margin: 0 auto 12px; }
+  .sheet-eyebrow { font-size: 10px; color: #8B8478; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .sheet-title { font-size: 14px; font-weight: 700; color: #1A1815; margin-bottom: 2px; }
+  .sheet-sub { font-size: 11px; color: #8B8478; margin-bottom: 12px; }
+
+  /* Accordion clash items */
+  .clash-accordion { margin-bottom: 8px; }
+  .clash-acc-row { background: #F4F1EC; border: 1px solid #E8E2D7; border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+  .clash-acc-header { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; cursor: pointer; }
+  .clash-acc-header.open { border-bottom: 1px solid #E8E2D7; background: #fff8f7; border-radius: 8px 8px 0 0; }
+  .clash-acc-left { display: flex; align-items: center; gap: 8px; }
+  .clash-acc-icon { font-size: 13px; }
+  .clash-acc-name { font-size: 12px; font-weight: 700; color: #1A1815; }
+  .clash-acc-meta { font-size: 10px; color: #8B8478; }
+  .clash-acc-arrow { font-size: 12px; color: #8B8478; transition: transform 0.2s; }
+  .clash-acc-arrow.open { transform: rotate(90deg); color: #B5523D; }
+
+  /* Expanded content */
+  .clash-acc-body { padding: 10px 12px 12px; background: #fff; }
+  .overlap-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+  .oc { border-radius: 8px; border: 1.5px solid #E8E2D7; padding: 8px 9px; }
+  .oc.p { border-color: #3F7D5C; }
+  .oc.s { border-color: #B5523D; }
+  .oc-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .oc.p .oc-label { color: #3F7D5C; }
+  .oc.s .oc-label { color: #B5523D; }
+  .oc-rank { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; margin-bottom: 3px; }
+  .oc.p .oc-rank { background: #d6efe3; color: #3F7D5C; }
+  .oc.s .oc-rank { background: #fdecea; color: #B5523D; }
+  .oc-title { font-size: 11px; font-weight: 700; color: #1A1815; line-height: 1.3; }
+  .oc-time { font-size: 10px; color: #5C564E; margin-top: 3px; }
+  .overlap-time-note { font-size: 10px; color: #B5523D; background: #fdecea; border-radius: 6px; padding: 5px 8px; margin-bottom: 10px; text-align: center; font-weight: 600; }
+  .acc-actions { display: flex; gap: 7px; }
+  .btn-reassign { flex: 1; background: #B5523D; color: white; border: none; border-radius: 8px; padding: 9px; font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+  .btn-dismiss { background: #F4F1EC; color: #5C564E; border: 1px solid #E8E2D7; border-radius: 8px; padding: 9px 12px; font-size: 11px; font-weight: 500; cursor: pointer; }
+
+  .dismiss-all-row { padding: 8px 0 16px; }
+  .btn-dismiss-all { width: 100%; background: #F4F1EC; color: #8B8478; border: 1px solid #E8E2D7; border-radius: 10px; padding: 10px; font-size: 12px; cursor: pointer; }
+
+  /* Bottom nav */
+  .bottom-nav { background: #fff; border-top: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: space-around; padding: 8px 0 12px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #8B8478; min-width: 56px; }
+  .nav-item.active { color: #B5523D; }
+  .nav-icon { width: 20px; height: 20px; background: #E8E2D7; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .nav-item.active .nav-icon { background: #fdecea; }
+</style>
+</head>
+<body>
+
+<h1>FCFS Board — Updated Design</h1>
+<p class="subtitle">Two changes: (1) clash list expands inline when tapped, (2) new "By Installer" view filter.</p>
+
+<div class="section">
+  <h2>Change 1 — Clash List: Tap to Expand Inline</h2>
+  <div class="screen-row">
+
+    <!-- Clash list — one item expanded -->
+    <div>
+      <div class="phone">
+        <div class="company-bar">
+          <span class="company-name">GreenQubes</span>
+          <div class="company-right"><div class="bell-icon">🔔</div><div class="avatar">SC</div></div>
+        </div>
+        <div class="page-header"><div class="page-title">FCFS Board</div></div>
+
+        <div style="padding:6px 16px 0;">
+          <div class="clash-banner" style="margin:0 0 8px;">
+            <span class="clash-banner-text">⚠ 3 clashes this week</span>
+            <span class="clash-banner-link">View Details ↑</span>
+          </div>
+        </div>
+
+        <!-- Bottom sheet with accordion -->
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-eyebrow">3 Clashes This Week</div>
+          <div class="sheet-title">⚠ Review Each Conflict</div>
+          <div class="sheet-sub">Tap an installer name to see the overlap</div>
+
+          <div class="clash-accordion">
+
+            <!-- Row 1: EXPANDED -->
+            <div class="clash-acc-row">
+              <div class="clash-acc-header open">
+                <div class="clash-acc-left">
+                  <span class="clash-acc-icon">⚠</span>
+                  <div>
+                    <div class="clash-acc-name">Ravi — Mon 9 Jun</div>
+                    <div class="clash-acc-meta">#1 Vivienne WW vs #3 ION Orchard</div>
+                  </div>
+                </div>
+                <span class="clash-acc-arrow open">›</span>
+              </div>
+              <div class="clash-acc-body">
+                <div class="overlap-cards">
+                  <div class="oc p">
+                    <div class="oc-label">✓ Priority (first)</div>
+                    <div class="oc-rank">#1</div>
+                    <div class="oc-title">Vivienne WW</div>
+                    <div class="oc-time">09:00 – 13:00</div>
+                  </div>
+                  <div class="oc s">
+                    <div class="oc-label">⚠ Re-assign this</div>
+                    <div class="oc-rank">#3</div>
+                    <div class="oc-title">ION Orchard</div>
+                    <div class="oc-time">10:00 – 14:00</div>
+                  </div>
+                </div>
+                <div class="overlap-time-note">⏱ Overlap window: 10:00 – 13:00 (3 hrs)</div>
+                <div class="acc-actions">
+                  <button class="btn-reassign">Re-assign Job #3 →</button>
+                  <button class="btn-dismiss">Dismiss</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: collapsed -->
+            <div class="clash-acc-row">
+              <div class="clash-acc-header">
+                <div class="clash-acc-left">
+                  <span class="clash-acc-icon">⚠</span>
+                  <div>
+                    <div class="clash-acc-name">Kai — Tue 10 Jun</div>
+                    <div class="clash-acc-meta">#2 MBS Lobby vs #5 Raffles Pl</div>
+                  </div>
+                </div>
+                <span class="clash-acc-arrow">›</span>
+              </div>
+            </div>
+
+            <!-- Row 3: collapsed -->
+            <div class="clash-acc-row">
+              <div class="clash-acc-header">
+                <div class="clash-acc-left">
+                  <span class="clash-acc-icon">⚠</span>
+                  <div>
+                    <div class="clash-acc-name">Ravi — Wed 11 Jun</div>
+                    <div class="clash-acc-meta">#3 ION Orchard vs #7 Bugis+</div>
+                  </div>
+                </div>
+                <span class="clash-acc-arrow">›</span>
+              </div>
+            </div>
+
+          </div>
+          <div class="dismiss-all-row">
+            <button class="btn-dismiss-all">Dismiss All</button>
+          </div>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><div class="nav-icon">📅</div>Schedule</div>
+          <div class="nav-item active"><div class="nav-icon" style="background:#fdecea">⊞</div>FCFS</div>
+          <div class="nav-item"><div class="nav-icon">🤖</div>Assistant</div>
+        </div>
+      </div>
+      <div class="screen-label">Tap installer name → expands inline with both jobs + overlap window</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h2>Change 2 — Two View Filters: By Job vs By Installer</h2>
+  <div class="screen-row">
+
+    <!-- View: By Job (existing grid) -->
+    <div>
+      <div class="phone">
+        <div class="company-bar">
+          <span class="company-name">GreenQubes</span>
+          <div class="company-right"><div class="bell-icon">🔔</div><div class="avatar">SC</div></div>
+        </div>
+        <div class="page-header"><div class="page-title">FCFS Board</div></div>
+        <div class="week-nav">
+          <button>‹</button><span class="week-label">Mon 9 – Sun 15 Jun</span><button>›</button>
+        </div>
+
+        <div class="view-toggle">
+          <div class="toggle-btn active">By Job</div>
+          <div class="toggle-btn">By Installer</div>
+        </div>
+
+        <div style="padding:0 16px 6px;">
+          <div class="clash-banner" style="margin:0;">
+            <span class="clash-banner-text">⚠ 1 clash this week</span>
+            <span class="clash-banner-link">View Details</span>
+          </div>
+        </div>
+
+        <div class="fcfs-grid-wrap">
+          <table class="fcfs-table">
+            <thead>
+              <tr>
+                <th class="installer-col">Installer</th>
+                <th>Mon 9</th><th>Tue 10</th><th>Wed 11</th><th>Thu 12</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="installer-name">Ravi</td>
+                <td>
+                  <div class="job-block"><div class="job-block-header"><span class="rank-badge">#1</span></div><div class="job-title">Vivienne WW</div><div class="job-time">09:00–13:00</div></div>
+                  <div class="job-block clashed"><div class="job-block-header"><span class="rank-badge clash">#3</span><span class="clash-icon">⚠</span></div><div class="job-title">ION Orchard</div><div class="job-time">10:00–14:00</div></div>
+                </td>
+                <td></td>
+                <td><div class="job-block"><div class="job-block-header"><span class="rank-badge">#4</span></div><div class="job-title">Raffles Hotel</div><div class="job-time">10:00–18:00</div></div></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="installer-name">Kai</td>
+                <td></td>
+                <td><div class="job-block"><div class="job-block-header"><span class="rank-badge">#2</span></div><div class="job-title">MBS Lobby</div><div class="job-time">08:00–12:00</div></div></td>
+                <td></td>
+                <td><div class="job-block"><div class="job-block-header"><span class="rank-badge">#5</span></div><div class="job-title">Capitol Build</div><div class="job-time">09:00–17:00</div></div></td>
+              </tr>
+              <tr>
+                <td class="installer-name">Ali</td>
+                <td></td><td></td><td></td>
+                <td><div class="job-block"><div class="job-block-header"><span class="rank-badge">#6</span></div><div class="job-title">Orchard Ctr</div><div class="job-time">14:00–18:00</div></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><div class="nav-icon">📅</div>Schedule</div>
+          <div class="nav-item active"><div class="nav-icon" style="background:#fdecea">⊞</div>FCFS</div>
+          <div class="nav-item"><div class="nav-icon">🤖</div>Assistant</div>
+        </div>
+      </div>
+      <div class="screen-label">"By Job" — grid of installer × day with job blocks</div>
+    </div>
+
+    <!-- View: By Installer -->
+    <div>
+      <div class="phone">
+        <div class="company-bar">
+          <span class="company-name">GreenQubes</span>
+          <div class="company-right"><div class="bell-icon">🔔</div><div class="avatar">SC</div></div>
+        </div>
+        <div class="page-header"><div class="page-title">FCFS Board</div></div>
+        <div class="week-nav">
+          <button>‹</button><span class="week-label">Mon 9 – Sun 15 Jun</span><button>›</button>
+        </div>
+
+        <div class="view-toggle">
+          <div class="toggle-btn">By Job</div>
+          <div class="toggle-btn active">By Installer</div>
+        </div>
+
+        <div style="padding:0 16px 6px;">
+          <div class="clash-banner" style="margin:0;">
+            <span class="clash-banner-text">⚠ 1 clash this week</span>
+            <span class="clash-banner-link">View Details</span>
+          </div>
+        </div>
+
+        <div class="installer-list">
+
+          <!-- Ravi — has clash -->
+          <div class="installer-row">
+            <div class="installer-header">
+              <div class="installer-header-left">
+                <div class="installer-avatar r">R</div>
+                <div>
+                  <div class="installer-name-big">Ravi</div>
+                  <div class="installer-job-count">3 jobs this week</div>
+                </div>
+              </div>
+              <span class="clash-pill">⚠ 1 clash</span>
+            </div>
+            <div class="installer-jobs">
+              <div class="booked-slot">
+                <div class="slot-day">Mon 9</div>
+                <div class="slot-card">
+                  <div class="slot-card-top">
+                    <span class="slot-rank">#1</span>
+                  </div>
+                  <div class="slot-title">Vivienne WW</div>
+                  <div class="slot-time">09:00 – 13:00</div>
+                </div>
+              </div>
+              <div class="booked-slot">
+                <div class="slot-day">Mon 9</div>
+                <div class="slot-card clash">
+                  <div class="slot-card-top">
+                    <span class="slot-rank c">#3</span>
+                  </div>
+                  <div class="slot-title">ION Orchard</div>
+                  <div class="slot-time">10:00 – 14:00</div>
+                  <div class="slot-clash-note">⚠ Clashes with #1 (10:00–13:00)</div>
+                </div>
+              </div>
+              <div class="booked-slot">
+                <div class="slot-day">Wed 11</div>
+                <div class="slot-card">
+                  <div class="slot-card-top"><span class="slot-rank">#4</span></div>
+                  <div class="slot-title">Raffles Hotel</div>
+                  <div class="slot-time">10:00 – 18:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kai — no clash -->
+          <div class="installer-row">
+            <div class="installer-header">
+              <div class="installer-header-left">
+                <div class="installer-avatar k">K</div>
+                <div>
+                  <div class="installer-name-big">Kai</div>
+                  <div class="installer-job-count">2 jobs this week</div>
+                </div>
+              </div>
+            </div>
+            <div class="installer-jobs">
+              <div class="booked-slot">
+                <div class="slot-day">Tue 10</div>
+                <div class="slot-card">
+                  <div class="slot-card-top"><span class="slot-rank">#2</span></div>
+                  <div class="slot-title">MBS Lobby</div>
+                  <div class="slot-time">08:00 – 12:00</div>
+                </div>
+              </div>
+              <div class="booked-slot">
+                <div class="slot-day">Thu 12</div>
+                <div class="slot-card">
+                  <div class="slot-card-top"><span class="slot-rank">#5</span></div>
+                  <div class="slot-title">Capitol Build</div>
+                  <div class="slot-time">09:00 – 17:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ali — no clash -->
+          <div class="installer-row">
+            <div class="installer-header">
+              <div class="installer-header-left">
+                <div class="installer-avatar a">A</div>
+                <div>
+                  <div class="installer-name-big">Ali</div>
+                  <div class="installer-job-count">1 job this week</div>
+                </div>
+              </div>
+            </div>
+            <div class="installer-jobs">
+              <div class="booked-slot">
+                <div class="slot-day">Thu 12</div>
+                <div class="slot-card">
+                  <div class="slot-card-top"><span class="slot-rank">#6</span></div>
+                  <div class="slot-title">Orchard Ctr</div>
+                  <div class="slot-time">14:00 – 18:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><div class="nav-icon">📅</div>Schedule</div>
+          <div class="nav-item active"><div class="nav-icon" style="background:#fdecea">⊞</div>FCFS</div>
+          <div class="nav-item"><div class="nav-icon">🤖</div>Assistant</div>
+        </div>
+      </div>
+      <div class="screen-label">"By Installer" — each installer card, all their bookings listed by day + clash inline</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

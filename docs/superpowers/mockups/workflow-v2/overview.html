@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow V2 — Overview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 22px; font-weight: 600; color: #1A1815; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 12px; }
+  .section { margin-bottom: 32px; }
+
+  /* Roles */
+  .roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .role-card { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; padding: 12px 14px; }
+  .role-card.new { border-color: #3F7D5C; background: #f0faf4; }
+  .role-card.new .role-badge { background: #3F7D5C; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+  .role-card.existing .role-badge { background: #E8E2D7; color: #5C564E; font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+  .role-name { font-size: 13px; font-weight: 600; color: #1A1815; margin-bottom: 4px; }
+  .role-desc { font-size: 11px; color: #5C564E; line-height: 1.5; }
+
+  /* Workflow comparison */
+  .flow-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .flow-box { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; padding: 16px; }
+  .flow-box.old { opacity: 0.7; }
+  .flow-box h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+  .flow-box.old h3 { color: #B5523D; }
+  .flow-box.new h3 { color: #3F7D5C; }
+  .flow-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .flow-step:last-child { margin-bottom: 0; }
+  .step-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .old .step-num { background: #f5ddd9; color: #B5523D; }
+  .new .step-num { background: #d6efe3; color: #3F7D5C; }
+  .step-text { font-size: 12px; color: #1A1815; line-height: 1.5; }
+  .step-sub { font-size: 11px; color: #8B8478; margin-top: 2px; }
+  .step-arrow { text-align: center; color: #8B8478; font-size: 14px; margin: 4px 0 4px 31px; }
+  .removed-badge { display: inline-block; background: #fdecea; color: #B5523D; font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+  .new-badge { display: inline-block; background: #d6efe3; color: #3F7D5C; font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+
+  /* Nav comparison */
+  .nav-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .nav-box { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; padding: 14px; }
+  .nav-box h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #8B8478; margin-bottom: 10px; }
+  .nav-role { font-size: 12px; font-weight: 600; color: #1A1815; margin-bottom: 4px; margin-top: 10px; }
+  .nav-role:first-of-type { margin-top: 0; }
+  .nav-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nav-tab { font-size: 11px; padding: 3px 8px; border-radius: 5px; border: 1px solid #E8E2D7; background: #F4F1EC; color: #5C564E; }
+  .nav-tab.removed { background: #fdecea; border-color: #f5c6c0; color: #B5523D; text-decoration: line-through; }
+  .nav-tab.added { background: #d6efe3; border-color: #9fd3b8; color: #3F7D5C; }
+  .nav-tab.same { background: #F4F1EC; }
+  .nav-divider { height: 1px; background: #E8E2D7; margin: 10px 0; }
+
+  /* Feature summary */
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .feature-card { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; padding: 14px; }
+  .feature-phase { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .ph1 { color: #3D6FB5; }
+  .ph2 { color: #3F7D5C; }
+  .ph3 { color: #B5523D; }
+  .ph4 { color: #C8893D; }
+  .feature-title { font-size: 13px; font-weight: 600; color: #1A1815; margin-bottom: 6px; }
+  .feature-list { list-style: none; }
+  .feature-list li { font-size: 11px; color: #5C564E; padding: 2px 0; padding-left: 12px; position: relative; line-height: 1.4; }
+  .feature-list li::before { content: '·'; position: absolute; left: 0; color: #8B8478; }
+
+  @media (max-width: 600px) {
+    .flow-compare, .nav-compare, .feature-grid { grid-template-columns: 1fr; }
+    .roles-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Workflow V2 — What's Changing</h1>
+<p class="subtitle">A full overview before we touch any code. Review each section and flag anything that looks wrong.</p>
+
+<!-- SECTION 1: Roles -->
+<div class="section">
+  <h2>1. Roles (7 total — 3 new)</h2>
+  <div class="roles-grid">
+    <div class="role-card existing">
+      <div class="role-badge">existing</div>
+      <div class="role-name">Sales</div>
+      <div class="role-desc">Creates jobs, pushes to schedule, suggests installers</div>
+    </div>
+    <div class="role-card existing">
+      <div class="role-badge">existing</div>
+      <div class="role-name">Scheduler</div>
+      <div class="role-desc">Manages schedule, formally assigns installers, sees FCFS board</div>
+    </div>
+    <div class="role-card existing">
+      <div class="role-badge">existing</div>
+      <div class="role-name">Installer</div>
+      <div class="role-desc">Sees own jobs, uploads photos, uses job chat, ticks tasks</div>
+    </div>
+    <div class="role-card existing">
+      <div class="role-badge">existing</div>
+      <div class="role-name">Admin</div>
+      <div class="role-desc">Full access — user management, system health, all roles</div>
+    </div>
+    <div class="role-card new">
+      <div class="role-badge">new</div>
+      <div class="role-name">Coordinator</div>
+      <div class="role-desc">Assigns installers, sees FCFS board, gets clash prompt</div>
+    </div>
+    <div class="role-card new">
+      <div class="role-badge">new</div>
+      <div class="role-name">Designer</div>
+      <div class="role-desc">View-only on jobs, can edit production instructions + attachments, uses chat</div>
+    </div>
+    <div class="role-card new">
+      <div class="role-badge">new</div>
+      <div class="role-name">Production</div>
+      <div class="role-desc">Ticks "production ready" + "DO issued", uploads photos, edits production instructions</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: Workflow Change -->
+<div class="section">
+  <h2>2. Job Workflow — Before vs After</h2>
+  <div class="flow-compare">
+    <div class="flow-box old">
+      <h3>Before (current)</h3>
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-text">Sales creates job <span style="color:#8B8478">(pending)</span></div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-text">Sales clicks "Push for Approval"</div>
+          <div class="step-sub">Status → awaiting_approval</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-text">Scheduler reviews in Approvals queue</div>
+          <div class="step-sub">Can approve or send back</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-text">Scheduler approves → scheduled</div>
+          <div class="step-sub">Installer notified via Telegram</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-box new">
+      <h3>After (Workflow V2)</h3>
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-text">Sales creates job <span style="color:#8B8478">(pending)</span></div>
+          <div class="step-sub">Can suggest preferred installers (yellow)</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-text">Sales clicks <strong>"Push to Schedule"</strong></div>
+          <div class="step-sub">Status → scheduled directly. No approval queue.</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-text">Scheduler / Coordinator gets Telegram notification</div>
+          <div class="step-sub">"New job — assign installer"</div>
+        </div>
+      </div>
+      <div class="step-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-text">Coordinator / Scheduler formally assigns installer <span style="color:#3F7D5C">(green)</span></div>
+          <div class="step-sub">Sales + Coordinators notified via Telegram</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#8B8478;margin-top:10px;">Note: "awaiting_approval" status is kept in the database for existing historical jobs — no new jobs will ever enter that state.</p>
+</div>
+
+<!-- SECTION 3: Navigation -->
+<div class="section">
+  <h2>3. Bottom Navigation — Per Role</h2>
+  <div class="nav-compare">
+    <div class="nav-box">
+      <h3>Before</h3>
+      <div class="nav-role">Scheduler</div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab removed">Approvals</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-role">Sales</div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+    </div>
+    <div class="nav-box">
+      <h3>After</h3>
+      <div class="nav-role">Scheduler</div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab added">FCFS Board</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-role">Coordinator <span style="font-size:10px;color:#3F7D5C;">(new)</span></div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab added">FCFS Board</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-role">Sales</div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-role">Designer / Production <span style="font-size:10px;color:#3F7D5C;">(new)</span></div>
+      <div class="nav-tabs">
+        <div class="nav-tab same">Schedule</div>
+        <div class="nav-tab same">Assistant</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: Phase summary -->
+<div class="section">
+  <h2>4. What Gets Built (4 Phases)</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-phase ph1">Phase 1 — Foundation</div>
+      <div class="feature-title">Roles + Workflow Change</div>
+      <ul class="feature-list">
+        <li>3 new DB roles: Designer, Coordinator, Production</li>
+        <li>Sales → "Push to Schedule" (no approval queue)</li>
+        <li>Scheduler gets Telegram on new job</li>
+        <li>FCFS tab in nav (scheduler + coordinator)</li>
+        <li>Approvals tab removed</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-phase ph2">Phase 2 — Job Form</div>
+      <div class="feature-title">Role Permissions + Installer Assignment</div>
+      <ul class="feature-list">
+        <li>Each role sees only fields they can edit</li>
+        <li>Sales: suggest installer (yellow card)</li>
+        <li>Coordinator/Scheduler: formally assign (green card, clears suggestions)</li>
+        <li>Sales notified when installer is assigned</li>
+        <li>Production: ticks "production ready" + uploads photos</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-phase ph3">Phase 3 — FCFS Board</div>
+      <div class="feature-title">Weekly Timeline + Clash Detection</div>
+      <ul class="feature-list">
+        <li>Weekly grid: installer rows × day columns</li>
+        <li>Job blocks show FCFS rank (#1, #2…)</li>
+        <li>Clashing jobs highlighted red</li>
+        <li>Clash drawer: see which job was first (priority)</li>
+        <li>Coordinator clash prompt: alert scheduler or re-assign</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-phase ph4">Phase 4 — Advanced Features</div>
+      <div class="feature-title">External Links + Sub-installer + Tasks</div>
+      <ul class="feature-list">
+        <li>External temp link: 48hr shareable (no login required)</li>
+        <li>Expired link shows "contact person-in-charge" message</li>
+        <li>Sub-installer: supporting installer on a job</li>
+        <li>Task list: add tasks (sales/coord/sched), tick (installer)</li>
+        <li>External installer POC bucket (outsourced teams)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<p style="font-size:12px;color:#8B8478;text-align:center;margin-top:8px;">This is the overview. Next screens will show each area in detail — FCFS Board, job form per role, installer cards, and more.</p>
+
+</body>
+</html>

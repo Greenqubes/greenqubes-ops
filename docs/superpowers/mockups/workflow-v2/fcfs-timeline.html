@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCFS — Timeline Calendar View</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 48px; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+
+  /* ===================== PC FRAME ===================== */
+  .pc-frame { background: #fff; border: 2px solid #1A1815; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.12); width: 100%; max-width: 960px; }
+  .pc-titlebar { background: #1A1815; height: 28px; display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #B5523D; } .dot.y { background: #C8893D; } .dot.g { background: #3F7D5C; }
+
+  /* PC top bar */
+  .pc-topbar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pc-logo { font-size: 14px; font-weight: 700; color: #1A1815; }
+  .pc-nav { display: flex; gap: 4px; }
+  .pc-nav-item { font-size: 12px; padding: 5px 12px; border-radius: 6px; color: #5C564E; cursor: pointer; font-weight: 500; }
+  .pc-nav-item.active { background: #fdecea; color: #B5523D; font-weight: 700; }
+  .pc-right { display: flex; align-items: center; gap: 10px; }
+  .pc-bell { font-size: 14px; }
+  .pc-avatar { width: 28px; height: 28px; background: #3F7D5C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: 700; }
+
+  /* PC FCFS toolbar */
+  .pc-toolbar { background: #F4F1EC; border-bottom: 1px solid #E8E2D7; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .toolbar-left { display: flex; align-items: center; gap: 10px; }
+  .week-nav-btn { background: #fff; border: 1px solid #E8E2D7; border-radius: 6px; padding: 4px 10px; font-size: 12px; color: #5C564E; cursor: pointer; }
+  .week-label-pc { font-size: 13px; font-weight: 600; color: #1A1815; }
+  .today-btn { background: #fff; border: 1px solid #E8E2D7; border-radius: 6px; padding: 4px 10px; font-size: 12px; color: #5C564E; cursor: pointer; }
+  .clash-chip { background: #fdecea; border: 1px solid #f5c6c0; border-radius: 6px; padding: 4px 10px; font-size: 12px; color: #B5523D; font-weight: 600; cursor: pointer; }
+  .view-toggle-pc { display: flex; background: #fff; border: 1px solid #E8E2D7; border-radius: 8px; overflow: hidden; }
+  .vt-btn { font-size: 11px; font-weight: 600; padding: 5px 11px; color: #8B8478; cursor: pointer; border-right: 1px solid #E8E2D7; }
+  .vt-btn:last-child { border-right: none; }
+  .vt-btn.active { background: #1A1815; color: #fff; }
+
+  /* ===================== GANTT GRID (shared) ===================== */
+  .gantt-wrap { overflow-x: auto; position: relative; }
+  .gantt-inner { display: flex; flex-direction: column; min-width: 900px; }
+
+  /* Time header */
+  .gantt-header { display: flex; position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #E8E2D7; }
+  .gantt-label-col { width: 110px; min-width: 110px; flex-shrink: 0; border-right: 1px solid #E8E2D7; }
+  .gantt-times { display: flex; flex: 1; }
+  .time-col { flex: 1; min-width: 0; border-right: 1px solid #F4F1EC; padding: 5px 0 4px 4px; }
+  .time-col.hour { border-right-color: #E8E2D7; }
+  .time-label { font-size: 9px; color: #8B8478; font-weight: 600; white-space: nowrap; }
+
+  /* Gantt rows */
+  .gantt-body { }
+  .gantt-row { display: flex; border-bottom: 1px solid #E8E2D7; min-height: 48px; position: relative; }
+  .gantt-row:last-child { border-bottom: none; }
+  .gantt-name { width: 110px; min-width: 110px; flex-shrink: 0; border-right: 1px solid #E8E2D7; padding: 0 10px; display: flex; align-items: center; gap: 7px; background: #fff; }
+  .gantt-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; flex-shrink: 0; }
+  .ga-r { background: #3D6FB5; } .ga-k { background: #C8893D; } .ga-a { background: #3F7D5C; } .ga-s { background: #8B8478; }
+  .gantt-name-text { font-size: 11px; font-weight: 600; color: #1A1815; }
+  .gantt-cells { flex: 1; position: relative; display: flex; }
+  .gantt-cell { flex: 1; min-width: 0; border-right: 1px solid #F4F1EC; }
+  .gantt-cell.hour { border-right-color: #E8E2D7; }
+  .now-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #B5523D; z-index: 3; opacity: 0.7; }
+  .now-dot { position: absolute; width: 8px; height: 8px; background: #B5523D; border-radius: 50%; top: -4px; margin-left: -3px; }
+
+  /* Job bars */
+  .job-bar { position: absolute; top: 6px; height: 36px; border-radius: 6px; display: flex; align-items: center; padding: 0 7px; cursor: pointer; z-index: 2; overflow: hidden; transition: box-shadow 0.15s; }
+  .job-bar:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 4; }
+  .job-bar.normal { background: #3D6FB5; border: 1px solid #2d5a9e; }
+  .job-bar.clash { background: #B5523D; border: 1px solid #9a4433; }
+  .job-bar.suggestion { background: #C8893D; border: 1px solid #a87030; opacity: 0.85; }
+  .jb-rank { font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.8); margin-right: 4px; flex-shrink: 0; }
+  .jb-title { font-size: 10px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .jb-time { font-size: 9px; color: rgba(255,255,255,0.75); margin-left: 5px; flex-shrink: 0; white-space: nowrap; }
+  .jb-clash-icon { font-size: 10px; margin-left: 4px; flex-shrink: 0; }
+
+  /* Legend */
+  .gantt-legend { display: flex; align-items: center; gap: 14px; padding: 8px 20px; background: #F4F1EC; border-top: 1px solid #E8E2D7; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #5C564E; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ===================== PHONE FRAME ===================== */
+  .phone-row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+  .phone { width: 360px; background: #F4F1EC; border-radius: 28px; border: 2px solid #1A1815; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+  .company-bar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .company-name { font-size: 13px; font-weight: 600; }
+  .bell-icon { width: 22px; height: 22px; background: #C8893D; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .avatar-sm { width: 26px; height: 26px; background: #3F7D5C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 700; }
+  .page-title-sm { font-size: 15px; font-weight: 700; padding: 8px 16px 4px; }
+  .mob-toolbar { padding: 6px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mob-week { font-size: 11px; font-weight: 600; color: #1A1815; }
+  .mob-nav-btns { display: flex; gap: 4px; }
+  .mob-nav-btn { background: #fff; border: 1px solid #E8E2D7; border-radius: 5px; padding: 3px 8px; font-size: 12px; color: #5C564E; }
+  .mob-view-toggle { display: flex; margin: 0 16px 6px; background: #E8E2D7; border-radius: 8px; padding: 3px; gap: 2px; overflow-x: auto; }
+  .mvt { flex-shrink: 0; text-align: center; font-size: 10px; font-weight: 600; padding: 4px 9px; border-radius: 5px; color: #8B8478; cursor: pointer; }
+  .mvt.active { background: #fff; color: #1A1815; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .mob-clash-chip { margin: 0 16px 6px; background: #fdecea; border: 1px solid #f5c6c0; border-radius: 7px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .mob-clash-text { font-size: 11px; color: #B5523D; font-weight: 600; }
+  .mob-clash-link { font-size: 10px; color: #B5523D; text-decoration: underline; }
+
+  /* Mobile gantt */
+  .mob-gantt-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mob-gantt { display: flex; flex-direction: column; min-width: 700px; }
+  .mob-header { display: flex; background: #fff; border-bottom: 1px solid #E8E2D7; position: sticky; top: 0; }
+  .mob-label-col { width: 72px; min-width: 72px; flex-shrink: 0; border-right: 1px solid #E8E2D7; }
+  .mob-times { display: flex; flex: 1; }
+  .mob-time-col { flex: 1; min-width: 0; border-right: 1px solid #F4F1EC; padding: 4px 0 3px 3px; }
+  .mob-time-col.hour-mark { border-right-color: #E8E2D7; }
+  .mob-time-label { font-size: 8px; color: #8B8478; font-weight: 600; white-space: nowrap; }
+  .mob-row { display: flex; border-bottom: 1px solid #E8E2D7; min-height: 42px; position: relative; }
+  .mob-name { width: 72px; min-width: 72px; flex-shrink: 0; border-right: 1px solid #E8E2D7; padding: 0 8px; display: flex; align-items: center; gap: 5px; background: #fff; }
+  .mob-av { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: white; flex-shrink: 0; }
+  .mob-nm { font-size: 10px; font-weight: 600; color: #1A1815; }
+  .mob-cells { flex: 1; position: relative; display: flex; }
+  .mob-cell { flex: 1; min-width: 0; border-right: 1px solid #F4F1EC; }
+  .mob-cell.hour-mark { border-right-color: #E8E2D7; }
+  .mob-bar { position: absolute; top: 5px; height: 32px; border-radius: 5px; display: flex; align-items: center; padding: 0 5px; z-index: 2; overflow: hidden; cursor: pointer; }
+  .mob-bar.normal { background: #3D6FB5; border: 1px solid #2d5a9e; }
+  .mob-bar.clash { background: #B5523D; border: 1px solid #9a4433; }
+  .mob-bar.sug { background: #C8893D; border: 1px solid #a87030; opacity: 0.85; }
+  .mob-bar-rank { font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.8); margin-right: 3px; flex-shrink: 0; }
+  .mob-bar-title { font-size: 9px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .bottom-nav { background: #fff; border-top: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: space-around; padding: 8px 0 12px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #8B8478; min-width: 56px; }
+  .nav-item.active { color: #B5523D; }
+  .nav-icon { width: 20px; height: 20px; background: #E8E2D7; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .nav-item.active .nav-icon { background: #fdecea; }
+
+  /* Responsive note */
+  .note-box { background: #fff; border: 1px solid #E8E2D7; border-radius: 10px; padding: 14px 16px; font-size: 12px; color: #5C564E; line-height: 1.7; max-width: 900px; }
+  .note-box strong { color: #1A1815; }
+</style>
+</head>
+<body>
+
+<h1>FCFS Board — Timeline (Gantt) View</h1>
+<p class="subtitle">15-minute intervals. Five view modes. Responsive — full PC layout + mobile horizontal scroll.</p>
+
+<!-- ===================== PC VIEW ===================== -->
+<div class="section">
+  <h2>PC View — Day Timeline (15-min intervals)</h2>
+
+  <div class="pc-frame">
+    <div class="pc-titlebar">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    </div>
+
+    <!-- Top nav -->
+    <div class="pc-topbar">
+      <div class="pc-logo">GreenQubes</div>
+      <div class="pc-nav">
+        <div class="pc-nav-item">Schedule</div>
+        <div class="pc-nav-item active">FCFS Board</div>
+        <div class="pc-nav-item">Assistant</div>
+        <div class="pc-nav-item">Admin</div>
+      </div>
+      <div class="pc-right">
+        <span class="pc-bell">🔔</span>
+        <div class="pc-avatar">SC</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="pc-toolbar">
+      <div class="toolbar-left">
+        <button class="week-nav-btn">‹ Prev</button>
+        <span class="week-label-pc">Tuesday, 10 June 2026</span>
+        <button class="week-nav-btn">Next ›</button>
+        <button class="today-btn">Today</button>
+        <div class="clash-chip">⚠ 1 clash — View</div>
+      </div>
+      <div class="view-toggle-pc">
+        <div class="vt-btn active">Day</div>
+        <div class="vt-btn">Week</div>
+        <div class="vt-btn">Month</div>
+        <div class="vt-btn">By Project</div>
+        <div class="vt-btn">By Installer</div>
+      </div>
+    </div>
+
+    <!-- Gantt grid — Day view, 08:00–18:00, 15-min cols -->
+    <!-- 10 hours × 4 slots = 40 columns. We'll show 09:00–17:00 (8 hrs = 32 cols) -->
+    <div class="gantt-wrap" style="max-height: 320px; overflow-y: auto;">
+      <div class="gantt-inner" style="min-width: 1100px;">
+
+        <!-- Header: time labels every 30min, tick every 15min -->
+        <div class="gantt-header">
+          <div class="gantt-label-col" style="padding:5px 10px;font-size:9px;color:#8B8478;font-weight:600;">INSTALLER</div>
+          <div class="gantt-times" style="display:grid; grid-template-columns: repeat(32, 1fr);">
+            <!-- 09:00 to 17:00 in 15-min blocks = 32 cols -->
+            <div class="time-col hour" style="grid-column:1/3"><div class="time-label">09:00</div></div>
+            <div class="time-col" style="grid-column:3/4"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:4/5"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:5/7"><div class="time-label">10:00</div></div>
+            <div class="time-col" style="grid-column:7/8"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:8/9"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:9/11"><div class="time-label">11:00</div></div>
+            <div class="time-col" style="grid-column:11/12"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:12/13"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:13/15"><div class="time-label">12:00</div></div>
+            <div class="time-col" style="grid-column:15/16"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:16/17"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:17/19"><div class="time-label">13:00</div></div>
+            <div class="time-col" style="grid-column:19/20"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:20/21"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:21/23"><div class="time-label">14:00</div></div>
+            <div class="time-col" style="grid-column:23/24"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:24/25"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:25/27"><div class="time-label">15:00</div></div>
+            <div class="time-col" style="grid-column:27/28"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:28/29"><div class="time-label">:45</div></div>
+            <div class="time-col hour" style="grid-column:29/31"><div class="time-label">16:00</div></div>
+            <div class="time-col" style="grid-column:31/32"><div class="time-label">:30</div></div>
+            <div class="time-col" style="grid-column:32/33"><div class="time-label">:45</div></div>
+          </div>
+        </div>
+
+        <!-- Rows -->
+        <!-- Each col = 1 × 15min block. 09:00 = col 1. Position formula: (minutes_from_0900 / 15) + 1 -->
+        <!-- Ravi: Job #2 MBS Lobby 08:00–12:00 → from col 1 (09:00) span 12 cols (3hrs). Clash job #5 10:00-13:00 → col 5 span 12 -->
+
+        <div class="gantt-body">
+
+          <!-- Ravi -->
+          <div class="gantt-row" style="position:relative;">
+            <div class="gantt-name">
+              <div class="gantt-avatar ga-r">R</div>
+              <div class="gantt-name-text">Ravi</div>
+            </div>
+            <div class="gantt-cells" style="position:relative; display:grid; grid-template-columns: repeat(32,1fr);">
+              <!-- grid lines -->
+              <div class="gantt-cell" style="grid-column:1/2"></div><div class="gantt-cell" style="grid-column:2/3"></div><div class="gantt-cell" style="grid-column:3/4"></div><div class="gantt-cell" style="grid-column:4/5"></div>
+              <div class="gantt-cell hour" style="grid-column:5/6"></div><div class="gantt-cell" style="grid-column:6/7"></div><div class="gantt-cell" style="grid-column:7/8"></div><div class="gantt-cell" style="grid-column:8/9"></div>
+              <div class="gantt-cell hour" style="grid-column:9/10"></div><div class="gantt-cell" style="grid-column:10/11"></div><div class="gantt-cell" style="grid-column:11/12"></div><div class="gantt-cell" style="grid-column:12/13"></div>
+              <div class="gantt-cell hour" style="grid-column:13/14"></div><div class="gantt-cell" style="grid-column:14/15"></div><div class="gantt-cell" style="grid-column:15/16"></div><div class="gantt-cell" style="grid-column:16/17"></div>
+              <div class="gantt-cell hour" style="grid-column:17/18"></div><div class="gantt-cell" style="grid-column:18/19"></div><div class="gantt-cell" style="grid-column:19/20"></div><div class="gantt-cell" style="grid-column:20/21"></div>
+              <div class="gantt-cell hour" style="grid-column:21/22"></div><div class="gantt-cell" style="grid-column:22/23"></div><div class="gantt-cell" style="grid-column:23/24"></div><div class="gantt-cell" style="grid-column:24/25"></div>
+              <div class="gantt-cell hour" style="grid-column:25/26"></div><div class="gantt-cell" style="grid-column:26/27"></div><div class="gantt-cell" style="grid-column:27/28"></div><div class="gantt-cell" style="grid-column:28/29"></div>
+              <div class="gantt-cell hour" style="grid-column:29/30"></div><div class="gantt-cell" style="grid-column:30/31"></div><div class="gantt-cell" style="grid-column:31/32"></div><div class="gantt-cell" style="grid-column:32/33"></div>
+              <!-- #1 Vivienne WW 09:00–13:00 → col 1, span 16 (4hrs × 4) -->
+              <div class="job-bar normal" style="left:0%;width:calc(50% - 2px);" title="Vivienne WW · 09:00–13:00">
+                <span class="jb-rank">#1</span>
+                <span class="jb-title">Vivienne WW</span>
+                <span class="jb-time">09:00–13:00</span>
+              </div>
+              <!-- #3 ION Orchard 10:00–14:00 → col 5, span 16 — CLASH -->
+              <div class="job-bar clash" style="left:calc(12.5% + 2px); width:calc(50% - 2px); top:26px;" title="ION Orchard · 10:00–14:00 ⚠ CLASH">
+                <span class="jb-rank">#3</span>
+                <span class="jb-title">ION Orchard</span>
+                <span class="jb-time">10:00–14:00</span>
+                <span class="jb-clash-icon">⚠</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kai -->
+          <div class="gantt-row" style="position:relative; min-height:48px;">
+            <div class="gantt-name">
+              <div class="gantt-avatar ga-k">K</div>
+              <div class="gantt-name-text">Kai</div>
+            </div>
+            <div class="gantt-cells" style="position:relative; display:grid; grid-template-columns: repeat(32,1fr);">
+              <div class="gantt-cell" style="grid-column:1/5"></div><div class="gantt-cell hour" style="grid-column:5/9"></div><div class="gantt-cell hour" style="grid-column:9/13"></div><div class="gantt-cell hour" style="grid-column:13/17"></div><div class="gantt-cell hour" style="grid-column:17/21"></div><div class="gantt-cell hour" style="grid-column:21/25"></div><div class="gantt-cell hour" style="grid-column:25/29"></div><div class="gantt-cell hour" style="grid-column:29/33"></div>
+              <!-- #2 MBS Lobby 09:30–12:00 → col 3, span 10 -->
+              <div class="job-bar normal" style="left:calc(6.25%); width:calc(31.25% - 2px);" title="MBS Lobby · 09:30–12:00">
+                <span class="jb-rank">#2</span>
+                <span class="jb-title">MBS Lobby</span>
+                <span class="jb-time">09:30–12:00</span>
+              </div>
+              <!-- #5 Raffles 14:00–17:00 → col 21, span 12 -->
+              <div class="job-bar normal" style="left:62.5%; width:calc(37.5% - 2px);" title="Raffles Hotel · 14:00–17:00">
+                <span class="jb-rank">#5</span>
+                <span class="jb-title">Raffles Hotel</span>
+                <span class="jb-time">14:00–17:00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ali -->
+          <div class="gantt-row" style="position:relative; min-height:48px;">
+            <div class="gantt-name">
+              <div class="gantt-avatar ga-a">A</div>
+              <div class="gantt-name-text">Ali</div>
+            </div>
+            <div class="gantt-cells" style="position:relative; display:grid; grid-template-columns: repeat(32,1fr);">
+              <div class="gantt-cell" style="grid-column:1/5"></div><div class="gantt-cell hour" style="grid-column:5/9"></div><div class="gantt-cell hour" style="grid-column:9/13"></div><div class="gantt-cell hour" style="grid-column:13/17"></div><div class="gantt-cell hour" style="grid-column:17/21"></div><div class="gantt-cell hour" style="grid-column:21/25"></div><div class="gantt-cell hour" style="grid-column:25/29"></div><div class="gantt-cell hour" style="grid-column:29/33"></div>
+              <!-- #6 Orchard 11:00–15:00 → col 9 span 16 -->
+              <div class="job-bar normal" style="left:25%; width:50%;" title="Orchard Ctr · 11:00–15:00">
+                <span class="jb-rank">#6</span>
+                <span class="jb-title">Orchard Ctr</span>
+                <span class="jb-time">11:00–15:00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sarah -->
+          <div class="gantt-row" style="position:relative; min-height:48px;">
+            <div class="gantt-name">
+              <div class="gantt-avatar ga-s">S</div>
+              <div class="gantt-name-text">Sarah</div>
+            </div>
+            <div class="gantt-cells" style="position:relative; display:grid; grid-template-columns: repeat(32,1fr);">
+              <div class="gantt-cell" style="grid-column:1/5"></div><div class="gantt-cell hour" style="grid-column:5/9"></div><div class="gantt-cell hour" style="grid-column:9/13"></div><div class="gantt-cell hour" style="grid-column:13/17"></div><div class="gantt-cell hour" style="grid-column:17/21"></div><div class="gantt-cell hour" style="grid-column:21/25"></div><div class="gantt-cell hour" style="grid-column:25/29"></div><div class="gantt-cell hour" style="grid-column:29/33"></div>
+              <!-- Suggested (amber) 10:00-13:00 -->
+              <div class="job-bar suggestion" style="left:12.5%; width:37.5%;" title="Capitol Build (suggested) · 10:00–13:00">
+                <span class="jb-rank">#4?</span>
+                <span class="jb-title">Capitol Build</span>
+                <span class="jb-time">10:00–13:00</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="gantt-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3D6FB5;"></div>Assigned job</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#B5523D;"></div>Clashing job (time overlap)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#C8893D;opacity:0.85;"></div>Suggested by sales (not yet assigned)</div>
+      <div class="legend-item" style="margin-left:auto;font-size:10px;color:#8B8478;">Tue 10 Jun 2026 · 09:00–17:00 · 15-min grid</div>
+    </div>
+  </div>
+  <div class="screen-label">PC — Day view, 15-min intervals, 09:00–17:00. Ravi's two jobs overlap (blue + red bars stacked).</div>
+</div>
+
+<!-- ===================== MOBILE VIEW ===================== -->
+<div class="section">
+  <h2>Mobile View — Day Timeline (horizontally scrollable)</h2>
+  <div class="phone-row">
+
+    <!-- Mobile Day view -->
+    <div>
+      <div class="phone">
+        <div class="company-bar">
+          <span class="company-name">GreenQubes</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="bell-icon">🔔</div>
+            <div class="avatar-sm">SC</div>
+          </div>
+        </div>
+        <div class="page-title-sm">FCFS Board</div>
+        <div class="mob-toolbar">
+          <div class="mob-nav-btns">
+            <div class="mob-nav-btn">‹</div>
+            <div class="mob-nav-btn">›</div>
+          </div>
+          <span class="mob-week">Tue 10 Jun 2026</span>
+          <div class="mob-nav-btn" style="font-size:10px;">Today</div>
+        </div>
+        <div class="mob-view-toggle">
+          <div class="mvt active">Day</div>
+          <div class="mvt">Week</div>
+          <div class="mvt">Month</div>
+          <div class="mvt">Project</div>
+          <div class="mvt">Installer</div>
+        </div>
+        <div class="mob-clash-chip">
+          <span class="mob-clash-text">⚠ 1 clash today</span>
+          <span class="mob-clash-link">View</span>
+        </div>
+
+        <!-- Mobile Gantt — scroll right to see more time -->
+        <div class="mob-gantt-wrap" style="padding-bottom:4px;">
+          <div class="mob-gantt" style="min-width:700px;">
+
+            <!-- Time header — every 30min shown, 15-min grid lines -->
+            <div class="mob-header">
+              <div class="mob-label-col" style="padding:4px 8px;font-size:8px;color:#8B8478;font-weight:600;">NAME</div>
+              <div class="mob-times" style="display:grid;grid-template-columns:repeat(32,1fr);">
+                <div class="mob-time-col hour-mark" style="grid-column:1/3"><div class="mob-time-label">09:00</div></div>
+                <div style="grid-column:3/5"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:5/7"><div class="mob-time-label">10:00</div></div>
+                <div style="grid-column:7/9"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:9/11"><div class="mob-time-label">11:00</div></div>
+                <div style="grid-column:11/13"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:13/15"><div class="mob-time-label">12:00</div></div>
+                <div style="grid-column:15/17"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:17/19"><div class="mob-time-label">13:00</div></div>
+                <div style="grid-column:19/21"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:21/23"><div class="mob-time-label">14:00</div></div>
+                <div style="grid-column:23/25"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:25/27"><div class="mob-time-label">15:00</div></div>
+                <div style="grid-column:27/29"></div>
+                <div class="mob-time-col hour-mark" style="grid-column:29/31"><div class="mob-time-label">16:00</div></div>
+                <div style="grid-column:31/33"></div>
+              </div>
+            </div>
+
+            <!-- Ravi — stacked clash bars -->
+            <div class="mob-row" style="min-height:52px;">
+              <div class="mob-name"><div class="mob-av ga-r">R</div><div class="mob-nm">Ravi</div></div>
+              <div class="mob-cells" style="position:relative;display:grid;grid-template-columns:repeat(32,1fr);">
+                <div class="mob-cell" style="grid-column:1/5"></div><div class="mob-cell hour-mark" style="grid-column:5/9"></div><div class="mob-cell hour-mark" style="grid-column:9/13"></div><div class="mob-cell hour-mark" style="grid-column:13/17"></div><div class="mob-cell hour-mark" style="grid-column:17/21"></div><div class="mob-cell hour-mark" style="grid-column:21/25"></div><div class="mob-cell hour-mark" style="grid-column:25/29"></div><div class="mob-cell hour-mark" style="grid-column:29/33"></div>
+                <div class="mob-bar normal" style="left:0;width:calc(50% - 2px);top:4px;">
+                  <span class="mob-bar-rank">#1</span><span class="mob-bar-title">Vivienne WW 09–13</span>
+                </div>
+                <div class="mob-bar clash" style="left:calc(12.5% + 2px);width:calc(50% - 2px);top:26px;">
+                  <span class="mob-bar-rank">#3</span><span class="mob-bar-title">ION Orchard 10–14 ⚠</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kai -->
+            <div class="mob-row" style="min-height:42px;">
+              <div class="mob-name"><div class="mob-av ga-k">K</div><div class="mob-nm">Kai</div></div>
+              <div class="mob-cells" style="position:relative;display:grid;grid-template-columns:repeat(32,1fr);">
+                <div class="mob-cell" style="grid-column:1/5"></div><div class="mob-cell hour-mark" style="grid-column:5/9"></div><div class="mob-cell hour-mark" style="grid-column:9/13"></div><div class="mob-cell hour-mark" style="grid-column:13/17"></div><div class="mob-cell hour-mark" style="grid-column:17/21"></div><div class="mob-cell hour-mark" style="grid-column:21/25"></div><div class="mob-cell hour-mark" style="grid-column:25/29"></div><div class="mob-cell hour-mark" style="grid-column:29/33"></div>
+                <div class="mob-bar normal" style="left:6.25%;width:31.25%;">
+                  <span class="mob-bar-rank">#2</span><span class="mob-bar-title">MBS 09:30–12</span>
+                </div>
+                <div class="mob-bar normal" style="left:62.5%;width:37.5%;">
+                  <span class="mob-bar-rank">#5</span><span class="mob-bar-title">Raffles 14–17</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ali -->
+            <div class="mob-row" style="min-height:42px;">
+              <div class="mob-name"><div class="mob-av ga-a">A</div><div class="mob-nm">Ali</div></div>
+              <div class="mob-cells" style="position:relative;display:grid;grid-template-columns:repeat(32,1fr);">
+                <div class="mob-cell" style="grid-column:1/5"></div><div class="mob-cell hour-mark" style="grid-column:5/9"></div><div class="mob-cell hour-mark" style="grid-column:9/13"></div><div class="mob-cell hour-mark" style="grid-column:13/17"></div><div class="mob-cell hour-mark" style="grid-column:17/21"></div><div class="mob-cell hour-mark" style="grid-column:21/25"></div><div class="mob-cell hour-mark" style="grid-column:25/29"></div><div class="mob-cell hour-mark" style="grid-column:29/33"></div>
+                <div class="mob-bar normal" style="left:25%;width:50%;">
+                  <span class="mob-bar-rank">#6</span><span class="mob-bar-title">Orchard 11–15</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- scroll hint -->
+        <div style="text-align:center;font-size:9px;color:#8B8478;padding:3px 0 4px;">← scroll left/right to see full day →</div>
+
+        <div class="bottom-nav">
+          <div class="nav-item"><div class="nav-icon">📅</div>Schedule</div>
+          <div class="nav-item active"><div class="nav-icon" style="background:#fdecea">⊞</div>FCFS</div>
+          <div class="nav-item"><div class="nav-icon">🤖</div>Assistant</div>
+        </div>
+      </div>
+      <div class="screen-label">Mobile Day view — swipe right to see afternoon slots</div>
+    </div>
+
+    <!-- View options summary card -->
+    <div style="max-width:280px;">
+      <div style="background:#fff;border:1px solid #E8E2D7;border-radius:10px;overflow:hidden;">
+        <div style="background:#1A1815;padding:10px 14px;font-size:12px;font-weight:700;color:#fff;">5 View Modes</div>
+        <div style="padding:12px 14px;font-size:12px;color:#5C564E;line-height:1.8;">
+          <div style="margin-bottom:10px;"><strong style="color:#1A1815;">Day</strong> — Single day, horizontal time axis, 15-min intervals. Best for checking who's busy at a specific time.</div>
+          <div style="margin-bottom:10px;"><strong style="color:#1A1815;">Week</strong> — 5-day Gantt, bars stretch across days. Best for spotting gaps in the week.</div>
+          <div style="margin-bottom:10px;"><strong style="color:#1A1815;">Month</strong> — High-level dots per installer per day. Best for forward planning.</div>
+          <div style="margin-bottom:10px;"><strong style="color:#1A1815;">By Project</strong> — Jobs listed as rows, installers shown on each bar. Best for project-first thinking.</div>
+          <div><strong style="color:#1A1815;">By Installer</strong> — Installer cards with all their bookings listed. Best for checking one person's full week.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
