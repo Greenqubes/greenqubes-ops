@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Form — Per Role</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #E8E2D7; color: #1A1815; padding: 24px; }
+
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 20px; }
+
+  .callout {
+    background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 20px;
+    max-width: 1200px; line-height: 1.6;
+  }
+
+  .screens { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .screen-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .screen-label { font-size: 11px; color: #5C564E; text-align: center; max-width: 360px; line-height: 1.5; }
+  .role-tag { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .rt-sales       { background: #3D6FB5; }
+  .rt-coordinator { background: #3F7D5C; }
+  .rt-scheduler   { background: #8B6F47; }
+
+  .phone {
+    width: 360px; background: #F4F1EC; border-radius: 28px;
+    border: 2.5px solid #1A1815; overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    display: flex; flex-direction: column;
+  }
+
+  .company-bar {
+    background: #fff; border-bottom: 1px solid #E8E2D7;
+    padding: 9px 16px; display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .company-name { font-size: 13px; font-weight: 700; letter-spacing: 0.01em; }
+  .bar-right { display: flex; align-items: center; gap: 10px; }
+  .bell-wrap { position: relative; }
+  .bell-dot { width: 6px; height: 6px; background: #C8893D; border-radius: 50%; position: absolute; top: -1px; right: -1px; border: 1.5px solid #fff; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+
+  .page-hdr { padding: 14px 16px 10px; background: #F4F1EC; flex-shrink: 0; }
+  .back-link { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #8B8478; margin-bottom: 8px; width: fit-content; }
+  .hdr-row { display: flex; align-items: center; gap: 8px; }
+  .hdr-title { font-family: Georgia, serif; font-size: 19px; font-weight: 600; color: #1A1815; }
+  .pill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+  .pill-pending   { background: #FFF3E0; color: #C8893D; }
+  .pill-scheduled { background: #E8F4EF; color: #3F7D5C; }
+
+  .form-body { overflow-y: auto; max-height: 510px; padding: 0 0 8px; flex: 1; }
+
+  .card { margin: 0 12px 10px; background: #fff; border: 1px solid #E8E2D7; border-radius: 12px; overflow: hidden; }
+  .card-inner { padding: 16px; }
+
+  .sec-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #8B8478; margin-bottom: 12px; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 11px; font-weight: 600; color: #5C564E; }
+
+  .inp {
+    width: 100%; border-radius: 8px; padding: 7px 10px;
+    font-size: 13px; font-family: inherit; outline: none;
+    border: 1px solid #D8D2C7; background: #fff; color: #1A1815;
+  }
+  .inp::placeholder { color: #B5B0A8; }
+  .inp[disabled], .inp.ro { background: #F4F1EC; color: #6B6560; cursor: default; border-color: #E8E2D7; }
+  textarea.inp { resize: none; }
+
+  .inp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+  .day-pill { width: 100%; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 700; color: #C8893D; text-align: center; background: #FFF8EC; border: 1px solid #E8D5B0; }
+
+  .punct-row { display: flex; gap: 8px; }
+  .punct-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 4px; border-radius: 8px; border: 1px solid #E8E2D7; background: #fff; font-size: 12px; color: #6B6560; }
+  .punct-btn.active-strict { background: #FDE8E8; border-color: #B5523D; color: #1A1815; }
+  .punct-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  .check-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check-label { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid #E8E2D7; background: #fff; font-size: 12px; color: #6B6560; }
+  .check-label input { accent-color: #B5523D; }
+
+  .sug-wrap { position: relative; }
+  .sug-btn { position: absolute; top: 6px; right: 6px; display: flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 5px; background: #F4F1EC; border: 1px solid #E8E2D7; font-size: 10px; font-weight: 600; color: #8B8478; }
+
+  .sel-inp { width: 100%; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit; border: 1px solid #D8D2C7; background: #fff; color: #1A1815; display: flex; align-items: center; justify-content: space-between; }
+  .sel-inp.ro { background: #F4F1EC; color: #6B6560; border-color: #E8E2D7; }
+
+  .inst-grid { display: flex; flex-direction: column; gap: 8px; }
+  .inst-card { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid #E8E2D7; background: #F9F7F4; }
+  .inst-card.sel-green { background: #E8F4EF; border-color: #3F7D5C; }
+  .inst-card.sel-amber { background: #FFF8EC; border-color: #C8893D; }
+  .inst-av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .inst-info { flex: 1; min-width: 0; }
+  .inst-name-t { font-size: 12px; font-weight: 600; color: #1A1815; }
+  .inst-sub { font-size: 10px; color: #8B8478; margin-top: 1px; }
+  .inst-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #D8D2C7; background: #fff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .inst-check.on-green { background: #3F7D5C; border-color: #3F7D5C; }
+  .inst-check.on-amber { background: #C8893D; border-color: #C8893D; }
+
+  .notif-empty { padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+  .notif-empty-title { font-size: 13px; font-weight: 600; color: #6B6560; }
+  .notif-empty-sub { font-size: 11px; color: #A09890; }
+
+  .change-banner { margin: 0 12px 10px; border-radius: 10px; border: 1px solid #C8893D; background: #FFF8EC; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+  .change-icon { width: 28px; height: 28px; border-radius: 50%; background: #FFF3E0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .change-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #C8893D; margin-bottom: 3px; }
+  .change-body  { font-size: 12px; color: #6B6560; line-height: 1.4; }
+
+  .action-bar { background: #fff; border-top: 1px solid #E8E2D7; padding: 10px 14px; flex-shrink: 0; }
+  .act-row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .act-row:last-child { margin-bottom: 0; }
+  .btn { border-radius: 10px; padding: 10px 12px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn.full { flex: 1; }
+  .btn.terracotta { background: #B5523D; color: #fff; }
+  .btn.amber-soft { background: #FFF3E0; color: #9A6620; border: 1px solid #E8C99A; }
+  .btn.ghost { background: #F4F1EC; color: #5C564E; border: 1px solid #E8E2D7; }
+  .btn.danger { background: #FDE8E8; color: #B5523D; border: 1px solid #E8C9C9; }
+  .btn.muted { background: #F4F1EC; color: #A09890; border: 1px dashed #D8D2C7; }
+
+  .bottom-nav { background: #fff; border-top: 1px solid #E8E2D7; display: flex; justify-content: space-around; padding: 8px 0 12px; flex-shrink: 0; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #C8C2B8; min-width: 56px; }
+  .nav-item.active { color: #B5523D; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>Job Form — Per Role (V2)</h1>
+<p class="subtitle">Matches the existing app layout. Role-specific differences highlighted.</p>
+
+<div class="callout">
+  <strong>V2 changes from your notes:</strong>
+  (1) Sales sees everything including notes — editable. "Push for Approval" renamed to <strong>"Push to Schedule"</strong> (no coordinator gate required).
+  (2) Coordinator sees no pending status. A <strong>yellow change banner</strong> appears if sales updated a scheduled job.
+  (3) Scheduler's primary CTA is <strong>"Confirm &amp; Notify Installers"</strong> — updates Schedule + FCFS and triggers Telegram.
+</div>
+
+<div class="screens">
+
+  <!-- ═══════ SALES ═══════ -->
+  <div class="screen-col">
+    <div class="role-tag rt-sales">Sales</div>
+    <div class="phone">
+
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="bell-wrap">
+            <div class="bell-dot"></div>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar" style="background:#3D6FB5;">SL</div>
+        </div>
+      </div>
+
+      <div class="page-hdr">
+        <div class="back-link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Schedule
+        </div>
+        <div class="hdr-row">
+          <span class="hdr-title">Edit job</span>
+          <span class="pill pill-pending">Pending</span>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Project title</div>
+              <div class="sug-wrap">
+                <input class="inp" type="text" value="Vivienne Westwood Installation" style="padding-right:80px;">
+                <div class="sug-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Suggest</div>
+              </div>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Date</div>
+                <input class="inp" type="text" value="2026-06-10">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">Day</div>
+                <div class="day-pill">Wed</div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Company</div>
+              <div class="sel-inp">Vivienne Westwood SG <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Client contact</div>
+              <div class="sel-inp">Mr. Tan <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Client phone</div>
+              <input class="inp" type="text" value="+65 9123 4567">
+            </div>
+            <div class="field">
+              <div class="field-label">Location / address</div>
+              <input class="inp" type="text" value="313 Somerset, #B1-01, Singapore">
+            </div>
+            <div class="field">
+              <div class="field-label">Job description</div>
+              <div class="sug-wrap">
+                <textarea class="inp" rows="2" style="padding-right:80px;">Full wall wrap — 4 panels, matte finish.</textarea>
+                <div class="sug-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Suggest</div>
+              </div>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Start time</div>
+                <input class="inp" type="text" value="09:00">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">End time</div>
+                <input class="inp" type="text" value="13:00">
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <div class="field-label">Punctuality</div>
+              <div class="punct-row">
+                <div class="punct-btn active-strict"><span class="punct-dot" style="background:#B5523D;"></span>Strict on time</div>
+                <div class="punct-btn"><span class="punct-dot" style="background:#3D6FB5;"></span>Flexible window</div>
+              </div>
+            </div>
+            <div class="check-row" style="margin-top:12px;">
+              <label class="check-label"><input type="checkbox"> Production ready</label>
+              <label class="check-label"><input type="checkbox"> DO issued</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Person-in-Charge</div>
+              <div class="sel-inp">Jayden Lim <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Sub POC / Coordinators</div>
+              <div class="sel-inp" style="color:#A09890;">None assigned <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Notes</div>
+              <div class="sug-wrap">
+                <textarea class="inp" rows="2" style="padding-right:80px;">Access via loading bay. Ask for Mr. Tan on arrival.</textarea>
+                <div class="sug-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Suggest</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-inner" style="border-top:1px solid #E8E2D7;">
+            <div class="sec-label">Installers</div>
+            <div class="inst-grid">
+              <div class="inst-card sel-amber">
+                <div class="inst-av" style="background:#3D6FB5;">R</div>
+                <div class="inst-info"><div class="inst-name-t">Ravi Kumar</div><div class="inst-sub">Installer · 4 yrs</div></div>
+                <div class="inst-check on-amber"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="inst-card">
+                <div class="inst-av" style="background:#3F7D5C;">M</div>
+                <div class="inst-info"><div class="inst-name-t">Marcus Tan</div><div class="inst-sub">Installer · 2 yrs</div></div>
+                <div class="inst-check"></div>
+              </div>
+              <div class="inst-card">
+                <div class="inst-av" style="background:#8B6F47;">K</div>
+                <div class="inst-info"><div class="inst-name-t">Kai Lim</div><div class="inst-sub">Installer · 3 yrs</div></div>
+                <div class="inst-check"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner" style="padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E8E2D7;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#8B8478;">Notifications</span>
+          </div>
+          <div class="notif-empty">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D8D2C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div class="notif-empty-title">Coming soon</div>
+            <div class="notif-empty-sub">Telegram notification tracker</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="act-row">
+          <button class="btn danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>Delete</button>
+          <button class="btn muted">Duplicate (WIP)</button>
+          <button class="btn ghost">Cancel</button>
+        </div>
+        <div class="act-row">
+          <button class="btn amber-soft full">Save Changes</button>
+          <button class="btn terracotta full"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Push to Schedule</button>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</div>
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>FCFS</div>
+        <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Jobs</div>
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Assistant</div>
+      </div>
+    </div>
+    <div class="screen-label">Sales — full edit access on all fields. Installer ticks are amber (suggestion). "Push to Schedule" goes direct — no coordinator approval gate.</div>
+  </div>
+
+  <!-- ═══════ COORDINATOR ═══════ -->
+  <div class="screen-col">
+    <div class="role-tag rt-coordinator">Coordinator</div>
+    <div class="phone">
+
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="bell-wrap"><div class="bell-dot"></div>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar" style="background:#3F7D5C;">CO</div>
+        </div>
+      </div>
+
+      <div class="page-hdr">
+        <div class="back-link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Schedule
+        </div>
+        <div class="hdr-row">
+          <span class="hdr-title">Edit job</span>
+          <span class="pill pill-scheduled">Scheduled</span>
+        </div>
+      </div>
+
+      <!-- Yellow change banner — appears when sales updated -->
+      <div class="change-banner">
+        <div class="change-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8893D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+          <div class="change-title">Job updated by Sales</div>
+          <div class="change-body">Jayden updated this job today at 10:32am. Review changes.</div>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Project title</div>
+              <input class="inp ro" type="text" value="Vivienne Westwood Installation" disabled>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Date</div>
+                <input class="inp" type="text" value="2026-06-10">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">Day</div>
+                <div class="day-pill">Wed</div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Company</div>
+              <input class="inp ro" type="text" value="Vivienne Westwood SG" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Client contact</div>
+              <input class="inp ro" type="text" value="Mr. Tan" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Client phone</div>
+              <input class="inp ro" type="text" value="+65 9123 4567" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Location / address</div>
+              <input class="inp" type="text" value="313 Somerset, #B1-01, Singapore">
+            </div>
+            <div class="field">
+              <div class="field-label">Job description</div>
+              <textarea class="inp ro" rows="2" disabled>Full wall wrap — 4 panels, matte finish.</textarea>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Start time</div>
+                <input class="inp" type="text" value="09:00">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">End time</div>
+                <input class="inp" type="text" value="13:00">
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <div class="field-label">Punctuality</div>
+              <div class="punct-row">
+                <div class="punct-btn active-strict" style="opacity:0.7;"><span class="punct-dot" style="background:#B5523D;"></span>Strict on time</div>
+                <div class="punct-btn" style="opacity:0.5;"><span class="punct-dot" style="background:#3D6FB5;"></span>Flexible window</div>
+              </div>
+            </div>
+            <div class="check-row" style="margin-top:12px;">
+              <label class="check-label" style="opacity:0.5;"><input type="checkbox" disabled> Production ready</label>
+              <label class="check-label" style="opacity:0.5;"><input type="checkbox" disabled> DO issued</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Person-in-Charge</div>
+              <input class="inp ro" type="text" value="Jayden Lim" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Sub POC / Coordinators</div>
+              <div class="sel-inp">Sarah, Wei Min <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+            </div>
+            <div class="field">
+              <div class="field-label">Notes</div>
+              <div class="sug-wrap">
+                <textarea class="inp" rows="2" style="padding-right:80px;">Access via loading bay. Ask for Mr. Tan on arrival.</textarea>
+                <div class="sug-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Suggest</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-inner" style="border-top:1px solid #E8E2D7;">
+            <div class="sec-label">Installers</div>
+            <div class="inst-grid">
+              <div class="inst-card sel-amber">
+                <div class="inst-av" style="background:#3D6FB5;">R</div>
+                <div class="inst-info"><div class="inst-name-t">Ravi Kumar</div><div class="inst-sub" style="color:#C8893D;font-weight:600;">Suggested by Sales</div></div>
+                <div class="inst-check on-amber"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="inst-card sel-green">
+                <div class="inst-av" style="background:#3F7D5C;">M</div>
+                <div class="inst-info"><div class="inst-name-t">Marcus Tan</div><div class="inst-sub" style="color:#3F7D5C;font-weight:600;">Formally assigned</div></div>
+                <div class="inst-check on-green"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="inst-card">
+                <div class="inst-av" style="background:#8B6F47;">K</div>
+                <div class="inst-info"><div class="inst-name-t">Kai Lim</div><div class="inst-sub">Available</div></div>
+                <div class="inst-check"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner" style="padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E8E2D7;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#8B8478;">Notifications</span>
+          </div>
+          <div class="notif-empty">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D8D2C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div class="notif-empty-title">Coming soon</div>
+            <div class="notif-empty-sub">Telegram notification tracker</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="act-row">
+          <button class="btn ghost">Cancel</button>
+          <button class="btn terracotta full"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes</button>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</div>
+        <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>FCFS</div>
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Assistant</div>
+      </div>
+    </div>
+    <div class="screen-label">Coordinator — no pending status. Yellow banner when sales updates a scheduled job. Project title + client read-only. Can edit schedule/location/notes + formally assign installers.</div>
+  </div>
+
+  <!-- ═══════ SCHEDULER ═══════ -->
+  <div class="screen-col">
+    <div class="role-tag rt-scheduler">Scheduler</div>
+    <div class="phone">
+
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="bell-wrap">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="avatar" style="background:#8B6F47;">SK</div>
+        </div>
+      </div>
+
+      <div class="page-hdr">
+        <div class="back-link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Schedule
+        </div>
+        <div class="hdr-row">
+          <span class="hdr-title">Edit job</span>
+          <span class="pill pill-scheduled">Scheduled</span>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Project title</div>
+              <input class="inp ro" type="text" value="Vivienne Westwood Installation" disabled>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Date</div>
+                <input class="inp" type="text" value="2026-06-10">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">Day</div>
+                <div class="day-pill">Wed</div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Company</div>
+              <input class="inp ro" type="text" value="Vivienne Westwood SG" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Client contact</div>
+              <input class="inp ro" type="text" value="Mr. Tan" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Client phone</div>
+              <input class="inp ro" type="text" value="+65 9123 4567" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Location / address</div>
+              <input class="inp ro" type="text" value="313 Somerset, #B1-01, Singapore" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Job description</div>
+              <textarea class="inp ro" rows="2" disabled>Full wall wrap — 4 panels, matte finish.</textarea>
+            </div>
+            <div class="inp-row">
+              <div class="field" style="margin:0;">
+                <div class="field-label">Start time</div>
+                <input class="inp" type="text" value="09:00">
+              </div>
+              <div class="field" style="margin:0;">
+                <div class="field-label">End time</div>
+                <input class="inp" type="text" value="13:00">
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <div class="field-label">Punctuality</div>
+              <div class="punct-row">
+                <div class="punct-btn active-strict" style="opacity:0.7;"><span class="punct-dot" style="background:#B5523D;"></span>Strict on time</div>
+                <div class="punct-btn" style="opacity:0.5;"><span class="punct-dot" style="background:#3D6FB5;"></span>Flexible window</div>
+              </div>
+            </div>
+            <div class="check-row" style="margin-top:12px;">
+              <label class="check-label"><input type="checkbox"> Production ready</label>
+              <label class="check-label"><input type="checkbox" checked> DO issued</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner">
+            <div class="field">
+              <div class="field-label">Person-in-Charge</div>
+              <input class="inp ro" type="text" value="Jayden Lim" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Sub POC / Coordinators</div>
+              <input class="inp ro" type="text" value="Sarah, Wei Min" disabled>
+            </div>
+            <div class="field">
+              <div class="field-label">Notes</div>
+              <textarea class="inp ro" rows="2" disabled>Access via loading bay. Ask for Mr. Tan on arrival.</textarea>
+            </div>
+          </div>
+          <div class="card-inner" style="border-top:1px solid #E8E2D7;">
+            <div class="sec-label">Installers</div>
+            <div class="inst-grid">
+              <div class="inst-card sel-green">
+                <div class="inst-av" style="background:#3D6FB5;">R</div>
+                <div class="inst-info"><div class="inst-name-t">Ravi Kumar</div><div class="inst-sub" style="color:#3F7D5C;font-weight:600;">Assigned</div></div>
+                <div class="inst-check on-green"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="inst-card sel-green">
+                <div class="inst-av" style="background:#3F7D5C;">M</div>
+                <div class="inst-info"><div class="inst-name-t">Marcus Tan</div><div class="inst-sub" style="color:#3F7D5C;font-weight:600;">Assigned</div></div>
+                <div class="inst-check on-green"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="inst-card">
+                <div class="inst-av" style="background:#8B6F47;">K</div>
+                <div class="inst-info"><div class="inst-name-t">Kai Lim</div><div class="inst-sub">Tap to swap in</div></div>
+                <div class="inst-check"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-inner" style="padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #E8E2D7;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#8B8478;">Notifications</span>
+          </div>
+          <div class="notif-empty">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D8D2C7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div class="notif-empty-title">Coming soon</div>
+            <div class="notif-empty-sub">Telegram notification tracker</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div class="act-row">
+          <button class="btn danger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Delete</button>
+          <button class="btn ghost full"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Mark Complete</button>
+        </div>
+        <div class="act-row">
+          <button class="btn ghost">Cancel</button>
+          <button class="btn terracotta full"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Confirm &amp; Notify Installers</button>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule</div>
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>FCFS</div>
+        <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Assistant</div>
+      </div>
+    </div>
+    <div class="screen-label">Scheduler — date/time + checkboxes editable. Installer grid for reassigning. "Confirm & Notify Installers" fires Telegram and updates Schedule + FCFS pages.</div>
+  </div>
+
+</div>
+</body>
+</html>

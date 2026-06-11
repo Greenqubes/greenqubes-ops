@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>External Installer POC Bucket</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 52px; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+  .callout { background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 24px; max-width: 900px; line-height: 1.6; }
+  .row-flex { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Team card shell */
+  .team-card { width: 360px; background: #fff; border: 1.5px solid #D8D2C7; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid #E8E2D7; display: flex; align-items: center; gap: 8px; }
+  .card-title { font-size: 13px; font-weight: 700; }
+  .bucket-summary { padding: 10px 16px; border-bottom: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: space-between; }
+  .bucket-name { font-size: 11px; font-weight: 600; color: #5C564E; }
+  .bucket-count { font-size: 10px; font-weight: 700; border-radius: 10px; padding: 1px 6px; }
+  .bc-green  { background: #E8F4EE; color: #3F7D5C; }
+  .bc-amber  { background: #FEF3E7; color: #C8893D; }
+  .bc-grey   { background: #F4F1EC; color: #8B8478; }
+  .divider   { height: 1px; background: #E8E2D7; margin: 0 16px; }
+
+  /* Collapsed trigger */
+  .trigger-pad { padding: 12px 16px; }
+  .trigger-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #5C564E; background: #F4F1EC; border: 1.5px dashed #C8C2B8; border-radius: 8px; padding: 8px 16px; width: 100%; justify-content: center; cursor: pointer; }
+
+  /* Bucket open header */
+  .bucket-head { padding: 10px 16px 6px; display: flex; align-items: center; justify-content: space-between; }
+  .bucket-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #8B8478; display: flex; align-items: center; gap: 6px; }
+  .bucket-remove { font-size: 11px; color: #B5523D; font-weight: 600; cursor: pointer; }
+
+  /* Sub-section label */
+  .sub-label { padding: 6px 16px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #C8C2B8; }
+
+  /* Existing contact card */
+  .ext-card { margin: 0 12px 6px; border-radius: 10px; border: 1.5px solid #E8E2D7; background: #FAFAF8; overflow: hidden; }
+  .ext-card.assigned-green { border-color: #3F7D5C; background: #F0F8F4; }
+  .ext-card.assigned-amber { border-color: #C8893D; background: #FEF8F0; }
+  .ext-card.deleted-card   { border-color: #E8E2D7; background: #F9F7F4; opacity: 0.7; }
+  .ext-card-inner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .ext-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .ext-info { flex: 1; min-width: 0; }
+  .ext-name  { font-size: 12px; font-weight: 600; color: #1A1815; }
+  .ext-phone { font-size: 10px; color: #8B8478; margin-top: 1px; }
+  .ext-name.strikethrough { text-decoration: line-through; color: #8B8478; }
+  .ext-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  /* Assign toggle */
+  .assign-btn { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .assign-btn.unassigned { background: #F4F1EC; border: 1px solid #E8E2D7; color: #5C564E; }
+  .assign-btn.assigned-g { background: #E8F4EE; border: 1px solid #C8E4D4; color: #3F7D5C; }
+  .assign-btn.assigned-a { background: #FEF3E7; border: 1px solid #F0D9BB; color: #C8893D; }
+
+  /* Delete icon */
+  .del-icon { width: 26px; height: 26px; background: #F4F1EC; border-radius: 6px; border: 1px solid #E8E2D7; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+
+  /* Restore button */
+  .restore-btn { font-size: 10px; font-weight: 700; color: #3D6FB5; background: #E8F0FC; border: 1px solid #C8D8F4; border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+
+  /* Deleted warning strip */
+  .deleted-strip { border-top: 1px solid #F4F1EC; padding: 5px 12px 7px; display: flex; align-items: center; gap: 5px; background: #FEF8F0; }
+  .deleted-strip-text { font-size: 10px; color: #C8893D; flex: 1; }
+
+  /* Add new form */
+  .add-form { margin: 6px 12px 12px; background: #F4F1EC; border: 1px dashed #C8C2B8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .add-form-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; }
+  .field-row { display: flex; gap: 8px; }
+  .field { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .field-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #8B8478; }
+  .field-input { background: #fff; border: 1.5px solid #E8E2D7; border-radius: 7px; padding: 8px 10px; font-size: 12px; color: #1A1815; }
+  .field-input.ph { color: #C8C2B8; }
+  .field-input.focused { border-color: #3D6FB5; }
+  .add-btn { background: #1A1815; color: #fff; border-radius: 8px; padding: 9px 0; font-size: 12px; font-weight: 700; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  /* ── Delete confirmation modal ─────────────────────────────── */
+  .modal-overlay { position: absolute; inset: 0; background: rgba(26,24,21,0.5); display: flex; align-items: flex-end; z-index: 30; border-radius: 0 0 10px 10px; }
+  .modal-sheet { background: #fff; border-radius: 18px 18px 0 0; padding: 20px 20px 28px; width: 100%; }
+  .modal-handle { width: 36px; height: 4px; background: #D8D2C7; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .modal-sub   { font-size: 12px; color: #8B8478; line-height: 1.6; margin-bottom: 14px; }
+  .modal-warning { background: #FCEAE7; border: 1px solid #F0C8C0; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #B5523D; line-height: 1.6; margin-bottom: 14px; display: flex; gap: 8px; align-items: flex-start; }
+  .modal-btns { display: flex; flex-direction: column; gap: 8px; }
+  .modal-btn { border-radius: 9px; padding: 12px 0; font-size: 13px; font-weight: 700; text-align: center; cursor: pointer; }
+  .modal-btn.delete  { background: #B5523D; color: #fff; }
+  .modal-btn.cancel  { background: #F4F1EC; color: #5C564E; }
+
+  /* ── Restore confirmation modal ────────────────────────────── */
+  .modal-success { background: #E8F4EE; border: 1px solid #C8E4D4; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #3F7D5C; line-height: 1.6; margin-bottom: 14px; display: flex; gap: 8px; align-items: flex-start; }
+  .modal-btn.restore { background: #3F7D5C; color: #fff; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>External Installer POC Bucket — Updated</h1>
+<div class="subtitle">Existing contacts selectable · add new · delete with confirmation · restore with full history</div>
+
+<div class="callout">
+  <strong>Key change:</strong> Once David is added on Job A, he's saved as a contact. On Job B, the coordinator picks him from the existing list — no re-entering details. Each person has one persistent token (link) for life.
+  <br><br>
+  <strong>Delete + Restore:</strong> Deleting a contact immediately invalidates their link — confirmed via a warning prompt. Restoring brings back the exact same token, same link, all job history intact.
+</div>
+
+<!-- ══ STATE 1 — Collapsed ════════════════════════════════════ -->
+<div class="section">
+  <h2>State 1 — Collapsed (default)</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+      <div class="bucket-summary"><div class="bucket-name">Installers</div><span class="bucket-count bc-green">2 assigned</span></div>
+      <div class="bucket-summary"><div class="bucket-name">Sub-installers</div><span class="bucket-count bc-amber">1 suggested</span></div>
+      <div class="divider"></div>
+      <div class="trigger-pad">
+        <div class="trigger-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          External installer
+        </div>
+      </div>
+    </div>
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Same dashed button as before. Hidden until needed.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 1 — Collapsed</div>
+</div>
+
+<!-- ══ STATE 2 — Expanded: existing contacts + add new ══════ -->
+<div class="section">
+  <h2>State 2 — Expanded: pick existing or add new</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+      <div class="bucket-summary"><div class="bucket-name">Installers</div><span class="bucket-count bc-green">2 assigned</span></div>
+      <div class="bucket-summary"><div class="bucket-name">Sub-installers</div><span class="bucket-count bc-amber">1 suggested</span></div>
+      <div class="divider"></div>
+
+      <div class="bucket-head">
+        <div class="bucket-label">External installers</div>
+        <div class="bucket-remove">Remove</div>
+      </div>
+
+      <!-- Existing contacts -->
+      <div class="sub-label">Previously used</div>
+
+      <!-- David — unassigned to this job -->
+      <div class="ext-card">
+        <div class="ext-card-inner">
+          <div class="ext-avatar" style="background:#5C564E;">DN</div>
+          <div class="ext-info">
+            <div class="ext-name">David Ng</div>
+            <div class="ext-phone">+65 9234 5678 · 4 past jobs</div>
+          </div>
+          <div class="ext-actions">
+            <div class="assign-btn unassigned">+ Assign</div>
+            <div class="del-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raj — assigned (amber) -->
+      <div class="ext-card assigned-amber">
+        <div class="ext-card-inner">
+          <div class="ext-avatar" style="background:#C8893D;">RP</div>
+          <div class="ext-info">
+            <div class="ext-name">Raj Patel</div>
+            <div class="ext-phone">+65 8765 4321 · 2 past jobs</div>
+          </div>
+          <div class="ext-actions">
+            <div class="assign-btn assigned-a">Assigned</div>
+            <div class="del-icon">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add new -->
+      <div class="sub-label" style="margin-top:4px;">Add new contact</div>
+      <div class="add-form">
+        <div class="field-row">
+          <div class="field">
+            <div class="field-lbl">Name</div>
+            <div class="field-input ph">Name</div>
+          </div>
+          <div class="field">
+            <div class="field-lbl">Phone</div>
+            <div class="field-input ph">Phone</div>
+          </div>
+        </div>
+        <div class="add-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add &amp; generate link
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Existing contacts show past job count — quick context on how experienced they are. Tap <strong>+ Assign</strong> to add to this job (no re-entering details). Raj is already assigned (amber).</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Add new form only used for brand-new people. Generates their persistent link immediately.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 2 — Existing contacts selectable, add new below</div>
+</div>
+
+<!-- ══ STATE 3 — Delete confirmation prompt ══════════════════ -->
+<div class="section">
+  <h2>State 3 — Delete confirmation</h2>
+  <div class="row-flex">
+    <div class="team-card" style="position:relative;overflow:visible;">
+      <div style="border-radius:10px;overflow:hidden;position:relative;">
+        <div class="card-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <div class="card-title">Team</div>
+        </div>
+        <div class="bucket-head" style="margin-top:8px;">
+          <div class="bucket-label">External installers</div>
+        </div>
+        <div class="ext-card" style="opacity:0.3;">
+          <div class="ext-card-inner">
+            <div class="ext-avatar" style="background:#5C564E;">DN</div>
+            <div class="ext-info"><div class="ext-name">David Ng</div><div class="ext-phone">+65 9234 5678</div></div>
+            <div class="ext-actions"><div class="assign-btn unassigned">+ Assign</div></div>
+          </div>
+        </div>
+        <div style="height:160px;"></div>
+
+        <!-- Modal overlay -->
+        <div class="modal-overlay" style="border-radius:10px;">
+          <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Delete David Ng?</div>
+            <div class="modal-sub">This contact and their unique job link will be permanently removed from your team.</div>
+            <div class="modal-warning">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B5523D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Their job link will be <strong>immediately invalidated</strong>. David will lose access to all assigned jobs — including jobs he hasn't responded to yet. This affects 3 active jobs.</span>
+            </div>
+            <div class="modal-btns">
+              <div class="modal-btn delete">Delete contact</div>
+              <div class="modal-btn cancel">Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Warning lists how many active jobs are affected. Coordinator must consciously tap <strong>Delete contact</strong> — not just dismiss.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Link is invalidated the moment they confirm — David sees the "link no longer valid" page immediately.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 3 — Delete confirmation with active job count warning</div>
+</div>
+
+<!-- ══ STATE 4 — After deletion: deleted card + restore ══════ -->
+<div class="section">
+  <h2>State 4 — After deletion (restore available)</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+      <div class="bucket-head" style="margin-top:6px;">
+        <div class="bucket-label">External installers</div>
+      </div>
+
+      <!-- Raj still active -->
+      <div class="ext-card assigned-amber">
+        <div class="ext-card-inner">
+          <div class="ext-avatar" style="background:#C8893D;">RP</div>
+          <div class="ext-info"><div class="ext-name">Raj Patel</div><div class="ext-phone">+65 8765 4321</div></div>
+          <div class="ext-actions">
+            <div class="assign-btn assigned-a">Assigned</div>
+            <div class="del-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- David — deleted state -->
+      <div class="ext-card deleted-card">
+        <div class="ext-card-inner">
+          <div class="ext-avatar" style="background:#C8C2B8;">DN</div>
+          <div class="ext-info">
+            <div class="ext-name strikethrough">David Ng</div>
+            <div class="ext-phone">Deleted · link invalidated</div>
+          </div>
+          <div class="ext-actions">
+            <div class="restore-btn">Restore</div>
+          </div>
+        </div>
+        <div class="deleted-strip">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C8893D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="deleted-strip-text">Link invalid · 3 jobs suspended · Restore to reactivate</span>
+        </div>
+      </div>
+
+      <div style="padding:10px 16px 14px;">
+        <div class="trigger-btn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add another external installer
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">David's card stays visible but muted — name struck through, strip shows jobs are suspended. <strong>Restore</strong> button is always accessible.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Deleted cards remain visible indefinitely so the coordinator can restore at any point — not just within a short window.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 4 — Deleted card stays visible with Restore button</div>
+</div>
+
+<!-- ══ STATE 5 — Restore confirmation ════════════════════════ -->
+<div class="section">
+  <h2>State 5 — Restore confirmation</h2>
+  <div class="row-flex">
+    <div class="team-card" style="position:relative;overflow:visible;">
+      <div style="border-radius:10px;overflow:hidden;position:relative;">
+        <div class="card-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <div class="card-title">Team</div>
+        </div>
+        <div class="bucket-head" style="margin-top:6px;">
+          <div class="bucket-label">External installers</div>
+        </div>
+        <div class="ext-card deleted-card" style="opacity:0.25;">
+          <div class="ext-card-inner">
+            <div class="ext-avatar" style="background:#C8C2B8;">DN</div>
+            <div class="ext-info"><div class="ext-name strikethrough">David Ng</div><div class="ext-phone">Deleted</div></div>
+            <div class="ext-actions"><div class="restore-btn">Restore</div></div>
+          </div>
+        </div>
+        <div style="height:170px;"></div>
+
+        <!-- Restore modal -->
+        <div class="modal-overlay" style="border-radius:10px;">
+          <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-title">Restore David Ng?</div>
+            <div class="modal-sub">His contact and all job history will be fully restored.</div>
+            <div class="modal-success">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F7D5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>The <strong>same unique link</strong> will be reactivated — David can use his existing bookmark. All pending, accepted, and past jobs are restored exactly as they were.</span>
+            </div>
+            <div class="modal-btns">
+              <div class="modal-btn restore">Restore contact</div>
+              <div class="modal-btn cancel">Cancel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Restore prompt reassures the coordinator: <strong>same link, all history intact</strong>. David doesn't need to be re-sent anything — his bookmarked URL just works again.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">After restoring, the card returns to its normal active state.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 5 — Restore confirmation: same token reactivated, all history preserved</div>
+</div>
+
+</body>
+</html>

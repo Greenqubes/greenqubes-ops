@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clash Prompt Modal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #E8E2D7; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 20px; }
+  .callout { background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 20px; max-width: 900px; line-height: 1.6; }
+
+  .screens { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .screen-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .screen-label { font-size: 11px; color: #5C564E; text-align: center; max-width: 360px; line-height: 1.5; }
+
+  /* Phone */
+  .phone { width: 360px; background: #F4F1EC; border-radius: 28px; border: 2.5px solid #1A1815; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18); display: flex; flex-direction: column; position: relative; }
+
+  /* Company bar */
+  .company-bar { background: #fff; border-bottom: 1px solid #E8E2D7; padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .company-name { font-size: 13px; font-weight: 700; }
+  .bar-right { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+
+  /* Dimmed background (page behind modal) */
+  .page-dim { padding: 14px 16px; opacity: 0.35; pointer-events: none; }
+  .dim-hdr { font-family: Georgia, serif; font-size: 19px; font-weight: 600; margin-bottom: 12px; }
+  .dim-card { background: #fff; border-radius: 12px; border: 1px solid #E8E2D7; padding: 14px; margin-bottom: 10px; }
+  .dim-field { height: 32px; background: #F4F1EC; border-radius: 7px; margin-bottom: 8px; }
+  .dim-field:last-child { margin-bottom: 0; }
+  .dim-field.short { width: 55%; }
+
+  /* Modal overlay */
+  .modal-overlay { position: absolute; bottom: 0; left: 0; right: 0; top: 0; background: rgba(26,24,21,0.5); display: flex; align-items: flex-end; border-radius: 26px; }
+  .modal-sheet { background: #fff; border-radius: 18px 18px 0 0; width: 100%; padding: 0 0 16px; max-height: 92%; overflow-y: auto; }
+
+  /* Modal handle */
+  .modal-handle { width: 36px; height: 4px; background: #D8D2C7; border-radius: 2px; margin: 12px auto 16px; }
+
+  /* Modal header */
+  .modal-hdr { padding: 0 16px 14px; border-bottom: 1px solid #E8E2D7; }
+  .modal-title { font-family: Georgia, serif; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: #8B8478; line-height: 1.4; }
+
+  /* Clash block */
+  .clash-block { margin: 14px 16px 0; background: #FDE8E8; border: 1px solid #E8C9C9; border-radius: 10px; padding: 12px; }
+  .clash-block-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #B5523D; margin-bottom: 8px; }
+  .clash-installer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .clash-av { width: 30px; height: 30px; border-radius: 50%; background: #B5523D; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .clash-name { font-size: 13px; font-weight: 700; color: #1A1815; }
+  .clash-detail { font-size: 11px; color: #8B8478; }
+
+  /* Conflict jobs */
+  .conflict-jobs { display: flex; flex-direction: column; gap: 6px; }
+  .conflict-job { background: #fff; border-radius: 8px; padding: 9px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #E8C9C9; }
+  .rank-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+  .rank-1 { background: #E8F4EF; color: #3F7D5C; }
+  .rank-2 { background: #FDE8E8; color: #B5523D; }
+  .conflict-info { flex: 1; min-width: 0; }
+  .conflict-job-name { font-size: 12px; font-weight: 600; color: #1A1815; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conflict-time { font-size: 10px; color: #8B8478; }
+  .conflict-tag { font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  .tag-protected { color: #3F7D5C; }
+  .tag-reassign  { color: #B5523D; }
+
+  /* Section label */
+  .sec-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #8B8478; padding: 14px 16px 8px; }
+
+  /* Replacement installer grid */
+  .repl-grid { padding: 0 16px; display: flex; flex-direction: column; gap: 7px; }
+  .repl-card { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; border: 1.5px solid #E8E2D7; background: #F9F7F4; cursor: pointer; }
+  .repl-card.selected { background: #E8F4EF; border-color: #3F7D5C; }
+  .repl-card.unavail  { opacity: 0.45; cursor: not-allowed; }
+  .repl-av { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .repl-info { flex: 1; min-width: 0; }
+  .repl-name { font-size: 12px; font-weight: 600; color: #1A1815; }
+  .repl-meta { font-size: 10px; color: #8B8478; }
+  .repl-avail { font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  .avail-yes { color: #3F7D5C; }
+  .avail-no  { color: #B5523D; }
+  .repl-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #D8D2C7; background: #fff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .repl-check.on { background: #3F7D5C; border-color: #3F7D5C; }
+
+  /* Action buttons */
+  .modal-actions { padding: 14px 16px 4px; display: flex; flex-direction: column; gap: 8px; }
+  .btn { border-radius: 10px; padding: 11px 14px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; }
+  .btn.primary    { background: #B5523D; color: #fff; }
+  .btn.secondary  { background: #F4F1EC; color: #5C564E; border: 1px solid #E8E2D7; }
+  .btn.push-any   { background: #FFF3E0; color: #9A6620; border: 1px solid #E8C99A; font-size: 12px; }
+
+  /* Travel warning variant */
+  .warn-block { margin: 14px 16px 0; background: #FFF8EC; border: 1px solid #E8D5B0; border-radius: 10px; padding: 12px; }
+  .warn-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #C8893D; margin-bottom: 8px; }
+  .warn-row { display: flex; align-items: flex-start; gap: 8px; }
+  .warn-av { width: 28px; height: 28px; border-radius: 50%; background: #C8893D; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 1px; }
+  .warn-body { font-size: 12px; color: #5C564E; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>Coordinator — Clash Prompt Modal</h1>
+<p class="subtitle">Triggered when the scheduler detects a double-booked installer. Two variants shown.</p>
+
+<div class="callout">
+  <strong>How this triggers:</strong> When sales pushes a job to schedule and an installer is already assigned to another job at the same time, the system shows this modal to the coordinator. The higher FCFS-ranked job is protected. The coordinator must reassign the installer on the lower-ranked job, or push anyway.
+</div>
+
+<div class="screens">
+
+  <!-- ── Variant 1: Single clash, pick replacement ── -->
+  <div class="screen-col">
+    <div class="phone">
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="avatar" style="background:#3F7D5C;">CO</div>
+        </div>
+      </div>
+
+      <!-- Dimmed page behind -->
+      <div class="page-dim">
+        <div class="dim-hdr">Edit job</div>
+        <div class="dim-card">
+          <div class="dim-field"></div>
+          <div class="dim-field short"></div>
+          <div class="dim-field"></div>
+          <div class="dim-field"></div>
+        </div>
+        <div class="dim-card">
+          <div class="dim-field"></div>
+          <div class="dim-field"></div>
+        </div>
+      </div>
+
+      <!-- Modal sheet -->
+      <div class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+
+          <div class="modal-hdr">
+            <div class="modal-title">Installer clash detected</div>
+            <div class="modal-sub">Ravi is already booked on another job at this time. Pick a replacement for the lower-ranked job.</div>
+          </div>
+
+          <!-- Clashing installer -->
+          <div class="clash-block">
+            <div class="clash-block-label">Double-booked installer</div>
+            <div class="clash-installer-row">
+              <div class="clash-av">R</div>
+              <div>
+                <div class="clash-name">Ravi Kumar</div>
+                <div class="clash-detail">9:00am – 1:00pm · Wed 10 Jun</div>
+              </div>
+            </div>
+            <!-- The two clashing jobs -->
+            <div class="conflict-jobs">
+              <div class="conflict-job">
+                <div class="rank-badge rank-1">#1</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">Vivienne Westwood WW</div>
+                  <div class="conflict-time">9:00am – 1:00pm</div>
+                </div>
+                <div class="conflict-tag tag-protected">Protected</div>
+              </div>
+              <div class="conflict-job">
+                <div class="rank-badge rank-2">#4</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">ION Orchard Wrap</div>
+                  <div class="conflict-time">10:00am – 3:00pm</div>
+                </div>
+                <div class="conflict-tag tag-reassign">Needs reassign</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Replacement picker -->
+          <div class="sec-label">Replace Ravi on ION Orchard Wrap</div>
+          <div class="repl-grid">
+            <div class="repl-card selected">
+              <div class="repl-av" style="background:#8B6F47;">K</div>
+              <div class="repl-info">
+                <div class="repl-name">Kai Lim</div>
+                <div class="repl-meta">Installer · 3 yrs</div>
+              </div>
+              <div class="repl-avail avail-yes">Free</div>
+              <div class="repl-check on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="repl-card">
+              <div class="repl-av" style="background:#3D6FB5;">S</div>
+              <div class="repl-info">
+                <div class="repl-name">Sarah Ng</div>
+                <div class="repl-meta">Installer · 5 yrs</div>
+              </div>
+              <div class="repl-avail avail-yes">Free</div>
+              <div class="repl-check"></div>
+            </div>
+            <div class="repl-card unavail">
+              <div class="repl-av" style="background:#A09890;">J</div>
+              <div class="repl-info">
+                <div class="repl-name">James Woo</div>
+                <div class="repl-meta">Installer · 1 yr</div>
+              </div>
+              <div class="repl-avail avail-no">Clashes</div>
+              <div class="repl-check"></div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Reassign &amp; Confirm
+            </button>
+            <button class="btn push-any">Push anyway — I'll sort it out</button>
+            <button class="btn secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Single clash — coordinator picks a replacement installer for the lower-ranked job. Available installers shown first; conflicting ones are greyed out.</div>
+  </div>
+
+  <!-- ── Variant 2: Multiple clashes ── -->
+  <div class="screen-col">
+    <div class="phone">
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="avatar" style="background:#3F7D5C;">CO</div>
+        </div>
+      </div>
+
+      <div class="page-dim">
+        <div class="dim-hdr">Edit job</div>
+        <div class="dim-card">
+          <div class="dim-field"></div>
+          <div class="dim-field short"></div>
+          <div class="dim-field"></div>
+        </div>
+        <div class="dim-card">
+          <div class="dim-field"></div>
+          <div class="dim-field"></div>
+          <div class="dim-field"></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+
+          <div class="modal-hdr">
+            <div class="modal-title">2 installer clashes</div>
+            <div class="modal-sub">Two installers are double-booked. Both need to be resolved before confirming.</div>
+          </div>
+
+          <!-- Clash 1 -->
+          <div class="clash-block">
+            <div class="clash-block-label">Clash 1 of 2 — Ravi Kumar</div>
+            <div class="conflict-jobs">
+              <div class="conflict-job">
+                <div class="rank-badge rank-1">#1</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">Vivienne Westwood WW</div>
+                  <div class="conflict-time">9:00am – 1:00pm</div>
+                </div>
+                <div class="conflict-tag tag-protected">Protected</div>
+              </div>
+              <div class="conflict-job">
+                <div class="rank-badge rank-2">#4</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">ION Orchard Wrap</div>
+                  <div class="conflict-time">10:00am – 3:00pm</div>
+                </div>
+                <div class="conflict-tag tag-reassign">Reassign</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Clash 1 replacement -->
+          <div class="sec-label">Replace Ravi on ION Orchard Wrap</div>
+          <div class="repl-grid">
+            <div class="repl-card selected">
+              <div class="repl-av" style="background:#8B6F47;">K</div>
+              <div class="repl-info"><div class="repl-name">Kai Lim</div><div class="repl-meta">3 yrs</div></div>
+              <div class="repl-avail avail-yes">Free</div>
+              <div class="repl-check on"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="repl-card">
+              <div class="repl-av" style="background:#3D6FB5;">S</div>
+              <div class="repl-info"><div class="repl-name">Sarah Ng</div><div class="repl-meta">5 yrs</div></div>
+              <div class="repl-avail avail-yes">Free</div>
+              <div class="repl-check"></div>
+            </div>
+          </div>
+
+          <!-- Clash 2 -->
+          <div class="clash-block" style="margin-top:12px;">
+            <div class="clash-block-label">Clash 2 of 2 — Marcus Tan</div>
+            <div class="conflict-jobs">
+              <div class="conflict-job">
+                <div class="rank-badge rank-1">#2</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">TANGS Level 3</div>
+                  <div class="conflict-time">8:00am – 12:00pm</div>
+                </div>
+                <div class="conflict-tag tag-protected">Protected</div>
+              </div>
+              <div class="conflict-job">
+                <div class="rank-badge rank-2">#4</div>
+                <div class="conflict-info">
+                  <div class="conflict-job-name">ION Orchard Wrap</div>
+                  <div class="conflict-time">10:00am – 3:00pm</div>
+                </div>
+                <div class="conflict-tag tag-reassign">Reassign</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Clash 2 replacement -->
+          <div class="sec-label">Replace Marcus on ION Orchard Wrap</div>
+          <div class="repl-grid">
+            <div class="repl-card">
+              <div class="repl-av" style="background:#3D6FB5;">S</div>
+              <div class="repl-info"><div class="repl-name">Sarah Ng</div><div class="repl-meta">5 yrs</div></div>
+              <div class="repl-avail avail-yes">Free</div>
+              <div class="repl-check"></div>
+            </div>
+            <div class="repl-card unavail">
+              <div class="repl-av" style="background:#A09890;">J</div>
+              <div class="repl-info"><div class="repl-name">James Woo</div><div class="repl-meta">1 yr</div></div>
+              <div class="repl-avail avail-no">Clashes</div>
+              <div class="repl-check"></div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn primary" style="opacity:0.45;cursor:not-allowed;">
+              Reassign &amp; Confirm — pick both first
+            </button>
+            <button class="btn push-any">Push anyway — I'll sort it out</button>
+            <button class="btn secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Multiple clashes — each clash shown as its own block. Primary CTA stays disabled until all replacements are picked. "Push anyway" always available as an escape hatch.</div>
+  </div>
+
+  <!-- ── Variant 3: Travel warning (not a hard clash) ── -->
+  <div class="screen-col">
+    <div class="phone">
+      <div class="company-bar">
+        <span class="company-name">GreenQubes</span>
+        <div class="bar-right">
+          <div class="avatar" style="background:#3F7D5C;">CO</div>
+        </div>
+      </div>
+
+      <div class="page-dim">
+        <div class="dim-hdr">Edit job</div>
+        <div class="dim-card">
+          <div class="dim-field"></div>
+          <div class="dim-field short"></div>
+          <div class="dim-field"></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+
+          <div class="modal-hdr">
+            <div class="modal-title">Travel time warning</div>
+            <div class="modal-sub">No hard clash — but the travel time between jobs may be tight. Review before confirming.</div>
+          </div>
+
+          <!-- Travel warning block -->
+          <div class="warn-block">
+            <div class="warn-label">Tight travel window</div>
+            <div class="warn-row">
+              <div class="warn-av">R</div>
+              <div class="warn-body">
+                <strong>Ravi Kumar</strong> finishes Vivienne WW at <strong>1:00pm</strong> in Somerset and must reach ION Orchard by <strong>1:15pm</strong> — only 15 min travel time.
+              </div>
+            </div>
+          </div>
+
+          <!-- No replacement needed — just acknowledge -->
+          <div style="margin:14px 16px 0;padding:12px;background:#F4F1EC;border-radius:10px;font-size:12px;color:#5C564E;line-height:1.5;">
+            No reassignment required. You can confirm as-is or swap Ravi out of one of the jobs.
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Confirm anyway
+            </button>
+            <button class="btn secondary">Swap Ravi out</button>
+            <button class="btn secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">Travel warning — no hard clash but tight travel time. Coordinator can confirm as-is or choose to swap the installer. No forced reassignment.</div>
+  </div>
+
+</div>
+</body>
+</html>
