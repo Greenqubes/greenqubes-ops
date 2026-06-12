@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip + feat-workflow-v2 branch)_
+_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat-workflow-v2; smoke test in progress)_
 
 ---
 
@@ -22,17 +22,13 @@ _Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip
 
 ## Current State
 
-Admin role fully implemented. `admin` added to `user_role` enum; all RLS policies updated to include admin; hardcoded `ai@greenqubes.com` email gates replaced with `role === 'admin'` checks across all pages and API routes; AdminRoleModal added to UsersTab (confirm + success phases). Vercel cron fixed (overdue was 2-hourly, blocked Hobby plan deployments — changed to daily). Migrations 0018–0020 applied.
+**Workflow V2 Phase 1 implemented** on the `feat-workflow-v2` branch (2026-06-12): designer/coordinator/production roles live in DB + admin UI; approval workflow removed — sales pushes pending jobs directly to scheduled ("Push to Schedule"), all schedulers get a Telegram "New Job — Assign Installer" notification; /approvals redirects to /schedule; FCFS tab in BottomNav for every role (board itself comes in Phase 3). **Nic's smoke test is mid-way — sections 3–5 outstanding, see the 2026-06-12 session note.** Phases 2–4 not started. Merge path: feat-workflow-v2 → dev → main, only after Nic green-lights testing.
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
-**Major bug (pending fix):** Save fails on the approvals page when scheduler clicks "Approve & Schedule" or "Schedule". Needs root-cause investigation next session.
+**DB migrations:** 0001–0036 all applied to the shared remote DB (prod/dev/v2 previews share it). 0033–0036 are the Workflow V2 Phase 1 set — incl. two hotfixes: 0035 (suggested_by FK dropped — second FK to users broke every `job_assignees(users(...))` embed with PGRST201) and 0036 (sales may transition own pending job to scheduled). Any new migration must stay backward-compatible with the code deployed on dev/main.
 
-**Minor bug (pending fix):** AdminRoleModal in UsersTab — "Yes" button requires two presses to confirm. Needs investigation.
-
-**Minor visual bug (pending fix):** Friday bar missing in WeekWorkloadChart inside ClashResolutionModal. Layout fix was attempted (merged bar+label into single button) but not confirmed resolved on preview.
-
-**DB migrations:** All migrations 0012–0024 applied. No pending migrations. Migrations 0023–0024 fix Supabase Realtime RLS: admin added to auth.uid() policy (0023); policies rewritten to EXISTS pattern for sales/scheduler/admin + separate installer assignment policy (0024).
+**Obsolete bugs removed:** "Save fails on approvals page" — approvals page no longer exists. AdminRoleModal double-Yes — confirmed not a bug (chore-config 2026-05-29). Friday bar in WeekWorkloadChart — fixed per checklist.
 
 ---
 
@@ -108,6 +104,7 @@ Admin role fully implemented. `admin` added to `user_role` enum; all RLS policie
 | infra-config [Nic] | Cron Schedule + R2 Folder Design | Overdue cron moved from 6pm SGT to 8am SGT (vercel.json); plan.md session note link discrepancy fixed; R2 human-readable folder pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`; 4 sub-tasks noted in checklist for next session | [infra/infra-config-20260605-1-note.md](infra/infra-config-20260605-1-note.md) |
 | chore-jobs [Nic] | Workflow V2 — Design + Plan | Full workflow redesign: 7 roles (+ designer, coordinator, production), approval workflow removed (sales pushes directly to scheduled), FCFS board replaces approvals tab, installer suggestion (yellow) vs formal assignment (green), external installer temp links (48hr), sub-installer relationship, task list bucket, external installer POC bucket (multi-team placeholder card). Branch `feat-workflow-v2` created. 25-task implementation plan written across 4 phases. No code written this session. | [chore/chore-jobs-20260605-1-note.md](chore/chore-jobs-20260605-1-note.md) |
 | fix-schedule [Nic] | Vercel 404 Fix + Schedule Date Strip | Moved Workflow V2 mockups from `docs/superpowers/mockups/` → `public/mockups/workflow-v2/` so Vercel serves them as static assets (Next.js only serves `public/`). Schedule list view date strip now shows all dates in the full range (earliest job → latest job), not just dates with assigned jobs. `feat-workflow-v2` branch merged up to date with dev and pushed to remote — Vercel generates a separate preview for it. | [fix/fix-schedule-20260611-1-note.md](fix/fix-schedule-20260611-1-note.md) |
+| feat-jobs [Nic] | Workflow V2 Phase 1 — Roles + Approval Removal | Migrations 0033–0036: designer/coordinator/production roles, installer-suggestion columns, RLS widening, suggested_by FK hotfix (PGRST201 had crashed /schedule on all deployments), sales pending→scheduled RLS fix. Approval workflow removed: approve/send-back routes + ApprovalCard/SendBackModal/ApprovalsShell deleted; "Push to Schedule" replaces "Push for Approval"; submit sets scheduled directly + tplNewJobCreated Telegram to all schedulers; /approvals → /schedule redirect; BottomNav FCFS tab for every role; new-job form success modal + failure surfacing. **Smoke test mid-way — sections 3–5 pending, see note** | [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

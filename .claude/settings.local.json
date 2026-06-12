@@ -87,7 +87,11 @@
       "Bash(git submodule *)",
       "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops\" status)",
       "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops/vault\" restore .obsidian/workspace.json)",
-      "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops/vault\" status)"
+      "Bash(git -C \"C:/Greenqubes_GitHub/greenqubes-ops/vault\" status)",
+      "PowerShell(git checkout feat-workflow-v2)",
+      "PowerShell(git merge dev -m \"merge: dev into feat-workflow-v2 \\(fix-schedule session note\\)\")",
+      "PowerShell(git add supabase/migrations/0033_workflow_v2_roles.sql supabase/migrations/0034_workflow_v2_policies.sql src/lib/supabase/types.ts src/components/Pill.tsx)",
+      "PowerShell(git add src/components/BottomNav.tsx)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",

@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip + feat-workflow-v2 branch)_
+_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke test mid-way)_
 
 ---
 
@@ -10,10 +10,13 @@ _Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip
 
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
-- [ ] **Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — 25-task plan ready at `docs/superpowers/plans/2026-06-05-workflow-v2.md`. Branch `feat-workflow-v2` created. Phase 1 covers: 3 new DB roles (designer/coordinator/production), remove approval workflow, sales pushes directly to scheduled, scheduler notified on new job, updated nav per role, admin UI updated.
-- [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)**
+- [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
+- [ ] **[Nic] Finish Phase 1 smoke test — sections 3–5** — clash detection on push; 7 roles in admin dropdown; regression pass (dev preview, job chat, installer sign-in). Checklist is in the 2026-06-12 session note. Test on the `feat-workflow-v2` Vercel preview (URL contains `git-feat-workflow-v2`).
+- [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
+- [ ] **Delete the "Test Job"** created during 2026-06-12 testing (now status scheduled).
+- [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — next coding session after smoke test passes. ⚠️ Read the PGRST201 warning in the plan's Phase 1 notes before touching `suggested_by`.
 - [ ] **Workflow V2 — Phase 3 (FCFS board)**
-- [ ] **Workflow V2 — Phase 4 (external temp links + sub-installer + task list + external POC bucket)**
+- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)**
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
