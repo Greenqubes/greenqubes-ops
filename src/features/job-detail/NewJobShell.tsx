@@ -20,6 +20,8 @@ import type { LangCode } from '@/lib/i18n'
 import type { SelectOption } from '@/components/SearchableSelect'
 import { CompanyBar } from '@/components/CompanyBar'
 import { MultiUserSelect } from '@/components/MultiUserSelect'
+import { Modal } from '@/components/Modal'
+import { Btn } from '@/components/Btn'
 import type { Role } from '@/lib/supabase/types'
 
 interface Props {
@@ -38,6 +40,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
+  const [showPushedModal,       setShowPushedModal]      = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -128,10 +131,19 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       // Push directly onto the schedule — sets status to scheduled and
       // notifies all schedulers to assign installers.
       if (mode === 'push_to_schedule') {
-        await fetch(`/api/jobs/${job.id}/submit`, {
+        const res = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         })
+        if (!res.ok) {
+          // Job was created but stayed pending — surface the failure and
+          // land on the edit form so the user can retry the push there.
+          showError(t(lang, 'saveError'))
+          router.push(`/jobs/${job.id}`)
+          return
+        }
+        setShowPushedModal(true)
+        return
       }
 
       router.push(`/jobs/${job.id}`)
@@ -276,6 +288,16 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           </button>
         </div>
       </div>
+
+      <Modal isOpen={showPushedModal} onClose={() => { setShowPushedModal(false); router.push('/schedule') }}>
+        <div className="space-y-4 text-center">
+          <p className="font-display text-lg font-medium text-ink">Pushed to Schedule!</p>
+          <p className="text-sm text-muted">The Scheduler has been notified to assign installers.</p>
+          <Btn variant="primary" size="sm" onClick={() => { setShowPushedModal(false); router.push('/schedule') }}>
+            OK
+          </Btn>
+        </div>
+      </Modal>
     </div>
   )
 }
