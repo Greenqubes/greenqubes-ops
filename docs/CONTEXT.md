@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-06-11 (fix-schedule — Vercel 404 fix + schedule date strip + feat-workflow-v2 branch)_
+_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat-workflow-v2: 3 new roles, approval workflow removed, Push to Schedule; migrations 0033–0036 live; smoke test mid-way)_
 
 ---
 

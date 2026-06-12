@@ -2,11 +2,21 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table rendering)_
+_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke test mid-way)_
 
 ---
 
 ## Pending — Next Session
+
+### Workflow V2 (from 2026-06-05, chore-jobs)
+
+- [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
+- [ ] **[Nic] Finish Phase 1 smoke test — sections 3–5** — clash detection on push; 7 roles in admin dropdown; regression pass (dev preview, job chat, installer sign-in). Checklist is in the 2026-06-12 session note. Test on the `feat-workflow-v2` Vercel preview (URL contains `git-feat-workflow-v2`).
+- [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
+- [ ] **Delete the "Test Job"** created during 2026-06-12 testing (now status scheduled).
+- [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — next coding session after smoke test passes. ⚠️ Read the PGRST201 warning in the plan's Phase 1 notes before touching `suggested_by`.
+- [ ] **Workflow V2 — Phase 3 (FCFS board)**
+- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)**
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
@@ -14,7 +24,7 @@ _Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table 
 
 ### Features (from 2026-05-26, vault-convention)
 
-- [ ] **R2 human-readable folder names** — right now job files are stored under UUID folder names (e.g. `jobs/717c82f7-.../`). Rename to `{date}_{client-slug}_{short-id}` format (e.g. `2026-05-20_Greentech-Plaza_717c82f7`) so rclone backups on local server are browsable by job. Requires migrating existing R2 keys + updating `files` table. Do before go-live while data is still clean. Needs design + plan.
+- [ ] **R2 human-readable folder names** — new pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`. Folder uses `jobs.date`, `jobs.client`, `jobs.client_poc_name`, `jobs.project_title`. Requires: (1) make `client_poc_name` + `project_title` compulsory fields on the job form; (2) cap `project_title` at 50 chars; (3) update `generateKey()` in `r2.ts` + upload API to build readable folder; (4) one-off migration script to rename existing R2 keys + update `files.r2_key`. Do before go-live while data is still clean.
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
@@ -84,6 +94,18 @@ _Last updated: 2026-06-03 (fix-rag — RAG fixes, supplier pricing vault, table 
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-06-11, fix-schedule)
+
+- [x] **Mockup 404 fixed** — Workflow V2 HTML mockups moved to `public/mockups/workflow-v2/`; now accessible on Vercel preview at `/mockups/workflow-v2/index.html`.
+- [x] **Schedule date strip shows all dates** — list view carousel now shows every day from earliest job to latest (filling gaps between jobs), not just days with assigned jobs.
+- [x] **feat-workflow-v2 branch pushed** — merged up to date with dev and pushed to remote; Vercel generates a separate preview URL for this branch automatically.
+
+## Done This Session ✓ (2026-06-05, infra-config)
+
+- [x] **[Nic] Overdue cron moved to 8am SGT** — `vercel.json` updated from `0 10 * * *` (6pm SGT) to `0 0 * * *` (midnight UTC = 8am SGT).
+- [x] **R2 folder naming pattern agreed** — new format: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`; 4 sub-tasks captured in checklist for next coding session.
+- [x] **plan.md session note link fixed** — last session note was linked to a non-existent file; corrected to `fix/fix-assistant-20260603-1-note.md`.
 
 ## Done This Session ✓ (2026-06-03, fix-rag)
 
