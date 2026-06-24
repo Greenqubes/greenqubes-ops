@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke test mid-way)_
+_Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED; clean-cut strategy agreed; Phase 2 next)_
 
 ---
 
@@ -11,7 +11,9 @@ _Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke 
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
 - [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
-- [ ] **[Nic] Finish Phase 1 smoke test — sections 3–5** — clash detection on push; 7 roles in admin dropdown; regression pass (dev preview, job chat, installer sign-in). Checklist is in the 2026-06-12 session note. Test on the `feat-workflow-v2` Vercel preview (URL contains `git-feat-workflow-v2`).
+- [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
+- [ ] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
+- [ ] **Clean-cut switchover (strategy reminder)** — V2 stays on `feat-workflow-v2` and is NOT merged into dev incrementally. Build Phases 1–4 fully, test, then replace the old workflow in one shot. Nothing for you to do now — just the agreed plan.
 - [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
 - [ ] **Delete the "Test Job"** created during 2026-06-12 testing (now status scheduled).
 - [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — next coding session after smoke test passes. ⚠️ Read the PGRST201 warning in the plan's Phase 1 notes before touching `suggested_by`.

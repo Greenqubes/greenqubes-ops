@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat-workflow-v2: 3 new roles, approval workflow removed, Push to Schedule; migrations 0033–0036 live; smoke test mid-way)_
+_Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on feat-workflow-v2; clean-cut replacement strategy agreed; Phase 2 next session)_
 
 ---
 
@@ -266,6 +266,8 @@ greenqubes/
 ## Migration plan
 
 All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
+
+**Workflow V2 — clean-cut switchover (decided 2026-06-24):** All of Workflow V2 (the 3 new roles, approval removal, FCFS board, installer suggestion/assignment, external links, etc.) is being built on the `feat-workflow-v2` branch across Phases 1–4. It will NOT be merged into `dev` incrementally — Nic wants the old workflow fully replaced in one clean switchover once V2 is fully functional and tested, so there's never a half-migrated state on dev/main. Phase 1 is done + smoke-tested (2026-06-24); Phase 2 next.
 
 - [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light

@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat-workflow-v2; smoke test in progress)_
+_Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on feat-workflow-v2; clean-cut replacement strategy agreed)_
 
 ---
 
@@ -22,7 +22,11 @@ _Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat
 
 ## Current State
 
-**Workflow V2 Phase 1 implemented** on the `feat-workflow-v2` branch (2026-06-12): designer/coordinator/production roles live in DB + admin UI; approval workflow removed — sales pushes pending jobs directly to scheduled ("Push to Schedule"), all schedulers get a Telegram "New Job — Assign Installer" notification; /approvals redirects to /schedule; FCFS tab in BottomNav for every role (board itself comes in Phase 3). **Nic's smoke test is mid-way — sections 3–5 outstanding, see the 2026-06-12 session note.** Phases 2–4 not started. Merge path: feat-workflow-v2 → dev → main, only after Nic green-lights testing.
+**Workflow V2 Phase 1 implemented + smoke test PASSED** on the `feat-workflow-v2` branch: designer/coordinator/production roles live in DB + admin UI; approval workflow removed — sales pushes pending jobs directly to scheduled ("Push to Schedule"), all schedulers get a Telegram "New Job — Assign Installer" notification; /approvals redirects to /schedule; FCFS tab in BottomNav for every role (board itself comes in Phase 3). **Smoke test fully passed 2026-06-24** (all 5 sections — see 2026-06-24 fix-jobs note). Phases 2–4 not started; **Phase 2 starts next session.**
+
+**Branching strategy — CLEAN CUT (decided 2026-06-24):** Do NOT merge `feat-workflow-v2` into `dev` incrementally. Build all of V2 (Phases 1–4) on `feat-workflow-v2` until fully functional, then replace the old workflow in one shot. No half-migrated state on dev/main. (This overrides the older "feat-workflow-v2 → dev → main" incremental note.)
+
+**Deferred to Phase 3:** clash check when *editing* an already-scheduled job (changing its time/installer to overlap another). Currently the clash check only fires at push time (pending→scheduled); editing a scheduled job via "Save Changes" runs no clash check. This is the FCFS board's job (punctuality-aware hard/soft grading, Tasks 17–19).
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
@@ -105,6 +109,7 @@ _Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented on feat
 | chore-jobs [Nic] | Workflow V2 — Design + Plan | Full workflow redesign: 7 roles (+ designer, coordinator, production), approval workflow removed (sales pushes directly to scheduled), FCFS board replaces approvals tab, installer suggestion (yellow) vs formal assignment (green), external installer temp links (48hr), sub-installer relationship, task list bucket, external installer POC bucket (multi-team placeholder card). Branch `feat-workflow-v2` created. 25-task implementation plan written across 4 phases. No code written this session. | [chore/chore-jobs-20260605-1-note.md](chore/chore-jobs-20260605-1-note.md) |
 | fix-schedule [Nic] | Vercel 404 Fix + Schedule Date Strip | Moved Workflow V2 mockups from `docs/superpowers/mockups/` → `public/mockups/workflow-v2/` so Vercel serves them as static assets (Next.js only serves `public/`). Schedule list view date strip now shows all dates in the full range (earliest job → latest job), not just dates with assigned jobs. `feat-workflow-v2` branch merged up to date with dev and pushed to remote — Vercel generates a separate preview for it. | [fix/fix-schedule-20260611-1-note.md](fix/fix-schedule-20260611-1-note.md) |
 | feat-jobs [Nic] | Workflow V2 Phase 1 — Roles + Approval Removal | Migrations 0033–0036: designer/coordinator/production roles, installer-suggestion columns, RLS widening, suggested_by FK hotfix (PGRST201 had crashed /schedule on all deployments), sales pending→scheduled RLS fix. Approval workflow removed: approve/send-back routes + ApprovalCard/SendBackModal/ApprovalsShell deleted; "Push to Schedule" replaces "Push for Approval"; submit sets scheduled directly + tplNewJobCreated Telegram to all schedulers; /approvals → /schedule redirect; BottomNav FCFS tab for every role; new-job form success modal + failure surfacing. **Smoke test mid-way — sections 3–5 pending, see note** | [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md) |
+| fix-jobs [Nic] | Workflow V2 Phase 1 — Smoke Test Fixes (PASSED) | Finished Phase 1 smoke test (all 5 sections pass). Fixes: (1) New Job screen now runs the clash check before Push to Schedule (was pushing straight to /submit with no double-booking check); (2) clash modal — shifting the job time to a non-overlapping slot now auto-resolves the clash (reuses server overlap logic) + "Send to scheduler" renamed to V2's "Push to Schedule"; (3) chat attachment realtime now resolves uploader name (live photos showed "Unknown"/"?"); (4) installer My Jobs card now shows project_title (was client-only, so titled jobs looked blank). Clean-cut strategy agreed — no incremental merge to dev. Clash-on-edit-of-scheduled-job deferred to Phase 3. | [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
