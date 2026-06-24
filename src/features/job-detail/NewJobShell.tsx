@@ -22,6 +22,8 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
+import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { Role } from '@/lib/supabase/types'
 
 interface Props {
@@ -41,6 +43,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
   const [showPushedModal,       setShowPushedModal]      = useState(false)
+  const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
+  const [pushJobId,             setPushJobId]            = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -128,9 +132,27 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         })
       }
 
-      // Push directly onto the schedule — sets status to scheduled and
-      // notifies all schedulers to assign installers.
+      // Push onto the schedule — but first check for installer
+      // double-bookings, exactly like the edit form does.
       if (mode === 'push_to_schedule') {
+        const clashRes = await fetch(`/api/jobs/${job.id}/clashes`)
+        if (!clashRes.ok) {
+          showError(t(lang, 'saveError'))
+          router.push(`/jobs/${job.id}`)
+          return
+        }
+        const clash: ClashesResponse = await clashRes.json()
+        if (clash.clashes.length > 0 || clash.travelWarnings.length > 0) {
+          // Hold the push and let the user resolve the clash. The job is
+          // already saved as pending, so nothing is lost if they cancel.
+          setPushJobId(job.id)
+          setClashData(clash)
+          setSaving(false)
+          return
+        }
+
+        // No clashes — push straight through. Sets status to scheduled and
+        // notifies all schedulers to assign installers.
         const res = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -150,6 +172,40 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
     } catch {
       showError(t(lang, 'saveError'))
       setSaving(false)
+    }
+  }
+
+  // Resolve a clash from the modal: apply any installer substitutions /
+  // time changes to the already-created job, then push it through.
+  async function handleSendToScheduler(
+    replacements: Record<string, string | 'keep'>,
+    timeStart: string,
+    timeEnd: string,
+  ) {
+    if (!pushJobId) return
+    const supabase = createClient()
+    try {
+      for (const [oldId, newId] of Object.entries(replacements)) {
+        if (newId === 'keep') continue
+        await supabase.from('job_assignees').delete().eq('job_id', pushJobId).eq('user_id', oldId)
+        await supabase.from('job_assignees').insert({ job_id: pushJobId, user_id: newId } as never)
+      }
+      const curStart = (watch('time_start') ?? '').slice(0, 5)
+      const curEnd   = (watch('time_end')   ?? '').slice(0, 5)
+      if (timeStart !== curStart || timeEnd !== curEnd) {
+        await supabase.from('jobs')
+          .update({ time_start: timeStart || null, time_end: timeEnd || null } as never)
+          .eq('id', pushJobId)
+      }
+      const res = await fetch(`/api/jobs/${pushJobId}/submit`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error()
+      setClashData(null)
+      setShowPushedModal(true)
+    } catch {
+      showError(t(lang, 'saveError'))
     }
   }
 
@@ -288,6 +344,26 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           </button>
         </div>
       </div>
+
+      {clashData && (
+        <ClashResolutionModal
+          jobDate={clashData.jobDate}
+          jobTimeStart={clashData.jobTimeStart}
+          jobTimeEnd={clashData.jobTimeEnd}
+          clashes={clashData.clashes}
+          travelWarnings={clashData.travelWarnings}
+          substitutes={clashData.substitutes}
+          weekDays={clashData.weekDays}
+          lang={lang}
+          onSendToScheduler={handleSendToScheduler}
+          onCancel={() => {
+            // Job is already saved as pending — drop the user on its edit
+            // page so they can adjust the installer or time and retry.
+            setClashData(null)
+            if (pushJobId) router.push(`/jobs/${pushJobId}`)
+          }}
+        />
+      )}
 
       <Modal isOpen={showPushedModal} onClose={() => { setShowPushedModal(false); router.push('/schedule') }}>
         <div className="space-y-4 text-center">
