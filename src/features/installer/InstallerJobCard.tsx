@@ -33,7 +33,10 @@ export function InstallerJobCard({ job, lang }: Props) {
               <Pill variant={job.status} />
               <span className="text-[11px] text-muted">{dateLabel}</span>
             </div>
-            <p className="font-display font-medium text-ink truncate">{job.client}</p>
+            <p className="font-display font-medium text-ink truncate">{job.project_title || job.client}</p>
+            {job.project_title && job.client && (
+              <p className="text-[13px] text-ink2 line-clamp-1 leading-snug">{job.client}</p>
+            )}
             {job.description && (
               <p className="text-[13px] text-ink2 line-clamp-1 leading-snug">{job.description}</p>
             )}
@@ -43,10 +46,12 @@ export function InstallerJobCard({ job, lang }: Props) {
                 {timeStr}
               </div>
             )}
-            <div className="flex items-center gap-1.5 text-xs text-muted">
-              <MapPin size={11} className="shrink-0" />
-              <span className="truncate">{job.location}</span>
-            </div>
+            {job.location && (
+              <div className="flex items-center gap-1.5 text-xs text-muted">
+                <MapPin size={11} className="shrink-0" />
+                <span className="truncate">{job.location}</span>
+              </div>
+            )}
           </div>
           <ArrowRight
             size={14}
