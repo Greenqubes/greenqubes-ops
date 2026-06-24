@@ -43,6 +43,22 @@ function toInputTime(t: string | null): string {
   return t.slice(0, 5)
 }
 
+// Mirror of the server's overlap logic (clashes route) so the modal can
+// re-evaluate a clash live when the user shifts the job's time.
+const hhmm = (t: string | null) => t?.slice(0, 5) ?? null
+
+function timesOverlap(
+  s1: string | null, e1: string | null,
+  s2: string | null, e2: string | null,
+): boolean {
+  const [a, b, c, d] = [hhmm(s1), hhmm(e1), hhmm(s2), hhmm(e2)]
+  if (!a || !c) return true
+  if (b && d)   return a < d && c < b
+  if (b)        return c >= a && c < b
+  if (d)        return a >= c && a < d
+  return a === c
+}
+
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
   clashes, travelWarnings, substitutes, weekDays,
@@ -54,8 +70,14 @@ export function ClashResolutionModal({
   const [submitting,    setSubmitting]    = useState(false)
   const [showWarning,   setShowWarning]   = useState(false)
 
-  const unresolvedCount = clashes.filter(c => replacements[c.installer.id] === undefined).length
-  const allResolved     = clashes.length === 0 || unresolvedCount === 0
+  // A clash is resolved either by choosing a substitute / "keep anyway",
+  // OR by shifting the job's time so it no longer overlaps the other job.
+  const clashActive = (c: Clash) =>
+    timesOverlap(timeStart || null, timeEnd || null, c.conflictingJob.timeStart, c.conflictingJob.timeEnd)
+  const unresolvedCount = clashes.filter(
+    c => clashActive(c) && replacements[c.installer.id] === undefined,
+  ).length
+  const allResolved     = unresolvedCount === 0
   const hasKeeps        = Object.values(replacements).some(v => v === 'keep')
 
   async function handleSend() {
@@ -128,6 +150,7 @@ export function ClashResolutionModal({
             {/* Clash cards */}
             {clashes.map(clash => {
               const selected = replacements[clash.installer.id]
+              const resolvedByTime = !clashActive(clash)
               const conflictTime = [
                 fmtTime(clash.conflictingJob.timeStart),
                 fmtTime(clash.conflictingJob.timeEnd),
@@ -145,6 +168,13 @@ export function ClashResolutionModal({
                       {conflictTime ? ` (${conflictTime})` : ''}.
                     </p>
                   </div>
+
+                  {/* Resolved by time shift — no substitute needed */}
+                  {resolvedByTime && (
+                    <div className="px-4 py-2 bg-green/10 border-b border-line text-xs font-medium text-green">
+                      Resolved — the new time no longer overlaps this job.
+                    </div>
+                  )}
 
                   {/* Substitute label */}
                   <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
@@ -265,7 +295,7 @@ export function ClashResolutionModal({
                 className="flex-1 flex items-center justify-center gap-1.5"
               >
                 <Send size={13} />
-                Send to scheduler
+                Push to Schedule
               </Btn>
             </div>
           </div>
@@ -273,15 +303,15 @@ export function ClashResolutionModal({
         </div>
       </div>
 
-      {/* Warning prompt — shown when Send to scheduler is clicked with keeps */}
+      {/* Warning prompt — shown when Push to Schedule is clicked with keeps */}
       {showWarning && (
         <>
           <div className="fixed inset-0 z-[60] bg-black/40" aria-hidden="true" />
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-sm bg-paper rounded-card border border-line shadow-xl p-6 space-y-4 text-center">
-              <p className="font-display text-base font-semibold text-ink">Push to Scheduler!</p>
+              <p className="font-display text-base font-semibold text-ink">Double-booked installer</p>
               <p className="text-sm text-muted">
-                Please check directly with the Scheduler for approval.
+                You&apos;re keeping an installer who&apos;s already booked at that time. Push to the schedule anyway?
               </p>
               <div className="flex gap-2 justify-center">
                 <Btn variant="secondary" size="sm" onClick={() => setShowWarning(false)} disabled={submitting}>
