@@ -18,15 +18,25 @@ export type ScheduleJob = {
   punctuality:      Punctuality
   production_ready: boolean
   do_issued:        boolean
-  job_assignees:    Array<{ users: { id: string; name: string } | null }>
+  job_assignees:    Array<{ is_suggestion?: boolean; users: { id: string; name: string } | null }>
 }
 
 const SCHEDULE_SELECT = `
   id, status, date, date_end, time_start, time_end,
   project_title, client, location, description, punctuality,
   production_ready, do_issued,
-  job_assignees ( users ( id, name ) )
+  job_assignees ( is_suggestion, users ( id, name ) )
 `
+
+// Suggestions (is_suggestion=true) are tentative sales picks — they must not
+// render as confirmed assignees on the schedule/calendar. Strip them here so
+// every consumer of ScheduleJob only ever sees formal assignments.
+function stripSuggestions<T extends { job_assignees: Array<{ is_suggestion?: boolean }> }>(rows: T[]): T[] {
+  return rows.map(r => ({
+    ...r,
+    job_assignees: r.job_assignees.filter(a => !a.is_suggestion),
+  }))
+}
 
 export async function getScheduleJobs(): Promise<ScheduleJob[]> {
   const supabase = await createClient()
@@ -36,7 +46,7 @@ export async function getScheduleJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return (data ?? []) as unknown as ScheduleJob[]
+  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
 }
 
 export async function getCompletedJobs(): Promise<ScheduleJob[]> {
@@ -48,7 +58,7 @@ export async function getCompletedJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: false })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return (data ?? []) as unknown as ScheduleJob[]
+  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
 }
 
 export async function getPendingJobs(): Promise<ScheduleJob[]> {
@@ -60,7 +70,7 @@ export async function getPendingJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return (data ?? []) as unknown as ScheduleJob[]
+  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
 }
 
 // â”€â”€ Job detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -120,7 +130,12 @@ export type JobDetail = {
   completion_override:     boolean
   created_at:              string
   updated_at:              string
-  job_assignees: Array<{ users: InstallerUser | null }>
+  job_assignees: Array<{
+    user_id:       string
+    is_suggestion: boolean
+    suggested_by:  string | null
+    users:         InstallerUser | null
+  }>
   job_financials: {
     quote_amount:  number | null
     supplier_cost: number | null
@@ -164,7 +179,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override, created_at, updated_at,
-      job_assignees ( users ( id, name, phone ) ),
+      job_assignees ( user_id, is_suggestion, suggested_by, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
       files ( id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
     `)

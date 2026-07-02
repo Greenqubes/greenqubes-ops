@@ -71,6 +71,30 @@ export function tplJobAssigned(p: {
   )
 }
 
+// Sent to the sales POC + coordinators when a coordinator/scheduler formally
+// assigns the installer(s) they had been suggested.
+export function tplInstallerAssigned(p: {
+  projectTitle:   string | null
+  jobClient:      string
+  jobDate:        string
+  timeStart:      string | null
+  timeEnd:        string | null
+  location:       string
+  installerNames: string[]
+  jobUrl:         string
+}): string {
+  const names = p.installerNames.length > 0 ? p.installerNames.join(', ') : '(none)'
+  return (
+    `✅ <b>Installer Assigned</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    `Assigned to: ${names}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 export function tplJobOverdue(p: {
   projectTitle: string | null
   jobClient:    string

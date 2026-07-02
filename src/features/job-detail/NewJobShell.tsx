@@ -48,6 +48,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Sales pick installers as tentative suggestions (yellow); scheduler/coordinator/
+  // admin creating a job assign them formally (green).
+  const suggestMode = role === 'sales'
+
   const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       project_title:           '',
@@ -114,10 +118,15 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         { job_id: job.id, name: 'OTHERS',         position: 3 },
       ] as never)
 
-      // Insert selected installers
+      // Insert selected installers — suggestions for sales, formal otherwise
       if (selectedIds.length > 0) {
         await supabase.from('job_assignees').insert(
-          selectedIds.map(uid => ({ job_id: job.id, user_id: uid })) as never,
+          selectedIds.map(uid => ({
+            job_id:        job.id,
+            user_id:       uid,
+            is_suggestion: suggestMode,
+            suggested_by:  suggestMode ? userId : null,
+          })) as never,
         )
       }
 
@@ -188,7 +197,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       for (const [oldId, newId] of Object.entries(replacements)) {
         if (newId === 'keep') continue
         await supabase.from('job_assignees').delete().eq('job_id', pushJobId).eq('user_id', oldId)
-        await supabase.from('job_assignees').insert({ job_id: pushJobId, user_id: newId } as never)
+        await supabase.from('job_assignees').insert({
+          job_id: pushJobId, user_id: newId,
+          is_suggestion: suggestMode, suggested_by: suggestMode ? userId : null,
+        } as never)
       }
       const curStart = (watch('time_start') ?? '').slice(0, 5)
       const curEnd   = (watch('time_end')   ?? '').slice(0, 5)
@@ -231,6 +243,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           setValue={setValue}
           readOnly={false}
           lang={lang}
+          role={role}
           validateRequired
         />
 
@@ -294,7 +307,14 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           {allInstallers.length === 0 ? (
             <p className="text-sm text-muted">No installers found.</p>
           ) : (
-            <InstallerGrid allInstallers={allInstallers} onChange={setSelectedIds} />
+            <InstallerGrid
+              installers={allInstallers}
+              stateOf={id => selectedIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
+              onToggle={id => setSelectedIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+              )}
+              noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
+            />
           )}
         </Card>
 

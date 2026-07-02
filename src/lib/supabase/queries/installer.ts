@@ -18,7 +18,7 @@ export type InstallerJob = {
   punctuality:      Punctuality
   production_ready: boolean
   do_issued:        boolean
-  job_assignees:    Array<{ users: { id: string; name: string } | null }>
+  job_assignees:    Array<{ is_suggestion?: boolean; users: { id: string; name: string } | null }>
   sales_poc:        { name: string; phone: string | null } | null
 }
 
@@ -31,7 +31,7 @@ export async function getInstallerJobs(): Promise<InstallerJob[]> {
       id, status, date, date_end, time_start, time_end,
       project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, punctuality, production_ready, do_issued,
-      job_assignees ( users ( id, name ) ),
+      job_assignees ( is_suggestion, users ( id, name ) ),
       sales_poc:users!jobs_sales_poc_id_fkey ( name, phone )
     `)
     .in('status', ['scheduled', 'completed'])
@@ -39,5 +39,9 @@ export async function getInstallerJobs(): Promise<InstallerJob[]> {
     .order('time_start', { ascending: true, nullsFirst: false })
 
   if (error) throw error
-  return (data ?? []) as unknown as InstallerJob[]
+  // Drop tentative suggestions so co-assignee lists show confirmed installers only.
+  return ((data ?? []) as unknown as InstallerJob[]).map(j => ({
+    ...j,
+    job_assignees: j.job_assignees.filter(a => !a.is_suggestion),
+  }))
 }

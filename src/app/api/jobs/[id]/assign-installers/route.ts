@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { getEffectiveRole } from '@/lib/utils/role-override'
+import { getJobNotifData, getJobRecipients } from '@/lib/supabase/queries/notifications'
+import { sendTelegram } from '@/lib/telegram/bot'
+import { tplJobAssigned, tplInstallerAssigned } from '@/lib/telegram/templates'
+import type { Role } from '@/lib/supabase/types'
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
+
+// Coordinator / scheduler / admin formally assign installers. This clears any
+// sales suggestions for the job, sets the formal assignee list, and notifies:
+//   • newly-added installers  → "Job Assigned"
+//   • sales POC + coordinators → "Installer Assigned"
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id: jobId } = await params
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  type ProfileRow = { id: string; role: Role }
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, role')
+    .eq('auth_id', user.id)
+    .maybeSingle() as { data: ProfileRow | null; error: unknown }
+
+  if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const effectiveRole = await getEffectiveRole(profile.role)
+  if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await req.json().catch(() => ({}))
+  const installerIds: string[] = Array.isArray(body.installer_ids)
+    ? body.installer_ids.filter((x: unknown): x is string => typeof x === 'string')
+    : []
+
+  // Which installers are newly added (for their "Job Assigned" notification)?
+  const { data: existing } = await supabase
+    .from('job_assignees')
+    .select('user_id')
+    .eq('job_id', jobId)
+    .eq('is_suggestion', false) as { data: Array<{ user_id: string }> | null }
+  const existingIds = new Set((existing ?? []).map(r => r.user_id))
+  const newlyAddedIds = installerIds.filter(id => !existingIds.has(id))
+
+  // Replace suggestions + formal assignments with the new formal set.
+  await supabase.from('job_assignees').delete().eq('job_id', jobId).eq('is_suggestion', true).throwOnError()
+  await supabase.from('job_assignees').delete().eq('job_id', jobId).eq('is_suggestion', false).throwOnError()
+  if (installerIds.length > 0) {
+    await supabase.from('job_assignees').insert(
+      installerIds.map(uid => ({ job_id: jobId, user_id: uid, is_suggestion: false })) as never,
+    ).throwOnError()
+  }
+
+  // ── Notifications (best-effort — never block the assignment on a send) ──
+  try {
+    const job = await getJobNotifData(jobId)
+    if (job) {
+      const jobUrl = `${APP_URL}/jobs/${jobId}`
+
+      let installerNames: string[] = []
+      if (installerIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, name, telegram_chat_id')
+          .in('id', installerIds)
+          .is('deleted_at', null) as { data: Array<{ id: string; name: string; telegram_chat_id: string | null }> | null }
+        const rows = users ?? []
+        installerNames = rows.map(u => u.name)
+
+        // Tell each newly-added installer they're on the job.
+        await Promise.all(
+          rows
+            .filter(u => newlyAddedIds.includes(u.id) && u.telegram_chat_id)
+            .map(u => sendTelegram(u.telegram_chat_id!, tplJobAssigned({
+              projectTitle: job.project_title,
+              jobClient:    job.client,
+              pocName:      job.client_poc_name,
+              pocPhone:     job.client_poc_phone,
+              jobDate:      job.date,
+              timeStart:    job.time_start,
+              timeEnd:      job.time_end,
+              location:     job.location,
+              jobUrl,
+            }))),
+        )
+      }
+
+      // Tell the sales POC + coordinators who was assigned.
+      const { salesPoc } = await getJobRecipients(jobId)
+      const { data: coords } = await supabase
+        .from('job_coordinators')
+        .select('users(telegram_chat_id)')
+        .eq('job_id', jobId) as { data: Array<{ users: { telegram_chat_id: string | null } | null }> | null }
+
+      const targets = new Set<string>()
+      if (salesPoc?.telegram_chat_id) targets.add(salesPoc.telegram_chat_id)
+      for (const c of coords ?? []) {
+        const chatId = c.users?.telegram_chat_id
+        if (chatId) targets.add(chatId)
+      }
+
+      const msg = tplInstallerAssigned({
+        projectTitle:   job.project_title,
+        jobClient:      job.client,
+        jobDate:        job.date,
+        timeStart:      job.time_start,
+        timeEnd:        job.time_end,
+        location:       job.location,
+        installerNames,
+        jobUrl,
+      })
+      await Promise.all([...targets].map(chatId => sendTelegram(chatId, msg)))
+    }
+  } catch {
+    // swallow notification errors — the assignment already succeeded
+  }
+
+  return NextResponse.json({ ok: true })
+}

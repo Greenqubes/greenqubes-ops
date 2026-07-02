@@ -18,13 +18,13 @@ export async function getJobRecipients(jobId: string): Promise<JobRecipients> {
 
   type JobWithRecipients = {
     sales_poc:    NotifRecipient | null
-    job_assignees: Array<{ users: NotifRecipient | null }>
+    job_assignees: Array<{ is_suggestion: boolean; users: NotifRecipient | null }>
   }
   const { data: job } = await supabase
     .from('jobs')
     .select(`
       sales_poc:users!jobs_sales_poc_id_fkey ( id, name, telegram_chat_id ),
-      job_assignees ( users ( id, name, telegram_chat_id ) )
+      job_assignees ( is_suggestion, users ( id, name, telegram_chat_id ) )
     `)
     .eq('id', jobId)
     .maybeSingle() as { data: JobWithRecipients | null; error: unknown }
@@ -33,7 +33,9 @@ export async function getJobRecipients(jobId: string): Promise<JobRecipients> {
 
   const salesPoc = job.sales_poc
 
+  // Tentative suggestions are not real assignees — never notify them.
   const installers = job.job_assignees
+    .filter(a => !a.is_suggestion)
     .map(a => a.users)
     .filter((u): u is NotifRecipient => u !== null)
 
@@ -86,6 +88,7 @@ export type OverdueJob = {
   location:         string
   sales_poc:        { id: string; telegram_chat_id: string | null } | null
   job_assignees:    Array<{
+    is_suggestion: boolean
     users: { id: string; telegram_chat_id: string | null } | null
   }>
 }
@@ -103,13 +106,17 @@ export async function getOverdueJobs(): Promise<OverdueJob[]> {
       id, project_title, client, client_poc_name, client_poc_phone,
       date, time_start, time_end, location,
       sales_poc:users!jobs_sales_poc_id_fkey ( id, telegram_chat_id ),
-      job_assignees ( users ( id, telegram_chat_id ) )
+      job_assignees ( is_suggestion, users ( id, telegram_chat_id ) )
     `)
     .eq('status', 'scheduled')
     .lte('date', todaySGT)
 
   if (error) throw error
-  return (data ?? []) as unknown as OverdueJob[]
+  // Suggested installers are not on the job yet — don't send them overdue alerts.
+  return ((data ?? []) as unknown as OverdueJob[]).map(j => ({
+    ...j,
+    job_assignees: j.job_assignees.filter(a => !a.is_suggestion),
+  }))
 }
 
 // ── Deduplication via events table ───────────────────────────────────────────

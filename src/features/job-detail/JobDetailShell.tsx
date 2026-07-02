@@ -17,7 +17,7 @@ import { CoreSection } from './CoreSection'
 import { AttachmentBuckets } from './AttachmentBuckets'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
-import { InstallerGrid } from './InstallerGrid'
+import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
@@ -76,9 +76,19 @@ export function JobDetailShell({
 
   const completed = job.status === 'completed'
 
+  // Formal assignments (green) vs sales suggestions (yellow).
   const initialAssigneeIds = job.job_assignees
-    .map(a => a.users?.id)
-    .filter(Boolean) as string[]
+    .filter(a => !a.is_suggestion)
+    .map(a => a.user_id)
+  const initialSuggestedIds = job.job_assignees
+    .filter(a => a.is_suggestion)
+    .map(a => a.user_id)
+
+  // Sales suggest installers; coordinator / scheduler / admin formally assign them.
+  const isSales   = role === 'sales'
+  const canAssign = (['scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
+  // Who may edit the core / team fields (title, dates, POC, coordinators, notes).
+  const canEditCore = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
 
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
@@ -90,6 +100,7 @@ export function JobDetailShell({
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
+  const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
 
   const {
@@ -141,16 +152,28 @@ export function JobDetailShell({
     reset(values)
   }
 
-  const saveInstallerDiff = async (): Promise<string[]> => {
-    const added   = selectedInstallerIds.filter(id => !initialAssigneeIds.includes(id))
-    const removed = initialAssigneeIds.filter(id => !selectedInstallerIds.includes(id))
-    for (const id of removed) {
-      await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', id).throwOnError()
+  // Sales toggles a tentative suggestion (yellow). Persists immediately via the
+  // suggest-installer route so nothing depends on the Save button.
+  const toggleSuggestion = async (installerId: string) => {
+    const wasSuggested = suggestedInstallerIds.includes(installerId)
+    const action = wasSuggested ? 'remove' : 'add'
+    setSuggestedInstallerIds(prev =>
+      wasSuggested ? prev.filter(id => id !== installerId) : [...prev, installerId],
+    )
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/suggest-installer`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ user_id: installerId, action }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      // revert optimistic update
+      setSuggestedInstallerIds(prev =>
+        wasSuggested ? [...prev, installerId] : prev.filter(id => id !== installerId),
+      )
+      showError(t(lang, 'saveError'))
     }
-    for (const id of added) {
-      await supabase.from('job_assignees').insert({ job_id: job.id, user_id: id } as never).throwOnError()
-    }
-    return added
   }
 
   const saveCoordinatorDiff = async (): Promise<string[]> => {
@@ -168,18 +191,31 @@ export function JobDetailShell({
   const onSubmit = async (values: FormValues) => {
     setSaving(true)
     try {
-      const [, addedInstallerIds, addedCoordinatorIds] = await Promise.all([
-        saveValues(values), saveInstallerDiff(), saveCoordinatorDiff(),
+      const [, addedCoordinatorIds] = await Promise.all([
+        saveValues(values), saveCoordinatorDiff(),
       ])
-      const notifyInstallerIds   = (addedInstallerIds.length > 0 && role === 'scheduler' && status === 'scheduled') ? addedInstallerIds : []
-      const notifyCoordinatorIds = addedCoordinatorIds
-      if (notifyInstallerIds.length > 0 || notifyCoordinatorIds.length > 0) {
+
+      // Formal installer assignment (coordinator / scheduler / admin). The route
+      // clears sales suggestions, sets the formal list, and notifies installers
+      // + sales POC + coordinators.
+      if (canAssign && isInstallerDirty) {
+        const res = await fetch(`/api/jobs/${job.id}/assign-installers`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ installer_ids: selectedInstallerIds }),
+        })
+        if (!res.ok) throw new Error()
+      }
+
+      // Newly-added coordinators still get their own notification.
+      if (addedCoordinatorIds.length > 0) {
         await fetch(`/api/jobs/${job.id}/notify-assigned`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ installerIds: notifyInstallerIds, coordinatorIds: notifyCoordinatorIds }),
+          body:    JSON.stringify({ installerIds: [], coordinatorIds: addedCoordinatorIds }),
         })
       }
+
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
     } catch {
@@ -250,7 +286,10 @@ export function JobDetailShell({
       for (const [oldId, newId] of Object.entries(replacements)) {
         if (newId === 'keep') continue
         await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
-        await supabase.from('job_assignees').insert({ job_id: job.id, user_id: newId } as never)
+        await supabase.from('job_assignees').insert({
+          job_id: job.id, user_id: newId,
+          is_suggestion: isSales, suggested_by: isSales ? userId : null,
+        } as never)
       }
       if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
         await supabase.from('jobs').update({ time_start: timeStart || null, time_end: timeEnd || null } as never).eq('id', job.id)
@@ -298,6 +337,39 @@ export function JobDetailShell({
     return false
   }, [selectedInstallerIds, initialAssigneeIds])
 
+  // ── Installer grid: per-role behaviour ──────────────────────────────────────
+  const toggleFormal = (id: string) =>
+    setSelectedInstallerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+
+  const salesCanSuggest = isSales && !readOnly && status !== 'scheduled'
+
+  const installerStateOf = (id: string): InstallerCardState => {
+    if (canAssign) {
+      if (selectedInstallerIds.includes(id)) return 'assigned'
+      if (initialSuggestedIds.includes(id))  return 'suggested'
+      return 'none'
+    }
+    if (initialAssigneeIds.includes(id))    return 'assigned'
+    if (suggestedInstallerIds.includes(id)) return 'suggested'
+    return 'none'
+  }
+
+  const installerOnToggle =
+    canAssign && !readOnly ? toggleFormal :
+    salesCanSuggest        ? toggleSuggestion :
+    undefined
+
+  // Sales cannot un-assign a formally assigned installer — only their own suggestions.
+  const installerDisabledOf = isSales ? (id: string) => initialAssigneeIds.includes(id) : undefined
+
+  const installerNoteOf = (id: string): string | null => {
+    if (canAssign) {
+      return (initialSuggestedIds.includes(id) && !selectedInstallerIds.includes(id)) ? 'Sales suggested' : null
+    }
+    if (isSales) return suggestedInstallerIds.includes(id) ? 'You suggested' : null
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-bg pb-28">
 
@@ -332,6 +404,7 @@ export function JobDetailShell({
           setValue={setValue}
           readOnly={readOnly}
           lang={lang}
+          role={role}
           installerView={isInstaller}
         />
 
@@ -340,7 +413,7 @@ export function JobDetailShell({
           register={register}
           watch={watch}
           setValue={setValue}
-          readOnly={readOnly || status === 'pending' || status === 'awaiting_approval' || status === 'scheduled'}
+          readOnly={readOnly}
           role={role}
           lang={lang}
           jobId={job.id}
@@ -374,12 +447,12 @@ export function JobDetailShell({
                             if (found) field.onChange(found.id)
                           }}
                           options={salesPocOptions}
-                          disabled={readOnly}
+                          disabled={readOnly || !canEditCore}
                         />
                       )}
                     />
                   </div>
-                  {watch('sales_poc_id') !== originalSalesPocId && !readOnly && (
+                  {watch('sales_poc_id') !== originalSalesPocId && !readOnly && canEditCore && (
                     <button
                       type="button"
                       onClick={() => setValue('sales_poc_id', originalSalesPocId, { shouldDirty: true })}
@@ -398,7 +471,7 @@ export function JobDetailShell({
                 options={coordinatorOptions}
                 value={selectedCoordinatorIds}
                 onChange={setSelectedCoordinatorIds}
-                disabled={readOnly || isInstaller}
+                disabled={readOnly || !canEditCore}
               />
             </Field>
 
@@ -412,12 +485,12 @@ export function JobDetailShell({
                 <SuggestField
                   value={watch('notes')}
                   onAccept={s => setValue('notes', s, { shouldDirty: true })}
-                  readOnly={readOnly}
+                  readOnly={readOnly || !canEditCore}
                   field="Notes"
                 >
                   <textarea
                     {...register('notes')}
-                    disabled={readOnly}
+                    disabled={readOnly || !canEditCore}
                     rows={2}
                     className={TEXTAREA}
                   />
@@ -431,18 +504,18 @@ export function JobDetailShell({
           <div className="border-t border-line px-4 pt-3 pb-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-3">Installers</p>
             {isInstaller ? (
-              /* installer sees only assigned installers */
+              /* installer sees only the confirmed (formal) assignees, read-only */
               <InstallerGrid
-                allInstallers={installers.filter(i => initialAssigneeIds.includes(i.id))}
-                initialSelectedIds={initialAssigneeIds}
-                onChange={() => {}}
+                installers={installers.filter(i => initialAssigneeIds.includes(i.id))}
+                stateOf={() => 'assigned'}
               />
             ) : (
               <InstallerGrid
-                allInstallers={installers}
-                initialSelectedIds={initialAssigneeIds}
-                onChange={setSelectedInstallerIds}
-                readOnly={role === 'sales' && status === 'scheduled'}
+                installers={installers}
+                stateOf={installerStateOf}
+                onToggle={installerOnToggle}
+                disabledOf={installerDisabledOf}
+                noteOf={installerNoteOf}
               />
             )}
           </div>
@@ -539,7 +612,7 @@ export function JobDetailShell({
                   Cancel
                 </button>
               </div>
-              {!readOnly && role === 'sales' ? (
+              {readOnly || role === 'designer' ? null : role === 'sales' ? (
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -564,7 +637,7 @@ export function JobDetailShell({
                     </button>
                   )}
                 </div>
-              ) : !readOnly ? (
+              ) : (
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
@@ -572,9 +645,9 @@ export function JobDetailShell({
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Bell size={14} />
-                  {saving ? t(lang, 'loading') : 'Save & notify'}
+                  {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
                 </button>
-              ) : null}
+              )}
             </>
           )}
         </div>
