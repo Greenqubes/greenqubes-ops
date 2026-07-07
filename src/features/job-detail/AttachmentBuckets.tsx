@@ -86,17 +86,44 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
     if (!userId) { showError('Not signed in.'); return }
 
     const contentType = file.type || 'application/octet-stream'
-    const res = await fetch('/api/r2/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType }),
-    })
-    if (!res.ok) { showError('Upload failed. Please try again.'); return }
-    const { url, key } = await res.json() as { url: string; key: string }
 
-    const putRes = await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } })
-    if (!putRes.ok) { showError('Upload failed. Please try again.'); return }
+    // Step 1 — get a signed upload URL from our server.
+    let url: string, key: string
+    try {
+      const res = await fetch('/api/r2/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType }),
+      })
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '')
+        console.error('[upload] step 1 (upload-url) failed', res.status, detail)
+        showError(`Upload failed — couldn't get an upload link (server ${res.status}).`)
+        return
+      }
+      ;({ url, key } = await res.json() as { url: string; key: string })
+    } catch (e) {
+      console.error('[upload] step 1 (upload-url) threw', e)
+      showError('Upload failed — could not reach the upload service.')
+      return
+    }
 
+    // Step 2 — PUT the file straight to R2. A CORS block (e.g. this preview URL
+    // not allowed on the bucket) surfaces as a thrown TypeError here.
+    try {
+      const putRes = await fetch(url, { method: 'PUT', body: file, headers: { 'Content-Type': contentType } })
+      if (!putRes.ok) {
+        console.error('[upload] step 2 (R2 PUT) non-ok', putRes.status)
+        showError(`Upload failed — file storage rejected it (status ${putRes.status}).`)
+        return
+      }
+    } catch (e) {
+      console.error('[upload] step 2 (R2 PUT) threw — likely CORS on this preview URL', e)
+      showError('Upload failed — storage blocked the file (likely a CORS setting for this preview URL).')
+      return
+    }
+
+    // Step 3 — record the file row.
     const { data: fileRow, error } = await supabase
       .from('files')
       .insert({
@@ -109,7 +136,11 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
       } as never)
       .select('id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts')
       .single()
-    if (error) { showError('Upload failed. Please try again.'); return }
+    if (error) {
+      console.error('[upload] step 3 (files insert) failed', error)
+      showError(`Upload failed — could not save the record (${error.message}).`)
+      return
+    }
     setBuckets(prev => prev.map(b =>
       b.id === bucket.id ? { ...b, files: [...b.files, fileRow as unknown as BucketFile] } : b,
     ))
