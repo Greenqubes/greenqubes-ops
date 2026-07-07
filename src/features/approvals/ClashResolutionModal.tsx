@@ -14,6 +14,7 @@ interface Props {
   jobTimeStart:      string | null
   jobTimeEnd:        string | null
   clashes:           Clash[]
+  softClashes:       Clash[]
   travelWarnings:    Clash[]
   substitutes:       Substitute[]
   weekDays:          WeekDay[]
@@ -62,7 +63,7 @@ function timesOverlap(
 
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
-  clashes, travelWarnings, substitutes, weekDays,
+  clashes, softClashes, travelWarnings, substitutes, weekDays,
   onSendToScheduler, onNotifyScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
@@ -169,6 +170,23 @@ export function ClashResolutionModal({
                     </p>
                   )
                 })}
+              </div>
+            )}
+
+            {/* Soft heads-up — a whole-day / no-fixed-time floater. Non-blocking. */}
+            {softClashes.length > 0 && (
+              <div className="rounded-lg border border-amber bg-amber/10 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+                  Heads-up
+                </p>
+                {softClashes.map(w => (
+                  <p key={w.installer.id} className="text-sm text-ink">
+                    <span className="font-semibold">{w.installer.name}</span>
+                    {' already has an all-day job with '}
+                    <span className="font-semibold">{w.conflictingJob.client}</span>
+                    {' (no fixed time). Are you sure they can take this on?'}
+                  </p>
+                ))}
               </div>
             )}
 

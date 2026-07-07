@@ -259,7 +259,7 @@ export function JobDetailShell({
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
-      if (data.clashes.length === 0 && data.travelWarnings.length === 0) {
+      if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0) {
         const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -676,6 +676,7 @@ export function JobDetailShell({
           jobTimeStart={clashData.jobTimeStart}
           jobTimeEnd={clashData.jobTimeEnd}
           clashes={clashData.clashes}
+          softClashes={clashData.softClashes}
           travelWarnings={clashData.travelWarnings}
           substitutes={clashData.substitutes}
           weekDays={clashData.weekDays}
