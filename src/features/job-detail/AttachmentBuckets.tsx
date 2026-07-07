@@ -32,11 +32,12 @@ function FileTypeIcon({ filename }: { filename: string }) {
 
 interface Props {
   jobId:     string
+  userId:    string   // app users.id — the FK target for files.uploader_id
   lang:      LangCode
   readOnly?: boolean
 }
 
-export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
+export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
   const [buckets,  setBuckets]  = useState<AttachmentBucket[]>([])
   const [loading,  setLoading]  = useState(true)
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -82,7 +83,6 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
   }
 
   async function uploadFile(bucket: AttachmentBucket, file: File, isImage: boolean) {
-    const userId = (await supabase.auth.getUser()).data.user?.id
     if (!userId) { showError('Not signed in.'); return }
 
     const contentType = file.type || 'application/octet-stream'
@@ -148,7 +148,6 @@ export function AttachmentBuckets({ jobId, readOnly = false }: Props) {
   }
 
   async function addUrl(bucket: AttachmentBucket, url: string) {
-    const userId = (await supabase.auth.getUser()).data.user?.id
     if (!userId) { showError('Not signed in.'); return }
     const { data: fileRow, error } = await supabase
       .from('files')

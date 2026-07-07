@@ -540,6 +540,7 @@ export function JobDetailShell({
         {/* ── Attachments ─────────────────────────────────────────── */}
         <AttachmentBuckets
           jobId={job.id}
+          userId={userId}
           lang={lang}
           readOnly={readOnly || isInstaller}
         />
