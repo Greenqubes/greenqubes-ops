@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import type { Role } from '@/lib/supabase/types'
 
-const VALID_ROLES = new Set<Role>(['sales', 'scheduler', 'installer'])
+const VALID_ROLES = new Set<Role>(['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production'])
 
 export async function getEffectiveRole(realRole: Role): Promise<Role> {
   if (realRole !== 'admin') return realRole
