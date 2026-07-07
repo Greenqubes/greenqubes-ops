@@ -309,6 +309,22 @@ export function JobDetailShell({
     }
   }
 
+  // Clash modal "Notify Scheduler" — leaves the job pending and flags schedulers.
+  const handleNotifyClash = async (clashNames: string[]) => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/notify-clash`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ clashNames }),
+      })
+      if (!res.ok) throw new Error()
+      setClashData(null)
+      showSuccess('Scheduler notified — job kept pending')
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
+  }
+
   const handlePushAnyways = async () => {
     try {
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
@@ -665,6 +681,7 @@ export function JobDetailShell({
           weekDays={clashData.weekDays}
           lang={lang}
           onSendToScheduler={handleSendToScheduler}
+          onNotifyScheduler={handleNotifyClash}
           onCancel={() => setClashData(null)}
         />
       )}

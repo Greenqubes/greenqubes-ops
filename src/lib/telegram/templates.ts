@@ -95,6 +95,33 @@ export function tplInstallerAssigned(p: {
   )
 }
 
+// Sent to schedulers when sales hits "Notify Scheduler" on a clash they can't
+// (or won't) resolve. The job is left PENDING for the scheduler to sort out.
+export function tplClashNeedsReview(p: {
+  projectTitle: string | null
+  jobClient:    string
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+  clashNames:   string[]
+  salesName:    string
+  jobUrl:       string
+}): string {
+  const names = p.clashNames.length > 0 ? p.clashNames.join(', ') : '(unspecified)'
+  return (
+    `⚠️ <b>Clash — Needs Scheduler Review</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    `Double-booked: ${names}\n` +
+    `Raised by: ${p.salesName}\n` +
+    `Still pending — please review &amp; assign.\n\n` +
+    `<a href="${p.jobUrl}">Review job →</a>`
+  )
+}
+
 export function tplJobOverdue(p: {
   projectTitle: string | null
   jobClient:    string

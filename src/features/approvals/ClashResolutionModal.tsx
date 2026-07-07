@@ -19,6 +19,7 @@ interface Props {
   weekDays:          WeekDay[]
   lang:              LangCode
   onSendToScheduler: (replacements: Record<string, string | 'keep'>, timeStart: string, timeEnd: string) => Promise<void>
+  onNotifyScheduler: (clashNames: string[]) => Promise<void>
   onCancel:          () => void
 }
 
@@ -62,7 +63,7 @@ function timesOverlap(
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
   clashes, travelWarnings, substitutes, weekDays,
-  onSendToScheduler, onCancel,
+  onSendToScheduler, onNotifyScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
   const [timeStart, setTimeStart] = useState(toInputTime(jobTimeStart))
@@ -97,6 +98,30 @@ export function ClashResolutionModal({
     } finally {
       setSubmitting(false)
       setShowWarning(false)
+    }
+  }
+
+  // Distinct clashing installer names — passed to the scheduler notification.
+  const clashNames = [...new Set(clashes.map(c => c.installer.name))]
+
+  // "Push Anyways" — force the job onto the schedule despite the unresolved clash
+  // (e.g. a whole-day floater installer with no fixed time).
+  async function handlePushAnyways() {
+    setSubmitting(true)
+    try {
+      await onSendToScheduler(replacements, timeStart, timeEnd)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // "Notify Scheduler" — leave the job pending and flag the scheduler to resolve.
+  async function handleNotifyScheduler() {
+    setSubmitting(true)
+    try {
+      await onNotifyScheduler(clashNames)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -298,6 +323,42 @@ export function ClashResolutionModal({
                 Push to Schedule
               </Btn>
             </div>
+
+            {/* Override options — shown while a clash is still unresolved
+                (e.g. a whole-day floater installer with no fixed time). */}
+            {unresolvedCount > 0 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-line" />
+                  <span className="text-[10px] text-muted whitespace-nowrap">or</span>
+                  <div className="flex-1 h-px bg-line" />
+                </div>
+                <div className="flex gap-2">
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleNotifyScheduler}
+                    disabled={submitting}
+                    className="flex-1 border-amber/40 text-amber-700"
+                  >
+                    Notify Scheduler
+                  </Btn>
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={handlePushAnyways}
+                    disabled={submitting}
+                    className="flex-1"
+                  >
+                    Push Anyways
+                  </Btn>
+                </div>
+                <p className="text-center text-[11px] text-muted leading-snug">
+                  Notify Scheduler keeps the job pending and asks them to sort the clash.
+                  Push Anyways schedules it now.
+                </p>
+              </>
+            )}
           </div>
 
         </div>

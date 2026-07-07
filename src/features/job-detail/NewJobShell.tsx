@@ -38,7 +38,7 @@ interface Props {
 
 export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [] }: Props) {
   const router = useRouter()
-  const { error: showError } = useToast()
+  const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
@@ -221,6 +221,25 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
     }
   }
 
+  // Clash modal "Notify Scheduler" — the job is already saved as pending; flag
+  // the schedulers and leave it for them to resolve.
+  async function handleNotifyClash(clashNames: string[]) {
+    if (!pushJobId) return
+    try {
+      const res = await fetch(`/api/jobs/${pushJobId}/notify-clash`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ clashNames }),
+      })
+      if (!res.ok) throw new Error()
+      setClashData(null)
+      showSuccess('Scheduler notified — job kept pending')
+      router.push('/schedule')
+    } catch {
+      showError(t(lang, 'saveError'))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-bg">
       <CompanyBar lang={lang} />
@@ -376,6 +395,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           weekDays={clashData.weekDays}
           lang={lang}
           onSendToScheduler={handleSendToScheduler}
+          onNotifyScheduler={handleNotifyClash}
           onCancel={() => {
             // Job is already saved as pending — drop the user on its edit
             // page so they can adjust the installer or time and retry.
