@@ -33,7 +33,7 @@ export function InstallerJobCard({ job, lang }: Props) {
               <Pill variant={job.status} />
               <span className="text-[11px] text-muted">{dateLabel}</span>
             </div>
-            <p className="font-display font-medium text-ink truncate">{job.project_title || job.client}</p>
+            <p className="font-display font-medium text-ink truncate">{job.project_title || job.client || 'Untitled job'}</p>
             {job.project_title && job.client && (
               <p className="text-[13px] text-ink2 line-clamp-1 leading-snug">{job.client}</p>
             )}

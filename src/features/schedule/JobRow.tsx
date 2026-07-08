@@ -102,7 +102,7 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                 {/* Client + time / job day */}
                 <div className="flex justify-between items-start gap-2 mb-1">
                   <span className="font-display text-base font-medium text-ink truncate leading-snug">
-                    {job.project_title || job.client}
+                    {job.project_title || job.client || 'Untitled job'}
                   </span>
                   {(timeRange || jobDayLabel) && (
                     <div className="flex flex-col items-end shrink-0 gap-0.5">
