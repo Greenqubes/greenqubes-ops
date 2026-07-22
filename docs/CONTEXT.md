@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on feat-workflow-v2; clean-cut replacement strategy agreed; Phase 2 next session)_
+_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke test PASSED on feat-workflow-v2; Phase 3 FCFS board next)_
 
 ---
 
@@ -42,13 +42,22 @@ Migration from the original React prototype to a feature-folder Next.js app with
 
 ---
 
-## Three roles (strict access control)
+## Seven roles (strict access control)
 
-- **Sales** — creates pending jobs, sends to scheduler for approval. Sees all jobs, all clients, all costs and quotes.
-- **Scheduler** — approves/rejects sales submissions. Manages company-wide schedule. Override powers (e.g. complete a job without photos).
-- **Installer** — signs in via magic link, sees only jobs they're assigned. Can update completion photos, sign DOs, post chat messages and voice notes. **Cannot see commercial info** (quotes, supplier costs, margins).
+> Workflow V2 replaced the original three-role model. There is **no approval step** — sales pushes
+> jobs straight onto the schedule and the scheduler/coordinator assigns the installer.
+
+- **Sales** — creates jobs and pushes them to the schedule. *Suggests* installers (yellow) but cannot formally assign. Sees all jobs and clients.
+- **Scheduler** — manages the company-wide schedule, *formally assigns* installers (green), override powers (e.g. complete a job without photos).
+- **Coordinator** — same job-form rights as scheduler, including formal installer assignment. Multiple coordinators per job via `job_coordinators`.
+- **Installer** — sees only jobs they are **formally assigned** to (a suggestion must never surface). Uploads completion photos, signs DOs, posts chat + voice notes. **Cannot see commercial info.**
+- **Designer** — view-only on the job form (no Save bar); chat only.
+- **Production** — edits only its own fields: "Production ready", "DO issued", production instructions and production photos. Everything else view-only.
+- **Admin** — full access; hard-gated to `ai@greenqubes.com`. Can "preview as" any of the other roles.
 
 Role is bound to the user's authenticated Supabase session, not a UI toggle. Row-level security policies in the DB enforce this — there is no path where the client can lie about their role and get sensitive data.
+
+**Note on "preview as":** the admin role switcher changes the *UI role only* — the database still sees you as admin (who can read everything). Anything gated by row-level security (e.g. suggestion-hiding from installers) must be tested with a **real non-admin login**.
 
 ---
 
@@ -200,7 +209,8 @@ This is the system's main learning mechanism. **Auto-promotion is forbidden** �
 - **Don't suggest swapping Voyage AI for OpenAI embeddings.** We picked Voyage to stay in the Anthropic-aligned ecosystem and avoid mixing AI vendors. Cost is a wash.
 - **Don't suggest a separate vector DB** (Pinecone, Weaviate). pgvector in Supabase shares auth with the main DB — one less access-control layer to maintain.
 - **Don't suggest abandoning Obsidian for a CMS.** Markdown ownership and offline-first matter.
-- **Don't add a fourth role.** Sales / scheduler / installer is the model.
+- **Don't add an eighth role.** The model is settled at seven (sales / scheduler / coordinator / installer / designer / production / admin). Claude may suggest new roles but must never add or remove one without explicit confirmation.
+- **Don't embed `users` directly onto `jobs`** in a PostgREST select — `jobs` has several FKs to `users` and this has broken twice (PGRST201 crashes → migration 0035; installer blank titles → Phase 2). Fetch the user in a follow-up query.
 - **Don't store sensitive info in the AI system prompt** as a safeguard. RLS at the retrieval layer is the actual access-control mechanism.
 - **Don't auto-promote conversations to Obsidian.** Human-in-the-loop on every promotion.
 
@@ -267,7 +277,12 @@ greenqubes/
 
 All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
 
-**Workflow V2 — clean-cut switchover (decided 2026-06-24):** All of Workflow V2 (the 3 new roles, approval removal, FCFS board, installer suggestion/assignment, external links, etc.) is being built on the `feat-workflow-v2` branch across Phases 1–4. It will NOT be merged into `dev` incrementally — Nic wants the old workflow fully replaced in one clean switchover once V2 is fully functional and tested, so there's never a half-migrated state on dev/main. Phase 1 is done + smoke-tested (2026-06-24); Phase 2 next.
+**Workflow V2 — clean-cut switchover (decided 2026-06-24):** All of Workflow V2 (the 3 new roles, approval removal, FCFS board, installer suggestion/assignment, external links, etc.) is being built on the `feat-workflow-v2` branch across Phases 1–4. It will NOT be merged into `dev` incrementally — Nic wants the old workflow fully replaced in one clean switchover once V2 is fully functional and tested, so there's never a half-migrated state on dev/main.
+
+- [x] **Phase 1** — roles + approval removal (smoke test passed 2026-06-24)
+- [x] **Phase 2** — role-locked job form + installer suggestion/assignment (smoke test passed 2026-07-22)
+- [ ] **Phase 3** — FCFS board (next)
+- [ ] **Phase 4** — external installer links, sub-installers, task list, external POC bucket
 
 - [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
