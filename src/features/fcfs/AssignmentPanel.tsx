@@ -145,7 +145,8 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
   const rosterOf = (id: string) => installers.find(u => u.id === id)
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end sm:items-stretch sm:justify-end">
+    // z-[60]: overlays must layer above the BottomNav (z-50) — hard rule.
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-stretch sm:justify-end">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
 
       <div className="relative z-50 w-full sm:w-[380px] bg-paper max-h-[85vh] sm:max-h-none sm:h-full rounded-t-2xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-line flex flex-col">

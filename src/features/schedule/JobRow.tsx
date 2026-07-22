@@ -48,9 +48,11 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
     .filter(Boolean)
     .join(', ')
 
+  // No time set = whole-day floater — say so instead of leaving a blank
+  // (matches the FCFS board's "All day" bars).
   const timeRange = [fmtTime(job.time_start), fmtTime(job.time_end)]
     .filter(Boolean)
-    .join(' – ')
+    .join(' – ') || 'All day'
 
   const jobDayLabel = (() => {
     if (!job.date_end || job.date_end <= job.date || !currentDate) return null

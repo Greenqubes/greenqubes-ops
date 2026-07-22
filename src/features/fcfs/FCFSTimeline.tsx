@@ -106,14 +106,17 @@ export function FCFSTimeline({ jobs, clashes, startH, endH, lang, onJobClick }: 
           >
             {t(lang, 'fcfsJobColumn')}
           </div>
+          {/* flex-1 so columns stretch with the viewport — the bars are
+              percentage-positioned, so fixed-width columns drift on wide
+              screens (the 9am–6pm bug from the smoke test). */}
           {hours.map(h => (
             <div
               key={h}
               className={cn(
-                'shrink-0 border-r border-line/60 px-1 py-1.5 text-[10px] font-semibold text-ink2 bg-bg/40',
+                'flex-1 border-r border-line/60 px-1 py-1.5 text-[10px] font-semibold text-ink2 bg-bg/40',
                 h === 12 && 'border-l-2 border-l-terracotta/40',
               )}
-              style={{ width: HOUR_W }}
+              style={{ minWidth: HOUR_W }}
             >
               {hourLabel(h)}
             </div>
@@ -161,13 +164,13 @@ export function FCFSTimeline({ jobs, clashes, startH, endH, lang, onJobClick }: 
                     <div
                       key={h}
                       className={cn(
-                        'shrink-0 border-r border-line/60 h-full',
+                        'flex-1 border-r border-line/60 h-full',
                         h === 12 && 'border-l-2 border-l-terracotta/40',
                       )}
                       style={{
-                        width: HOUR_W,
+                        minWidth: HOUR_W,
                         backgroundImage: 'linear-gradient(to right, var(--line) 1px, transparent 1px)',
-                        backgroundSize: `${HOUR_W / 4}px 100%`,
+                        backgroundSize: '25% 100%',
                         backgroundPosition: '-1px 0',
                         opacity: 0.5,
                       }}

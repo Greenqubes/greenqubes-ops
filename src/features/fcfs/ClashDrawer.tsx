@@ -27,7 +27,10 @@ function JobCard({ job, label, first, lang }: { job: FCFSJob; label: string; fir
       'rounded-[10px] border p-3 flex-1 min-w-0',
       first ? 'border-brand-green' : 'border-terracotta',
     )}>
-      <p className="text-[10px] text-muted mb-0.5">{label}</p>
+      <p className={cn(
+        'text-[11px] font-bold mb-0.5',
+        first ? 'text-brand-green' : 'text-terracotta',
+      )}>{label}</p>
       <p className="text-xs font-semibold text-ink truncate">
         #{job.fcfs_rank} {job.project_title || job.client}
       </p>
@@ -45,10 +48,11 @@ export function ClashDrawer({ isOpen, clashes, lang, onClose, onOpenJob, onDismi
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end" onClick={onClose}>
+    // z-[60]: overlays must layer above the BottomNav (z-50) — hard rule.
+    <div className="fixed inset-0 z-[60] flex items-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
       <div
-        className="relative z-50 w-full bg-paper border-t border-line rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),20px)]"
+        className="relative w-full bg-paper border-t border-line rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto pb-[max(env(safe-area-inset-bottom),20px)]"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="font-display text-base font-medium text-ink mb-4">

@@ -158,21 +158,25 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
             {t(lang, 'fcfsToday')}
           </button>
 
-          {clashChips.map(chip => (
-            <button
-              key={chip.name}
-              onClick={() => setDrawerOpen(true)}
-              className={cn(
-                'flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold',
-                chip.hard
-                  ? 'bg-bad-soft border-bad/40 text-bad'
-                  : 'bg-brand-amber-soft border-brand-amber/40 text-brand-amber',
-              )}
-            >
-              <AlertTriangle size={12} />
-              {chip.name} — {chip.count} {t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}
-            </button>
-          ))}
+          {clashChips.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
+              {clashChips.map(chip => (
+                <button
+                  key={chip.name}
+                  onClick={() => setDrawerOpen(true)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-semibold shrink-0 whitespace-nowrap',
+                    chip.hard
+                      ? 'bg-bad-soft border-bad/40 text-bad'
+                      : 'bg-brand-amber-soft border-brand-amber/40 text-brand-amber',
+                  )}
+                >
+                  <AlertTriangle size={12} />
+                  {chip.name} — {chip.count} {t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center">
