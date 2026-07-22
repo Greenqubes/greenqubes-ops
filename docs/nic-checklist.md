@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke test PASSED; Phase 3 FCFS board next)_
+_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 3 FCFS Board implemented + smoke test PASSED; Phase 4 next)_
 
 ---
 
@@ -25,9 +25,10 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
 - [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
 - [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
-- [ ] **Workflow V2 — Phase 3 (FCFS board)** — built + smoke-tested 2026-07-22; feedback fixes applied. See [workflow-v2-phase3-smoke-test.md](workflow-v2-phase3-smoke-test.md).
-- [ ] **Run `npx supabase db push` for migration 0038** — adds the "when was this job scheduled" timestamp so the FCFS rank counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair). Until it's applied the board falls back to creation order — no crash, just the old ordering.
-- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)**
+- [x] **[Nic] Workflow V2 — Phase 3 (FCFS board)** — built + smoke test PASSED 2026-07-22, all feedback fixes verified on preview. See [workflow-v2-phase3-smoke-test.md](workflow-v2-phase3-smoke-test.md).
+- [x] **[Nic] Run `npx supabase db push` for migration 0038** — applied 2026-07-22. FCFS rank now counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair).
+- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)** — next coding session; last phase before the clean-cut switchover.
+- [ ] **FCFS board — extra views (deferred)** — the approved mockup shows Day / Week / Month / By Project / By Installer toggles; only **Day** is built (your call, 2026-07-22). The other four need designs before a build session.
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)
 
@@ -108,6 +109,18 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-07-22, feat-jobs — Workflow V2 Phase 3)
+
+- [x] **Phase 3 built + smoke test PASSED** — FCFS Board live at `/fcfs`: day timeline ranked first-come-first-served, colour-coded installer bars, clash chips + drawer, slide-in assignment panel. All 6 sections green after fixes.
+- [x] **Migration 0038 applied** — you ran `npx supabase db push`. FCFS rank counts from when a job is **pushed to the schedule**, not when it was created (your call — sales can't see each other's pending jobs).
+- [x] **Your smoke-test feedback fixed + verified** — 9am–6pm bar drift on wide screens; overlays no longer hidden behind the bottom nav; bolder "Created first (priority)" labels; scrollable clash chips; "All day" shown on the schedule tab for untimed jobs.
+- [x] **New hard rule recorded in CLAUDE.md** — overlays (modals, drawers, panels) must always layer above the bottom nav.
+- [x] **Bug: dropdowns hid newly provisioned users** — Person-in-Charge only listed sales; Sub POC only sales/scheduler/admin on the new-job form. Both now list every office role on both forms.
+- [x] **Clash-on-edit gap closed** — editing a scheduled job's time/installer onto another booking now warns first (scheduler: Save Anyway / Go Back; coordinator: Alert Scheduler & Save / Re-assign).
+- [x] **Future planning noted** — schedule list scroll UX, Android/iOS ports (directors' request), Windows/Mac desktop apps, full security audit before go-live.
 
 ---
 
