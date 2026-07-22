@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke test PASSED on feat-workflow-v2; Phase 3 FCFS board next)_
+_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 3 FCFS Board implemented + smoke test PASSED on feat-workflow-v2; Phase 4 next)_
 
 ---
 
@@ -281,8 +281,8 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 
 - [x] **Phase 1** — roles + approval removal (smoke test passed 2026-06-24)
 - [x] **Phase 2** — role-locked job form + installer suggestion/assignment (smoke test passed 2026-07-22)
-- [ ] **Phase 3** — FCFS board (next)
-- [ ] **Phase 4** — external installer links, sub-installers, task list, external POC bucket
+- [x] **Phase 3** — FCFS board + clash-on-edit (smoke test passed 2026-07-22; Day view only — Week/Month/By-Project/By-Installer toggles deferred)
+- [ ] **Phase 4** — external installer links, sub-installers, task list, external POC bucket (next — last phase before the clean-cut switchover)
 
 - [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
