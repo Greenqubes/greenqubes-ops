@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -26,13 +27,11 @@ export default async function NewJobPage() {
   const role = await getEffectiveRole(profile.role as Role)
   if (role === 'installer') redirect('/installer')
 
-  const [{ data: salesRows }, { data: installerRows }] = await Promise.all([
-    supabase
-      .from('users')
-      .select('id, name')
-      .in('role', ['sales', 'scheduler', 'admin'])
-      .is('deleted_at', null)
-      .order('name'),
+  // Person-in-Charge and Sub POC/Coordinators both offer every office role
+  // (Nic, 2026-07-22) — the old sales/scheduler/admin filter hid newly
+  // provisioned coordinators/designers/production. Same rule as /jobs/[id].
+  const [officeUsers, { data: installerRows }] = await Promise.all([
+    getAllProvisionedUsers(),
     supabase
       .from('users')
       .select('id, name, phone, role, years_experience, skills')
@@ -41,12 +40,9 @@ export default async function NewJobPage() {
       .order('name'),
   ])
 
-  const salesPocOptions: SelectOption[] = ((salesRows ?? []) as { id: string; name: string }[])
-    .map(u => ({ id: u.id, label: u.name }))
+  const salesPocOptions: SelectOption[] = officeUsers
   const allInstallers = (installerRows ?? []) as unknown as InstallerUser[]
-
-  const coordinatorOptions = ((salesRows ?? []) as { id: string; name: string }[])
-    .map(u => ({ id: u.id, label: u.name }))
+  const coordinatorOptions = officeUsers
 
   return (
     <NewJobShell
