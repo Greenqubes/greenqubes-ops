@@ -8,6 +8,13 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke
 
 ## Pending — Next Session
 
+### Future planning notes (from 2026-07-22, Phase 3 session)
+
+- [ ] **Schedule tab: list view scrolling UX** — the list runs extremely long as more dates appear, and horizontal scrolling on desktop via the tiny scrollbar at the bottom is a hassle. Needs a UX improvement — spec + design decision before coding.
+- [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
+- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
+- [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
+
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
 - [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
