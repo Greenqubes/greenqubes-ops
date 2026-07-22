@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 
-// Workflow V2: the approval workflow is gone. This route redirects to the
-// schedule until the FCFS Board (Phase 3) takes over at /fcfs.
+// Workflow V2: the approval workflow is gone — the FCFS Board (Phase 3)
+// replaced it as the planning view.
 export default function ApprovalsPage() {
-  redirect('/schedule')
+  redirect('/fcfs')
 }
