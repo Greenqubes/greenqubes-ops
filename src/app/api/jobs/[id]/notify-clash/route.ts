@@ -29,8 +29,10 @@ export async function POST(
 
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Coordinator included since Phase 3: "Alert Scheduler" from the FCFS panel
+  // and the job form's clash-on-edit prompt both land here.
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['sales', 'scheduler', 'admin'].includes(effectiveRole)) {
+  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

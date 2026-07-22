@@ -4,6 +4,8 @@ import { getEffectiveRole } from '@/lib/utils/role-override'
 import { getJobNotifData, getJobRecipients } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplJobAssigned, tplInstallerAssigned } from '@/lib/telegram/templates'
+import { timesOverlap } from '@/lib/utils/clash-detection'
+import type { CheckClash } from '@/features/job-detail/EditClashModal'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -40,6 +42,76 @@ export async function POST(
   const installerIds: string[] = Array.isArray(body.installer_ids)
     ? body.installer_ids.filter((x: unknown): x is string => typeof x === 'string')
     : []
+
+  // ── checkOnly: report clashes without saving (Workflow V2 Task 19) ─────────
+  // Used before saving an already-scheduled job so moving its time or installer
+  // onto another booking warns first. Optional date/time/punctuality overrides
+  // let the form check its UNSAVED values.
+  if (new URL(req.url).searchParams.get('checkOnly') === 'true') {
+    type JobRow = { date: string; time_start: string | null; time_end: string | null; punctuality: string }
+    const { data: currentJob } = await supabase
+      .from('jobs')
+      .select('date, time_start, time_end, punctuality')
+      .eq('id', jobId)
+      .maybeSingle() as { data: JobRow | null; error: unknown }
+    if (!currentJob) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const date        = typeof body.date === 'string' && body.date ? body.date : currentJob.date
+    const timeStart   = 'time_start'  in body ? ((body.time_start  as string) || null) : currentJob.time_start
+    const timeEnd     = 'time_end'    in body ? ((body.time_end    as string) || null) : currentJob.time_end
+    const punctuality = typeof body.punctuality === 'string' && body.punctuality
+      ? body.punctuality : currentJob.punctuality
+
+    type ConflictRow = {
+      id: string; project_title: string | null; client: string
+      time_start: string | null; time_end: string | null; punctuality: string
+      job_assignees: Array<{ user_id: string }>
+    }
+    const { data: sameDay } = await supabase
+      .from('jobs')
+      .select('id, project_title, client, time_start, time_end, punctuality, job_assignees(user_id)')
+      .eq('date', date)
+      .neq('id', jobId)
+      .in('status', ['scheduled', 'awaiting_approval']) as { data: ConflictRow[] | null; error: unknown }
+
+    const names = new Map<string, string>()
+    if (installerIds.length > 0) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', installerIds) as { data: Array<{ id: string; name: string }> | null }
+      for (const u of users ?? []) names.set(u.id, u.name)
+    }
+
+    // Hard only when both jobs are strict AND both have fixed start times —
+    // same grading as the board and the Phase 2 push-time check.
+    const clashes: CheckClash[] = []
+    for (const conflict of sameDay ?? []) {
+      if (!timesOverlap(timeStart, timeEnd, conflict.time_start, conflict.time_end)) continue
+      const bothStrict = punctuality === 'strict' && conflict.punctuality === 'strict'
+      const bothFixed  = !!timeStart && !!conflict.time_start
+      if (punctuality !== 'strict' && conflict.punctuality !== 'strict') continue
+      const severity: CheckClash['severity'] = bothStrict && bothFixed ? 'hard' : 'soft'
+      const conflictIds = new Set(conflict.job_assignees.map(a => a.user_id))
+      for (const id of installerIds) {
+        if (!conflictIds.has(id)) continue
+        clashes.push({
+          installerId:   id,
+          installerName: names.get(id) ?? '',
+          severity,
+          conflict: {
+            jobId:        conflict.id,
+            projectTitle: conflict.project_title,
+            client:       conflict.client,
+            timeStart:    conflict.time_start,
+            timeEnd:      conflict.time_end,
+          },
+        })
+      }
+    }
+
+    return NextResponse.json({ hasClash: clashes.length > 0, clashes })
+  }
 
   // Which installers are newly added (for their "Job Assigned" notification)?
   const { data: existing } = await supabase

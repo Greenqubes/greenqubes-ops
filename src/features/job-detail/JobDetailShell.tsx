@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -19,6 +19,7 @@ import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
@@ -95,6 +96,9 @@ export function JobDetailShell({
 
   const readOnly  = completed
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
+  // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
+  const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
+  const pendingValuesRef = useRef<FormValues | null>(null)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
@@ -188,7 +192,7 @@ export function JobDetailShell({
     return added
   }
 
-  const onSubmit = async (values: FormValues) => {
+  const performSave = async (values: FormValues) => {
     setSaving(true)
     try {
       const [, addedCoordinatorIds] = await Promise.all([
@@ -223,6 +227,71 @@ export function JobDetailShell({
     } finally {
       setSaving(false)
     }
+  }
+
+  // Editing an already-scheduled job used to run NO clash check — moving its
+  // time or installer onto another booking saved silently (deferred from
+  // Phase 1). Now scheduler/coordinator/admin saves are checked first;
+  // coordinators can alert the schedulers, schedulers can save anyway.
+  const onSubmit = async (values: FormValues) => {
+    const timeChanged =
+      values.date        !== (job.date ?? '') ||
+      values.time_start  !== (job.time_start?.slice(0, 5) ?? '') ||
+      values.time_end    !== (job.time_end?.slice(0, 5) ?? '') ||
+      values.punctuality !== job.punctuality
+
+    const needsCheck =
+      status === 'scheduled' && canAssign && selectedInstallerIds.length > 0 &&
+      (isInstallerDirty || timeChanged)
+
+    if (needsCheck) {
+      setSaving(true)
+      try {
+        const res = await fetch(`/api/jobs/${job.id}/assign-installers?checkOnly=true`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            installer_ids: selectedInstallerIds,
+            date:          values.date,
+            time_start:    values.time_start,
+            time_end:      values.time_end,
+            punctuality:   values.punctuality,
+          }),
+        })
+        if (res.ok) {
+          const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
+          if (data.hasClash) {
+            pendingValuesRef.current = values
+            setEditClashes(data.clashes)
+            setSaving(false)
+            return
+          }
+        }
+        // A failed check never blocks the save — fall through.
+      } catch {
+        // ignore — fall through to the normal save
+      }
+      setSaving(false)
+    }
+
+    await performSave(values)
+  }
+
+  const resumeSaveAfterClash = async (alertSchedulers: boolean) => {
+    const values = pendingValuesRef.current
+    const names  = [...new Set((editClashes ?? []).map(c => c.installerName).filter(Boolean))]
+    setEditClashes(null)
+    pendingValuesRef.current = null
+    if (!values) return
+    if (alertSchedulers) {
+      // Best-effort — the save must not fail because a Telegram send did.
+      fetch(`/api/jobs/${job.id}/notify-clash`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ clashNames: names }),
+      }).catch(() => {})
+    }
+    await performSave(values)
   }
 
   const handleStatusChange = async (newStatus: JobStatus, newDate?: string) => {
@@ -671,6 +740,15 @@ export function JobDetailShell({
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────── */}
+      <EditClashModal
+        isOpen={editClashes !== null}
+        clashes={editClashes ?? []}
+        role={role}
+        lang={lang}
+        onAlertScheduler={() => resumeSaveAfterClash(true)}
+        onProceed={() => resumeSaveAfterClash(false)}
+        onClose={() => { setEditClashes(null); pendingValuesRef.current = null }}
+      />
       {clashData && (
         <ClashResolutionModal
           jobDate={clashData.jobDate}
