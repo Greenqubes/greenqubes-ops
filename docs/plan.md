@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on feat-workflow-v2; clean-cut replacement strategy agreed)_
+_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke test PASSED on feat-workflow-v2)_
 
 ---
 
@@ -22,7 +22,14 @@ _Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on
 
 ## Current State
 
-**Workflow V2 Phase 1 implemented + smoke test PASSED** on the `feat-workflow-v2` branch: designer/coordinator/production roles live in DB + admin UI; approval workflow removed — sales pushes pending jobs directly to scheduled ("Push to Schedule"), all schedulers get a Telegram "New Job — Assign Installer" notification; /approvals redirects to /schedule; FCFS tab in BottomNav for every role (board itself comes in Phase 3). **Smoke test fully passed 2026-06-24** (all 5 sections — see 2026-06-24 fix-jobs note). Phases 2–4 not started; **Phase 2 starts next session.**
+**Workflow V2 Phases 1 + 2 implemented, both smoke tests PASSED** on the `feat-workflow-v2` branch.
+
+- **Phase 1** (passed 2026-06-24): designer/coordinator/production roles live in DB + admin UI; approval workflow removed — sales pushes pending jobs directly to scheduled ("Push to Schedule"), all schedulers get a Telegram "New Job — Assign Installer" notification; /approvals redirects to /schedule.
+- **Phase 2** (passed 2026-07-22): role-locked job form (designer view-only; production edits production-ready/DO/instructions/photos only; per-role action bars) and the **installer suggestion → assignment flow** — sales *suggests* (yellow, hidden from the installer until confirmed), coordinator/scheduler *formally assigns* (green, clears suggestions) and Telegram fires to the installer + sales POC + coordinators. Clash modal gained **Notify Scheduler** (holds job pending) / **Push Anyways**, plus a non-blocking amber heads-up for no-fixed-time "floater" installers. Preview-as now covers all 6 roles.
+
+**FCFS tab: NOT shown to installers** (Nic, 2026-07-22) — the board is a scheduler/coordinator planning tool; installers only need their own jobs. This overrides the Phase 1 "FCFS for every role" decision. It remains in the nav for scheduler / sales / coordinator / designer / production / admin. `/fcfs` 404s until Phase 3 builds it.
+
+**Phase 3 (FCFS board) is next.** Phase 4 not started.
 
 **Branching strategy — CLEAN CUT (decided 2026-06-24):** Do NOT merge `feat-workflow-v2` into `dev` incrementally. Build all of V2 (Phases 1–4) on `feat-workflow-v2` until fully functional, then replace the old workflow in one shot. No half-migrated state on dev/main. (This overrides the older "feat-workflow-v2 → dev → main" incremental note.)
 
@@ -30,7 +37,9 @@ _Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on
 
 **Known bug (do not touch):** React hydration error #418 on `/schedule` in production — non-blocking, page works after refresh. Multiple fix attempts failed and were force-reverted. Leave it alone without a new specific hypothesis.
 
-**DB migrations:** 0001–0036 all applied to the shared remote DB (prod/dev/v2 previews share it). 0033–0036 are the Workflow V2 Phase 1 set — incl. two hotfixes: 0035 (suggested_by FK dropped — second FK to users broke every `job_assignees(users(...))` embed with PGRST201) and 0036 (sales may transition own pending job to scheduled). Any new migration must stay backward-compatible with the code deployed on dev/main.
+**DB migrations:** 0001–0037 all applied to the shared remote DB (prod/dev/v2 previews share it). 0033–0036 are the Workflow V2 Phase 1 set — incl. two hotfixes: 0035 (suggested_by FK dropped — second FK to users broke every `job_assignees(users(...))` embed with PGRST201) and 0036 (sales may transition own pending job to scheduled). **0037** is the Phase 2 migration: installer job-visibility RLS ignores suggestions (a suggested installer must not see the job), and coordinator + production gain `jobs` UPDATE. Any new migration must stay backward-compatible with the code deployed on dev/main.
+
+**⚠️ Standing rule — never embed `users` directly onto `jobs`** in a PostgREST select. `jobs` has several FKs to `users` (sales_poc_id, approved_by), and this has now broken twice: PGRST201 crashes (fixed by migration 0035) and the Phase 2 bug where `getInstallerJobs`' `sales_poc:users!jobs_sales_poc_id_fkey` embed made the installer's job list come back with empty `project_title`/`client`. Fetch the user in a follow-up query instead.
 
 **Obsolete bugs removed:** "Save fails on approvals page" — approvals page no longer exists. AdminRoleModal double-Yes — confirmed not a bug (chore-config 2026-05-29). Friday bar in WeekWorkloadChart — fixed per checklist.
 
@@ -110,6 +119,7 @@ _Last updated: 2026-06-24 (fix-jobs — Workflow V2 Phase 1 smoke test PASSED on
 | fix-schedule [Nic] | Vercel 404 Fix + Schedule Date Strip | Moved Workflow V2 mockups from `docs/superpowers/mockups/` → `public/mockups/workflow-v2/` so Vercel serves them as static assets (Next.js only serves `public/`). Schedule list view date strip now shows all dates in the full range (earliest job → latest job), not just dates with assigned jobs. `feat-workflow-v2` branch merged up to date with dev and pushed to remote — Vercel generates a separate preview for it. | [fix/fix-schedule-20260611-1-note.md](fix/fix-schedule-20260611-1-note.md) |
 | feat-jobs [Nic] | Workflow V2 Phase 1 — Roles + Approval Removal | Migrations 0033–0036: designer/coordinator/production roles, installer-suggestion columns, RLS widening, suggested_by FK hotfix (PGRST201 had crashed /schedule on all deployments), sales pending→scheduled RLS fix. Approval workflow removed: approve/send-back routes + ApprovalCard/SendBackModal/ApprovalsShell deleted; "Push to Schedule" replaces "Push for Approval"; submit sets scheduled directly + tplNewJobCreated Telegram to all schedulers; /approvals → /schedule redirect; BottomNav FCFS tab for every role; new-job form success modal + failure surfacing. **Smoke test mid-way — sections 3–5 pending, see note** | [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md) |
 | fix-jobs [Nic] | Workflow V2 Phase 1 — Smoke Test Fixes (PASSED) | Finished Phase 1 smoke test (all 5 sections pass). Fixes: (1) New Job screen now runs the clash check before Push to Schedule (was pushing straight to /submit with no double-booking check); (2) clash modal — shifting the job time to a non-overlapping slot now auto-resolves the clash (reuses server overlap logic) + "Send to scheduler" renamed to V2's "Push to Schedule"; (3) chat attachment realtime now resolves uploader name (live photos showed "Unknown"/"?"); (4) installer My Jobs card now shows project_title (was client-only, so titled jobs looked blank). Clean-cut strategy agreed — no incremental merge to dev. Clash-on-edit-of-scheduled-job deferred to Phase 3. | [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md) |
+| feat-jobs [Nic] | Workflow V2 Phase 2 — Role-Locked Form + Installer Suggestion/Assignment (PASSED) | Tasks 9–15. Role-locked job form: designer view-only (no Save bar), production edits production-ready/DO/instructions/photos only, per-role action bars; Team card (POC/coordinators/notes) gated too. Installer **suggestion → assignment** flow: sales suggests (yellow, saves instantly via new `/suggest-installer`), coordinator/scheduler formally assigns (green) via new `/assign-installers` which clears suggestions and Telegrams the installer (`tplJobAssigned`) + sales POC/coordinators (`tplInstallerAssigned`). InstallerGrid rewritten as a 3-state presentation grid. **Migration 0037** — installer visibility RLS ignores suggestions; coordinator+production gain jobs UPDATE. Suggestions stripped from schedule/installer/overdue/workload/chat-recipient queries. Clash modal: **Notify Scheduler** (holds job pending, new `/notify-clash` + `tplClashNeedsReview`) + **Push Anyways**, and soft non-blocking heads-up for no-fixed-time floaters. Preview-as extended to all 6 roles. Bugs fixed: new-job form used real not effective role (suggestions saved as assignments); attachment buckets used auth id as `uploader_id` (FK violation — **production bug too**); installer list blank title (jobs→users embed). FCFS dropped from installer nav. | [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 

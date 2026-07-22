@@ -91,7 +91,9 @@
       "PowerShell(git checkout feat-workflow-v2)",
       "PowerShell(git merge dev -m \"merge: dev into feat-workflow-v2 \\(fix-schedule session note\\)\")",
       "PowerShell(git add supabase/migrations/0033_workflow_v2_roles.sql supabase/migrations/0034_workflow_v2_policies.sql src/lib/supabase/types.ts src/components/Pill.tsx)",
-      "PowerShell(git add src/components/BottomNav.tsx)"
+      "PowerShell(git add src/components/BottomNav.tsx)",
+      "Bash(grep -rniB1 -A8 \"jobs.*for update\\\\|jobs_update\\\\|jobs: .*update\" supabase/migrations/)",
+      "Bash(git commit -m ' *)"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",
