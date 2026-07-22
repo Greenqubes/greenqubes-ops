@@ -25,7 +25,8 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 2 implemented + smoke
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
 - [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
 - [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
-- [ ] **Workflow V2 — Phase 3 (FCFS board)** — next coding session.
+- [ ] **Workflow V2 — Phase 3 (FCFS board)** — built + smoke-tested 2026-07-22; feedback fixes applied. See [workflow-v2-phase3-smoke-test.md](workflow-v2-phase3-smoke-test.md).
+- [ ] **Run `npx supabase db push` for migration 0038** — adds the "when was this job scheduled" timestamp so the FCFS rank counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair). Until it's applied the board falls back to creation order — no crash, just the old ordering.
 - [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)**
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)

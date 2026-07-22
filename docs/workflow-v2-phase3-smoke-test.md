@@ -22,7 +22,7 @@
 - [?] Today's **scheduled** jobs are listed as rows, numbered **#1, #2, …** in the order they were
       created (first come, first served). Pending / completed jobs do **not** appear. - check if pending jobs will not appear here? and numbering sense if scheduler confirms a job will it change the ranking of which job? or is it based on whoever pushed job first?
 - [x] **‹ / ›** moves a day back/forward; **Today** jumps back (and is greyed out while on today).
-- [?] The **AM / PM / AM/PM / 9am–6pm** buttons change the visible hours; your pick is remembered
+- [x] The **AM / PM / AM/PM / 9am–6pm** buttons change the visible hours; your pick is remembered
       after a refresh. 
 - [x] A day with no scheduled jobs says **"No jobs scheduled this day"**.
 - [x] On your phone (or a narrow window): the timeline **scrolls sideways** inside the board — the
@@ -73,7 +73,7 @@
       overlaps another job of the same installer → **Save & notify** → an **"Installer Clash
       Detected"** box appears with **Save Anyway** / **Go Back**.
 - [x] **Go Back** → nothing was saved. **Save Anyway** → it saves as normal.
-- [ ] As **Coordinator**, do the same → the buttons are **"Alert Scheduler & Save"** /
+- [x] As **Coordinator**, do the same → the buttons are **"Alert Scheduler & Save"** /
       **"Re-assign a Different Installer"**.
 - [x] **Alert Scheduler & Save** saves the job **and** the schedulers get a Telegram asking them to
       review the clash.

@@ -21,7 +21,9 @@ export type FCFSJob = {
   time_end:      string | null
   punctuality:   Punctuality
   created_at:    string
-  /** 1-based, by created_at within the day — first come, first served. */
+  /** 1-based within the day, by when the job LANDED ON THE SCHEDULE
+      (scheduled_at, stamped by migration 0038's trigger) — sales can't see
+      each other's pending jobs, so creation order would be opaque to them. */
   fcfs_rank:     number
   assignees:     FCFSAssignee[]
 }
@@ -60,6 +62,8 @@ export async function getFCFSDay(date: string): Promise<FCFSJob[]> {
     `)
     .eq('status', 'scheduled')
     .eq('date', date)
+    // created_at is the tie-break / fallback until 0038 is applied.
+    .order('scheduled_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
   if (error) throw error
 

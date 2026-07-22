@@ -60,6 +60,7 @@ export interface Database {
           approved_by:             string | null
           approved_at:             string | null
           completed_at:            string | null
+          scheduled_at:            string | null
           completion_override:     boolean
           visibility:              string[]
           created_at:              string
@@ -67,8 +68,8 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at'
-        > & { id?: string; created_at?: string; updated_at?: string }
+          'id' | 'created_at' | 'updated_at' | 'scheduled_at'
+        > & { id?: string; created_at?: string; updated_at?: string; scheduled_at?: string | null }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []
       }
