@@ -23,6 +23,7 @@ const KIND_FOLDER: Record<FileKind, string> = {
   attachment:              'attachments',
   url_link:                'links',
   production_instructions: 'production-instructions',
+  external_verification:   'external-verification',
 }
 
 export function generateKey(jobId: string, kind: FileKind, originalName: string): string {
