@@ -19,7 +19,7 @@
 ## Section 1 — The board opens and shows the day
 
 - [x] Tap **FCFS** in the bottom nav → the board opens (no more 404).
-- [?] Today's **scheduled** jobs are listed as rows, numbered **#1, #2, …** in the order they were
+- [x] Today's **scheduled** jobs are listed as rows, numbered **#1, #2, …** in the order they were
       created (first come, first served). Pending / completed jobs do **not** appear. - check if pending jobs will not appear here? and numbering sense if scheduler confirms a job will it change the ranking of which job? or is it based on whoever pushed job first?
 - [x] **‹ / ›** moves a day back/forward; **Today** jumps back (and is greyed out while on today).
 - [x] The **AM / PM / AM/PM / 9am–6pm** buttons change the visible hours; your pick is remembered
@@ -45,9 +45,9 @@
 - [x] Make one of the two jobs **flexible** instead → only the **flexible** bar changes (blue with an
       **amber dashed border**); the strict bar stays normal red; the chip turns **amber**.
 - [x] Two **flexible** jobs overlapping → **no warning at all** (that's intended — they can stagger).
-- [?] Tap the clash chip → a panel slides up showing the two jobs **side by side**, with the
+- [x] Tap the clash chip → a panel slides up showing the two jobs **side by side**, with the
       earlier-created one marked **"Created first (priority)"**. - Make the created priority text for both cards slightly larger and in bold to make it obvious. and another issue is that the card slides up is hindered by the bottom nav. make the clash chip scrollable for multiple clashes as well if there are alot.
-- [?] **"Re-assign #N"** opens the later job's assignment panel. **"Dismiss"** hides that clash chip
+- [x] **"Re-assign #N"** opens the later job's assignment panel. **"Dismiss"** hides that clash chip
       (it comes back after a refresh — dismiss is just for your current session). - it is also hidnered by bottom nav. can u make a hard rule that any design works must be above the bottom nav instead and record it down in the future...
 
 ## Section 4 — The assignment panel
