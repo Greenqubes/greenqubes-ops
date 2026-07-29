@@ -20,6 +20,7 @@ import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import { SubInstallerBucket } from './SubInstallerBucket'
 import { TaskListSection } from './TaskListSection'
+import { ExternalPOCBucket } from './ExternalPOCBucket'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
@@ -716,6 +717,11 @@ export function JobDetailShell({
               defaultOpen={subBucketDefaultOpen}
               canEdit={(canAssign && !readOnly) || salesCanSuggest}
             />
+          )}
+
+          {/* External installer bucket (Phase 4) — scheduler/coordinator/admin */}
+          {canAssign && (
+            <ExternalPOCBucket jobId={job.id} lang={lang} readOnly={readOnly} />
           )}
         </Card>
 
