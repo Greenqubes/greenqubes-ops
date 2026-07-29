@@ -30,9 +30,12 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
   const isWebhookRoute = pathname.startsWith('/api/telegram/') || pathname.startsWith('/api/cron/')
+  // External installer links — public by design; the unguessable token is the
+  // identity and /api/ext validates it (404 unknown / 410 deleted).
+  const isExternalRoute = pathname.startsWith('/ext/') || pathname.startsWith('/api/ext/')
 
   // Unauthenticated users can only access auth routes
-  if (!user && !isAuthRoute && !isWebhookRoute) {
+  if (!user && !isAuthRoute && !isWebhookRoute && !isExternalRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

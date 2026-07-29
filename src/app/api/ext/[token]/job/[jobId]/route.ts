@@ -28,7 +28,8 @@ export async function GET(
     .from('jobs')
     .select(`
       id, project_title, client, location, date, date_end, time_start, time_end,
-      punctuality, status, description, notes, client_poc_name, client_poc_phone
+      punctuality, status, description, notes, client_poc_name, client_poc_phone,
+      sales_poc_id
     `)
     .eq('id', jobId)
     .maybeSingle()
@@ -60,9 +61,22 @@ export async function GET(
     .eq('job_id', jobId)
     .order('sort_order', { ascending: true })
 
+  // Person-in-charge (chat is deferred — externals ring them instead).
+  // Separate query: never embed users directly onto jobs (standing rule).
+  let personInCharge: { name: string; phone: string | null } | null = null
+  if (job.sales_poc_id) {
+    const { data: poc } = await supabase
+      .from('users')
+      .select('name, phone')
+      .eq('id', job.sales_poc_id)
+      .maybeSingle()
+    if (poc) personInCharge = { name: poc.name, phone: poc.phone }
+  }
+
   return NextResponse.json({
     job,
     attachments,
     tasks: tasks ?? [],
+    personInCharge,
   })
 }

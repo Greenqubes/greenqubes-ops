@@ -43,7 +43,9 @@ export interface Database {
         Row: {
           id:                      string
           status:                  JobStatus
+          project_title:           string | null
           date:                    string
+          date_end:                string | null
           time_start:              string | null
           time_end:                string | null
           client:                  string
@@ -68,8 +70,15 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'scheduled_at'
-        > & { id?: string; created_at?: string; updated_at?: string; scheduled_at?: string | null }
+          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end'
+        > & {
+          id?:            string
+          created_at?:    string
+          updated_at?:    string
+          scheduled_at?:  string | null
+          project_title?: string | null
+          date_end?:      string | null
+        }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []
       }
