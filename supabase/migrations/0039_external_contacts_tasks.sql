@@ -11,11 +11,14 @@
 -- file_kind value added at the bottom is unused until Phase 4 ships.
 
 -- ── 1. External contacts ─────────────────────────────────────────────────────
+-- Token default uses built-in gen_random_uuid() (strong RNG, no pgcrypto —
+-- that extension is not enabled on this DB and gen_random_bytes broke db push):
+-- a dash-stripped UUID = 32 hex chars, 122 bits of entropy. Unguessable.
 CREATE TABLE external_contacts (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name       text NOT NULL,
   phone      text NOT NULL DEFAULT '',
-  token      text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  token      text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text, '-', ''),
   deleted_at timestamptz,
   created_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
