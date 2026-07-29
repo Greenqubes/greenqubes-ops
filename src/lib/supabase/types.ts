@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
-export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
+export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
 export type Punctuality = 'strict' | 'flexible'
@@ -304,6 +304,65 @@ export interface Database {
           id?: string; created_at?: string
         }
         Update: Partial<Database['public']['Tables']['attachment_buckets']['Insert']>
+        Relationships: []
+      }
+
+      external_contacts: {
+        Row: {
+          id:         string
+          name:       string
+          phone:      string
+          token:      string
+          deleted_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['external_contacts']['Row'],
+          'id' | 'token' | 'deleted_at' | 'created_at'
+        > & { id?: string; token?: string; deleted_at?: string | null; created_at?: string }
+        Update: Partial<Database['public']['Tables']['external_contacts']['Insert']>
+        Relationships: []
+      }
+
+      job_external_contacts: {
+        Row: {
+          job_id:      string
+          contact_id:  string
+          status:      'pending' | 'accepted' | 'declined'
+          assigned_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['job_external_contacts']['Row'], 'status' | 'assigned_at'> & {
+          status?:      'pending' | 'accepted' | 'declined'
+          assigned_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['job_external_contacts']['Row']>
+        Relationships: []
+      }
+
+      job_tasks: {
+        Row: {
+          id:           string
+          job_id:       string
+          text:         string
+          created_by:   string | null
+          sort_order:   number
+          is_completed: boolean
+          completed_by: string | null
+          completed_at: string | null
+          created_at:   string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['job_tasks']['Row'],
+          'id' | 'is_completed' | 'completed_by' | 'completed_at' | 'created_at'
+        > & {
+          id?:           string
+          is_completed?: boolean
+          completed_by?: string | null
+          completed_at?: string | null
+          created_at?:   string
+        }
+        Update: Partial<Database['public']['Tables']['job_tasks']['Insert']>
         Relationships: []
       }
 
