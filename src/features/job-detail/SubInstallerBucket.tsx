@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { Plus, Users } from 'lucide-react'
+import { t } from '@/lib/i18n'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
 
 interface Props {
+  lang:        LangCode
   /** Full installer pool minus anyone already engaged on the MAIN grid. */
   installers:  InstallerUser[]
   /** How many sub-installers are currently picked (badge on the header). */
@@ -26,7 +29,7 @@ interface Props {
 // same card design, same amber-suggestion / green-confirmed rules as the main
 // grid — hidden behind a dashed "+ Sub-installer" trigger until needed.
 export function SubInstallerBucket({
-  installers, subCount, stateOf, onToggle, disabledOf, noteOf,
+  lang, installers, subCount, stateOf, onToggle, disabledOf, noteOf,
   onClear, defaultOpen, canEdit,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen)
@@ -41,7 +44,7 @@ export function SubInstallerBucket({
           className="w-full flex items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-line bg-bg px-4 py-2 text-xs font-semibold text-ink2 hover:border-brand-green hover:text-ink transition-colors"
         >
           <Plus size={13} />
-          Sub-installer
+          {t(lang, 'subBucketAdd')}
         </button>
       </div>
     )
@@ -52,7 +55,7 @@ export function SubInstallerBucket({
       <div className="flex items-center justify-between mb-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted flex items-center gap-1.5">
           <Users size={12} />
-          Sub-installers
+          {t(lang, 'subBucketTitle')}
           {subCount > 0 && (
             <span className="normal-case tracking-normal bg-line text-ink2 rounded-full px-1.5 py-px text-[10px] font-bold">
               {subCount}
@@ -65,12 +68,12 @@ export function SubInstallerBucket({
             onClick={() => { onClear?.(); setOpen(false) }}
             className="text-[11px] font-semibold text-terracotta"
           >
-            Remove
+            {t(lang, 'subBucketRemove')}
           </button>
         )}
       </div>
       {installers.length === 0 ? (
-        <p className="text-xs text-muted">Every installer is already on the main team.</p>
+        <p className="text-xs text-muted">{t(lang, 'subBucketAllOnMain')}</p>
       ) : (
         <InstallerGrid
           installers={installers}

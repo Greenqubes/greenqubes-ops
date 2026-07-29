@@ -19,6 +19,7 @@ import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import { SubInstallerBucket } from './SubInstallerBucket'
+import { TaskListSection } from './TaskListSection'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
@@ -704,6 +705,7 @@ export function JobDetailShell({
           {/* Sub-installer bucket (Phase 4) — same pool, separate bucket */}
           {!isInstaller && (
             <SubInstallerBucket
+              lang={lang}
               installers={subPool}
               subCount={subCount}
               stateOf={subStateOf}
@@ -723,6 +725,14 @@ export function JobDetailShell({
           userId={userId}
           lang={lang}
           readOnly={readOnly || isInstaller}
+        />
+
+        {/* ── Task list (Phase 4) ─────────────────────────────────── */}
+        <TaskListSection
+          jobId={job.id}
+          role={role}
+          lang={lang}
+          readOnly={readOnly}
         />
 
         {/* ── Chat (unchanged) ────────────────────────────────────── */}
