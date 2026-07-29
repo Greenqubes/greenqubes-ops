@@ -33,12 +33,16 @@ export async function POST(
   const body = await req.json().catch(() => ({}))
   const userId: string | undefined = typeof body.user_id === 'string' ? body.user_id : undefined
   const action: string | undefined = typeof body.action === 'string' ? body.action : undefined
+  // Phase 4: sales can also suggest SUB-installers — same amber rules, kept in
+  // a separate bucket via is_sub_installer (confirmed by sub-installers route).
+  const isSub: boolean = body.is_sub === true
   if (!userId || (action !== 'add' && action !== 'remove')) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 
   if (action === 'add') {
-    // Never overwrite an existing formal assignment with a suggestion.
+    // Never overwrite an existing row — a formal assignment must not become a
+    // suggestion, and the PK is (job_id, user_id) so one row per person.
     const { data: existing } = await supabase
       .from('job_assignees')
       .select('is_suggestion')
@@ -48,19 +52,22 @@ export async function POST(
 
     if (!existing) {
       await supabase.from('job_assignees').insert({
-        job_id:        jobId,
-        user_id:       userId,
-        is_suggestion: true,
-        suggested_by:  profile.id,
+        job_id:           jobId,
+        user_id:          userId,
+        is_suggestion:    true,
+        suggested_by:     profile.id,
+        is_sub_installer: isSub,
       } as never).throwOnError()
     }
   } else {
-    // Only remove suggestion rows — leave formal assignments untouched.
+    // Only remove suggestion rows in the matching bucket — formal assignments
+    // and the other bucket's suggestions stay untouched.
     await supabase.from('job_assignees')
       .delete()
       .eq('job_id', jobId)
       .eq('user_id', userId)
       .eq('is_suggestion', true)
+      .eq('is_sub_installer', isSub)
       .throwOnError()
   }
 

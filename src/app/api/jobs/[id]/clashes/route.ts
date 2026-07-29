@@ -120,17 +120,19 @@ export async function GET(
 
   type JobRow = {
     date: string; time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string; users: { id: string; name: string } | null }>
+    job_assignees: Array<{ user_id: string; is_sub_installer: boolean; users: { id: string; name: string } | null }>
   }
   const { data: job } = await supabase
     .from('jobs')
-    .select('date, time_start, time_end, job_assignees(user_id, users(id, name))')
+    .select('date, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // Sub-installers are excluded from clash detection (Phase 3 rule).
   const assignees = job.job_assignees
+    .filter(a => !a.is_sub_installer)
     .map(a => ({ id: a.user_id, name: a.users?.name ?? '' }))
     .filter(a => a.name)
 
@@ -138,16 +140,20 @@ export async function GET(
 
   type ConflictRow = {
     id: string; client: string; time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string }>
+    job_assignees: Array<{ user_id: string; is_sub_installer?: boolean }>
   }
   const { data: sameDay } = await supabase
     .from('jobs')
-    .select('id, client, time_start, time_end, job_assignees(user_id)')
+    .select('id, client, time_start, time_end, job_assignees(user_id, is_sub_installer)')
     .eq('date', job.date)
     .neq('id', jobId)
     .in('status', ['scheduled', 'awaiting_approval']) as { data: ConflictRow[] | null; error: unknown }
 
-  const sameDayJobs = sameDay ?? []
+  // Helpers on another job are not a booking conflict either.
+  const sameDayJobs = (sameDay ?? []).map(j => ({
+    ...j,
+    job_assignees: j.job_assignees.filter(a => !a.is_sub_installer),
+  }))
 
   // A clash only counts as "hard" (blocking) when BOTH jobs have a fixed start
   // time. If the overlap exists only because a job has no fixed time — a

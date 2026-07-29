@@ -65,11 +65,13 @@ export async function POST(
     type ConflictRow = {
       id: string; project_title: string | null; client: string
       time_start: string | null; time_end: string | null; punctuality: string
-      job_assignees: Array<{ user_id: string }>
+      job_assignees: Array<{ user_id: string; is_sub_installer: boolean }>
     }
+    // Sub-installers are excluded from clash detection (Phase 3 rule) — a
+    // helper on another job is not a booking conflict.
     const { data: sameDay } = await supabase
       .from('jobs')
-      .select('id, project_title, client, time_start, time_end, punctuality, job_assignees(user_id)')
+      .select('id, project_title, client, time_start, time_end, punctuality, job_assignees(user_id, is_sub_installer)')
       .eq('date', date)
       .neq('id', jobId)
       .in('status', ['scheduled', 'awaiting_approval']) as { data: ConflictRow[] | null; error: unknown }
@@ -92,7 +94,9 @@ export async function POST(
       const bothFixed  = !!timeStart && !!conflict.time_start
       if (punctuality !== 'strict' && conflict.punctuality !== 'strict') continue
       const severity: CheckClash['severity'] = bothStrict && bothFixed ? 'hard' : 'soft'
-      const conflictIds = new Set(conflict.job_assignees.map(a => a.user_id))
+      const conflictIds = new Set(
+        conflict.job_assignees.filter(a => !a.is_sub_installer).map(a => a.user_id),
+      )
       for (const id of installerIds) {
         if (!conflictIds.has(id)) continue
         clashes.push({
@@ -118,14 +122,23 @@ export async function POST(
     .from('job_assignees')
     .select('user_id')
     .eq('job_id', jobId)
-    .eq('is_suggestion', false) as { data: Array<{ user_id: string }> | null }
+    .eq('is_suggestion', false)
+    .eq('is_sub_installer', false) as { data: Array<{ user_id: string }> | null }
   const existingIds = new Set((existing ?? []).map(r => r.user_id))
   const newlyAddedIds = installerIds.filter(id => !existingIds.has(id))
 
-  // Replace suggestions + formal assignments with the new formal set.
-  await supabase.from('job_assignees').delete().eq('job_id', jobId).eq('is_suggestion', true).throwOnError()
-  await supabase.from('job_assignees').delete().eq('job_id', jobId).eq('is_suggestion', false).throwOnError()
+  // Replace suggestions + formal assignments with the new formal set —
+  // touching MAIN rows only. Sub-installer rows (Phase 4) live in their own
+  // bucket and are managed by the sub-installers route. One exception: the PK
+  // is (job_id, user_id), so someone being formally assigned as a MAIN
+  // installer loses any sub row first (main assignment supersedes).
+  await supabase.from('job_assignees').delete()
+    .eq('job_id', jobId).eq('is_suggestion', true).eq('is_sub_installer', false).throwOnError()
+  await supabase.from('job_assignees').delete()
+    .eq('job_id', jobId).eq('is_suggestion', false).eq('is_sub_installer', false).throwOnError()
   if (installerIds.length > 0) {
+    await supabase.from('job_assignees').delete()
+      .eq('job_id', jobId).eq('is_sub_installer', true).in('user_id', installerIds).throwOnError()
     await supabase.from('job_assignees').insert(
       installerIds.map(uid => ({ job_id: jobId, user_id: uid, is_suggestion: false })) as never,
     ).throwOnError()

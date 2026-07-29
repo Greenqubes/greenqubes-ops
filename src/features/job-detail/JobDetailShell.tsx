@@ -18,6 +18,7 @@ import { AttachmentBuckets } from './AttachmentBuckets'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
+import { SubInstallerBucket } from './SubInstallerBucket'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
@@ -77,12 +78,19 @@ export function JobDetailShell({
 
   const completed = job.status === 'completed'
 
-  // Formal assignments (green) vs sales suggestions (yellow).
+  // Formal assignments (green) vs sales suggestions (yellow). Sub-installers
+  // (Phase 4) live in their own bucket — keep them out of the main grid sets.
   const initialAssigneeIds = job.job_assignees
-    .filter(a => !a.is_suggestion)
+    .filter(a => !a.is_suggestion && !a.is_sub_installer)
     .map(a => a.user_id)
   const initialSuggestedIds = job.job_assignees
-    .filter(a => a.is_suggestion)
+    .filter(a => a.is_suggestion && !a.is_sub_installer)
+    .map(a => a.user_id)
+  const initialSubAssignedIds = job.job_assignees
+    .filter(a => !a.is_suggestion && a.is_sub_installer)
+    .map(a => a.user_id)
+  const initialSubSuggestedIds = job.job_assignees
+    .filter(a => a.is_suggestion && a.is_sub_installer)
     .map(a => a.user_id)
 
   // Sales suggest installers; coordinator / scheduler / admin formally assign them.
@@ -105,6 +113,8 @@ export function JobDetailShell({
   const [deleting,             setDeleting]            = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
+  const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
+  const [suggestedSubIds,         setSuggestedSubIds]        = useState<string[]>(initialSubSuggestedIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
 
   const {
@@ -157,28 +167,37 @@ export function JobDetailShell({
   }
 
   // Sales toggles a tentative suggestion (yellow). Persists immediately via the
-  // suggest-installer route so nothing depends on the Save button.
-  const toggleSuggestion = async (installerId: string) => {
-    const wasSuggested = suggestedInstallerIds.includes(installerId)
+  // suggest-installer route so nothing depends on the Save button. The same
+  // route also handles SUB-installer suggestions (is_sub — Phase 4 bucket).
+  const toggleSuggestionFor = async (
+    installerId: string,
+    isSub: boolean,
+    ids: string[],
+    setIds: React.Dispatch<React.SetStateAction<string[]>>,
+  ) => {
+    const wasSuggested = ids.includes(installerId)
     const action = wasSuggested ? 'remove' : 'add'
-    setSuggestedInstallerIds(prev =>
+    setIds(prev =>
       wasSuggested ? prev.filter(id => id !== installerId) : [...prev, installerId],
     )
     try {
       const res = await fetch(`/api/jobs/${job.id}/suggest-installer`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ user_id: installerId, action }),
+        body:    JSON.stringify({ user_id: installerId, action, is_sub: isSub }),
       })
       if (!res.ok) throw new Error()
     } catch {
       // revert optimistic update
-      setSuggestedInstallerIds(prev =>
+      setIds(prev =>
         wasSuggested ? [...prev, installerId] : prev.filter(id => id !== installerId),
       )
       showError(t(lang, 'saveError'))
     }
   }
+
+  const toggleSuggestion    = (id: string) => toggleSuggestionFor(id, false, suggestedInstallerIds, setSuggestedInstallerIds)
+  const toggleSubSuggestion = (id: string) => toggleSuggestionFor(id, true,  suggestedSubIds,       setSuggestedSubIds)
 
   const saveCoordinatorDiff = async (): Promise<string[]> => {
     const added   = selectedCoordinatorIds.filter(id => !initialCoordinatorIds.includes(id))
@@ -207,6 +226,17 @@ export function JobDetailShell({
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ installer_ids: selectedInstallerIds }),
+        })
+        if (!res.ok) throw new Error()
+      }
+
+      // Sub-installer bucket (Phase 4) — separate route, sub rows only.
+      // Newly-confirmed subs get their job link via Telegram.
+      if (canAssign && isSubDirty) {
+        const res = await fetch(`/api/jobs/${job.id}/sub-installers`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ installer_ids: selectedSubIds }),
         })
         if (!res.ok) throw new Error()
       }
@@ -422,6 +452,14 @@ export function JobDetailShell({
     return false
   }, [selectedInstallerIds, initialAssigneeIds])
 
+  const isSubDirty = useMemo(() => {
+    const a = new Set(selectedSubIds)
+    const b = new Set(initialSubAssignedIds)
+    if (a.size !== b.size) return true
+    for (const id of a) if (!b.has(id)) return true
+    return false
+  }, [selectedSubIds, initialSubAssignedIds])
+
   // ── Installer grid: per-role behaviour ──────────────────────────────────────
   const toggleFormal = (id: string) =>
     setSelectedInstallerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -453,6 +491,64 @@ export function JobDetailShell({
     }
     if (isSales) return suggestedInstallerIds.includes(id) ? 'You suggested' : null
     return null
+  }
+
+  // ── Sub-installer bucket (Phase 4): same rules, separate bucket ─────────────
+  const toggleSubFormal = (id: string) =>
+    setSelectedSubIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+
+  const subStateOf = (id: string): InstallerCardState => {
+    if (canAssign) {
+      if (selectedSubIds.includes(id))         return 'assigned'
+      if (initialSubSuggestedIds.includes(id)) return 'suggested'
+      return 'none'
+    }
+    if (initialSubAssignedIds.includes(id)) return 'assigned'
+    if (suggestedSubIds.includes(id))       return 'suggested'
+    return 'none'
+  }
+
+  const subOnToggle =
+    canAssign && !readOnly ? toggleSubFormal :
+    salesCanSuggest        ? toggleSubSuggestion :
+    undefined
+
+  // Sales cannot un-assign a confirmed sub — only their own suggestions.
+  const subDisabledOf = isSales ? (id: string) => initialSubAssignedIds.includes(id) : undefined
+
+  const subNoteOf = (id: string): string | null => {
+    if (canAssign) {
+      return (initialSubSuggestedIds.includes(id) && !selectedSubIds.includes(id)) ? 'Sales suggested' : null
+    }
+    if (isSales) return suggestedSubIds.includes(id) ? 'You suggested' : null
+    return null
+  }
+
+  // Sub pool = everyone not already engaged on the main grid (mockup rule:
+  // main picks disappear from the sub bucket to prevent double assignment).
+  const mainEngagedIds = new Set(
+    canAssign
+      ? [...selectedInstallerIds, ...initialSuggestedIds]
+      : [...initialAssigneeIds, ...(isSales ? suggestedInstallerIds : initialSuggestedIds)],
+  )
+  const subPool = installers.filter(i => !mainEngagedIds.has(i.id))
+
+  const subCount = canAssign
+    ? new Set([...selectedSubIds, ...initialSubSuggestedIds]).size
+    : isSales
+      ? new Set([...initialSubAssignedIds, ...suggestedSubIds]).size
+      : initialSubAssignedIds.length
+
+  const subBucketDefaultOpen =
+    initialSubAssignedIds.length + initialSubSuggestedIds.length > 0
+
+  // "Remove" — clear this role's sub picks; assigners persist on Save & notify.
+  const clearSubs = () => {
+    if (canAssign) {
+      setSelectedSubIds([])
+    } else if (salesCanSuggest) {
+      for (const id of [...suggestedSubIds]) void toggleSubSuggestion(id)
+    }
   }
 
   return (
@@ -604,6 +700,21 @@ export function JobDetailShell({
               />
             )}
           </div>
+
+          {/* Sub-installer bucket (Phase 4) — same pool, separate bucket */}
+          {!isInstaller && (
+            <SubInstallerBucket
+              installers={subPool}
+              subCount={subCount}
+              stateOf={subStateOf}
+              onToggle={subOnToggle}
+              disabledOf={subDisabledOf}
+              noteOf={subNoteOf}
+              onClear={clearSubs}
+              defaultOpen={subBucketDefaultOpen}
+              canEdit={(canAssign && !readOnly) || salesCanSuggest}
+            />
+          )}
         </Card>
 
         {/* ── Attachments ─────────────────────────────────────────── */}
@@ -727,7 +838,7 @@ export function JobDetailShell({
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={saving || (!isDirty && !isInstallerDirty)}
+                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Bell size={14} />
