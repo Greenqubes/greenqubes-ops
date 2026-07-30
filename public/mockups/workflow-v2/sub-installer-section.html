@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub-Installer Section — Job Form</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: #F4F1EC; color: #1A1815; padding: 24px; }
+  h1 { font-family: Georgia, serif; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8B8478; margin-bottom: 28px; }
+  h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8B8478; margin-bottom: 10px; }
+  .section { margin-bottom: 52px; }
+  .screen-label { text-align: center; font-size: 11px; color: #8B8478; margin-top: 10px; font-style: italic; }
+  .callout { background: #fff8f0; border: 1px solid #E8C99A; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #7A5C2E; margin-bottom: 24px; max-width: 860px; line-height: 1.6; }
+  .row-flex { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Team card shell */
+  .team-card {
+    width: 360px; background: #fff;
+    border: 1.5px solid #D8D2C7; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid #E8E2D7; display: flex; align-items: center; gap: 8px; }
+  .card-title { font-size: 13px; font-weight: 700; color: #1A1815; }
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #8B8478; padding: 10px 16px 6px; }
+
+  /* Installer grid (same as job form) */
+  .installer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 12px; }
+  .inst-card { border: 1.5px solid #E8E2D7; border-radius: 9px; padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 6px; background: #FAFAF8; cursor: pointer; position: relative; }
+  .inst-card.selected-green { border-color: #3F7D5C; background: #F0F8F4; }
+  .inst-card.selected-amber { border-color: #C8893D; background: #FEF8F0; }
+  .inst-top { display: flex; align-items: center; gap: 8px; }
+  .inst-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .inst-name { font-size: 12px; font-weight: 600; color: #1A1815; line-height: 1.3; }
+  .inst-role { font-size: 10px; color: #8B8478; }
+  .tick-badge { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .tick-badge.green { background: #3F7D5C; }
+  .tick-badge.amber { background: #C8893D; }
+
+  /* Divider between main installers and sub-installer bucket */
+  .sub-divider { margin: 0 16px; height: 1px; background: #E8E2D7; }
+
+  /* Collapsed sub-installer trigger */
+  .sub-trigger { display: flex; align-items: center; justify-content: center; padding: 12px 16px; cursor: pointer; gap: 7px; }
+  .sub-trigger-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #5C564E; background: #F4F1EC; border: 1.5px dashed #C8C2B8; border-radius: 8px; padding: 8px 16px; width: 100%; justify-content: center; }
+
+  /* Expanded sub-installer bucket header */
+  .sub-bucket-head { padding: 10px 16px 6px; display: flex; align-items: center; justify-content: space-between; }
+  .sub-bucket-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #8B8478; display: flex; align-items: center; gap: 6px; }
+  .sub-count { background: #E8E2D7; color: #5C564E; font-size: 10px; font-weight: 700; border-radius: 10px; padding: 1px 6px; }
+  .sub-collapse { font-size: 11px; color: #B5523D; font-weight: 600; cursor: pointer; }
+
+  /* Available pool (greyed, not yet selected) */
+  .inst-card.available { opacity: 0.65; }
+</style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:999;background:#1A1815;padding:10px 20px;display:flex;align-items:center;gap:10px;"><a href="index.html" style="display:flex;align-items:center;gap:7px;font-family:IBM Plex Sans,system-ui,sans-serif;font-size:12px;font-weight:700;color:#fff;text-decoration:none;opacity:0.8;">← Back to overview</a></div>
+
+<h1>Sub-Installer Section — Job Form Team Card</h1>
+<div class="subtitle">Same installer pool, same card design — separate collapsible bucket below the main installer grid</div>
+
+<div class="callout">
+  <strong>Same pool, separate bucket.</strong> Sub-installers are picked from the same list of full-time installers. The section sits below the main installer grid, hidden behind a <strong>+ Sub-installer</strong> button until needed. Amber tick = suggested, green tick = confirmed — identical rules to the main installer grid.
+</div>
+
+<!-- ══ STATE 1 — Sub-installer bucket collapsed ═══════════════ -->
+<div class="section">
+  <h2>State 1 — Sub-installer bucket collapsed (default)</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+
+      <!-- Main installers -->
+      <div class="section-label">Installers</div>
+      <div class="installer-grid">
+        <div class="inst-card selected-green">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#3F7D5C;">MA</div>
+            <div><div class="inst-name">Marcus Tan</div><div class="inst-role">Lead Installer</div></div>
+          </div>
+          <div class="tick-badge green"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card selected-amber">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#C8893D;">RA</div>
+            <div><div class="inst-name">Ravi Kumar</div><div class="inst-role">Installer</div></div>
+          </div>
+          <div class="tick-badge amber"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">KA</div>
+            <div><div class="inst-name">Kai Lim</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">SO</div>
+            <div><div class="inst-name">Sam Ong</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider + collapsed trigger -->
+      <div class="sub-divider"></div>
+      <div class="sub-trigger">
+        <div class="sub-trigger-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C564E" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Sub-installer
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">The sub-installer bucket is hidden by default. A single dashed button below the main grid opens it — only when the job needs one.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Main installer grid is unchanged — Marcus confirmed (green), Ravi suggested (amber), others available.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 1 — Sub-installer bucket collapsed, main grid unchanged above</div>
+</div>
+
+<!-- ══ STATE 2 — Sub-installer bucket expanded, none selected ═ -->
+<div class="section">
+  <h2>State 2 — Bucket expanded, picking a sub-installer</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+
+      <div class="section-label">Installers</div>
+      <div class="installer-grid">
+        <div class="inst-card selected-green">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#3F7D5C;">MA</div>
+            <div><div class="inst-name">Marcus Tan</div><div class="inst-role">Lead Installer</div></div>
+          </div>
+          <div class="tick-badge green"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card selected-amber">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#C8893D;">RA</div>
+            <div><div class="inst-name">Ravi Kumar</div><div class="inst-role">Installer</div></div>
+          </div>
+          <div class="tick-badge amber"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">KA</div>
+            <div><div class="inst-name">Kai Lim</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">SO</div>
+            <div><div class="inst-name">Sam Ong</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-divider"></div>
+
+      <!-- Sub-installer bucket open -->
+      <div class="sub-bucket-head">
+        <div class="sub-bucket-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Sub-installers
+        </div>
+        <div class="sub-collapse">Remove</div>
+      </div>
+      <div class="installer-grid" style="padding-bottom:16px;">
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">KA</div>
+            <div><div class="inst-name">Kai Lim</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">SO</div>
+            <div><div class="inst-name">Sam Ong</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">AL</div>
+            <div><div class="inst-name">Ali Hassan</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">JL</div>
+            <div><div class="inst-name">Jin Lee</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Bucket expands below the divider. Same installer pool — all available names shown as cards, tap to select.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Already-selected main installers (Marcus, Ravi) are not shown in the sub-installer pool to avoid duplicate assignment.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;"><strong>Remove</strong> collapses the bucket and clears any sub-installer selections.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 2 — Bucket open, tapping a card selects a sub-installer</div>
+</div>
+
+<!-- ══ STATE 3 — Sub-installer selected ══════════════════════ -->
+<div class="section">
+  <h2>State 3 — Sub-installer selected (amber suggestion)</h2>
+  <div class="row-flex">
+    <div class="team-card">
+      <div class="card-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="card-title">Team</div>
+      </div>
+
+      <div class="section-label">Installers</div>
+      <div class="installer-grid">
+        <div class="inst-card selected-green">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#3F7D5C;">MA</div>
+            <div><div class="inst-name">Marcus Tan</div><div class="inst-role">Lead Installer</div></div>
+          </div>
+          <div class="tick-badge green"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card selected-amber">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#C8893D;">RA</div>
+            <div><div class="inst-name">Ravi Kumar</div><div class="inst-role">Installer</div></div>
+          </div>
+          <div class="tick-badge amber"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">KA</div>
+            <div><div class="inst-name">Kai Lim</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">SO</div>
+            <div><div class="inst-name">Sam Ong</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-divider"></div>
+
+      <div class="sub-bucket-head">
+        <div class="sub-bucket-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B8478" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Sub-installers
+          <span class="sub-count">1</span>
+        </div>
+        <div class="sub-collapse">Remove</div>
+      </div>
+      <div class="installer-grid" style="padding-bottom:16px;">
+        <!-- Kai selected as sub (amber — suggested) -->
+        <div class="inst-card selected-amber">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#C8893D;">KA</div>
+            <div><div class="inst-name">Kai Lim</div><div class="inst-role">Installer</div></div>
+          </div>
+          <div class="tick-badge amber"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">SO</div>
+            <div><div class="inst-name">Sam Ong</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">AL</div>
+            <div><div class="inst-name">Ali Hassan</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+        <div class="inst-card available">
+          <div class="inst-top">
+            <div class="inst-avatar" style="background:#8B8478;">JL</div>
+            <div><div class="inst-name">Jin Lee</div><div class="inst-role">Installer</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:220px;padding-top:8px;">
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Kai selected as sub-installer — amber tick, same suggestion rules as the main grid. Coordinator confirms to turn it green and fire the Telegram link to Kai.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;margin-bottom:12px;">Sub-count badge on the header shows how many sub-installers are in the bucket at a glance.</p>
+      <p style="font-size:12px;color:#5C564E;line-height:1.7;">Kai's job link page will include the task list (if one exists) — sub-installers are the primary audience for it.</p>
+    </div>
+  </div>
+  <div class="screen-label">State 3 — Kai selected as sub-installer (amber), coordinator to confirm</div>
+</div>
+
+</body>
+</html>

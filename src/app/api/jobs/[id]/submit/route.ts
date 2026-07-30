@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { getSchedulers, getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobSubmittedForApproval } from '@/lib/telegram/templates'
+import { tplNewJobCreated } from '@/lib/telegram/templates'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -28,14 +28,15 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (effectiveRole !== 'sales') {
+  if (!['sales', 'scheduler', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const body = await req.json().catch(() => ({}))
   const newDate: string | undefined = typeof body.date === 'string' ? body.date : undefined
 
-  const patch: Record<string, unknown> = { status: 'awaiting_approval' }
+  // Workflow V2: no approval step — sales pushes directly onto the schedule.
+  const patch: Record<string, unknown> = { status: 'scheduled' }
   if (newDate) patch.date = newDate
 
   await supabase
@@ -48,7 +49,7 @@ export async function POST(
   const job = await getJobNotifData(jobId)
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const message = tplJobSubmittedForApproval({
+  const message = tplNewJobCreated({
     projectTitle: job.project_title,
     jobClient:    job.client,
     pocName:      job.client_poc_name,
@@ -56,6 +57,7 @@ export async function POST(
     jobDate:      job.date,
     timeStart:    job.time_start,
     timeEnd:      job.time_end,
+    location:     job.location,
     salesName:    profile.name,
     jobUrl:       `${APP_URL}/jobs/${jobId}`,
   })

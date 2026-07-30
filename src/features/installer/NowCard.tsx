@@ -45,9 +45,9 @@ export function NowCard({ job, lang, nowMins }: Props) {
           <span className="text-xs font-medium text-brand-green">{statusStr}</span>
         </div>
 
-        {/* client name */}
+        {/* job title */}
         <p className="font-display text-[22px] font-medium text-ink leading-tight mb-3 truncate">
-          {job.client}
+          {job.project_title || job.client || 'Untitled job'}
         </p>
 
         {/* icon row */}

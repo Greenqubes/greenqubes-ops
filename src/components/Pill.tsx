@@ -13,6 +13,9 @@ const styles: Record<PillVariant, string> = {
   scheduler:         'bg-brand-amber-soft text-brand-amber',
   installer:         'bg-brand-green-soft text-brand-green',
   admin:             'bg-terracotta/10 text-terracotta',
+  designer:          'bg-brand-blue-soft  text-brand-blue',
+  coordinator:       'bg-brand-amber-soft text-brand-amber',
+  production:        'bg-brand-green-soft text-brand-green',
 }
 
 const label: Record<PillVariant, string> = {
@@ -25,6 +28,9 @@ const label: Record<PillVariant, string> = {
   scheduler:         'Scheduler',
   installer:         'Installer',
   admin:             'Admin',
+  designer:          'Designer',
+  coordinator:       'Coordinator',
+  production:        'Production',
 }
 
 interface PillProps {

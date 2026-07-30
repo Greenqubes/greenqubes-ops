@@ -32,21 +32,20 @@ export default async function JobDetailPage({
 
   const role = await getEffectiveRole(profile.role)
 
-  const [job, installers, messages, salesUsersResult, coordinators, coordinatorOptions] = await Promise.all([
+  const [job, installers, messages, coordinators, officeUsers] = await Promise.all([
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     getJobMessages(id),
-    supabase.from('users').select('id, name').eq('role', 'sales').is('deleted_at', null).order('name'),
     getJobCoordinators(id),
     getAllProvisionedUsers(),
   ])
 
   if (!job) notFound()
 
-  const salesPocOptions = (salesUsersResult.data ?? []).map((u: { id: string; name: string }) => ({
-    id:    u.id,
-    label: u.name,
-  }))
+  // Person-in-Charge and Sub POC/Coordinators both offer every office role
+  // (Nic, 2026-07-22). The old sales-only filter here hid newly provisioned
+  // schedulers/coordinators/designers/production from Person-in-Charge.
+  const salesPocOptions = officeUsers
 
   return (
     <JobDetailShell
@@ -59,7 +58,7 @@ export default async function JobDetailPage({
       initialMessages={messages}
       salesPocOptions={salesPocOptions}
       initialCoordinatorIds={coordinators.map(c => c.id)}
-      coordinatorOptions={coordinatorOptions}
+      coordinatorOptions={officeUsers}
       backHref={backHref}
     />
   )

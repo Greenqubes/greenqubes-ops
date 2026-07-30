@@ -51,6 +51,7 @@ export interface WeekDay {
 
 export interface ClashesResponse {
   clashes:        Clash[]
+  softClashes:    Clash[]
   travelWarnings: Clash[]
   substitutes:    Substitute[]
   weekDays:       WeekDay[]
@@ -113,23 +114,25 @@ export async function GET(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (effectiveRole !== 'sales') {
+  if (!['sales', 'scheduler', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   type JobRow = {
     date: string; time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string; users: { id: string; name: string } | null }>
+    job_assignees: Array<{ user_id: string; is_sub_installer: boolean; users: { id: string; name: string } | null }>
   }
   const { data: job } = await supabase
     .from('jobs')
-    .select('date, time_start, time_end, job_assignees(user_id, users(id, name))')
+    .select('date, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // Sub-installers are excluded from clash detection (Phase 3 rule).
   const assignees = job.job_assignees
+    .filter(a => !a.is_sub_installer)
     .map(a => ({ id: a.user_id, name: a.users?.name ?? '' }))
     .filter(a => a.name)
 
@@ -137,58 +140,64 @@ export async function GET(
 
   type ConflictRow = {
     id: string; client: string; time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string }>
+    job_assignees: Array<{ user_id: string; is_sub_installer?: boolean }>
   }
   const { data: sameDay } = await supabase
     .from('jobs')
-    .select('id, client, time_start, time_end, job_assignees(user_id)')
+    .select('id, client, time_start, time_end, job_assignees(user_id, is_sub_installer)')
     .eq('date', job.date)
     .neq('id', jobId)
     .in('status', ['scheduled', 'awaiting_approval']) as { data: ConflictRow[] | null; error: unknown }
 
-  const sameDayJobs = sameDay ?? []
+  // Helpers on another job are not a booking conflict either.
+  const sameDayJobs = (sameDay ?? []).map(j => ({
+    ...j,
+    job_assignees: j.job_assignees.filter(a => !a.is_sub_installer),
+  }))
+
+  // A clash only counts as "hard" (blocking) when BOTH jobs have a fixed start
+  // time. If the overlap exists only because a job has no fixed time — a
+  // whole-day "floater" installer — it's a soft, non-blocking heads-up instead.
+  const jobHasStart = !!hhmm(job.time_start)
+  const bothFixed   = (j: ConflictRow) => jobHasStart && !!hhmm(j.time_start)
 
   const overlapping = sameDayJobs.filter(j =>
     timesOverlap(job.time_start, job.time_end, j.time_start, j.time_end)
   )
+  const hardOverlap = overlapping.filter(bothFixed)
+  const softOverlap = overlapping.filter(j => !bothFixed(j))
 
   const touching = sameDayJobs.filter(j =>
     !timesOverlap(job.time_start, job.time_end, j.time_start, j.time_end) &&
     timesTouch(job.time_start, job.time_end, j.time_start, j.time_end)
   )
 
-  const clashes: Clash[] = []
-  const clashingInstallerIds = new Set<string>()
-  for (const conflict of overlapping) {
-    const ids = new Set(conflict.job_assignees.map(a => a.user_id))
-    for (const assignee of assignees) {
-      if (ids.has(assignee.id) && !clashingInstallerIds.has(assignee.id)) {
-        clashingInstallerIds.add(assignee.id)
-        clashes.push({
-          installer:      { id: assignee.id, name: assignee.name },
-          conflictingJob: { jobId: conflict.id, client: conflict.client, timeStart: conflict.time_start, timeEnd: conflict.time_end },
-        })
+  // Collect one entry per shared installer between the current job and each conflict.
+  const collectClashes = (conflicts: ConflictRow[]): Clash[] => {
+    const out: Clash[] = []
+    const seen = new Set<string>()
+    for (const conflict of conflicts) {
+      const ids = new Set(conflict.job_assignees.map(a => a.user_id))
+      for (const assignee of assignees) {
+        if (ids.has(assignee.id) && !seen.has(assignee.id)) {
+          seen.add(assignee.id)
+          out.push({
+            installer:      { id: assignee.id, name: assignee.name },
+            conflictingJob: { jobId: conflict.id, client: conflict.client, timeStart: conflict.time_start, timeEnd: conflict.time_end },
+          })
+        }
       }
     }
+    return out
   }
 
-  const travelWarnings: Clash[] = []
-  const warnedInstallerIds = new Set<string>()
-  for (const conflict of touching) {
-    const ids = new Set(conflict.job_assignees.map(a => a.user_id))
-    for (const assignee of assignees) {
-      if (ids.has(assignee.id) && !warnedInstallerIds.has(assignee.id)) {
-        warnedInstallerIds.add(assignee.id)
-        travelWarnings.push({
-          installer:      { id: assignee.id, name: assignee.name },
-          conflictingJob: { jobId: conflict.id, client: conflict.client, timeStart: conflict.time_start, timeEnd: conflict.time_end },
-        })
-      }
-    }
-  }
+  const clashes        = collectClashes(hardOverlap)
+  const softClashes    = collectClashes(softOverlap)
+  const travelWarnings = collectClashes(touching)
 
+  // Only firm (hard) overlaps mark a substitute as "busy".
   const busyInstallerIds = new Set<string>()
-  for (const conflict of overlapping) {
+  for (const conflict of hardOverlap) {
     for (const a of conflict.job_assignees) busyInstallerIds.add(a.user_id)
   }
 
@@ -253,7 +262,7 @@ export async function GET(
   })
 
   return NextResponse.json({
-    clashes, travelWarnings, substitutes, weekDays,
+    clashes, softClashes, travelWarnings, substitutes, weekDays,
     jobDate:      job.date,
     jobTimeStart: job.time_start,
     jobTimeEnd:   job.time_end,

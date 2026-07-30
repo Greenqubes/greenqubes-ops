@@ -25,11 +25,11 @@ export async function GET(req: NextRequest) {
   type JobRow = {
     id: string; date: string; client: string
     time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string; users: { id: string; name: string } | null }>
+    job_assignees: Array<{ user_id: string; is_suggestion: boolean; users: { id: string; name: string } | null }>
   }
   const { data: jobs } = await supabase
     .from('jobs')
-    .select('id, date, client, time_start, time_end, job_assignees(user_id, users(id, name))')
+    .select('id, date, client, time_start, time_end, job_assignees(user_id, is_suggestion, users(id, name))')
     .gte('date', weekStart)
     .lte('date', weekEnd)
     .in('status', ['scheduled', 'awaiting_approval']) as { data: JobRow[] | null; error: unknown }
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     const instMap = new Map<string, InstallerDayBreakdown>()
     for (const j of dayJobs) {
       for (const a of j.job_assignees) {
-        if (!a.users) continue
+        if (!a.users || a.is_suggestion) continue
         if (!instMap.has(a.user_id)) instMap.set(a.user_id, { id: a.user_id, name: a.users.name, jobs: [] })
         instMap.get(a.user_id)!.jobs.push({
           id: j.id, client: j.client,
