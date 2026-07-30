@@ -14,6 +14,12 @@ import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
+import type { Role } from '@/lib/supabase/types'
+
+// Roles that may edit the core job fields (title, date, client, location, times, punctuality)
+const CORE_EDIT_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
+// Roles that may tick "Production ready" / "DO issued"
+const PRODUCTION_FLAG_ROLES: Role[] = ['scheduler', 'coordinator', 'admin', 'production']
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -27,15 +33,21 @@ interface Props {
   setValue:          UseFormSetValue<FormValues>
   readOnly:          boolean
   lang:              LangCode
+  role:              Role
   validateRequired?: boolean
   installerView?:    boolean
 }
 
 export function CoreSection({
   register, errors, control, watch, setValue,
-  readOnly, lang, validateRequired = false, installerView = false,
+  readOnly, lang, role, validateRequired = false, installerView = false,
 }: Props) {
   const req = validateRequired ? { required: 'Required' } : {}
+
+  // Designer / production see the core fields but cannot edit them.
+  const coreLocked       = readOnly || !CORE_EDIT_ROLES.includes(role)
+  // Production may still tick production-ready / DO even though the rest of core is locked for them.
+  const flagsLocked      = readOnly || !PRODUCTION_FLAG_ROLES.includes(role)
 
   const [companies,        setCompanies]        = useState<SelectOption[]>([])
   const [contacts,         setContacts]         = useState<SelectOption[]>([])
@@ -161,13 +173,13 @@ export function CoreSection({
             <SuggestField
               value={watch('project_title')}
               onAccept={s => setValue('project_title', s, { shouldDirty: true })}
-              readOnly={readOnly}
+              readOnly={coreLocked}
               field="Project Title"
             >
               <Input
                 {...register('project_title', req)}
                 placeholder="e.g. Vivienne Westwood Installation"
-                disabled={readOnly}
+                disabled={coreLocked}
                 error={!!errors.project_title}
               />
             </SuggestField>
@@ -182,7 +194,7 @@ export function CoreSection({
                 type="date"
                 {...register('date', { required: true })}
                 error={!!errors.date}
-                disabled={readOnly}
+                disabled={coreLocked}
               />
             )}
           </Field>
@@ -206,7 +218,7 @@ export function CoreSection({
               }}
               options={companies}
               placeholder="Pick company…"
-              disabled={readOnly}
+              disabled={coreLocked}
               onAddNew={handleAddCompany}
               onDeleteOption={handleDeleteCompany}
               onClearOption={clearCompany}
@@ -223,7 +235,7 @@ export function CoreSection({
               onChange={label => setValue('client_poc_name', label, { shouldDirty: true })}
               options={contacts}
               placeholder={selectedClientId ? 'Pick contact…' : 'Select a company first…'}
-              disabled={readOnly || !selectedClientId}
+              disabled={coreLocked || !selectedClientId}
               onAddNew={selectedClientId ? handleAddContact : undefined}
               onDeleteOption={handleDeleteContact}
               onClearOption={() => setValue('client_poc_name', '', { shouldDirty: true })}
@@ -237,7 +249,7 @@ export function CoreSection({
             <Input
               type="tel"
               {...register('client_poc_phone')}
-              disabled={readOnly}
+              disabled={coreLocked}
               error={!!errors.client_poc_phone}
             />
           )}
@@ -246,7 +258,7 @@ export function CoreSection({
         {/* Location */}
         <Field label={t(lang, 'locationAddress')} error={errors.location?.message}>
           {installerView ? roBox(watch('location')) : (
-            <Input {...register('location', req)} disabled={readOnly} error={!!errors.location} />
+            <Input {...register('location', req)} disabled={coreLocked} error={!!errors.location} />
           )}
         </Field>
 
@@ -260,10 +272,10 @@ export function CoreSection({
             <SuggestField
               value={watch('description')}
               onAccept={s => setValue('description', s, { shouldDirty: true })}
-              readOnly={readOnly}
+              readOnly={coreLocked}
               field="Job Description"
             >
-              <textarea {...register('description')} disabled={readOnly} rows={3} className={TEXTAREA} />
+              <textarea {...register('description')} disabled={coreLocked} rows={3} className={TEXTAREA} />
             </SuggestField>
           )}
         </Field>
@@ -277,7 +289,7 @@ export function CoreSection({
                 name="time_start"
                 rules={req}
                 render={({ field }) => (
-                  <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} error={!!errors.time_start} />
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked} error={!!errors.time_start} />
                 )}
               />
             )}
@@ -288,7 +300,7 @@ export function CoreSection({
                 control={control}
                 name="time_end"
                 render={({ field }) => (
-                  <TimeSelect value={field.value} onChange={field.onChange} disabled={readOnly} />
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked} />
                 )}
               />
             )}
@@ -309,7 +321,7 @@ export function CoreSection({
                   <button
                     key={opt.v}
                     type="button"
-                    disabled={readOnly || installerView}
+                    disabled={coreLocked || installerView}
                     onClick={() => field.onChange(opt.v)}
                     className={cn(
                       'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors',
@@ -344,9 +356,9 @@ export function CoreSection({
             {(['production_ready', 'do_issued'] as const).map((field, i) => (
               <label key={field} className={cn(
                 'flex items-center gap-2.5 px-3 py-2.5 border border-line rounded-lg text-sm text-ink2 select-none transition-colors',
-                readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg',
+                flagsLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg',
               )}>
-                <input type="checkbox" {...register(field)} disabled={readOnly} className="rounded border-line accent-terracotta shrink-0" />
+                <input type="checkbox" {...register(field)} disabled={flagsLocked} className="rounded border-line accent-terracotta shrink-0" />
                 {i === 0 ? t(lang, 'productionReady') : t(lang, 'doIssued')}
               </label>
             ))}

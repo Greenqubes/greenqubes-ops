@@ -142,10 +142,14 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
 
 export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files }: Props) {
   const isInstaller         = role === 'installer'
-  const instructionsLocked  = readOnly || isInstaller
-  const canUploadProduction = !readOnly && !isInstaller
-  const canUploadDo         = !readOnly
-  const canUploadCompletion = !readOnly
+  const isDesigner          = role === 'designer'
+  // Designer is view-only; installer reads instructions but cannot edit them.
+  const instructionsLocked  = readOnly || isInstaller || isDesigner
+  // Production team (and office roles) manage production photos; installer/designer cannot.
+  const canUploadProduction = !readOnly && !isInstaller && !isDesigner
+  // Installer signs the DO; designer never uploads.
+  const canUploadDo         = !readOnly && !isDesigner
+  const canUploadCompletion = !readOnly && !isDesigner
 
   const productionPhotos = files.filter(f => f.kind === 'production_instructions')
   const signedDoFiles    = files.filter(f => f.kind === 'do')

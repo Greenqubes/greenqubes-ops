@@ -4,9 +4,9 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin'
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
-export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions'
+export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
 export type Punctuality = 'strict' | 'flexible'
@@ -43,7 +43,9 @@ export interface Database {
         Row: {
           id:                      string
           status:                  JobStatus
+          project_title:           string | null
           date:                    string
+          date_end:                string | null
           time_start:              string | null
           time_end:                string | null
           client:                  string
@@ -60,6 +62,7 @@ export interface Database {
           approved_by:             string | null
           approved_at:             string | null
           completed_at:            string | null
+          scheduled_at:            string | null
           completion_override:     boolean
           visibility:              string[]
           created_at:              string
@@ -67,8 +70,15 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at'
-        > & { id?: string; created_at?: string; updated_at?: string }
+          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end'
+        > & {
+          id?:            string
+          created_at?:    string
+          updated_at?:    string
+          scheduled_at?:  string | null
+          project_title?: string | null
+          date_end?:      string | null
+        }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []
       }
@@ -87,8 +97,18 @@ export interface Database {
       }
 
       job_assignees: {
-        Row:    { job_id: string; user_id: string }
-        Insert: Database['public']['Tables']['job_assignees']['Row']
+        Row: {
+          job_id:           string
+          user_id:          string
+          is_suggestion:    boolean
+          suggested_by:     string | null
+          is_sub_installer: boolean
+        }
+        Insert: Omit<Database['public']['Tables']['job_assignees']['Row'], 'is_suggestion' | 'suggested_by' | 'is_sub_installer'> & {
+          is_suggestion?:    boolean
+          suggested_by?:     string | null
+          is_sub_installer?: boolean
+        }
         Update: Partial<Database['public']['Tables']['job_assignees']['Row']>
         Relationships: []
       }
@@ -293,6 +313,72 @@ export interface Database {
           id?: string; created_at?: string
         }
         Update: Partial<Database['public']['Tables']['attachment_buckets']['Insert']>
+        Relationships: []
+      }
+
+      external_contacts: {
+        Row: {
+          id:         string
+          name:       string
+          phone:      string
+          token:      string
+          deleted_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['external_contacts']['Row'],
+          'id' | 'token' | 'deleted_at' | 'created_at'
+        > & { id?: string; token?: string; deleted_at?: string | null; created_at?: string }
+        Update: Partial<Database['public']['Tables']['external_contacts']['Insert']>
+        Relationships: []
+      }
+
+      job_external_contacts: {
+        Row: {
+          job_id:        string
+          contact_id:    string
+          status:        'pending' | 'accepted' | 'declined'
+          is_suggestion: boolean
+          suggested_by:  string | null
+          assigned_at:   string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['job_external_contacts']['Row'],
+          'status' | 'is_suggestion' | 'suggested_by' | 'assigned_at'
+        > & {
+          status?:        'pending' | 'accepted' | 'declined'
+          is_suggestion?: boolean
+          suggested_by?:  string | null
+          assigned_at?:   string
+        }
+        Update: Partial<Database['public']['Tables']['job_external_contacts']['Row']>
+        Relationships: []
+      }
+
+      job_tasks: {
+        Row: {
+          id:           string
+          job_id:       string
+          text:         string
+          created_by:   string | null
+          sort_order:   number
+          is_completed: boolean
+          completed_by: string | null
+          completed_at: string | null
+          created_at:   string
+        }
+        Insert: Omit<
+          Database['public']['Tables']['job_tasks']['Row'],
+          'id' | 'is_completed' | 'completed_by' | 'completed_at' | 'created_at'
+        > & {
+          id?:           string
+          is_completed?: boolean
+          completed_by?: string | null
+          completed_at?: string | null
+          created_at?:   string
+        }
+        Update: Partial<Database['public']['Tables']['job_tasks']['Insert']>
         Relationships: []
       }
 

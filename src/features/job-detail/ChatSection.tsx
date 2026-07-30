@@ -508,9 +508,35 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
           payload => {
             const row = payload.new as JobFile
             if (row.kind !== 'attachment') return
-            setFiles(prev =>
-              prev.find(f => f.id === row.id) ? prev : [...prev, row]
-            )
+            // Realtime payloads carry only the row's own columns, never the
+            // joined users.name — so resolve the uploader name the same way
+            // the messages handler does, otherwise the bubble shows "Unknown".
+            if (row.uploader_id === userId) {
+              const f = { ...row, users: { name: userName } }
+              setFiles(prev => prev.find(x => x.id === f.id) ? prev : [...prev, f])
+            } else {
+              const cached = row.uploader_id ? nameCacheRef.current[row.uploader_id] : undefined
+              if (cached) {
+                const f = { ...row, users: { name: cached } }
+                setFiles(prev => prev.find(x => x.id === f.id) ? prev : [...prev, f])
+              } else {
+                // Add immediately (avatar shows '?'), then patch name once fetched
+                setFiles(prev => prev.find(x => x.id === row.id) ? prev : [...prev, row])
+                if (row.uploader_id) {
+                  const uploaderId = row.uploader_id
+                  supabase.from('users').select('name').eq('id', uploaderId).single()
+                    .then(({ data }) => {
+                      const name = (data as { name: string } | null)?.name
+                      if (name) {
+                        nameCacheRef.current[uploaderId] = name
+                        setFiles(prev => prev.map(f =>
+                          f.id === row.id ? { ...f, users: { name } } : f
+                        ))
+                      }
+                    })
+                }
+              }
+            }
           },
         )
         .subscribe((status, err) => {

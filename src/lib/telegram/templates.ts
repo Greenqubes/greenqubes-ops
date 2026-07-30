@@ -25,7 +25,7 @@ function dateLine(date: string, timeStart: string | null, timeEnd: string | null
 
 // ─── Job notifications ────────────────────────────────────────────────────────
 
-export function tplJobSubmittedForApproval(p: {
+export function tplNewJobCreated(p: {
   projectTitle: string | null
   jobClient:    string
   pocName:      string | null
@@ -33,39 +33,19 @@ export function tplJobSubmittedForApproval(p: {
   jobDate:      string
   timeStart:    string | null
   timeEnd:      string | null
+  location:     string
   salesName:    string
   jobUrl:       string
 }): string {
   return (
-    `📋 <b>Approval Requested</b>\n` +
+    `📋 <b>New Job — Assign Installer</b>\n` +
     (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
     `Client: ${p.jobClient}\n` +
     `${pocLines(p.pocName, p.pocPhone)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
-    `Submitted by: ${p.salesName}\n\n` +
-    `<a href="${p.jobUrl}">View in app →</a>`
-  )
-}
-
-export function tplJobApproved(p: {
-  projectTitle:  string | null
-  jobClient:     string
-  pocName:       string | null
-  pocPhone:      string | null
-  jobDate:       string
-  timeStart:     string | null
-  timeEnd:       string | null
-  schedulerName: string
-  jobUrl:        string
-}): string {
-  return (
-    `✅ <b>Job Approved</b>\n` +
-    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
-    `Client: ${p.jobClient}\n` +
-    `${pocLines(p.pocName, p.pocPhone)}\n` +
-    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
-    `Approved by: ${p.schedulerName}\n\n` +
-    `<a href="${p.jobUrl}">View in app →</a>`
+    `📍 ${p.location}\n` +
+    `Created by: ${p.salesName}\n\n` +
+    `<a href="${p.jobUrl}">View & assign installer →</a>`
   )
 }
 
@@ -91,28 +71,81 @@ export function tplJobAssigned(p: {
   )
 }
 
-export function tplJobSentBack(p: {
-  projectTitle:  string | null
-  jobClient:     string
-  pocName:       string | null
-  pocPhone:      string | null
-  jobDate:       string
-  schedulerName: string
-  sentAt:        string
-  note?:         string
-  jobUrl:        string
+// Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
+// Wording per Nic (Phase 4 smoke test): make clear they support the main team.
+export function tplSubInstallerAssigned(p: {
+  projectTitle:   string | null
+  jobClient:      string
+  pocName:        string | null
+  pocPhone:       string | null
+  jobDate:        string
+  timeStart:      string | null
+  timeEnd:        string | null
+  location:       string
+  mainInstallers: string[]
+  jobUrl:         string
 }): string {
-  const noteLine = p.note ? `Note: <i>"${p.note}"</i>\n` : ''
   return (
-    `↩️ <b>Job Sent Back</b>\n` +
+    `🤝 <b>Job Assigned — Supporting Role</b>\n` +
     (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
     `Client: ${p.jobClient}\n` +
     `${pocLines(p.pocName, p.pocPhone)}\n` +
-    `Date: ${formatDate(p.jobDate)}\n` +
-    `Sent back by: ${p.schedulerName}\n` +
-    `Sent at: ${p.sentAt}\n` +
-    noteLine + `\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    (p.mainInstallers.length > 0 ? `Main team: ${p.mainInstallers.join(', ')}\n` : '') +
+    `\nYou are assigned to <b>help the main team</b> — please check in with them once on site.\n\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to the sales POC + coordinators when a coordinator/scheduler formally
+// assigns the installer(s) they had been suggested.
+export function tplInstallerAssigned(p: {
+  projectTitle:   string | null
+  jobClient:      string
+  jobDate:        string
+  timeStart:      string | null
+  timeEnd:        string | null
+  location:       string
+  installerNames: string[]
+  jobUrl:         string
+}): string {
+  const names = p.installerNames.length > 0 ? p.installerNames.join(', ') : '(none)'
+  return (
+    `✅ <b>Installer Assigned</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    `Assigned to: ${names}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to schedulers when sales hits "Notify Scheduler" on a clash they can't
+// (or won't) resolve. The job is left PENDING for the scheduler to sort out.
+export function tplClashNeedsReview(p: {
+  projectTitle: string | null
+  jobClient:    string
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+  clashNames:   string[]
+  salesName:    string
+  jobUrl:       string
+}): string {
+  const names = p.clashNames.length > 0 ? p.clashNames.join(', ') : '(unspecified)'
+  return (
+    `⚠️ <b>Clash — Needs Scheduler Review</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    `Double-booked: ${names}\n` +
+    `Raised by: ${p.salesName}\n` +
+    `Still pending — please review &amp; assign.\n\n` +
+    `<a href="${p.jobUrl}">Review job →</a>`
   )
 }
 

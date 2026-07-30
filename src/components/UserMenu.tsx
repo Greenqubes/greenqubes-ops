@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
-const VALID_ROLES: Role[] = ['sales', 'scheduler', 'installer']
+const VALID_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production']
 
 function readRoleOverrideCookie(): Role | null {
   if (typeof document === 'undefined') return null
@@ -241,13 +241,13 @@ export function UserMenu({ lang: initialLang }: Props) {
                   <Eye size={13} className="text-muted" strokeWidth={1.8} />
                   <span className="text-[11px] text-muted uppercase tracking-widest">Preview as</span>
                 </div>
-                <div className="flex gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   {VALID_ROLES.map(role => (
                     <button
                       key={role}
                       onClick={() => handlePreviewAs(role)}
                       className={cn(
-                        'flex-1 py-1 rounded-md text-xs font-medium border transition-colors capitalize',
+                        'w-full py-1 rounded-md text-[11px] font-medium border transition-colors capitalize truncate',
                         roleOverride === role
                           ? 'bg-amber/15 text-amber-700 border-amber/40'
                           : 'bg-bg border-line text-ink2 hover:border-ink2',

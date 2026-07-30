@@ -27,7 +27,7 @@ export default async function Home() {
   if (profile) {
     const effectiveRole = await getEffectiveRole(profile.role)
     if (effectiveRole === 'installer') redirect('/installer')
-    if (effectiveRole === 'sales' || effectiveRole === 'scheduler') redirect('/schedule')
+    if (['sales', 'scheduler', 'designer', 'coordinator', 'production'].includes(effectiveRole)) redirect('/schedule')
   }
 
   return (

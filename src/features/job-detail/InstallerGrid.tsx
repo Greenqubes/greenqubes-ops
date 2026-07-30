@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 
@@ -13,17 +13,26 @@ function initials(name: string) {
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
 }
 
+// none      → not picked
+// suggested → sales' tentative pick (yellow)
+// assigned  → formal assignment by coordinator/scheduler (green)
+export type InstallerCardState = 'none' | 'suggested' | 'assigned'
+
 interface Props {
-  allInstallers:       InstallerUser[]
-  onChange:            (selectedIds: string[]) => void
-  initialSelectedIds?: string[]
-  readOnly?:           boolean
+  installers:   InstallerUser[]
+  stateOf:      (id: string) => InstallerCardState
+  /** Omit to render the grid read-only (no clicks). */
+  onToggle?:    (id: string) => void
+  /** Per-card lock — e.g. sales cannot un-assign a formally assigned installer. */
+  disabledOf?:  (id: string) => boolean
+  /** Optional subtext under the installer name (e.g. "Sales suggested"). */
+  noteOf?:      (id: string) => string | null
 }
 
-export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = [], readOnly = false }: Props) {
-  const [selected, setSelected] = useState<Set<string>>(new Set(initialSelectedIds))
+export function InstallerGrid({ installers, stateOf, onToggle, disabledOf, noteOf }: Props) {
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
+  const gridReadOnly = !onToggle
 
   useEffect(() => {
     const el = scrollRef.current
@@ -37,16 +46,6 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
-  function toggle(id: string) {
-    if (readOnly) return
-    setSelected(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      onChange([...next])
-      return next
-    })
-  }
-
   return (
     <div className="relative">
       <div
@@ -55,28 +54,39 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
         style={{ scrollbarWidth: 'thin' }}
       >
         <div className="grid grid-cols-2 gap-2 pr-0.5 max-[480px]:grid-cols-1">
-          {allInstallers.map((inst, i) => {
-            const isSelected = selected.has(inst.id)
-            const color      = AVATAR_COLORS[i % AVATAR_COLORS.length]
-            const meta       = [
+          {installers.map((inst, i) => {
+            const st       = stateOf(inst.id)
+            const locked   = gridReadOnly || (disabledOf?.(inst.id) ?? false)
+            const color    = AVATAR_COLORS[i % AVATAR_COLORS.length]
+            const note     = noteOf?.(inst.id) ?? null
+            const meta     = [
               inst.role,
               inst.years_experience ? `${inst.years_experience}y` : null,
               inst.skills?.length ? inst.skills.join(', ') : null,
             ].filter(Boolean).join(' · ')
 
+            const nameColor =
+              st === 'assigned'  ? 'text-brand-green' :
+              st === 'suggested' ? 'text-amber-700'   :
+              'text-ink'
+            const metaColor =
+              st === 'assigned'  ? 'text-brand-green/70' :
+              st === 'suggested' ? 'text-amber-600'      :
+              'text-muted'
+
             return (
               <button
                 key={inst.id}
                 type="button"
-                onClick={() => toggle(inst.id)}
-                disabled={readOnly}
+                onClick={() => { if (!locked) onToggle?.(inst.id) }}
+                disabled={locked}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
-                  isSelected
-                    ? 'border-brand-green bg-brand-green/20'
-                    : 'border-line bg-paper',
-                  !readOnly && !isSelected && 'hover:border-brand-green hover:bg-brand-green/5',
-                  readOnly && 'cursor-default',
+                  st === 'assigned'  ? 'border-brand-green bg-brand-green/20' :
+                  st === 'suggested' ? 'border-amber-300 bg-amber-50'         :
+                  'border-line bg-paper',
+                  !locked && st === 'none' && 'hover:border-brand-green hover:bg-brand-green/5',
+                  locked && 'cursor-default',
                 )}
               >
                 <div className="shrink-0">
@@ -88,14 +98,14 @@ export function InstallerGrid({ allInstallers, onChange, initialSelectedIds = []
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    'text-sm font-semibold truncate',
-                    isSelected ? 'text-brand-green' : 'text-ink',
-                  )}>
+                  <p className={cn('text-sm font-semibold truncate', nameColor)}>
                     {inst.name}
                   </p>
                   {meta && (
-                    <p className={cn('text-[11px] truncate', isSelected ? 'text-brand-green/70' : 'text-muted')}>{meta}</p>
+                    <p className={cn('text-[11px] truncate', metaColor)}>{meta}</p>
+                  )}
+                  {note && (
+                    <p className="text-[11px] truncate text-amber-600 mt-0.5">{note}</p>
                   )}
                 </div>
               </button>

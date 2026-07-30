@@ -54,6 +54,7 @@ Always explain in plain, everyday language. Avoid coding terms unless necessary.
 
 ## Hard rules
 
+- Any overlay UI — modal, drawer, bottom sheet, slide-in panel — must layer **above** the bottom nav, never behind it. BottomNav sits at `z-50`; overlays use `z-[60]` or higher. Nothing interactive may ever be hidden or blocked by the bottom nav. (Nic, 2026-07-22, from Phase 3 smoke test.)
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
 - Never add or remove roles without explicit user confirmation. Claude may suggest new roles but must not implement without approval.

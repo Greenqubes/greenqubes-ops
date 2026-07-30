@@ -2,21 +2,42 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke test mid-way)_
+_Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build complete — regression test + clean-cut switchover next)_
 
 ---
 
 ## Pending — Next Session
 
+### Future planning notes (from 2026-07-22, Phase 3 session)
+
+- [ ] **Schedule tab: list view scrolling UX** — the list runs extremely long as more dates appear, and horizontal scrolling on desktop via the tiny scrollbar at the bottom is a hassle. Needs a UX improvement — spec + design decision before coding.
+- [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
+- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
+- [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
+
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
 - [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
-- [ ] **[Nic] Finish Phase 1 smoke test — sections 3–5** — clash detection on push; 7 roles in admin dropdown; regression pass (dev preview, job chat, installer sign-in). Checklist is in the 2026-06-12 session note. Test on the `feat-workflow-v2` Vercel preview (URL contains `git-feat-workflow-v2`).
+- [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
+- [ ] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
+- [ ] **Clean-cut switchover (strategy reminder)** — V2 stays on `feat-workflow-v2` and is NOT merged into dev incrementally. Build Phases 1–4 fully, test, then replace the old workflow in one shot. Nothing for you to do now — just the agreed plan.
 - [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
-- [ ] **Delete the "Test Job"** created during 2026-06-12 testing (now status scheduled).
-- [ ] **Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — next coding session after smoke test passes. ⚠️ Read the PGRST201 warning in the plan's Phase 1 notes before touching `suggested_by`.
-- [ ] **Workflow V2 — Phase 3 (FCFS board)**
-- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)**
+- [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
+- [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
+- [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
+- [x] **[Nic] Workflow V2 — Phase 3 (FCFS board)** — built + smoke test PASSED 2026-07-22, all feedback fixes verified on preview. See [workflow-v2-phase3-smoke-test.md](workflow-v2-phase3-smoke-test.md).
+- [x] **[Nic] Run `npx supabase db push` for migration 0038** — applied 2026-07-22. FCFS rank now counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair).
+- [x] **[Nic] Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)** — built + smoke test PASSED 2026-07-30, including your feedback fixes (bucket for every office role with sales suggestions; "Supporting Role" sub-installer Telegram). See [workflow-v2-phase4-smoke-test.md](workflow-v2-phase4-smoke-test.md).
+- [x] **[Nic] Run `npx supabase db push` for migrations 0039 + 0040** — applied 2026-07-30. External contacts (lifetime links), job task list, sales-suggestion flag.
+- [ ] **Full V2 regression test → clean-cut switchover** — the final step: one run through Phases 1–4 together on the preview, then replace the old workflow on dev/main in one shot. Next session.
+- [ ] **External page job chat (deferred)** — outside installers currently call the person-in-charge from their link page; live chat there needs its own session if you want it.
+- [ ] **FCFS board — extra views (deferred)** — the approved mockup shows Day / Week / Month / By Project / By Installer toggles; only **Day** is built (your call, 2026-07-22). The other four need designs before a build session.
+
+### Test data to wipe before go-live (from Phase 1 + 2 testing)
+
+- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", and the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"). Wipe all test data in one pass right before go-live.
+- [ ] **Remove the test installer account** (or keep it — your call) used to verify installers can't see suggestions.
+- [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them).
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
@@ -92,6 +113,42 @@ _Last updated: 2026-06-12 (feat-jobs — Workflow V2 Phase 1 implemented; smoke 
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-07-30, feat-jobs — Workflow V2 Phase 4)
+
+- [x] **Phase 4 built + smoke test PASSED — the Workflow V2 build is COMPLETE.** External installer lifetime links (public page: accept/decline, job detail, task ticking), external installers bucket, sub-installer bucket, job task list.
+- [x] **Migrations 0039 + 0040 applied** — you ran `npx supabase db push` twice (0039 needed one fix: its random-link generator wanted a database add-on we don't have; swapped to the built-in one).
+- [x] **Your feedback built in** — external bucket now visible to every office role: sales suggests (amber, invisible to the contact until confirmed), scheduler/coordinator confirms, designer/production view-only. Sub-installer Telegram reads "Job Assigned — Supporting Role" with the main team's names.
+- [x] **Bugs found + fixed during your test** — copied external links pointed at the production site instead of the preview (now they use whichever site you're on); the sub-installer Telegram was silently rejected by Telegram (a formatting typo).
+- [x] **Deferred by plan** — live chat on the external page; externals call the person-in-charge instead.
+
+---
+
+## Done This Session ✓ (2026-07-22, feat-jobs — Workflow V2 Phase 3)
+
+- [x] **Phase 3 built + smoke test PASSED** — FCFS Board live at `/fcfs`: day timeline ranked first-come-first-served, colour-coded installer bars, clash chips + drawer, slide-in assignment panel. All 6 sections green after fixes.
+- [x] **Migration 0038 applied** — you ran `npx supabase db push`. FCFS rank counts from when a job is **pushed to the schedule**, not when it was created (your call — sales can't see each other's pending jobs).
+- [x] **Your smoke-test feedback fixed + verified** — 9am–6pm bar drift on wide screens; overlays no longer hidden behind the bottom nav; bolder "Created first (priority)" labels; scrollable clash chips; "All day" shown on the schedule tab for untimed jobs.
+- [x] **New hard rule recorded in CLAUDE.md** — overlays (modals, drawers, panels) must always layer above the bottom nav.
+- [x] **Bug: dropdowns hid newly provisioned users** — Person-in-Charge only listed sales; Sub POC only sales/scheduler/admin on the new-job form. Both now list every office role on both forms.
+- [x] **Clash-on-edit gap closed** — editing a scheduled job's time/installer onto another booking now warns first (scheduler: Save Anyway / Go Back; coordinator: Alert Scheduler & Save / Re-assign).
+- [x] **Future planning noted** — schedule list scroll UX, Android/iOS ports (directors' request), Windows/Mac desktop apps, full security audit before go-live.
+
+---
+
+## Done This Session ✓ (2026-07-22, feat-jobs — Workflow V2 Phase 2)
+
+- [x] **Phase 2 built + smoke test PASSED** — all 6 sections green. Role-locked job form + installer suggestion → assignment flow.
+- [x] **Migration 0037 applied** — you ran `npx supabase db push`.
+- [x] **Suggestion flow works end-to-end** — sales suggests (yellow) → hidden from the installer → scheduler assigns (green) → Telegram fires → installer now sees it. Verified with a **real installer login**.
+- [x] **Bug: attachment buckets wouldn't upload** — "upload failed" on Permit-to-Work / BCA / Designer JO / Others. Was tagging files with the wrong user id. **This was broken in production too**, not just the preview.
+- [x] **Bug: installer's job list showed a blank title** — a fragile database join. Fixed; also added "Untitled job" for genuinely empty jobs.
+- [x] **Bug: new-job form used your real role, not the previewed one** — sales suggestions were being saved as real assignments.
+- [x] **Clash modal — Notify Scheduler / Push Anyways** added, plus a soft (non-blocking) heads-up when the clash is only because an installer has an all-day job with no fixed time.
+- [x] **Preview-as now covers all 6 roles** (Coordinator, Designer, Production added).
+- [x] **FCFS tab dropped from the installer view** (your decision).
 
 ---
 
