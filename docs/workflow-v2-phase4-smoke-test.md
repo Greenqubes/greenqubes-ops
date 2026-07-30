@@ -9,7 +9,7 @@
 
 - [X] **Run `npx supabase db push` for migration 0039** — creates the external contacts tables and
       the task list table. Nothing works in this phase until it's applied.
-- [ ] **Run `npx supabase db push` for migration 0040** — adds the sales-suggestion flag for
+- [X] **Run `npx supabase db push` for migration 0040** — adds the sales-suggestion flag for
       external contacts (needed for the two retest items below).
 - [X] You're on the **Phase 4 preview** — the Vercel URL for the `feat-workflow-v2` branch
       (Vercel dashboard → greenqubes-ops → Deployments → the latest `feat-workflow-v2` one).
@@ -35,7 +35,7 @@ Sign in as **Scheduler** or **Coordinator** and open a scheduled job.
       their details.
 - [X] Tap the **Assigned** chip → the contact is unassigned from this job (their other jobs are
       untouched).
-- [ ] **RETEST (changed per your feedback + migration 0040):** every office role now sees the
+- [X] **RETEST (changed per your feedback + migration 0040):** every office role now sees the
       bucket. As **Sales**: tap **+ Suggest** on a contact → amber **"Suggested"** chip — and the
       contact's link page does **NOT** show the job yet. As **Scheduler/Coordinator**: the chip
       reads **"Sales suggested"** → tap it to **confirm** → becomes a real assignment and the job
@@ -80,7 +80,7 @@ Back in the job form as Scheduler/Coordinator:
 - [X] As **Sales** on a **pending** job: tap **+ Sub-installer** → the bucket opens with the same
       installer cards, minus anyone already picked on the main grid. Tap one → **amber**
       (a suggestion, saved instantly — same rules as the main grid).
-- [ ] **RETEST (wording changed per your feedback):** confirm a sub-installer → **Save & notify**
+- [X] **RETEST (wording changed per your feedback):** confirm a sub-installer → **Save & notify**
       → their Telegram now reads **"Job Assigned — Supporting Role"** with the main team's names
       and "You are assigned to **help the main team** — please check in with them once on site."
 - [X] The confirmed **sub-installer signs in** → the job appears in **their My Jobs list** like any
