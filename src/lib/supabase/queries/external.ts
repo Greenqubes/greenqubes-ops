@@ -49,6 +49,8 @@ export type ExtJobSummary = {
 
 export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]> {
   const supabase = createServiceClient()
+  // Sales SUGGESTIONS (is_suggestion = true) are invisible here — the contact
+  // must not see a job until a scheduler/coordinator confirms the link.
   const { data } = await supabase
     .from('job_external_contacts')
     .select(`
@@ -57,6 +59,7 @@ export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]
              time_start, time_end, punctuality, status )
     `)
     .eq('contact_id', contactId)
+    .eq('is_suggestion', false)
     .order('assigned_at', { ascending: false })
 
   type Row = {
@@ -101,6 +104,7 @@ export async function getContactJobLink(
     .select('status')
     .eq('contact_id', contactId)
     .eq('job_id', jobId)
+    .eq('is_suggestion', false)
     .maybeSingle()
   return data?.status ?? null
 }

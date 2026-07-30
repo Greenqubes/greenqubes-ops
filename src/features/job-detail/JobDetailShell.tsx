@@ -719,9 +719,10 @@ export function JobDetailShell({
             />
           )}
 
-          {/* External installer bucket (Phase 4) — scheduler/coordinator/admin */}
-          {canAssign && (
-            <ExternalPOCBucket jobId={job.id} lang={lang} readOnly={readOnly} />
+          {/* External installer bucket (Phase 4) — every office role sees it;
+              managers assign, sales suggest, designer/production view-only */}
+          {!isInstaller && (
+            <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={readOnly} />
           )}
         </Card>
 

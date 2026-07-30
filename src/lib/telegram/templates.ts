@@ -71,6 +71,33 @@ export function tplJobAssigned(p: {
   )
 }
 
+// Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
+// Wording per Nic (Phase 4 smoke test): make clear they support the main team.
+export function tplSubInstallerAssigned(p: {
+  projectTitle:   string | null
+  jobClient:      string
+  pocName:        string | null
+  pocPhone:       string | null
+  jobDate:        string
+  timeStart:      string | null
+  timeEnd:        string | null
+  location:       string
+  mainInstallers: string[]
+  jobUrl:         string
+}): string {
+  return (
+    `🤝 <b>Job Assigned — Supporting Role</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}<\b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `${pocLines(p.pocName, p.pocPhone)}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    (p.mainInstallers.length > 0 ? `Main team: ${p.mainInstallers.join(', ')}\n` : '') +
+    `\nYou are assigned to <b>help the main team</b> — please check in with them once on site.\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to the sales POC + coordinators when a coordinator/scheduler formally
 // assigns the installer(s) they had been suggested.
 export function tplInstallerAssigned(p: {

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobAssigned } from '@/lib/telegram/templates'
+import { tplSubInstallerAssigned } from '@/lib/telegram/templates'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -74,6 +74,7 @@ export async function POST(
   }
 
   // ── Telegram the newly-added subs (best-effort) ──────────────────────────
+  // Distinct template: subs support the main crew, and the message says so.
   try {
     if (newlyAddedIds.length > 0) {
       const job = await getJobNotifData(jobId)
@@ -83,11 +84,21 @@ export async function POST(
           .select('id, name, telegram_chat_id')
           .in('id', newlyAddedIds)
           .is('deleted_at', null) as { data: Array<{ id: string; telegram_chat_id: string | null }> | null }
+
+        let mainInstallers: string[] = []
+        if (mainIds.size > 0) {
+          const { data: mainUsers } = await supabase
+            .from('users')
+            .select('name')
+            .in('id', [...mainIds]) as { data: Array<{ name: string }> | null }
+          mainInstallers = (mainUsers ?? []).map(u => u.name)
+        }
+
         const jobUrl = `${APP_URL}/jobs/${jobId}`
         await Promise.all(
           (users ?? [])
             .filter(u => u.telegram_chat_id)
-            .map(u => sendTelegram(u.telegram_chat_id!, tplJobAssigned({
+            .map(u => sendTelegram(u.telegram_chat_id!, tplSubInstallerAssigned({
               projectTitle: job.project_title,
               jobClient:    job.client,
               pocName:      job.client_poc_name,
@@ -96,6 +107,7 @@ export async function POST(
               timeStart:    job.time_start,
               timeEnd:      job.time_end,
               location:     job.location,
+              mainInstallers,
               jobUrl,
             }))),
         )

@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
+import type { Role } from '@/lib/supabase/types'
 
 type ExtContact = {
   id:               string
@@ -20,10 +21,12 @@ type ExtContact = {
 }
 
 type LinkStatus = 'pending' | 'accepted' | 'declined'
+type JobLink    = { status: LinkStatus; is_suggestion: boolean }
 
 interface Props {
   jobId:     string
   lang:      LangCode
+  role:      Role
   /** Completed jobs lock the bucket. */
   readOnly:  boolean
 }
@@ -40,13 +43,19 @@ function initials(name: string) {
 // immediately), delete with a warning (link dies instantly), restore with
 // full history. Scheduler / coordinator / admin only — the parent gates
 // rendering, RLS + routes gate the data.
-export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
+export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+
+  // Everyone office-side SEES the bucket (Nic, Phase 4 smoke test). Managers
+  // assign + manage the pool; sales suggest (amber, confirmed by a manager);
+  // designer/production are strictly view-only.
+  const isManager = (['scheduler', 'coordinator', 'admin'] as Role[]).includes(role) && !readOnly
+  const isSales   = role === 'sales' && !readOnly
 
   const [open,      setOpen]      = useState(false)
   const [loaded,    setLoaded]    = useState(false)
   const [contacts,  setContacts]  = useState<ExtContact[]>([])
-  const [links,     setLinks]     = useState<Map<string, LinkStatus>>(new Map())
+  const [links,     setLinks]     = useState<Map<string, JobLink>>(new Map())
   const [showAdd,   setShowAdd]   = useState(false)
   const [newName,   setNewName]   = useState('')
   const [newPhone,  setNewPhone]  = useState('')
@@ -59,18 +68,21 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
     Promise.all([
       fetch('/api/external-contacts').then(r => r.ok ? r.json() : []),
       fetch(`/api/jobs/${jobId}/external-contacts`).then(r => r.ok ? r.json() : []),
-    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; status: LinkStatus }>]) => {
+    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; status: LinkStatus; is_suggestion: boolean }>]) => {
       if (cancelled) return
       setContacts(all)
-      setLinks(new Map(assigned.map(a => [a.contact_id, a.status])))
+      setLinks(new Map(assigned.map(a => [a.contact_id, { status: a.status, is_suggestion: a.is_suggestion }])))
       if (assigned.length > 0) setOpen(true)
       setLoaded(true)
     }).catch(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
   }, [jobId])
 
+  // Manager → real link (or confirms a sales suggestion in place).
+  // Sales   → suggestion (server decides by role; UI mirrors it).
   const assignContact = async (contactId: string) => {
-    setLinks(prev => new Map(prev).set(contactId, 'pending'))
+    const prev = links.get(contactId)
+    setLinks(p => new Map(p).set(contactId, { status: 'pending', is_suggestion: !isManager }))
     try {
       const res = await fetch(`/api/jobs/${jobId}/external-contacts`, {
         method:  'POST',
@@ -79,14 +91,18 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
       })
       if (!res.ok) throw new Error()
     } catch {
-      setLinks(prev => { const next = new Map(prev); next.delete(contactId); return next })
+      setLinks(p => {
+        const next = new Map(p)
+        if (prev) next.set(contactId, prev); else next.delete(contactId)
+        return next
+      })
       showError(t(lang, 'saveError'))
     }
   }
 
   const unassignContact = async (contactId: string) => {
-    const prevStatus = links.get(contactId)
-    setLinks(prev => { const next = new Map(prev); next.delete(contactId); return next })
+    const prev = links.get(contactId)
+    setLinks(p => { const next = new Map(p); next.delete(contactId); return next })
     try {
       const res = await fetch(`/api/jobs/${jobId}/external-contacts`, {
         method:  'DELETE',
@@ -95,7 +111,7 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
       })
       if (!res.ok) throw new Error()
     } catch {
-      if (prevStatus) setLinks(prev => new Map(prev).set(contactId, prevStatus))
+      if (prev) setLinks(p => new Map(p).set(contactId, prev))
       showError(t(lang, 'saveError'))
     }
   }
@@ -175,7 +191,9 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
   const deleted = contacts.filter(c => c.deleted_at)
 
   if (!open) {
-    if (readOnly) return null
+    // View-only roles get the bucket only when it default-opens (job already
+    // has contacts) — a trigger button they can't use is just noise.
+    if (!isManager && !isSales) return null
     return (
       <div className="border-t border-line px-4 py-3">
         <button
@@ -190,33 +208,55 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
     )
   }
 
-  const statusChip = (status: LinkStatus | undefined, contactId: string) => {
-    if (!status) {
+  const statusChip = (link: JobLink | undefined, contactId: string) => {
+    // Not on this job yet: managers Assign, sales Suggest, others see nothing.
+    if (!link) {
+      if (!isManager && !isSales) return null
       return (
         <button
           type="button"
-          disabled={readOnly}
           onClick={() => assignContact(contactId)}
-          className="text-[10px] font-bold px-2 py-1 rounded-md border border-line bg-bg text-ink2 disabled:opacity-50"
+          className="text-[10px] font-bold px-2 py-1 rounded-md border border-line bg-bg text-ink2"
         >
-          + {t(lang, 'extBucketAssign')}
+          + {t(lang, isManager ? 'extBucketAssign' : 'extBucketSuggest')}
         </button>
       )
     }
+
+    // Sales suggestion (amber): manager taps to CONFIRM (upgrades the row);
+    // sales taps to retract their own suggestion; others just see the label.
+    if (link.is_suggestion) {
+      const label = t(lang, isSales ? 'extBucketSuggested' : 'extBucketSalesSuggested')
+      const action = isManager ? () => assignContact(contactId)
+                   : isSales   ? () => unassignContact(contactId)
+                   : undefined
+      return (
+        <button
+          type="button"
+          disabled={!action}
+          onClick={action}
+          title={isManager ? t(lang, 'fcfsConfirm') : isSales ? t(lang, 'extBucketRemove') : undefined}
+          className="text-[10px] font-bold px-2 py-1 rounded-md border bg-brand-amber-soft border-brand-amber/40 text-brand-amber disabled:opacity-100"
+        >
+          {label}
+        </button>
+      )
+    }
+
     const label =
-      status === 'accepted' ? t(lang, 'extBucketAccepted') :
-      status === 'declined' ? t(lang, 'extBucketDeclined') :
+      link.status === 'accepted' ? t(lang, 'extBucketAccepted') :
+      link.status === 'declined' ? t(lang, 'extBucketDeclined') :
       t(lang, 'extBucketAssigned')
     return (
       <button
         type="button"
-        disabled={readOnly}
+        disabled={!isManager}
         onClick={() => unassignContact(contactId)}
-        title={t(lang, 'extBucketRemove')}
+        title={isManager ? t(lang, 'extBucketRemove') : undefined}
         className={cn(
-          'text-[10px] font-bold px-2 py-1 rounded-md border disabled:opacity-50',
-          status === 'accepted' ? 'bg-brand-green-soft border-brand-green/30 text-brand-green' :
-          status === 'declined' ? 'bg-terracotta-soft border-terracotta/30 text-terracotta' :
+          'text-[10px] font-bold px-2 py-1 rounded-md border disabled:opacity-100',
+          link.status === 'accepted' ? 'bg-brand-green-soft border-brand-green/30 text-brand-green' :
+          link.status === 'declined' ? 'bg-terracotta-soft border-terracotta/30 text-terracotta' :
           'bg-brand-amber-soft border-brand-amber/40 text-brand-amber',
         )}
       >
@@ -232,7 +272,7 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
           <Globe size={12} />
           {t(lang, 'extBucketTitle')}
         </p>
-        {!readOnly && (
+        {(isManager || isSales) && (
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -257,8 +297,8 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
                 key={c.id}
                 className={cn(
                   'rounded-xl border-[1.5px] px-3 py-2.5 flex items-center gap-2.5',
-                  links.get(c.id) === 'accepted' ? 'border-brand-green bg-brand-green/10' :
-                  links.get(c.id)                ? 'border-brand-amber bg-brand-amber/10' :
+                  links.get(c.id)?.status === 'accepted' ? 'border-brand-green bg-brand-green/10' :
+                  links.get(c.id)                        ? 'border-brand-amber bg-brand-amber/10' :
                   'border-line bg-paper',
                 )}
               >
@@ -277,15 +317,17 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {statusChip(links.get(c.id), c.id)}
-                  <button
-                    type="button"
-                    onClick={() => copyLink(c)}
-                    title={t(lang, 'extBucketCopyLink')}
-                    className="w-7 h-7 rounded-md border border-line bg-bg flex items-center justify-center text-muted hover:text-brand-blue hover:border-brand-blue transition-colors"
-                  >
-                    <Link2 size={12} />
-                  </button>
-                  {!readOnly && (
+                  {(isManager || isSales) && (
+                    <button
+                      type="button"
+                      onClick={() => copyLink(c)}
+                      title={t(lang, 'extBucketCopyLink')}
+                      className="w-7 h-7 rounded-md border border-line bg-bg flex items-center justify-center text-muted hover:text-brand-blue hover:border-brand-blue transition-colors"
+                    >
+                      <Link2 size={12} />
+                    </button>
+                  )}
+                  {isManager && (
                     <button
                       type="button"
                       onClick={() => setDeleting(c)}
@@ -302,8 +344,8 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
         </>
       )}
 
-      {/* Deleted contacts — restorable forever */}
-      {loaded && deleted.length > 0 && (
+      {/* Deleted contacts — restorable forever (manager housekeeping only) */}
+      {loaded && isManager && deleted.length > 0 && (
         <div className="space-y-1.5 mb-2.5">
           {deleted.map(c => (
             <div key={c.id} className="rounded-xl border-[1.5px] border-line bg-bg/60 overflow-hidden opacity-80">
@@ -315,15 +357,13 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
                   <p className="text-sm font-semibold text-muted line-through truncate">{c.name}</p>
                   <p className="text-[11px] text-muted truncate">{t(lang, 'extBucketDeleted')}</p>
                 </div>
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => setRestoring(c)}
-                    className="text-[10px] font-bold px-2 py-1 rounded-md border border-brand-blue/40 bg-brand-blue-soft text-brand-blue shrink-0"
-                  >
-                    {t(lang, 'extBucketRestore')}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setRestoring(c)}
+                  className="text-[10px] font-bold px-2 py-1 rounded-md border border-brand-blue/40 bg-brand-blue-soft text-brand-blue shrink-0"
+                >
+                  {t(lang, 'extBucketRestore')}
+                </button>
               </div>
               {c.active_job_count > 0 && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber/10 border-t border-line">
@@ -338,8 +378,8 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
         </div>
       )}
 
-      {/* Add new contact */}
-      {!readOnly && !showAdd && loaded && (
+      {/* Add new contact — pool management is manager-only */}
+      {isManager && !showAdd && loaded && (
         <button
           type="button"
           onClick={() => setShowAdd(true)}

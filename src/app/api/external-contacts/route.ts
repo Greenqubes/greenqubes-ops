@@ -21,7 +21,12 @@ type ContactRow = {
   }>
 }
 
-async function requireManager() {
+// Every office role may READ the pool (Nic, Phase 4 smoke test) — only
+// scheduler / coordinator / admin may create contacts.
+const READ_ROLES  = ['sales', 'scheduler', 'coordinator', 'admin', 'designer', 'production']
+const WRITE_ROLES = ['scheduler', 'coordinator', 'admin']
+
+async function requireRole(allowed: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { supabase, profile: null }
@@ -35,7 +40,7 @@ async function requireManager() {
   if (!profile) return { supabase, profile: null }
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+  if (!allowed.includes(effectiveRole)) {
     return { supabase, profile: null }
   }
   return { supabase, profile }
@@ -44,7 +49,7 @@ async function requireManager() {
 // GET — every contact including deleted ones (so they can be restored), with
 // total + still-active job counts for the delete warning and "N past jobs".
 export async function GET() {
-  const { supabase, profile } = await requireManager()
+  const { supabase, profile } = await requireRole(READ_ROLES)
   if (!profile) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const today = new Date().toISOString().slice(0, 10)
@@ -81,7 +86,7 @@ export async function GET() {
 
 // POST — create a new contact; the DB generates their permanent token.
 export async function POST(req: NextRequest) {
-  const { supabase, profile } = await requireManager()
+  const { supabase, profile } = await requireRole(WRITE_ROLES)
   if (!profile) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json().catch(() => ({}))

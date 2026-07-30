@@ -32,6 +32,7 @@ export async function POST(
     .eq('contact_id', check.contact.id)
     .eq('job_id', jobId)
     .eq('status', 'pending')
+    .eq('is_suggestion', false)
   if (error) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
 
   return NextResponse.json({ ok: true })

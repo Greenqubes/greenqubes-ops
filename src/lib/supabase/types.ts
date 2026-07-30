@@ -336,14 +336,21 @@ export interface Database {
 
       job_external_contacts: {
         Row: {
-          job_id:      string
-          contact_id:  string
-          status:      'pending' | 'accepted' | 'declined'
-          assigned_at: string
+          job_id:        string
+          contact_id:    string
+          status:        'pending' | 'accepted' | 'declined'
+          is_suggestion: boolean
+          suggested_by:  string | null
+          assigned_at:   string
         }
-        Insert: Omit<Database['public']['Tables']['job_external_contacts']['Row'], 'status' | 'assigned_at'> & {
-          status?:      'pending' | 'accepted' | 'declined'
-          assigned_at?: string
+        Insert: Omit<
+          Database['public']['Tables']['job_external_contacts']['Row'],
+          'status' | 'is_suggestion' | 'suggested_by' | 'assigned_at'
+        > & {
+          status?:        'pending' | 'accepted' | 'declined'
+          is_suggestion?: boolean
+          suggested_by?:  string | null
+          assigned_at?:   string
         }
         Update: Partial<Database['public']['Tables']['job_external_contacts']['Row']>
         Relationships: []
