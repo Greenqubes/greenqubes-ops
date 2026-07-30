@@ -60,6 +60,10 @@ export async function GET() {
       id:         c.id,
       name:       c.name,
       phone:      c.phone,
+      token:      c.token,
+      // Canonical (production) URL. Clients that copy the link compose it from
+      // window.location.origin instead, so preview testing links stay on the
+      // preview — this env var names production in every Vercel environment.
       url:        `${APP_URL}/ext/${c.token}`,
       deleted_at: c.deleted_at,
       job_count:  links.length,
@@ -96,6 +100,7 @@ export async function POST(req: NextRequest) {
     id:               contact.id,
     name:             contact.name,
     phone:            contact.phone,
+    token:            contact.token,
     url:              `${APP_URL}/ext/${contact.token}`,
     deleted_at:       null,
     job_count:        0,

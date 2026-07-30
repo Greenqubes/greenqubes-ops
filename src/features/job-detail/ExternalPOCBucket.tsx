@@ -12,6 +12,7 @@ type ExtContact = {
   id:               string
   name:             string
   phone:            string
+  token:            string
   url:              string
   deleted_at:       string | null
   job_count:        number
@@ -124,10 +125,18 @@ export function ExternalPOCBucket({ jobId, lang, readOnly }: Props) {
     }
   }
 
+  // Compose from the site we're on RIGHT NOW — not NEXT_PUBLIC_APP_URL, which
+  // names production in every Vercel environment. On the preview this copies a
+  // preview link (production has no /ext until the clean-cut switchover).
   const copyLink = (contact: ExtContact) => {
-    navigator.clipboard?.writeText(contact.url)
+    const url = `${window.location.origin}/ext/${contact.token}`
+    if (!navigator.clipboard) {
+      window.prompt(t(lang, 'extBucketCopyLink'), url)
+      return
+    }
+    navigator.clipboard.writeText(url)
       .then(() => showSuccess(t(lang, 'extBucketLinkCopied')))
-      .catch(() => {})
+      .catch(() => window.prompt(t(lang, 'extBucketCopyLink'), url))
   }
 
   const deleteContact = async () => {
