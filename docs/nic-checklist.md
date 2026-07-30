@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 3 FCFS Board implemented + smoke test PASSED; Phase 4 next)_
+_Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build complete — regression test + clean-cut switchover next)_
 
 ---
 
@@ -27,13 +27,17 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 3 FCFS Board implemen
 - [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
 - [x] **[Nic] Workflow V2 — Phase 3 (FCFS board)** — built + smoke test PASSED 2026-07-22, all feedback fixes verified on preview. See [workflow-v2-phase3-smoke-test.md](workflow-v2-phase3-smoke-test.md).
 - [x] **[Nic] Run `npx supabase db push` for migration 0038** — applied 2026-07-22. FCFS rank now counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair).
-- [ ] **Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)** — next coding session; last phase before the clean-cut switchover.
+- [x] **[Nic] Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)** — built + smoke test PASSED 2026-07-30, including your feedback fixes (bucket for every office role with sales suggestions; "Supporting Role" sub-installer Telegram). See [workflow-v2-phase4-smoke-test.md](workflow-v2-phase4-smoke-test.md).
+- [x] **[Nic] Run `npx supabase db push` for migrations 0039 + 0040** — applied 2026-07-30. External contacts (lifetime links), job task list, sales-suggestion flag.
+- [ ] **Full V2 regression test → clean-cut switchover** — the final step: one run through Phases 1–4 together on the preview, then replace the old workflow on dev/main in one shot. Next session.
+- [ ] **External page job chat (deferred)** — outside installers currently call the person-in-charge from their link page; live chat there needs its own session if you want it.
 - [ ] **FCFS board — extra views (deferred)** — the approved mockup shows Day / Week / Month / By Project / By Installer toggles; only **Day** is built (your call, 2026-07-22). The other four need designs before a build session.
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)
 
 - [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", and the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"). Wipe all test data in one pass right before go-live.
 - [ ] **Remove the test installer account** (or keep it — your call) used to verify installers can't see suggestions.
+- [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them).
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
@@ -109,6 +113,16 @@ _Last updated: 2026-07-22 (feat-jobs — Workflow V2 Phase 3 FCFS Board implemen
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-07-30, feat-jobs — Workflow V2 Phase 4)
+
+- [x] **Phase 4 built + smoke test PASSED — the Workflow V2 build is COMPLETE.** External installer lifetime links (public page: accept/decline, job detail, task ticking), external installers bucket, sub-installer bucket, job task list.
+- [x] **Migrations 0039 + 0040 applied** — you ran `npx supabase db push` twice (0039 needed one fix: its random-link generator wanted a database add-on we don't have; swapped to the built-in one).
+- [x] **Your feedback built in** — external bucket now visible to every office role: sales suggests (amber, invisible to the contact until confirmed), scheduler/coordinator confirms, designer/production view-only. Sub-installer Telegram reads "Job Assigned — Supporting Role" with the main team's names.
+- [x] **Bugs found + fixed during your test** — copied external links pointed at the production site instead of the preview (now they use whichever site you're on); the sub-installer Telegram was silently rejected by Telegram (a formatting typo).
+- [x] **Deferred by plan** — live chat on the external page; externals call the person-in-charge instead.
 
 ---
 
