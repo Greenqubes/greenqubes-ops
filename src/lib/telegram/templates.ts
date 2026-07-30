@@ -87,7 +87,7 @@ export function tplSubInstallerAssigned(p: {
 }): string {
   return (
     `🤝 <b>Job Assigned — Supporting Role</b>\n` +
-    (p.projectTitle ? `<b>${p.projectTitle}<\b>\n` : '') +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
     `Client: ${p.jobClient}\n` +
     `${pocLines(p.pocName, p.pocPhone)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
