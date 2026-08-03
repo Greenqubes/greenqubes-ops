@@ -154,8 +154,11 @@ already reference the class.
 
 ### 8. i18n
 
-New keys in `src/lib/i18n/{en,zh,bn}.ts`: Today-button label, week/month toggle
-aria-labels. Day/month names are NOT i18n keys (always English, §5).
+New keys get real translations in `src/lib/i18n/en.ts` and `zh.ts` only.
+**No new Bengali translations** (boss decision, relayed by Nic 2026-08-03 — not worth
+the time/tokens): `bn.ts` receives the English text for any new key so the app keeps
+compiling and bn users see English for new UI. Existing bn strings are left as they
+are. Day/month names are NOT i18n keys (always English, §5).
 
 ---
 
