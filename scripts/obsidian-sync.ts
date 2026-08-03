@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { embed } from '../src/lib/ai/embed'
+import { parseFrontmatter } from './lib/frontmatter'
 import type { Database } from '../src/lib/supabase/types'
 
 const VAULT_PATH = process.env.OBSIDIAN_VAULT_PATH
@@ -21,40 +22,6 @@ const db = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
-
-// ── Frontmatter ────────────────────────────────────────────────────────────────
-
-interface Frontmatter {
-  visibility: string[]
-  tags: string[]
-}
-
-const FM_DEFAULT: Frontmatter = { visibility: ['public-internal'], tags: [] }
-
-function parseFrontmatter(raw: string): { fm: Frontmatter; body: string } {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/)
-  if (!match) return { fm: FM_DEFAULT, body: raw }
-
-  const yaml = match[1]
-  const body = raw.slice(match[0].length)
-
-  const parseList = (s: string): string[] => {
-    const t = s.trim()
-    const src = t.startsWith('[') ? t.slice(1, -1) : t
-    return src.split(',').map(x => x.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)
-  }
-
-  const vis = yaml.match(/^visibility:\s*(.+)$/m)
-  const tag = yaml.match(/^tags:\s*(.+)$/m)
-
-  return {
-    fm: {
-      visibility: vis ? parseList(vis[1]) : FM_DEFAULT.visibility,
-      tags:       tag ? parseList(tag[1]) : FM_DEFAULT.tags,
-    },
-    body,
-  }
-}
 
 // ── Chunker ────────────────────────────────────────────────────────────────────
 
