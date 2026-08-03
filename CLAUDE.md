@@ -42,7 +42,7 @@ Before closing off:
 
 All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
 
-The `feat-job-form-redesign` branch is kept for historical record only — do not push new changes to it.
+The `feat-job-form-redesign` and `feat-workflow-v2` branches are kept for historical record only — do not push new changes to them.
 
 ---
 

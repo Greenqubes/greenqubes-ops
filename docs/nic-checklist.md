@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build complete — regression test + clean-cut switchover next)_
+_Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DONE; V2 live on production)_
 
 ---
 
@@ -20,7 +20,7 @@ _Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build co
 - [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
 - [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
 - [ ] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
-- [ ] **Clean-cut switchover (strategy reminder)** — V2 stays on `feat-workflow-v2` and is NOT merged into dev incrementally. Build Phases 1–4 fully, test, then replace the old workflow in one shot. Nothing for you to do now — just the agreed plan.
+- [x] **[Nic] Clean-cut switchover (strategy reminder)** — executed 2026-08-03; see the regression test → switchover item below.
 - [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
 - [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
@@ -29,7 +29,7 @@ _Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build co
 - [x] **[Nic] Run `npx supabase db push` for migration 0038** — applied 2026-07-22. FCFS rank now counts from push-to-schedule (your decision: sales can't see each other's pending jobs, so creation order would be unfair).
 - [x] **[Nic] Workflow V2 — Phase 4 (external persistent links + sub-installer + task list + external POC bucket)** — built + smoke test PASSED 2026-07-30, including your feedback fixes (bucket for every office role with sales suggestions; "Supporting Role" sub-installer Telegram). See [workflow-v2-phase4-smoke-test.md](workflow-v2-phase4-smoke-test.md).
 - [x] **[Nic] Run `npx supabase db push` for migrations 0039 + 0040** — applied 2026-07-30. External contacts (lifetime links), job task list, sales-suggestion flag.
-- [ ] **Full V2 regression test → clean-cut switchover** — the final step: one run through Phases 1–4 together on the preview, then replace the old workflow on dev/main in one shot. Next session.
+- [x] **[Nic] Full V2 regression test → clean-cut switchover** — regression test passed (Nic, on the preview); switchover done 2026-08-03: `feat-workflow-v2` → `dev` → `main`, production verified live on V2 (`/ext` + `/fcfs` serving). `feat-workflow-v2` kept for historical record (Nic's call) — no new pushes to it. See [chore/chore-config-20260803-1-note.md](chore/chore-config-20260803-1-note.md).
 - [ ] **External page job chat (deferred)** — outside installers currently call the person-in-charge from their link page; live chat there needs its own session if you want it.
 - [ ] **FCFS board — extra views (deferred)** — the approved mockup shows Day / Week / Month / By Project / By Installer toggles; only **Day** is built (your call, 2026-07-22). The other four need designs before a build session.
 
