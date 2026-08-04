@@ -62,9 +62,6 @@
   .viewtoggle button{display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;
                      padding:5px 9px;border-radius:7px;color:var(--muted)}
   .viewtoggle button.on{background:var(--ink);color:var(--paper)}
-  .chip{font-size:10.5px;font-weight:500;padding:6px 12px;border-radius:99px;border:1px solid var(--line);
-        background:var(--paper);color:var(--ink2);flex-shrink:0}
-  .chip.on{background:var(--terracotta-soft);border-color:var(--terracotta);color:var(--terracotta)}
 
   /* ── date strip ── */
   .striprow{display:flex;align-items:center;gap:4px;padding:0 8px 8px}
@@ -211,10 +208,6 @@
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           Month</button>
       </div>
-      <button class="chip on">All</button>
-      <button class="chip">Today</button>
-      <button class="chip">Week</button>
-      <button class="chip">Upcoming</button>
     </div>
 
     <div class="striprow">
@@ -281,6 +274,7 @@
   </ul>
   <h3>Also in the real build</h3>
   <ul>
+    <li>The old All / Today / Week / Upcoming filter chips are <b>gone</b> — the strip, Today button and jump calendar replace them. List / Week / Month stays.</li>
     <li>Your week/month choice is remembered on each device.</li>
     <li>The tiny desktop scrollbar is gone for good.</li>
     <li>Week tab + Month tab + installer views all become Monday-start.</li>

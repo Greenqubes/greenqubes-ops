@@ -37,6 +37,13 @@ desktop, half phone.
   7 days (confirmed with Nic; this is the comfortable mode for month-end work).
 - The June 2026 decision "show every day, including empty ones" is preserved — within
   the visible window.
+- **Filter chips removed** (Nic, 2026-08-04): the All / Today / Week / Upcoming chips
+  are dropped entirely. They only ever applied to list view, mostly just changed which
+  strip dots lit up, and could mislead (e.g. "Today" chip + a future date selected →
+  "no jobs" shown even when that day has jobs). Each chip's purpose is now covered
+  better: Today → the Today button; Week → the strip's week mode; Upcoming/All → normal
+  strip + jump-calendar navigation. The **List / Week / Month view toggle stays** — it
+  switches layouts, not filters.
 
 ---
 
@@ -134,9 +141,15 @@ translated via i18n as normal.
 
 ### 6. Page tightening
 
+- **Filter chips row removed** (decision above): ScheduleShell drops the `filter`
+  state, the `filterChips` array, the chip buttons and the filter conditions inside
+  the `filtered` memo (the `pageMode` status filtering and search filtering remain).
+  The row keeps only the List / Week / Month view toggle. The now-unused i18n keys
+  (`filterAll`, `filterToday`, `filterWeek`, `filterUpcoming`) are deleted from all
+  three language files. InstallerShell's own chips are a different feature — untouched.
 - Legend shrinks to one compact line (`text-[10px]`, single row:
   "■ Strict on time · ■ Flexible window"), reduced margin.
-- Vertical paddings close up: "Company Schedule" label, heading row, chips row, strip
+- Vertical paddings close up: "Company Schedule" label, heading row, toggle row, strip
   row each lose ~4–8px of padding. Same warm-editorial look, less dead air.
   Exact values tuned at implementation; the intent is a visibly tighter above-the-fold.
 
@@ -166,7 +179,7 @@ are. Day/month names are NOT i18n keys (always English, §5).
 
 | Unit | Responsibility | State |
 |---|---|---|
-| `ScheduleShell` | selection, filters, view tabs (unchanged); renders Today button + heading trigger for JumpCalendar | `selectedDate`, `showJump` (new) |
+| `ScheduleShell` | selection + view tabs (unchanged); filter chips/state removed; renders Today button + heading trigger for JumpCalendar | `selectedDate`, `showJump` (new); `filter` deleted |
 | `DateStrip` (new) | windowed strip, mode toggle, paging arrows, auto-centre, wheel scroll | `mode` (localStorage-backed), `anchor` |
 | `JumpCalendar` (new) | month-grid popover for long jumps | `viewMonth` |
 | `ListView` | slims down — renders DateStrip + legend + day's JobRows | none new |
@@ -191,8 +204,8 @@ locale), FCFS board, any API route, any database table. No migrations.
   tapping any day selects it and re-anchors.
 - **Multi-day jobs** already expand onto each covered date via `jobsByDate` — dots and
   counts work unchanged.
-- **Filter chips** (All/Today/Week/Upcoming) and search continue to drive `jobsByDate`;
-  the strip reflects filtered data exactly as today.
+- **Search** continues to drive `jobsByDate`; the strip dots reflect search-filtered
+  data. (Filter chips no longer exist.)
 - **Hydration safety:** localStorage read deferred to `useEffect`; `scrollIntoView`
   effect-only; no date formatting differences between server and client renders
   (formatting is locale-hardcoded, which *reduces* mismatch surface).
@@ -204,9 +217,10 @@ No test infra in this repo — verification is:
 1. `npm run type-check` and `npm run build` clean.
 2. Manual smoke on the dev preview (Nic): week↔month toggle persists; opens on today;
    paging arrows peek without changing selection; jump calendar reaches past + future
-   months; Today button appears/works; Mon-start verified on Week tab, Month tab and
-   installer views; zh/bn UI shows English day/month names; no tiny scrollbar on
-   desktop; phone swipe still works in month mode.
+   months; Today button appears/works; filter chips gone but List/Week/Month toggle
+   and search intact; Mon-start verified on Week tab, Month tab and installer views;
+   zh/bn UI shows English day/month names; no tiny scrollbar on desktop; phone swipe
+   still works in month mode.
 
 ## Out of scope
 
