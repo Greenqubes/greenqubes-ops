@@ -1,21 +1,20 @@
 import { Calendar } from 'lucide-react'
 import { JobRow } from './JobRow'
-import { dayLabel, isOverdue } from './utils'
+import { DateStrip } from './DateStrip'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
 
 interface ListStrings {
-  noJobs:       string
-  strictOnTime: string
+  noJobs:         string
+  strictOnTime:   string
   flexibleWindow: string
 }
 
 interface ListViewProps {
-  jobs:         ScheduleJob[]
-  dates:        string[]
   jobsByDate:   Record<string, ScheduleJob[]>
   selectedDate: string
   today:        string
-  lang:         string
+  lang:         LangCode
   strings:      ListStrings
   onSelectDate: (date: string) => void
   selectable?:  boolean
@@ -25,71 +24,20 @@ interface ListViewProps {
 }
 
 export function ListView({
-  jobs, dates, jobsByDate, selectedDate, today, lang, strings, onSelectDate,
+  jobsByDate, selectedDate, today, lang, strings, onSelectDate,
   selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
   const dayJobs = jobsByDate[selectedDate] ?? []
 
   return (
     <div>
-      {/* Date strip */}
-      {dates.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-none">
-          {dates.map(d => {
-            const active       = d === selectedDate
-            const isToday      = d === today
-            const dateJobs     = jobsByDate[d] ?? []
-            const count        = dateJobs.length
-            const dayNum       = new Date(d + 'T00:00:00').getDate()
-            const shortDay     = dayLabel(d)
-            const hasOverdue   = dateJobs.some(j => isOverdue(j.status, j.date))
-            const hasStrict    = dateJobs.some(j => j.punctuality === 'strict')
-            const hasFlexible  = dateJobs.some(j => j.punctuality !== 'strict')
-
-            return (
-              <button
-                key={d}
-                onClick={() => onSelectDate(d)}
-                className={cn(
-                  'relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl border shrink-0 min-w-[52px]',
-                  'transition-colors text-xs font-medium',
-                  active
-                    ? 'bg-ink border-ink text-paper'
-                    : hasOverdue
-                      ? 'bg-bad-soft border-bad text-bad'
-                      : 'bg-paper border-line text-ink2 hover:border-ink2'
-                )}
-              >
-                <span className={cn('text-[10px] uppercase tracking-wide', !hasOverdue && 'opacity-70')}>{shortDay}</span>
-                <span className={cn(
-                  'font-display text-base leading-none',
-                  !active && isToday && !hasOverdue && 'text-terracotta'
-                )}>
-                  {dayNum}
-                </span>
-
-                {/* Punctuality dot(s) */}
-                {count > 0 && (
-                  active ? (
-                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white" />
-                  ) : (hasStrict && hasFlexible) ? (
-                    <>
-                      {/* Blue base dot */}
-                      <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
-                      {/* Red dot shifted half a dot to the left, rendered on top */}
-                      <span className="absolute top-1.5 right-[9px] w-1.5 h-1.5 rounded-full bg-[#D14545]" />
-                    </>
-                  ) : hasFlexible ? (
-                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
-                  ) : (
-                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D14545]" />
-                  )
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <DateStrip
+        jobsByDate={jobsByDate}
+        selectedDate={selectedDate}
+        today={today}
+        lang={lang}
+        onSelectDate={onSelectDate}
+      />
 
       {/* Job list for selected date */}
       <div className="px-4 pb-24">
@@ -128,9 +76,4 @@ export function ListView({
       </div>
     </div>
   )
-}
-
-// cn is needed here since this file is used inside a client component
-function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(' ')
 }

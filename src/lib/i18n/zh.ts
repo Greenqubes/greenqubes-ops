@@ -11,6 +11,8 @@ export const zh: Partial<Translations> = {
   roleScheduler: '调度员',
   roleInstaller: '安装人员',
   companySchedule: '公司排程',
+  stripShowMonth: '显示整月',
+  stripShowWeek: '显示单周',
   newJob: '新工作',
   createJob: '创建工作',
   awaitingApprovalDetail: '此工作已提交审核。撤回后可重新编辑。',

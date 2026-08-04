@@ -26,6 +26,8 @@ export const en = {
   viewList: 'List',
   viewWeek: 'Week',
   viewMonth: 'Month',
+  stripShowMonth: 'Show full month',
+  stripShowWeek: 'Show one week',
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
