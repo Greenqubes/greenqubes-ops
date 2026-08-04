@@ -49,13 +49,13 @@ export function ListView({
         ) : (
           <>
             {/* Punctuality legend */}
-            <div className="flex gap-4 mb-3">
-              <span className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="w-2 h-2 rounded-sm bg-[#D14545] inline-block" />
+            <div className="flex gap-3 mb-2">
+              <span className="flex items-center gap-1 text-[10px] text-muted">
+                <span className="w-1.5 h-1.5 rounded-sm bg-[#D14545] inline-block" />
                 {strings.strictOnTime}
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="w-2 h-2 rounded-sm bg-brand-blue inline-block" />
+              <span className="flex items-center gap-1 text-[10px] text-muted">
+                <span className="w-1.5 h-1.5 rounded-sm bg-brand-blue inline-block" />
                 {strings.flexibleWindow}
               </span>
             </div>

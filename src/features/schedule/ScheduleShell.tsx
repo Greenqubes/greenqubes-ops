@@ -169,12 +169,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       <CompanyBar lang={lang} />
 
       {/* ── Company schedule label ── */}
-      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
         {tr(lang, 'companySchedule')}
       </p>
 
       {/* ── Header ── */}
-      <div className="relative px-4 pt-5 pb-3 flex items-start justify-between gap-3">
+      <div className="relative px-4 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
@@ -269,7 +269,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       )}
 
       {/* ── View toggle + filter chips ── */}
-      <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-2 px-4 pb-2 overflow-x-auto scrollbar-none">
         <div className="flex bg-paper border border-line rounded-lg p-0.5 shrink-0">
           {views.map(({ v, Icon, label }) => (
             <button
