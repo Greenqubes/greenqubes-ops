@@ -3,11 +3,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
+import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
+import { JumpCalendar } from './JumpCalendar'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
 import { CompanyBar } from '@/components/CompanyBar'
@@ -57,6 +58,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const [query,        setQuery]        = useState('')
   const [showSearch,   setShowSearch]   = useState(false)
   const [selectedDate, setSelectedDate] = useState(today)
+  const [showJump,     setShowJump]     = useState(false)
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState(false)
@@ -189,15 +191,27 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       </p>
 
       {/* ── Header ── */}
-      <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
+      <div className="relative px-4 pt-5 pb-3 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
             </button>
-            <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
-              {headingLabel}
-            </h1>
+            {viewMode === 'list' ? (
+              <button
+                onClick={() => setShowJump(s => !s)}
+                className="flex items-center gap-1 px-1 rounded-lg hover:bg-ink/5 transition-colors"
+              >
+                <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
+                  {headingLabel}
+                </h1>
+                <ChevronDown size={14} className="text-muted" />
+              </button>
+            ) : (
+              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
+                {headingLabel}
+              </h1>
+            )}
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronRight size={16} />
             </button>
@@ -205,6 +219,14 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {viewMode === 'list' && selectedDate !== today && (
+            <button
+              onClick={() => setSelectedDate(today)}
+              className="px-3 py-[7px] text-[11px] font-semibold rounded-full border border-brand-amber bg-brand-amber-soft text-brand-amber transition-colors"
+            >
+              {tr(lang, 'filterToday')}
+            </button>
+          )}
           <button
             onClick={() => setShowSearch(s => !s)}
             aria-label="Toggle search"
@@ -227,6 +249,16 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             </Link>
           )}
         </div>
+
+        {showJump && viewMode === 'list' && (
+          <JumpCalendar
+            selectedDate={selectedDate}
+            today={today}
+            jobsByDate={jobsByDate}
+            onSelectDate={setSelectedDate}
+            onClose={() => setShowJump(false)}
+          />
+        )}
       </div>
 
       {/* ── Search bar ── */}
