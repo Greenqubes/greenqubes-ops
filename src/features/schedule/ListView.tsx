@@ -1,6 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { JobRow } from './JobRow'
-import { dayLabel, langToLocale, isOverdue } from './utils'
+import { dayLabel, isOverdue } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 
 interface ListStrings {
@@ -28,7 +28,6 @@ export function ListView({
   jobs, dates, jobsByDate, selectedDate, today, lang, strings, onSelectDate,
   selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
-  const locale  = langToLocale(lang)
   const dayJobs = jobsByDate[selectedDate] ?? []
 
   return (
@@ -42,7 +41,7 @@ export function ListView({
             const dateJobs     = jobsByDate[d] ?? []
             const count        = dateJobs.length
             const dayNum       = new Date(d + 'T00:00:00').getDate()
-            const shortDay     = dayLabel(d, locale)
+            const shortDay     = dayLabel(d)
             const hasOverdue   = dateJobs.some(j => isOverdue(j.status, j.date))
             const hasStrict    = dateJobs.some(j => j.punctuality === 'strict')
             const hasFlexible  = dateJobs.some(j => j.punctuality !== 'strict')

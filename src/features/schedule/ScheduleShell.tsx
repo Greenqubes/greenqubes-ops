@@ -14,7 +14,7 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
 import {
   toISO, shiftDate, shiftMonth,
-  getWeekDays, getMonthCells, monthLabel, langToLocale,
+  getWeekDays, getMonthCells, monthLabel,
 } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
@@ -89,8 +89,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       setBulkDeleting(false)
     }
   }
-
-  const locale = langToLocale(lang)
 
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
@@ -170,10 +168,10 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const headingLabel = useMemo(() => {
     if (viewMode === 'list') {
       return new Date(selectedDate + 'T00:00:00')
-        .toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+        .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
     }
-    return monthLabel(selectedDate, locale)
-  }, [viewMode, selectedDate, locale])
+    return monthLabel(selectedDate)
+  }, [viewMode, selectedDate])
 
   const views: { v: ViewMode; Icon: typeof List; label: string }[] = [
     { v: 'list',  Icon: List,         label: tr(lang, 'viewList')  },

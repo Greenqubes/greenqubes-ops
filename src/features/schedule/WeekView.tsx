@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { JobRow } from './JobRow'
-import { dayLabel, langToLocale } from './utils'
+import { dayLabel } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -13,14 +13,12 @@ interface WeekViewProps {
 }
 
 export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
-  const locale = langToLocale(lang)
-
   return (
     <div className="px-4 pb-24 space-y-5">
       {weekDays.map(d => {
         const jobs    = jobsByDate[d] ?? []
         const dayNum  = new Date(d + 'T00:00:00').getDate()
-        const short   = dayLabel(d, locale)
+        const short   = dayLabel(d)
         const isToday = d === today
 
         return (

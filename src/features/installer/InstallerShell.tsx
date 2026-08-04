@@ -7,7 +7,7 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { t } from '@/lib/i18n'
 import {
   toISO, timeToMinutes, shiftDate, shiftMonth,
-  getWeekDays, getMonthCells, monthLabel, langToLocale,
+  getWeekDays, getMonthCells, monthLabel,
 } from '@/features/schedule/utils'
 import { WeekView  } from '@/features/schedule/WeekView'
 import { MonthView } from '@/features/schedule/MonthView'
@@ -44,7 +44,6 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
 
   const today   = toISO(new Date())
   const weekEnd = getWeekEnd(today)
-  const locale  = langToLocale(lang)
 
   const scheduled = useMemo(
     () => jobs
@@ -123,8 +122,8 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
   }
 
   const headingLabel = useMemo(
-    () => monthLabel(selectedDate, locale),
-    [selectedDate, locale],
+    () => monthLabel(selectedDate),
+    [selectedDate],
   )
 
   const chips: { v: Tab; label: string; count: number }[] = [
