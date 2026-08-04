@@ -22,7 +22,6 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
 type ViewMode = 'list' | 'week' | 'month'
-type Filter   = 'all' | 'today' | 'week' | 'upcoming'
 
 interface ScheduleShellProps {
   jobs:     ScheduleJob[]
@@ -54,7 +53,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   }, [router])
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
-  const [filter,       setFilter]       = useState<Filter>('all')
   const [query,        setQuery]        = useState('')
   const [showSearch,   setShowSearch]   = useState(false)
   const [selectedDate, setSelectedDate] = useState(today)
@@ -97,14 +95,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
     if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
     if (pageMode === 'completed' &&  j.status !== 'completed') return false
-    const endDate = j.date_end ?? j.date
-    if (filter === 'today'    && (today < j.date || today > endDate)) return false
-    if (filter === 'upcoming' && endDate < today)  return false
-    if (filter === 'week') {
-      const startDiff = (new Date(j.date).getTime()    - new Date(today).getTime()) / 86_400_000
-      const endDiff   = (new Date(endDate).getTime()   - new Date(today).getTime()) / 86_400_000
-      if (endDiff < 0 || startDiff > 7) return false
-    }
     if (query.trim()) {
       const q   = query.toLowerCase()
       const hay = [
@@ -114,7 +104,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       if (!hay.includes(q)) return false
     }
     return true
-  }), [jobs, filter, query, today])
+  }), [jobs, query, pageMode])
 
   // Expand multi-day jobs so they appear on every date in their range
   const jobsByDate = useMemo(() =>
@@ -165,13 +155,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     { v: 'list',  Icon: List,         label: tr(lang, 'viewList')  },
     { v: 'week',  Icon: CalendarDays, label: tr(lang, 'viewWeek')  },
     { v: 'month', Icon: Grid3X3,      label: tr(lang, 'viewMonth') },
-  ]
-
-  const filterChips: { v: Filter; label: string }[] = [
-    { v: 'all',      label: tr(lang, 'filterAll')      },
-    { v: 'today',    label: tr(lang, 'filterToday')    },
-    { v: 'week',     label: tr(lang, 'filterWeek')     },
-    { v: 'upcoming', label: tr(lang, 'filterUpcoming') },
   ]
 
   const listStrings = {
@@ -291,7 +274,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}
-              onClick={() => { setViewMode(v); if (v === 'week' || v === 'month') setFilter('all') }}
+              onClick={() => setViewMode(v)}
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
@@ -303,23 +286,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             </button>
           ))}
         </div>
-
-        {viewMode !== 'month' && filterChips
-          .filter(chip => viewMode === 'week' ? chip.v === 'all' : true)
-          .map(({ v, label }) => (
-            <button
-              key={v}
-              onClick={() => setFilter(v)}
-              className={cn(
-                'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
-                filter === v
-                  ? 'bg-terracotta-soft border-terracotta text-terracotta'
-                  : 'bg-paper border-line text-ink2 hover:border-ink2'
-              )}
-            >
-              {label}
-            </button>
-          ))}
       </div>
 
       {/* ── Views ── */}
