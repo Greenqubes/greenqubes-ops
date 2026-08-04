@@ -84,11 +84,10 @@
   .day.overdue:not(.sel) .dow{opacity:1}
   .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%}
   .dot.b{background:var(--blue)} .dot.r{background:var(--bad);right:10px} .dot.w{background:#fff}
-  .modebtn{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;
+  .modebtn{display:flex;align-items:center;justify-content:center;flex-shrink:0;
            border:1px solid var(--line);background:var(--paper);border-radius:10px;
-           padding:6px 8px;color:var(--ink2)}
-  .modebtn .mlab{font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
-  .modebtn .mnum{font-family:'Fraunces',Georgia,serif;font-size:14px;line-height:1}
+           padding:9px;color:var(--ink2)}
+  .modebtn:hover{border-color:var(--ink2);color:var(--ink)}
 
   /* legend + jobs */
   .legend{display:flex;gap:12px;padding:2px 16px 8px;font-size:10px;color:var(--muted);align-items:center}
@@ -264,7 +263,7 @@
   <p class="sub">Interactive mockup · nothing here is real data</p>
   <h3>Try these</h3>
   <ul>
-    <li><b>7 / 31 button</b> (right of the strip) switches between a Mon–Sun week and the whole month.</li>
+    <li><b>Icon button</b> at the right of the strip switches between a Mon–Sun week and the whole month — it always shows the layout you'd switch <b>to</b> (hover it for words).</li>
     <li><b>‹ › beside the strip</b> peeks at the previous / next week or month <b>without losing your selected day</b>.</li>
     <li><b>Tap the date heading</b> ("Mon, 3 Aug") to open the jump calendar — flip months, tap any day.</li>
     <li><b>Today button</b> appears (amber, top right) once you wander off today — one tap back.</li>
@@ -358,10 +357,12 @@
       if (target) requestAnimationFrame(() =>
         target.scrollIntoView({inline:'center', block:'nearest', behavior:'instant'}))
     }
+    // icon shows the layout you'd switch TO
+    const monthGridIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18"/><path d="M7 13h.01M12 13h.01M17 13h.01M7 17h.01M12 17h.01M17 17h.01"/></svg>'
+    const weekRowIcon   = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M7 11v2M12 11v2M17 11v2"/></svg>'
     const mb = document.getElementById('modeBtn')
-    mb.innerHTML = mode === 'week'
-      ? '<span class="mnum">7</span><span class="mlab">week</span>'
-      : '<span class="mnum">31</span><span class="mlab">month</span>'
+    mb.innerHTML = mode === 'week' ? monthGridIcon : weekRowIcon
+    mb.title = mode === 'week' ? 'Show full month' : 'Show one week'
   }
   document.getElementById('strip').addEventListener('wheel', e => {
     if (mode !== 'month') return

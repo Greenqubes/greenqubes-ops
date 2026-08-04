@@ -61,9 +61,12 @@ New component `src/features/schedule/DateStrip.tsx`. Replaces the strip section 
 | `week` (default) | Mon–Sun containing the anchor date | 7 pills **flex evenly** to fill the row — no overflow, no scrolling |
 | `month` | All days of the anchor date's month (28–31) | Fixed-width pills (current sizing), horizontal scroll, selected day auto-centred |
 
-**Mode toggle:** one compact button at the right end of the strip row showing the
-current mode ("7" / "31" with a small calendar glyph — stroke SVG, no emoji). Tapping
-toggles. Persisted to `localStorage` key `gq-strip-mode`.
+**Mode toggle:** one compact **icon-only** button at the right end of the strip row
+(stroke SVG, no text, no emoji — Nic's call 2026-08-04, replacing an earlier "7/31"
+label idea). It shows the layout you'd switch **to**: a month-grid glyph while in week
+mode, a single-row glyph while in month mode. `title` + aria-label ("Show full month" /
+"Show one week", i18n keys) carry the meaning for desktop hover + screen readers.
+Tapping toggles. Persisted to `localStorage` key `gq-strip-mode`.
 **Hydration guard:** the mode must initialise to `'week'` on both server and client,
 then read localStorage in a `useEffect` after mount. Never read localStorage in the
 initial render path — `/schedule` already has a production hydration issue (#418,
