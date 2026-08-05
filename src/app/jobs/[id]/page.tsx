@@ -12,7 +12,7 @@ export default async function JobDetailPage({
   searchParams,
 }: {
   params:       Promise<{ id: string }>
-  searchParams: Promise<{ from?: string }>
+  searchParams: Promise<{ from?: string; tab?: string }>
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams])
   const backHref = sp.from === 'installer' ? '/installer' : '/schedule'
@@ -60,6 +60,7 @@ export default async function JobDetailPage({
       initialCoordinatorIds={coordinators.map(c => c.id)}
       coordinatorOptions={officeUsers}
       backHref={backHref}
+      initialTab={sp.tab === 'chat' ? 'chat' : undefined}
     />
   )
 }
