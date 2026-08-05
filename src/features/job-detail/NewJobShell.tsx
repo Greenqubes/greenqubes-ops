@@ -12,6 +12,8 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
+import { JobFormLayout } from './JobFormLayout'
+import { CollapseCard } from './CollapseCard'
 import { Lock, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
@@ -241,127 +243,151 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg pb-28">
       <CompanyBar lang={lang} />
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-8">
 
-        {/* Back + title */}
+      {/* Back + title — same container width as the columns */}
+      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
         <div className="flex items-center gap-3">
           <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <h1 className="font-display text-xl font-semibold text-ink">New job</h1>
+          <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'newJob')}</h1>
         </div>
+      </div>
 
-        {/* Core fields */}
-        <CoreSection
-          register={register}
-          errors={errors}
-          control={control}
-          watch={watch}
-          setValue={setValue}
-          readOnly={false}
-          lang={lang}
-          role={role}
-          validateRequired
-        />
+      <JobFormLayout
+        lang={lang}
+        lockedTabs={['files', 'chat']}
+        details={
+          <div className="flex flex-col gap-4">
+            <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+              <CoreSection
+                bare
+                register={register}
+                errors={errors}
+                control={control}
+                watch={watch}
+                setValue={setValue}
+                readOnly={false}
+                lang={lang}
+                role={role}
+                validateRequired
+              />
+            </CollapseCard>
 
-        {/* Team fields — Sales/POC, Notes, Production Instructions */}
-        <Card className="p-5 space-y-4">
-          <Field label="Person-in-Charge">
-            <Controller
-              control={control}
-              name="sales_poc_id"
-              render={({ field }) => (
-                <SearchableSelect
-                  value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
-                  onChange={label => {
-                    const found = salesPocOptions.find(o => o.label === label)
-                    if (found) field.onChange(found.id)
-                  }}
-                  options={salesPocOptions}
-                  disabled={false}
+            {/* Production — instructions now, photos/DO after the job is saved */}
+            <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
+              <div className="space-y-3">
+                <Field label={t(lang, 'productionInstructions')}>
+                  <SuggestField
+                    value={watch('production_instructions')}
+                    onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
+                    field="Production Instructions"
+                  >
+                    <textarea
+                      {...register('production_instructions')}
+                      rows={2}
+                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+                    />
+                  </SuggestField>
+                </Field>
+                <div className="flex items-center gap-2 text-muted text-xs">
+                  <Lock size={12} />
+                  Save the job first to add production photos and DO.
+                </div>
+              </div>
+            </CollapseCard>
+          </div>
+        }
+        team={
+          <CollapseCard title={t(lang, 'tabTeam')} storageKey="gq-jobcard-team" bodyClassName="p-0">
+            <div className="p-4 space-y-4">
+              <Field label="Person-in-Charge">
+                <Controller
+                  control={control}
+                  name="sales_poc_id"
+                  render={({ field }) => (
+                    <SearchableSelect
+                      value={salesPocOptions.find(o => o.id === field.value)?.label ?? ''}
+                      onChange={label => {
+                        const found = salesPocOptions.find(o => o.label === label)
+                        if (found) field.onChange(found.id)
+                      }}
+                      options={salesPocOptions}
+                      disabled={false}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Sub POC / Coordinators">
+                <MultiUserSelect
+                  options={coordinatorOptions}
+                  value={selectedCoordIds}
+                  onChange={setSelectedCoordIds}
+                />
+              </Field>
+              <Field label="Notes">
+                <SuggestField
+                  value={watch('notes')}
+                  onAccept={s => setValue('notes', s, { shouldDirty: true })}
+                  field="Notes"
+                >
+                  <textarea
+                    {...register('notes')}
+                    rows={2}
+                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+                  />
+                </SuggestField>
+              </Field>
+            </div>
+
+            {/* Installers — same sub-section framing as the edit page */}
+            <div className="border-t border-line px-4 pt-3 pb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-3">Installers</p>
+              {allInstallers.length === 0 ? (
+                <p className="text-sm text-muted">No installers found.</p>
+              ) : (
+                <InstallerGrid
+                  installers={allInstallers}
+                  stateOf={id => selectedIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
+                  onToggle={id => setSelectedIds(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  )}
+                  noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
                 />
               )}
-            />
-          </Field>
-          <Field label="Sub POC / Coordinators">
-            <MultiUserSelect
-              options={coordinatorOptions}
-              value={selectedCoordIds}
-              onChange={setSelectedCoordIds}
-            />
-          </Field>
-          <Field label="Notes">
-            <SuggestField
-              value={watch('notes')}
-              onAccept={s => setValue('notes', s, { shouldDirty: true })}
-              field="Notes"
-            >
-              <textarea
-                {...register('notes')}
-                rows={2}
-                className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
-              />
-            </SuggestField>
-          </Field>
-          <Field label="Production Instructions">
-            <SuggestField
-              value={watch('production_instructions')}
-              onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
-              field="Production Instructions"
-            >
-              <textarea
-                {...register('production_instructions')}
-                rows={2}
-                className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
-              />
-            </SuggestField>
-          </Field>
-        </Card>
+            </div>
+          </CollapseCard>
+        }
+        files={
+          <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
+            <h3 className="text-sm font-medium text-ink">{t(lang, 'attachments')}</h3>
+            <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
+              <Lock size={14} />
+              Save the job first to add attachments.
+            </div>
+          </Card>
+        }
+        chat={
+          <Card className="p-5 space-y-3 opacity-60 pointer-events-none select-none">
+            <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
+            <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
+              <Lock size={14} />
+              {t(lang, 'chatPreScheduleMessage')}
+            </div>
+          </Card>
+        }
+      />
 
-        {/* Installers */}
-        <Card className="p-5 space-y-3">
-          <h3 className="text-sm font-medium text-ink">Installers</h3>
-          {allInstallers.length === 0 ? (
-            <p className="text-sm text-muted">No installers found.</p>
-          ) : (
-            <InstallerGrid
-              installers={allInstallers}
-              stateOf={id => selectedIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
-              onToggle={id => setSelectedIds(prev =>
-                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-              )}
-              noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
-            />
-          )}
-        </Card>
-
-        {/* Attachments — locked until job is saved */}
-        <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
-          <h3 className="text-sm font-medium text-ink">Attachments</h3>
-          <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
-            <Lock size={14} />
-            Save the job first to add attachments.
-          </div>
-        </Card>
-
-        {/* Chat — locked */}
-        <Card className="p-5 space-y-3 opacity-60 pointer-events-none select-none">
-          <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
-          <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
-            <Lock size={14} />
-            {t(lang, 'chatPreScheduleMessage')}
-          </div>
-        </Card>
-
-        {/* Action bar */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+      {/* ── Action bar (sticky bottom, same chrome as the edit page) ── */}
+      <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
+        <div className="max-w-2xl lg:max-w-6xl mx-auto flex gap-2">
           <button
             type="button"
             onClick={() => router.back()}
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-line text-sm font-medium text-ink2 hover:bg-bg disabled:opacity-50 transition-colors"
+            className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
@@ -369,7 +395,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
             type="button"
             onClick={() => saveJob('pending')}
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-amber-400 bg-amber-50 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : 'Save as pending'}
           </button>
@@ -377,7 +403,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
             type="button"
             onClick={() => saveJob('push_to_schedule')}
             disabled={saving}
-            className="px-4 py-2 rounded-lg bg-terracotta text-sm font-medium text-white hover:brightness-90 disabled:opacity-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Pushing…' : 'Push to Schedule'}
           </button>
