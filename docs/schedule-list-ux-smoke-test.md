@@ -37,14 +37,14 @@
 
 - [X] The **‹ › at the ends of the strip** page a whole week (or month) — but your **selected day
       and heading don't change**. Tap any day in the new window to actually move. 
-- [ ] **RETEST round 2:** heading box widened further (fits even the longest date like
+- [x] **RETEST round 2:** heading box widened further (fits even the longest date like
       "Wed 24 Sept") — the ‹ › should now never move, whichever days you click through.
       Week/Month tabs widened too for long month names.
 - [x] **Tap the heading** (it has a small ▾ now) → the **jump calendar** pops up: Mon-first grid,
       dots on days that have jobs, today outlined in terracotta.
 - [x] Its ‹ › flip months — go **back two months and forward three**; pick a day → the page jumps
       there and the pop-up closes.
-- [ ] **RETEST round 2:** the month label above the strip is now **centred** on the screen
+- [x] **RETEST round 2:** the month label above the strip is now **centred** on the screen
       (was left-aligned); still follows the window in both modes, "Aug – Sep 2026" when a week
       straddles months.
 - [x] The pop-up also closes on **tapping outside** and on **Esc** (desktop).
