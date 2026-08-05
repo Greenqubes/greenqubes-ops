@@ -45,7 +45,8 @@ export async function POST(
   const isAttachment = body.kind === 'attachment'
 
   const notifData = await getJobNotifData(jobId)
-  const jobUrl    = `${APP_URL}/jobs/${jobId}`
+  // Chat notifications land on the Chat tab directly (phone layout).
+  const jobUrl    = `${APP_URL}/jobs/${jobId}?tab=chat`
 
   // ── Throttled Telegram notifications ─────────────────────────────────────────
   async function notifyParticipantsThrottled(isAttachmentMsg = false) {
