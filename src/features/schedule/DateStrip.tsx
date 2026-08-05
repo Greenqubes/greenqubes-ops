@@ -87,7 +87,7 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
 
   return (
     <div className="pb-2">
-      <p className="px-4 pb-1 text-[10px] uppercase tracking-widest text-muted">{windowLabel}</p>
+      <p className="px-4 pb-1 text-[10px] uppercase tracking-widest text-muted text-center">{windowLabel}</p>
       <div className="flex items-center gap-1 px-2">
       <button
         onClick={() => page(-1)}

@@ -184,7 +184,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             {viewMode === 'list' ? (
               <button
                 onClick={() => setShowJump(s => !s)}
-                className="flex items-center justify-center gap-1 px-1 min-w-[132px] rounded-lg hover:bg-ink/5 transition-colors"
+                className="flex items-center justify-center gap-1 px-1 min-w-[176px] rounded-lg hover:bg-ink/5 transition-colors"
               >
                 <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none whitespace-nowrap">
                   {headingLabel}
@@ -192,7 +192,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
                 <ChevronDown size={14} className="text-muted shrink-0" />
               </button>
             ) : (
-              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1 min-w-[188px] text-center whitespace-nowrap">
+              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1 min-w-[210px] text-center whitespace-nowrap">
                 {headingLabel}
               </h1>
             )}
