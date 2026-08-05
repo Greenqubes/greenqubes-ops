@@ -73,8 +73,22 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
 
   const toggleLabel = tr(lang, mode === 'week' ? 'stripShowMonth' : 'stripShowWeek')
 
+  // Which month(s) the visible window covers — persistent while paging (always English)
+  const first = days[0]
+  const last  = days[days.length - 1]
+  const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+    new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', opts)
+  const windowLabel =
+    first.slice(0, 7) === last.slice(0, 7)
+      ? fmt(first, { month: 'long', year: 'numeric' })
+      : first.slice(0, 4) === last.slice(0, 4)
+        ? `${fmt(first, { month: 'short' })} – ${fmt(last, { month: 'short', year: 'numeric' })}`
+        : `${fmt(first, { month: 'short', year: 'numeric' })} – ${fmt(last, { month: 'short', year: 'numeric' })}`
+
   return (
-    <div className="flex items-center gap-1 px-2 pb-2">
+    <div className="pb-2">
+      <p className="px-4 pb-1 text-[10px] uppercase tracking-widest text-muted">{windowLabel}</p>
+      <div className="flex items-center gap-1 px-2">
       <button
         onClick={() => page(-1)}
         aria-label="Previous"
@@ -152,6 +166,7 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
       >
         {mode === 'week' ? <MonthGridIcon /> : <WeekRowIcon />}
       </button>
+      </div>
     </div>
   )
 }

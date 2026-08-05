@@ -180,36 +180,37 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
             </button>
+            {/* Fixed min-width so the ‹ › arrows never shift with the label's text width */}
             {viewMode === 'list' ? (
               <button
                 onClick={() => setShowJump(s => !s)}
-                className="flex items-center gap-1 px-1 rounded-lg hover:bg-ink/5 transition-colors"
+                className="flex items-center justify-center gap-1 px-1 min-w-[132px] rounded-lg hover:bg-ink/5 transition-colors"
               >
-                <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
+                <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none whitespace-nowrap">
                   {headingLabel}
                 </h1>
-                <ChevronDown size={14} className="text-muted" />
+                <ChevronDown size={14} className="text-muted shrink-0" />
               </button>
             ) : (
-              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
+              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1 min-w-[188px] text-center whitespace-nowrap">
                 {headingLabel}
               </h1>
             )}
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronRight size={16} />
             </button>
+            {viewMode === 'list' && selectedDate !== today && (
+              <button
+                onClick={() => setSelectedDate(today)}
+                className="ml-1 px-2.5 py-[6px] text-[10px] font-semibold rounded-full border border-brand-amber bg-brand-amber-soft text-brand-amber transition-colors shrink-0"
+              >
+                {tr(lang, 'filterToday')}
+              </button>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {viewMode === 'list' && selectedDate !== today && (
-            <button
-              onClick={() => setSelectedDate(today)}
-              className="px-3 py-[7px] text-[11px] font-semibold rounded-full border border-brand-amber bg-brand-amber-soft text-brand-amber transition-colors"
-            >
-              {tr(lang, 'filterToday')}
-            </button>
-          )}
           <button
             onClick={() => setShowSearch(s => !s)}
             aria-label="Toggle search"
