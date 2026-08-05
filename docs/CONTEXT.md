@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DONE: feat-workflow-v2 → dev → main; V2 live on production; branch kept for record)_
+_Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX redesign live on production; Monday-start weeks app-wide; filter chips removed; no new Bengali translations rule recorded)_
 
 ---
 
@@ -17,6 +17,7 @@ Internal ops platform for a small Singapore-based install/build company. Phase 0
 - **Telegram notifications** (schedule changes, overdue alerts, installer activity)
 
 Team size: ~10 (sales + scheduler + installers). Three languages: English, Simplified Chinese, Bengali.
+**Bengali is frozen (boss decision, 2026-08-03 via Nic):** no new bn translations get written — new i18n keys are added to `en.ts` + `zh.ts` only and bn falls back to English automatically (`t()` falls back per-key). Existing bn strings stay. Date labels (day/month names) are always English in every language (CLAUDE.md hard rule).
 
 ## Status
 
