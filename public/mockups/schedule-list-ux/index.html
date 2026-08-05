@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule List View — Scrolling UX Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F1EC; --paper:#FFFFFF; --ink:#1A1815; --ink2:#5C564E; --muted:#8B8478;
+    --line:#E8E2D7; --terracotta:#B5523D; --terracotta-soft:#F6E7E3; --green:#3F7D5C;
+    --blue:#3D6FB5; --amber:#C8893D; --amber-soft:#F7EEDF; --bad:#D14545; --bad-soft:#FAEAE8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:#EAE6DD;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);
+       display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-start;padding:40px 20px}
+  .display{font-family:'Fraunces',Georgia,serif}
+  button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit}
+  svg{display:block}
+
+  /* ── phone frame ── */
+  .phone{position:relative;width:390px;height:800px;background:var(--bg);border:1px solid #D8D2C6;border-radius:30px;
+         overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(26,24,21,.16)}
+  .phone-scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+
+  /* company bar */
+  .cbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+        background:var(--paper);border-bottom:1px solid var(--line)}
+  .cbar .brand{font-size:15px;font-weight:600;letter-spacing:.2px}
+  .cbar .tag{font-size:9px;color:var(--amber);border:1px solid var(--amber);border-radius:99px;
+             padding:2px 7px;margin-left:8px;text-transform:uppercase;letter-spacing:.6px}
+  .cbar-right{display:flex;gap:14px;align-items:center;color:var(--ink2)}
+  .avatar{width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:10px;
+          font-weight:600;display:flex;align-items:center;justify-content:center}
+
+  .pagelabel{text-align:center;font-size:10px;color:var(--muted);text-transform:uppercase;
+             letter-spacing:2.5px;padding:8px 16px 2px}
+
+  /* heading row */
+  .headrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px 8px}
+  .headleft{display:flex;align-items:center;gap:2px;min-width:0}
+  .navchev{padding:4px;color:var(--muted);border-radius:6px}
+  .navchev:hover{color:var(--ink)}
+  .heading{display:flex;align-items:center;gap:5px;padding:2px 4px;border-radius:8px}
+  .heading h1{font-size:23px;font-weight:500;letter-spacing:-.3px;line-height:1;white-space:nowrap}
+  .heading:hover{background:rgba(0,0,0,.04)}
+  .heading .caret{color:var(--muted)}
+  .headright{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .todaybtn{font-size:11px;font-weight:600;color:var(--amber);border:1px solid var(--amber);
+            background:var(--amber-soft);border-radius:99px;padding:6px 11px}
+  .iconbtn{padding:8px;border-radius:9px;border:1px solid var(--line);background:var(--paper);color:var(--ink2)}
+  .newbtn{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.3px;
+          background:var(--terracotta);color:#fff;border-radius:9px;padding:9px 12px}
+
+  /* chips row */
+  .chiprow{display:flex;align-items:center;gap:8px;padding:0 16px 8px;overflow-x:auto;
+           scrollbar-width:none;-ms-overflow-style:none}
+  .chiprow::-webkit-scrollbar{display:none}
+  .viewtoggle{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:9px;
+              padding:2px;flex-shrink:0}
+  .viewtoggle button{display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:500;
+                     padding:5px 9px;border-radius:7px;color:var(--muted)}
+  .viewtoggle button.on{background:var(--ink);color:var(--paper)}
+
+  /* ── date strip ── */
+  .striprow{display:flex;align-items:center;gap:4px;padding:0 8px 8px}
+  .striparrow{padding:6px 2px;color:var(--muted);border-radius:8px;flex-shrink:0}
+  .striparrow:hover{color:var(--ink);background:rgba(0,0,0,.04)}
+  .strip{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scroll-behavior:smooth;
+         scrollbar-width:none;-ms-overflow-style:none;padding:2px}
+  .strip::-webkit-scrollbar{display:none}
+  .day{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;
+       padding:7px 0 6px;border-radius:12px;border:1px solid var(--line);background:var(--paper);
+       color:var(--ink2);font-size:11px;font-weight:500;flex-shrink:0}
+  .strip.weekmode .day{flex:1 1 0}
+  .strip.monthmode .day{min-width:50px}
+  .day .dow{font-size:9px;text-transform:uppercase;letter-spacing:.8px;opacity:.7}
+  .day .num{font-family:'Fraunces',Georgia,serif;font-size:16px;line-height:1}
+  .day:hover{border-color:var(--ink2)}
+  .day.sel{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .day.today:not(.sel) .num{color:var(--terracotta)}
+  .day.overdue:not(.sel){background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+  .day.overdue:not(.sel) .dow{opacity:1}
+  .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%}
+  .dot.b{background:var(--blue)} .dot.r{background:var(--bad);right:10px} .dot.w{background:#fff}
+  .modebtn{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+           border:1px solid var(--line);background:var(--paper);border-radius:10px;
+           padding:9px;color:var(--ink2)}
+  .modebtn:hover{border-color:var(--ink2);color:var(--ink)}
+
+  /* legend + jobs */
+  .legend{display:flex;gap:12px;padding:2px 16px 8px;font-size:10px;color:var(--muted);align-items:center}
+  .legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+  .jobs{padding:0 16px 90px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;
+        margin-bottom:8px;display:flex;gap:11px}
+  .card.overdue{border-color:var(--bad);background:var(--bad-soft)}
+  .card.done{opacity:.65}
+  .pbar{width:6px;border-radius:99px;flex-shrink:0}
+  .pbar.strict{background:var(--bad)} .pbar.flex{background:var(--blue)}
+  .cbody{flex:1;min-width:0}
+  .crow1{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .ctitle{font-family:'Fraunces',Georgia,serif;font-size:15.5px;font-weight:500;line-height:1.3}
+  .ctime{text-align:right;flex-shrink:0}
+  .ctime .tl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block}
+  .ctime .tv{font-size:14px;font-weight:500;color:var(--ink2)}
+  .cdesc{font-size:12.5px;color:var(--ink2);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cmeta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10.5px;color:var(--muted);align-items:center}
+  .cmeta span{display:flex;align-items:center;gap:4px}
+  .pill{font-size:9px;font-weight:600;text-transform:lowercase;border-radius:99px;padding:2px 8px}
+  .pill.over{background:var(--bad);color:#fff}
+  .pill.done{background:var(--line);color:var(--ink2)}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:44px 0;color:var(--muted);font-size:13px}
+
+  /* bottom nav */
+  .bnav{display:flex;border-top:1px solid var(--line);background:var(--paper);padding:7px 4px 14px}
+  .bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;
+               color:var(--muted);font-weight:500}
+  .bnav button.on{color:var(--terracotta)}
+
+  /* ── jump calendar popover ── */
+  .scrim{position:absolute;inset:0;z-index:60;display:none}
+  .scrim.open{display:block}
+  .jump{position:absolute;top:118px;left:16px;z-index:70;width:300px;background:var(--paper);
+        border:1px solid var(--line);border-radius:16px;padding:14px;
+        box-shadow:0 12px 34px rgba(26,24,21,.18)}
+  .jhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .jhead .jm{font-family:'Fraunces',Georgia,serif;font-size:15px;font-weight:500}
+  .jhead button{padding:5px;border-radius:7px;color:var(--muted)}
+  .jhead button:hover{color:var(--ink);background:rgba(0,0,0,.04)}
+  .jgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .jgrid .dowh{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+               text-align:center;padding:4px 0 6px}
+  .jd{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+      font-size:12px;border-radius:9px;color:var(--ink2)}
+  .jd:hover{background:var(--bg)}
+  .jd.today{outline:1.5px solid var(--terracotta);outline-offset:-1.5px;color:var(--terracotta);font-weight:600}
+  .jd.sel{background:var(--ink);color:var(--paper)}
+  .jd .jdot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+            width:4px;height:4px;border-radius:50%;background:var(--terracotta)}
+  .jd.sel .jdot{background:#fff}
+
+  /* ── notes panel ── */
+  .notes{width:330px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px}
+  .notes h2{font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:500;margin-bottom:4px}
+  .notes .sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+  .notes h3{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:16px 0 8px}
+  .notes ul{list-style:none}
+  .notes li{font-size:13px;color:var(--ink2);line-height:1.55;margin-bottom:9px;padding-left:18px;position:relative}
+  .notes li::before{content:'';position:absolute;left:2px;top:8px;width:6px;height:6px;
+                    border-radius:50%;background:var(--terracotta);opacity:.55}
+  .notes b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="phone-scroll">
+
+    <div class="cbar">
+      <div style="display:flex;align-items:center">
+        <span class="brand display">GreenQubes</span><span class="tag">Pre-Alpha</span>
+      </div>
+      <div class="cbar-right">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <div class="avatar">NW</div>
+      </div>
+    </div>
+
+    <p class="pagelabel">Company Schedule</p>
+
+    <div class="headrow">
+      <div class="headleft">
+        <button class="navchev" onclick="stepDay(-1)" aria-label="Previous day">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="heading" onclick="toggleJump(event)">
+          <h1 class="display" id="headingLabel">Mon, 3 Aug</h1>
+          <svg class="caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="navchev" onclick="stepDay(1)" aria-label="Next day">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="headright">
+        <button class="todaybtn" id="todayBtn" style="display:none" onclick="goToday()">Today</button>
+        <button class="iconbtn" aria-label="Search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <button class="newbtn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          New
+        </button>
+      </div>
+    </div>
+
+    <div class="chiprow">
+      <div class="viewtoggle">
+        <button class="on">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          List</button>
+        <button>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Week</button>
+        <button>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Month</button>
+      </div>
+    </div>
+
+    <div class="striprow">
+      <button class="striparrow" onclick="pageStrip(-1)" aria-label="Previous period">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="strip weekmode" id="strip"></div>
+      <button class="striparrow" onclick="pageStrip(1)" aria-label="Next period">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <button class="modebtn" id="modeBtn" onclick="toggleMode()" aria-label="Switch week/month strip"></button>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--bad)"></i>Strict on time</span>
+      <span><i style="background:var(--blue)"></i>Flexible window</span>
+    </div>
+
+    <div class="jobs" id="jobs"></div>
+  </div>
+
+  <div class="bnav">
+    <button class="on">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Schedule</button>
+    <button>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h13M11 18h9"/><circle cx="4" cy="12" r="1"/><circle cx="8" cy="18" r="1"/></svg>
+      FCFS</button>
+    <button>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Pending</button>
+    <button>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg>
+      Assistant</button>
+  </div>
+
+  <div class="scrim" id="scrim" onclick="closeJump()"></div>
+  <div class="jump" id="jump" style="display:none">
+    <div class="jhead">
+      <button onclick="jumpMonth(-1)" aria-label="Previous month">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="jm" id="jumpLabel"></span>
+      <button onclick="jumpMonth(1)" aria-label="Next month">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="jgrid" id="jumpGrid"></div>
+  </div>
+</div>
+
+<div class="notes">
+  <h2>Schedule list — new navigation</h2>
+  <p class="sub">Interactive mockup · nothing here is real data</p>
+  <h3>Try these</h3>
+  <ul>
+    <li><b>Icon button</b> at the right of the strip switches between a Mon–Sun week and the whole month — it always shows the layout you'd switch <b>to</b> (hover it for words).</li>
+    <li><b>‹ › beside the strip</b> peeks at the previous / next week or month <b>without losing your selected day</b>.</li>
+    <li><b>Tap the date heading</b> ("Mon, 3 Aug") to open the jump calendar — flip months, tap any day.</li>
+    <li><b>Today button</b> appears (amber, top right) once you wander off today — one tap back.</li>
+    <li><b>‹ › beside the heading</b> still steps one day at a time; the strip follows.</li>
+    <li>Try <b>Thu 30 Jul</b> (page back once in week mode) — an overdue day shows red.</li>
+    <li>In month mode, the strip <b>scrolls with the mouse wheel</b> and the selected day auto-centres.</li>
+  </ul>
+  <h3>Also in the real build</h3>
+  <ul>
+    <li>The old All / Today / Week / Upcoming filter chips are <b>gone</b> — the strip, Today button and jump calendar replace them. List / Week / Month stays.</li>
+    <li>Your week/month choice is remembered on each device.</li>
+    <li>The tiny desktop scrollbar is gone for good.</li>
+    <li>Week tab + Month tab + installer views all become Monday-start.</li>
+    <li>Pending & Completed pages get the same treatment automatically.</li>
+  </ul>
+</div>
+
+<script>
+  // ── fixed "today" for the mockup ──
+  const TODAY = new Date(2026, 7, 3)            // Mon 3 Aug 2026
+  let selected = new Date(TODAY)
+  let anchor   = new Date(TODAY)                // defines the visible strip window
+  let mode     = 'week'                          // 'week' | 'month'
+  let jumpView = new Date(TODAY)                // month shown in jump calendar
+
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const shift = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x }
+  const monIdx = d => (d.getDay()+6)%7          // Mon=0 … Sun=6
+
+  // ── fake jobs: [iso, title, desc, timeRange, location, installers, punctuality, status, dayLabel] ──
+  const JOBS = {
+    '2026-07-28':[['Marina One lobby refresh','Dismantle + cart away old panels','9am – 1pm','Marina One','Ravi, Ali','flex','completed']],
+    '2026-07-30':[['Expo Hall 5 booth teardown','Full teardown, return fixtures to store','2pm – 6pm','Singapore Expo','Kai','strict','overdue']],
+    '2026-08-03':[['CapitaSpring L17 signage','Install acrylic lettering at lift lobby','10am – 12pm','CapitaSpring','Ravi','strict','scheduled'],
+                  ['Funan atrium banner swap','Swap fabric banners, check tension wires','All day','Funan Mall','Ali, Kai','flex','scheduled']],
+    '2026-08-05':[['Suntec B1 hoarding','Print + fix hoarding graphics','9am – 3pm','Suntec City','Ravi, Ali','flex','scheduled']],
+    '2026-08-07':[['Raffles Place popup fit-out','Day 1 — frame + power run','8am – 6pm','One Raffles Place','Kai, Ravi','strict','scheduled'],
+                  ['Jewel kiosk vinyl','Apply vinyl wrap on kiosk','7pm – 9pm','Jewel Changi','Ali','flex','scheduled']],
+    '2026-08-12':[['Orchard flagship window display','3-day build, window 4 + 5','9am – 6pm','ION Orchard','Kai, Ali','flex','scheduled','1/3']],
+    '2026-08-13':[['Orchard flagship window display','3-day build, window 4 + 5','9am – 6pm','ION Orchard','Kai, Ali','flex','scheduled','2/3']],
+    '2026-08-14':[['Orchard flagship window display','3-day build, window 4 + 5','9am – 6pm','ION Orchard','Kai, Ali','flex','scheduled','3/3']],
+    '2026-08-21':[['MBS conference backdrop','Stage backdrop + rigging check','6am – 10am','Marina Bay Sands','Ravi, Kai','strict','scheduled']],
+    '2026-09-02':[['Tampines Hub wayfinding','New directory signs, levels 1–3','10am – 4pm','Our Tampines Hub','Ali','flex','scheduled']],
+  }
+  const dayInfo = d => {
+    const js = JOBS[iso(d)] || []
+    return {
+      count: js.length,
+      strict: js.some(j => j[5] === 'strict'),
+      flex:   js.some(j => j[5] === 'flex'),
+      overdue:js.some(j => j[6] === 'overdue'),
+    }
+  }
+
+  // ── date strip ──
+  function windowDays(){
+    if (mode === 'week'){
+      const start = shift(anchor, -monIdx(anchor))
+      return Array.from({length:7}, (_,i) => shift(start,i))
+    }
+    const n = new Date(anchor.getFullYear(), anchor.getMonth()+1, 0).getDate()
+    return Array.from({length:n}, (_,i) => new Date(anchor.getFullYear(), anchor.getMonth(), i+1))
+  }
+
+  function renderStrip(){
+    const strip = document.getElementById('strip')
+    strip.className = 'strip ' + (mode === 'week' ? 'weekmode' : 'monthmode')
+    strip.innerHTML = ''
+    windowDays().forEach(d => {
+      const info = dayInfo(d)
+      const b = document.createElement('button')
+      b.className = 'day'
+      if (iso(d) === iso(selected)) b.classList.add('sel')
+      if (iso(d) === iso(TODAY))    b.classList.add('today')
+      if (info.overdue)             b.classList.add('overdue')
+      b.innerHTML = '<span class="dow">' + DOW[monIdx(d)] + '</span><span class="num">' + d.getDate() + '</span>'
+      if (info.count){
+        if (b.classList.contains('sel')) b.innerHTML += '<span class="dot w"></span>'
+        else {
+          if (info.flex)   b.innerHTML += '<span class="dot b"></span>'
+          if (info.strict) b.innerHTML += '<span class="dot r"' + (info.flex ? '' : ' style="right:6px"') + '></span>'
+        }
+      }
+      b.onclick = () => { selected = d; anchor = new Date(d); renderAll() }
+      strip.appendChild(b)
+    })
+    if (mode === 'month'){
+      const target = strip.querySelector('.sel') || strip.firstChild
+      if (target) requestAnimationFrame(() =>
+        target.scrollIntoView({inline:'center', block:'nearest', behavior:'instant'}))
+    }
+    // icon shows the layout you'd switch TO
+    const monthGridIcon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18"/><path d="M7 13h.01M12 13h.01M17 13h.01M7 17h.01M12 17h.01M17 17h.01"/></svg>'
+    const weekRowIcon   = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M7 11v2M12 11v2M17 11v2"/></svg>'
+    const mb = document.getElementById('modeBtn')
+    mb.innerHTML = mode === 'week' ? monthGridIcon : weekRowIcon
+    mb.title = mode === 'week' ? 'Show full month' : 'Show one week'
+  }
+  document.getElementById('strip').addEventListener('wheel', e => {
+    if (mode !== 'month') return
+    e.preventDefault()
+    e.currentTarget.scrollLeft += e.deltaY
+  }, {passive:false})
+
+  function toggleMode(){ mode = mode === 'week' ? 'month' : 'week'; anchor = new Date(selected); renderAll() }
+  function pageStrip(dir){
+    if (mode === 'week') anchor = shift(anchor, dir*7)
+    else anchor = new Date(anchor.getFullYear(), anchor.getMonth()+dir, 1)
+    renderAll()
+  }
+  function stepDay(dir){ selected = shift(selected, dir); anchor = new Date(selected); renderAll() }
+  function goToday(){ selected = new Date(TODAY); anchor = new Date(TODAY); renderAll() }
+
+  // ── heading + today button ──
+  function renderHeading(){
+    document.getElementById('headingLabel').textContent =
+      DOW[monIdx(selected)] + ', ' + selected.getDate() + ' ' + MONTHS[selected.getMonth()].slice(0,3)
+    document.getElementById('todayBtn').style.display = iso(selected) === iso(TODAY) ? 'none' : ''
+  }
+
+  // ── job cards ──
+  const pinSvg  = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>'
+  const usrSvg  = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+  const calSvg  = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'
+
+  function renderJobs(){
+    const wrap = document.getElementById('jobs')
+    const js = JOBS[iso(selected)] || []
+    if (!js.length){
+      wrap.innerHTML = '<div class="empty">' + calSvg + '<p>No jobs on this day</p></div>'
+      return
+    }
+    wrap.innerHTML = js.map(j => {
+      const [title, desc, time, loc, inst, punct, status, dayLab] = j
+      const cls = status === 'overdue' ? ' overdue' : status === 'completed' ? ' done' : ''
+      return '<div class="card' + cls + '">' +
+        '<div class="pbar ' + punct + '"></div><div class="cbody">' +
+        '<div class="crow1"><span class="ctitle display">' + title + '</span>' +
+        '<span class="ctime"><span class="tl">Job time:</span><span class="tv">' + time + '</span>' +
+        (dayLab ? '<span class="tl" style="margin-top:4px">Job day:</span><span class="tv">' + dayLab + '</span>' : '') +
+        '</span></div>' +
+        '<p class="cdesc">' + desc + '</p>' +
+        '<div class="cmeta"><span>' + pinSvg + loc + '</span><span>' + usrSvg + inst + '</span>' +
+        (status === 'overdue'   ? '<span class="pill over">overdue</span>' : '') +
+        (status === 'completed' ? '<span class="pill done">completed</span>' : '') +
+        '</div></div></div>'
+    }).join('')
+  }
+
+  // ── jump calendar ──
+  function toggleJump(e){
+    e.stopPropagation()
+    const open = document.getElementById('jump').style.display !== 'none'
+    if (open) return closeJump()
+    jumpView = new Date(selected.getFullYear(), selected.getMonth(), 1)
+    document.getElementById('jump').style.display = ''
+    document.getElementById('scrim').classList.add('open')
+    renderJump()
+  }
+  function closeJump(){
+    document.getElementById('jump').style.display = 'none'
+    document.getElementById('scrim').classList.remove('open')
+  }
+  function jumpMonth(dir){ jumpView = new Date(jumpView.getFullYear(), jumpView.getMonth()+dir, 1); renderJump() }
+  function renderJump(){
+    document.getElementById('jumpLabel').textContent =
+      MONTHS[jumpView.getMonth()] + ' ' + jumpView.getFullYear()
+    const g = document.getElementById('jumpGrid')
+    g.innerHTML = DOW.map(d => '<span class="dowh">' + d[0] + '</span>').join('')
+    const blanks = monIdx(jumpView)
+    for (let i = 0; i < blanks; i++) g.innerHTML += '<span></span>'
+    const n = new Date(jumpView.getFullYear(), jumpView.getMonth()+1, 0).getDate()
+    for (let day = 1; day <= n; day++){
+      const d = new Date(jumpView.getFullYear(), jumpView.getMonth(), day)
+      const b = document.createElement('button')
+      b.className = 'jd'
+      if (iso(d) === iso(TODAY))    b.classList.add('today')
+      if (iso(d) === iso(selected)) b.classList.add('sel')
+      b.textContent = day
+      if (dayInfo(d).count) b.innerHTML += '<span class="jdot"></span>'
+      b.onclick = () => { selected = d; anchor = new Date(d); closeJump(); renderAll() }
+      g.appendChild(b)
+    }
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeJump() })
+
+  function renderAll(){ renderHeading(); renderStrip(); renderJobs() }
+  renderAll()
+</script>
+</body>
+</html>

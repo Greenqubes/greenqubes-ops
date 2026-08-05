@@ -19,13 +19,12 @@ export const en = {
   newJob: 'New job',
   noJobs: 'No jobs scheduled',
   searchJobs: 'Search jobs, customers, locations…',
-  filterAll: 'All',
   filterToday: 'Today',
-  filterWeek: 'This week',
-  filterUpcoming: 'Upcoming',
   viewList: 'List',
   viewWeek: 'Week',
   viewMonth: 'Month',
+  stripShowMonth: 'Show full month',
+  stripShowWeek: 'Show one week',
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',

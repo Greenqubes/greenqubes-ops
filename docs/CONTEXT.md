@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-07-30 (feat-jobs — Workflow V2 Phase 4 PASSED; V2 build complete — full regression test + clean-cut switchover next)_
+_Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DONE: feat-workflow-v2 → dev → main; V2 live on production; branch kept for record)_
 
 ---
 
@@ -277,13 +277,13 @@ greenqubes/
 
 All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md` (completed sessions table) and `docs/pre-rebase-notes/` (individual session notes).
 
-**Workflow V2 — clean-cut switchover (decided 2026-06-24):** All of Workflow V2 (the 3 new roles, approval removal, FCFS board, installer suggestion/assignment, external links, etc.) is being built on the `feat-workflow-v2` branch across Phases 1–4. It will NOT be merged into `dev` incrementally — Nic wants the old workflow fully replaced in one clean switchover once V2 is fully functional and tested, so there's never a half-migrated state on dev/main.
+**Workflow V2 — clean-cut switchover (decided 2026-06-24, EXECUTED 2026-08-03):** All of Workflow V2 (the 3 new roles, approval removal, FCFS board, installer suggestion/assignment, external links, etc.) was built on the `feat-workflow-v2` branch across Phases 1–4 and merged to `dev` + `main` in one shot on 2026-08-03 after Nic's full regression test passed. V2 is live on production. `feat-workflow-v2` is kept for historical record only — do not push new changes to it.
 
 - [x] **Phase 1** — roles + approval removal (smoke test passed 2026-06-24)
 - [x] **Phase 2** — role-locked job form + installer suggestion/assignment (smoke test passed 2026-07-22)
 - [x] **Phase 3** — FCFS board + clash-on-edit (smoke test passed 2026-07-22; Day view only — Week/Month/By-Project/By-Installer toggles deferred)
 - [x] **Phase 4** — external installer links, sub-installers, task list, external POC bucket (smoke test passed 2026-07-30; live chat on the external page deferred)
-- [ ] **Full V2 regression test → clean-cut switchover** — final step: run Phases 1–4 together on the preview, then replace the old workflow on dev/main in one shot
+- [x] **Full V2 regression test → clean-cut switchover** — regression test passed [Nic]; switchover done 2026-08-03: feat-workflow-v2 → dev → main, production verified live on V2
 
 - [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
 - [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light

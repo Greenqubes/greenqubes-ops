@@ -1,10 +1,9 @@
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
-import { dayLabel, langToLocale } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
-const DAY_INDICES = [0, 1, 2, 3, 4, 5, 6] // Sun–Sat
+const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // always English
 
 interface MonthViewProps {
   monthCells:   (string | null)[]
@@ -19,23 +18,11 @@ interface MonthViewProps {
 export function MonthView({
   monthCells, jobsByDate, selectedDate, today, lang, onSelectDate, onDrillDown,
 }: MonthViewProps) {
-  const locale = langToLocale(lang)
-
-  // Build day-of-week header using the anchor Sunday of the current month
-  const firstRealDate = monthCells.find(d => d !== null) ?? today
-  const weekStart = new Date(firstRealDate + 'T00:00:00')
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-  const dayHeaders = DAY_INDICES.map(i => {
-    const d = new Date(weekStart)
-    d.setDate(weekStart.getDate() + i)
-    return dayLabel(d.toISOString().split('T')[0], locale)
-  })
-
   return (
     <div className="px-4 pb-24">
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {dayHeaders.map((h, i) => (
+        {DAY_HEADERS.map((h, i) => (
           <div key={i} className="text-center text-[10px] text-muted uppercase tracking-wide py-1">
             {h}
           </div>

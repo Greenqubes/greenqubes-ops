@@ -3,25 +3,25 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, X, Plus } from 'lucide-react'
+import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
+import { JumpCalendar } from './JumpCalendar'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
 import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
 import {
   toISO, shiftDate, shiftMonth,
-  getWeekDays, getMonthCells, monthLabel, langToLocale,
+  getWeekDays, getMonthCells, monthLabel,
 } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
 type ViewMode = 'list' | 'week' | 'month'
-type Filter   = 'all' | 'today' | 'week' | 'upcoming'
 
 interface ScheduleShellProps {
   jobs:     ScheduleJob[]
@@ -53,10 +53,10 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   }, [router])
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
-  const [filter,       setFilter]       = useState<Filter>('all')
   const [query,        setQuery]        = useState('')
   const [showSearch,   setShowSearch]   = useState(false)
   const [selectedDate, setSelectedDate] = useState(today)
+  const [showJump,     setShowJump]     = useState(false)
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState(false)
@@ -90,21 +90,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     }
   }
 
-  const locale = langToLocale(lang)
-
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
     if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
     if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
     if (pageMode === 'completed' &&  j.status !== 'completed') return false
-    const endDate = j.date_end ?? j.date
-    if (filter === 'today'    && (today < j.date || today > endDate)) return false
-    if (filter === 'upcoming' && endDate < today)  return false
-    if (filter === 'week') {
-      const startDiff = (new Date(j.date).getTime()    - new Date(today).getTime()) / 86_400_000
-      const endDiff   = (new Date(endDate).getTime()   - new Date(today).getTime()) / 86_400_000
-      if (endDiff < 0 || startDiff > 7) return false
-    }
     if (query.trim()) {
       const q   = query.toLowerCase()
       const hay = [
@@ -114,7 +104,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       if (!hay.includes(q)) return false
     }
     return true
-  }), [jobs, filter, query, today])
+  }), [jobs, query, pageMode])
 
   // Expand multi-day jobs so they appear on every date in their range
   const jobsByDate = useMemo(() =>
@@ -132,20 +122,6 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     }, {}),
     [filtered]
   )
-
-  const dates = useMemo(() => {
-    const jobDates = Object.keys(jobsByDate).sort()
-    if (jobDates.length === 0) return [today]
-    const start = jobDates[0] < today ? jobDates[0] : today
-    const end   = jobDates[jobDates.length - 1] > today ? jobDates[jobDates.length - 1] : today
-    const result: string[] = []
-    let cur = start
-    while (cur <= end) {
-      result.push(cur)
-      cur = shiftDate(cur, 1)
-    }
-    return result
-  }, [jobsByDate, today])
 
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])
   const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate])
@@ -170,22 +146,15 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const headingLabel = useMemo(() => {
     if (viewMode === 'list') {
       return new Date(selectedDate + 'T00:00:00')
-        .toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+        .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
     }
-    return monthLabel(selectedDate, locale)
-  }, [viewMode, selectedDate, locale])
+    return monthLabel(selectedDate)
+  }, [viewMode, selectedDate])
 
   const views: { v: ViewMode; Icon: typeof List; label: string }[] = [
     { v: 'list',  Icon: List,         label: tr(lang, 'viewList')  },
     { v: 'week',  Icon: CalendarDays, label: tr(lang, 'viewWeek')  },
     { v: 'month', Icon: Grid3X3,      label: tr(lang, 'viewMonth') },
-  ]
-
-  const filterChips: { v: Filter; label: string }[] = [
-    { v: 'all',      label: tr(lang, 'filterAll')      },
-    { v: 'today',    label: tr(lang, 'filterToday')    },
-    { v: 'week',     label: tr(lang, 'filterWeek')     },
-    { v: 'upcoming', label: tr(lang, 'filterUpcoming') },
   ]
 
   const listStrings = {
@@ -200,23 +169,44 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       <CompanyBar lang={lang} />
 
       {/* ── Company schedule label ── */}
-      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
+      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
         {tr(lang, 'companySchedule')}
       </p>
 
       {/* ── Header ── */}
-      <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
+      <div className="relative px-4 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronLeft  size={16} />
             </button>
-            <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
-              {headingLabel}
-            </h1>
+            {/* Fixed min-width so the ‹ › arrows never shift with the label's text width */}
+            {viewMode === 'list' ? (
+              <button
+                onClick={() => setShowJump(s => !s)}
+                className="flex items-center justify-center gap-1 px-1 min-w-[176px] rounded-lg hover:bg-ink/5 transition-colors"
+              >
+                <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none whitespace-nowrap">
+                  {headingLabel}
+                </h1>
+                <ChevronDown size={14} className="text-muted shrink-0" />
+              </button>
+            ) : (
+              <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1 min-w-[210px] text-center whitespace-nowrap">
+                {headingLabel}
+              </h1>
+            )}
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronRight size={16} />
             </button>
+            {viewMode === 'list' && selectedDate !== today && (
+              <button
+                onClick={() => setSelectedDate(today)}
+                className="ml-1 px-2.5 py-[6px] text-[10px] font-semibold rounded-full border border-brand-amber bg-brand-amber-soft text-brand-amber transition-colors shrink-0"
+              >
+                {tr(lang, 'filterToday')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -243,6 +233,16 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             </Link>
           )}
         </div>
+
+        {showJump && viewMode === 'list' && (
+          <JumpCalendar
+            selectedDate={selectedDate}
+            today={today}
+            jobsByDate={jobsByDate}
+            onSelectDate={setSelectedDate}
+            onClose={() => setShowJump(false)}
+          />
+        )}
       </div>
 
       {/* ── Search bar ── */}
@@ -270,12 +270,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       )}
 
       {/* ── View toggle + filter chips ── */}
-      <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-2 px-4 pb-2 overflow-x-auto scrollbar-none">
         <div className="flex bg-paper border border-line rounded-lg p-0.5 shrink-0">
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}
-              onClick={() => { setViewMode(v); if (v === 'week' || v === 'month') setFilter('all') }}
+              onClick={() => setViewMode(v)}
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
@@ -287,30 +287,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
             </button>
           ))}
         </div>
-
-        {viewMode !== 'month' && filterChips
-          .filter(chip => viewMode === 'week' ? chip.v === 'all' : true)
-          .map(({ v, label }) => (
-            <button
-              key={v}
-              onClick={() => setFilter(v)}
-              className={cn(
-                'px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
-                filter === v
-                  ? 'bg-terracotta-soft border-terracotta text-terracotta'
-                  : 'bg-paper border-line text-ink2 hover:border-ink2'
-              )}
-            >
-              {label}
-            </button>
-          ))}
       </div>
 
       {/* ── Views ── */}
       {viewMode === 'list' && (
         <ListView
-          jobs={filtered}
-          dates={dates}
           jobsByDate={jobsByDate}
           selectedDate={selectedDate}
           today={today}

@@ -25,7 +25,7 @@ export function isOverdue(status: string, date: string): boolean {
 
 export function getWeekDays(anchor: string): string[] {
   const d = new Date(anchor + 'T00:00:00')
-  d.setDate(d.getDate() - d.getDay())
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)) // back to Monday
   return Array.from({ length: 7 }, (_, i) => {
     const day = new Date(d)
     day.setDate(d.getDate() + i)
@@ -33,11 +33,19 @@ export function getWeekDays(anchor: string): string[] {
   })
 }
 
+export function getMonthDays(anchor: string): string[] {
+  const d        = new Date(anchor + 'T00:00:00')
+  const year     = d.getFullYear()
+  const month    = d.getMonth()
+  const daysInMo = new Date(year, month + 1, 0).getDate()
+  return Array.from({ length: daysInMo }, (_, i) => toISO(new Date(year, month, i + 1)))
+}
+
 export function getMonthCells(anchor: string): (string | null)[] {
   const d         = new Date(anchor + 'T00:00:00')
   const year      = d.getFullYear()
   const month     = d.getMonth()
-  const firstDay  = new Date(year, month, 1).getDay()
+  const firstDay  = (new Date(year, month, 1).getDay() + 6) % 7 // Mon-first column index
   const daysInMo  = new Date(year, month + 1, 0).getDate()
   return [
     ...Array.from<null>({ length: firstDay }).fill(null),
@@ -57,14 +65,11 @@ export function shiftMonth(anchor: string, delta: number): string {
   return toISO(d)
 }
 
-export function dayLabel(isoDate: string, locale: string): string {
-  return new Date(isoDate + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short' })
+// Date names are ALWAYS English regardless of UI language (CLAUDE.md hard rule).
+export function dayLabel(isoDate: string): string {
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' })
 }
 
-export function monthLabel(isoDate: string, locale: string): string {
-  return new Date(isoDate + 'T00:00:00').toLocaleDateString(locale, { month: 'long', year: 'numeric' })
-}
-
-export function langToLocale(lang: string): string {
-  return lang === 'zh' ? 'zh-CN' : lang === 'bn' ? 'bn-BD' : 'en-GB'
+export function monthLabel(isoDate: string): string {
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 }
