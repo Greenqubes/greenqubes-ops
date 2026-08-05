@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DONE; V2 live on production)_
+_Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to production)_
 
 ---
 
@@ -10,7 +10,7 @@ _Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DON
 
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
-- [ ] **Schedule tab: list view scrolling UX** — the list runs extremely long as more dates appear, and horizontal scrolling on desktop via the tiny scrollbar at the bottom is a hassle. Needs a UX improvement — spec + design decision before coding.
+- [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
 - [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
 - [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
 - [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
@@ -19,7 +19,7 @@ _Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DON
 
 - [x] **[Nic] Workflow V2 implementation — Phase 1 (roles + workflow simplification)** — implemented 2026-06-12 on `feat-workflow-v2` (migrations 0033–0036 applied; approval workflow removed; Push to Schedule live; FCFS tab in nav for all roles). See [feat/feat-jobs-20260612-1-note.md](feat/feat-jobs-20260612-1-note.md).
 - [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
-- [ ] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
+- [x] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
 - [x] **[Nic] Clean-cut switchover (strategy reminder)** — executed 2026-08-03; see the regression test → switchover item below.
 - [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
@@ -113,6 +113,16 @@ _Last updated: 2026-08-03 (chore-config — Workflow V2 clean-cut switchover DON
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-05, ux-schedule — Schedule List Scrolling UX)
+
+- [x] **[Nic] Smoke test passed — desktop AND mobile** — all 7 sections green after two feedback rounds (fixed heading arrows wider, month label centred, Today button moved left).
+- [x] **[Nic] Approved merge to production** — `dev` → `main` pushed 2026-08-05; new schedule navigation live.
+- [x] **[Nic] Design decisions made** — week↔month strip toggle (icon-only, shows target layout); filter chips removed; Monday-start weeks everywhere; jump calendar list-view-only for now.
+- [x] **[Nic] Boss decision relayed — no new Bengali translations** — new UI text gets English + Chinese only; Bengali shows English automatically. Recorded in CONTEXT.md.
+- [x] **Interactive mockup approved before build** — `public/mockups/schedule-list-ux/index.html` (kept for record).
 
 ---
 
