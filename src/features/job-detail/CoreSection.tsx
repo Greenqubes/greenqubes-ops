@@ -36,11 +36,21 @@ interface Props {
   role:              Role
   validateRequired?: boolean
   installerView?:    boolean
+  bare?:             boolean
+}
+
+// Frame for the section body: the page's CollapseCard supplies the card
+// chrome when `bare`; standalone use keeps the original Card. Module-level
+// so the frame's identity is stable and inputs never remount.
+function CoreFrame({ bare, children }: { bare: boolean; children: React.ReactNode }) {
+  return bare
+    ? <div className="space-y-4">{children}</div>
+    : <Card className="p-5 space-y-4">{children}</Card>
 }
 
 export function CoreSection({
   register, errors, control, watch, setValue,
-  readOnly, lang, role, validateRequired = false, installerView = false,
+  readOnly, lang, role, validateRequired = false, installerView = false, bare = false,
 }: Props) {
   const req = validateRequired ? { required: 'Required' } : {}
 
@@ -165,7 +175,7 @@ export function CoreSection({
         </Modal>
       )}
 
-      <Card className="p-5 space-y-4">
+      <CoreFrame bare={bare}>
 
         {/* Project Title */}
         <Field label={t(lang, 'projectTitle')} error={errors.project_title?.message}>
@@ -365,7 +375,7 @@ export function CoreSection({
           </div>
         )}
 
-      </Card>
+      </CoreFrame>
     </>
   )
 }

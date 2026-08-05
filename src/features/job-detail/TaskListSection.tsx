@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ListChecks, Plus, X, Check } from 'lucide-react'
+import { ListChecks, Plus, X, Check, ChevronDown } from 'lucide-react'
 import { Card } from '@/components/Card'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
+import { useCardCollapse } from './useCardCollapse'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -151,13 +152,19 @@ export function TaskListSection({ jobId, role, lang, readOnly }: Props) {
   const total = tasks.length
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0
 
+  // PC-only card collapse — same per-device memory as the other job cards.
+  const { open, toggle } = useCardCollapse('gq-jobcard-tasks')
+
   // Non-editors don't need an empty card taking up form space.
   if (!canEdit && (!loaded || total === 0)) return null
 
   return (
     <Card className="overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-line flex items-center justify-between gap-2">
+      <div className={cn(
+        'px-4 py-3 border-b border-line flex items-center justify-between gap-2',
+        !open && 'lg:border-b-0',
+      )}>
         <div className="flex items-center gap-2">
           <ListChecks size={12} className={cn(done === total && total > 0 ? 'text-brand-green' : 'text-muted')} />
           <span className="text-[10px] font-semibold tracking-widest uppercase text-muted">
@@ -169,23 +176,36 @@ export function TaskListSection({ jobId, role, lang, readOnly }: Props) {
             </span>
           )}
         </div>
-        {canEdit && total > 0 && (
+        <div className="flex items-center gap-3">
+          {canEdit && total > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="flex items-center gap-1 text-[11px] font-semibold text-terracotta"
+            >
+              <X size={11} />
+              {t(lang, 'taskListClearAll')}
+            </button>
+          )}
+          {!canEdit && total > 0 && done === total && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-brand-green">
+              <Check size={12} strokeWidth={3} />
+              {t(lang, 'taskListAllDone')}
+            </span>
+          )}
           <button
             type="button"
-            onClick={clearAll}
-            className="flex items-center gap-1 text-[11px] font-semibold text-terracotta"
+            onClick={toggle}
+            aria-expanded={open}
+            className="hidden lg:flex items-center justify-center w-6 h-6 rounded text-muted hover:text-ink transition-colors"
           >
-            <X size={11} />
-            {t(lang, 'taskListClearAll')}
+            <ChevronDown size={14} className={cn('transition-transform', !open && '-rotate-90')} />
           </button>
-        )}
-        {!canEdit && total > 0 && done === total && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-brand-green">
-            <Check size={12} strokeWidth={3} />
-            {t(lang, 'taskListAllDone')}
-          </span>
-        )}
+        </div>
       </div>
+
+      {/* Body — folds on PC when the card is collapsed */}
+      <div className={cn(!open && 'lg:hidden')}>
 
       {/* Progress (tick + read-only views) */}
       {!canEdit && total > 0 && (
@@ -318,6 +338,7 @@ export function TaskListSection({ jobId, role, lang, readOnly }: Props) {
           </button>
         </div>
       )}
+      </div>
     </Card>
   )
 }

@@ -30,6 +30,15 @@ interface Props {
   jobId:     string
   userId:    string
   files:     JobFile[]
+  bare?:     boolean
+}
+
+// Frame for the section body: the page's CollapseCard supplies the card
+// chrome (and the title) when `bare`; standalone use keeps the original Card.
+function ProductionFrame({ bare, children }: { bare: boolean; children: React.ReactNode }) {
+  return bare
+    ? <div className="space-y-5">{children}</div>
+    : <Card className="p-5 space-y-5">{children}</Card>
 }
 
 function DownloadButton({ r2Key, lang }: { r2Key: string; lang: LangCode }) {
@@ -140,7 +149,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
   )
 }
 
-export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files }: Props) {
+export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files, bare = false }: Props) {
   const isInstaller         = role === 'installer'
   const isDesigner          = role === 'designer'
   // Designer is view-only; installer reads instructions but cannot edit them.
@@ -156,8 +165,10 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
   const completionPhotos = files.filter(f => f.kind === 'completion')
 
   return (
-    <Card className="p-5 space-y-5">
-      <h3 className="text-sm font-medium text-ink">{t(lang, 'productionReadyInstructions')}</h3>
+    <ProductionFrame bare={bare}>
+      {!bare && (
+        <h3 className="text-sm font-medium text-ink">{t(lang, 'productionReadyInstructions')}</h3>
+      )}
 
       {/* Production Instructions */}
       <Field label={t(lang, 'productionInstructions')}>
@@ -215,6 +226,6 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         userId={userId}
         lang={lang}
       />
-    </Card>
+    </ProductionFrame>
   )
 }
