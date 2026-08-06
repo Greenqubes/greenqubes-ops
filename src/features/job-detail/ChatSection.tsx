@@ -508,6 +508,9 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
           payload => {
             const row = payload.new as JobFile
             if (row.kind !== 'attachment') return
+            // Bucket uploads share kind 'attachment' but belong to the
+            // Attachments section, not the chat.
+            if (row.bucket_id) return
             // Realtime payloads carry only the row's own columns, never the
             // joined users.name — so resolve the uploader name the same way
             // the messages handler does, otherwise the bubble shows "Unknown".

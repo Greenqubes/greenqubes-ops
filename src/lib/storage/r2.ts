@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 import type { FileKind } from '@/lib/supabase/types'
@@ -67,6 +67,17 @@ export async function getDownloadUrl(key: string): Promise<string> {
   )
   void logApiUsage({ service: 'r2', endpoint: 'get', estimated_cost: 0 })
   return url
+}
+
+// Server-side R2→R2 object copy (no download/re-upload). Keys in this app are
+// UUID-based ASCII paths, so the raw `bucket/key` CopySource form is safe.
+export async function copyObject(sourceKey: string, destKey: string): Promise<void> {
+  await r2.send(new CopyObjectCommand({
+    Bucket:     BUCKET,
+    CopySource: `${BUCKET}/${sourceKey}`,
+    Key:        destKey,
+  }))
+  void logApiUsage({ service: 'r2', endpoint: 'copy', estimated_cost: 0 })
 }
 
 export async function getBugScreenshotUploadUrl(

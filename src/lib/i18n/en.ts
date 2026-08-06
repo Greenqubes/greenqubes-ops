@@ -28,6 +28,14 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
+  tabDetails: 'Details',
+  tabTeam: 'Team',
+  tabFiles: 'Files',
+  tabChat: 'Chat',
+  jobDetails: 'Job details',
+  attachments: 'Attachments',
+  duplicateJob: 'Duplicate',
+  duplicateSuccess: 'Job duplicated — set the new location',
   createJob: 'Create Job',
   projectTitle: 'Project Title',
   date: 'Date',

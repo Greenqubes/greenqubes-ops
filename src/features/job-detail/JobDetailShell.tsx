@@ -8,13 +8,14 @@ import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
-import { Card } from '@/components/Card'
 import { Field } from '@/components/Field'
 import { SearchableSelect, SelectOption } from '@/components/SearchableSelect'
 import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
 import { AttachmentBuckets } from './AttachmentBuckets'
+import { JobFormLayout } from './JobFormLayout'
+import { CollapseCard } from './CollapseCard'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
@@ -29,7 +30,7 @@ import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
-import { ArrowLeft, Bell, Trash2, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Bell, Trash2, CheckCircle, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 export type FormValues = {
@@ -68,11 +69,12 @@ interface Props {
   initialCoordinatorIds?: string[]
   coordinatorOptions?:    Array<{ id: string; label: string }>
   backHref?:              string
+  initialTab?:            'chat'
 }
 
 export function JobDetailShell({
   job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
-  initialCoordinatorIds = [], coordinatorOptions = [], backHref = '/schedule',
+  initialCoordinatorIds = [], coordinatorOptions = [], backHref = '/schedule', initialTab,
 }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router   = useRouter()
@@ -113,6 +115,7 @@ export function JobDetailShell({
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
+  const [duplicating,          setDuplicating]         = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
   const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
@@ -340,6 +343,22 @@ export function JobDetailShell({
     }
   }
 
+  const handleDuplicate = async () => {
+    setDuplicating(true)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/duplicate`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as { id: string; skippedFiles: number }
+      showSuccess(data.skippedFiles > 0
+        ? `${t(lang, 'duplicateSuccess')} (${data.skippedFiles} file(s) skipped)`
+        : t(lang, 'duplicateSuccess'))
+      router.push(`/jobs/${data.id}`)
+    } catch {
+      showError(t(lang, 'saveError'))
+      setDuplicating(false)
+    }
+  }
+
   const handleDelete = async () => {
     setDeleting(true)
     try {
@@ -559,7 +578,7 @@ export function JobDetailShell({
       <CompanyBar lang={lang} />
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="px-4 pt-5 pb-3">
+      <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
         <button
           type="button"
           onClick={() => router.back()}
@@ -576,38 +595,47 @@ export function JobDetailShell({
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 space-y-4">
-
-        {/* ── Core card ───────────────────────────────────────────── */}
-        <CoreSection
-          register={register}
-          errors={errors}
-          control={control}
-          watch={watch}
-          setValue={setValue}
-          readOnly={readOnly}
-          lang={lang}
-          role={role}
-          installerView={isInstaller}
-        />
-
-        {/* ── Production section (all roles; installer = read-only) ─ */}
-        <ProductionReadySection
-          register={register}
-          watch={watch}
-          setValue={setValue}
-          readOnly={readOnly}
-          role={role}
-          lang={lang}
-          jobId={job.id}
-          userId={userId}
-          files={job.files.filter(f =>
-            f.kind === 'production_instructions' || f.kind === 'do' || f.kind === 'completion'
-          )}
-        />
-
+      <JobFormLayout
+        lang={lang}
+        initialTab={initialTab}
+        details={
+          <div className="flex flex-col gap-4">
+            <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+              <CoreSection
+                bare
+                register={register}
+                errors={errors}
+                control={control}
+                watch={watch}
+                setValue={setValue}
+                readOnly={readOnly}
+                lang={lang}
+                role={role}
+                installerView={isInstaller}
+              />
+            </CollapseCard>
+            <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
+              <ProductionReadySection
+                bare
+                register={register}
+                watch={watch}
+                setValue={setValue}
+                readOnly={readOnly}
+                role={role}
+                lang={lang}
+                jobId={job.id}
+                userId={userId}
+                files={job.files.filter(f =>
+                  f.kind === 'production_instructions' || f.kind === 'do' || f.kind === 'completion'
+                )}
+              />
+            </CollapseCard>
+          </div>
+        }
+        team={
+          <div className="flex flex-col gap-4">
         {/* ── Team card ───────────────────────────────────────────── */}
-        <Card className="overflow-hidden">
+        <CollapseCard title={t(lang, 'tabTeam')} storageKey="gq-jobcard-team" bodyClassName="p-0">
           <div className="p-4 space-y-4">
 
             {/* Person-in-Charge */}
@@ -724,58 +752,55 @@ export function JobDetailShell({
           {!isInstaller && (
             <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={readOnly} />
           )}
-        </Card>
-
-        {/* ── Attachments ─────────────────────────────────────────── */}
-        <AttachmentBuckets
-          jobId={job.id}
-          userId={userId}
-          lang={lang}
-          readOnly={readOnly || isInstaller}
-        />
-
-        {/* ── Task list (Phase 4) ─────────────────────────────────── */}
-        <TaskListSection
-          jobId={job.id}
-          role={role}
-          lang={lang}
-          readOnly={readOnly}
-        />
-
-        {/* ── Chat (unchanged) ────────────────────────────────────── */}
-        <ChatSection
-          jobId={job.id}
-          userId={userId}
-          userName={userName}
-          lang={lang}
-          completedAt={job.completed_at}
-          initialMessages={initialMessages}
-          chatFiles={job.files.filter(f => f.kind === 'attachment')}
-          preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
-        />
+        </CollapseCard>
 
         {/* ── Notifications placeholder (non-installer only) ────────  */}
         {!isInstaller && (
-          <Card className="overflow-hidden">
-            <div className="px-4 py-3 border-b border-line flex items-center gap-2">
-              <Bell size={12} className="text-muted" />
-              <span className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-                Notifications
-              </span>
-            </div>
+          <CollapseCard title="Notifications" storageKey="gq-jobcard-notifications" bodyClassName="p-0">
             <div className="px-4 py-5 flex flex-col items-center gap-2 text-center">
               <Bell size={20} className="text-line" />
               <p className="text-sm font-medium text-ink2">Coming soon</p>
               <p className="text-xs text-muted">Telegram notification tracker</p>
             </div>
-          </Card>
+          </CollapseCard>
         )}
-
-      </div>
+          </div>
+        }
+        files={
+          <div className="flex flex-col gap-4">
+            <CollapseCard title={t(lang, 'attachments')} storageKey="gq-jobcard-attachments">
+              <AttachmentBuckets
+                jobId={job.id}
+                userId={userId}
+                lang={lang}
+                readOnly={readOnly || isInstaller}
+              />
+            </CollapseCard>
+            <TaskListSection
+              jobId={job.id}
+              role={role}
+              lang={lang}
+              readOnly={readOnly}
+            />
+          </div>
+        }
+        chat={
+          <ChatSection
+            jobId={job.id}
+            userId={userId}
+            userName={userName}
+            lang={lang}
+            completedAt={job.completed_at}
+            initialMessages={initialMessages}
+            chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
+            preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
+          />
+        }
+      />
 
       {/* ── Action bar (sticky bottom) ───────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
-        <div className="max-w-2xl mx-auto space-y-2">
+        <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
           {isInstaller ? (
             <button
               type="button"
@@ -808,13 +833,17 @@ export function JobDetailShell({
                     Mark job complete
                   </button>
                 )}
-                <button
-                  type="button"
-                  disabled
-                  className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
-                >
-                  Duplicate (WIP)
-                </button>
+                {canEditCore && (
+                  <button
+                    type="button"
+                    onClick={handleDuplicate}
+                    disabled={duplicating}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Copy size={12} />
+                    {duplicating ? '…' : t(lang, 'duplicateJob')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => router.back()}
