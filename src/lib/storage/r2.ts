@@ -59,14 +59,26 @@ export async function getUploadUrlForKind(
   return { url, key }
 }
 
-export async function getDownloadUrl(key: string): Promise<string> {
+export async function getDownloadUrl(key: string, filename?: string): Promise<string> {
   const url = await getSignedUrl(
     r2,
-    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key:    key,
+      ...(filename ? { ResponseContentDisposition: contentDisposition(filename) } : {}),
+    }),
     { expiresIn: 3600 },
   )
   void logApiUsage({ service: 'r2', endpoint: 'get', estimated_cost: 0 })
   return url
+}
+
+// `inline` keeps in-tab previews (PDF/image) working; filename* (RFC 5987)
+// names the file on save — filenames may contain Chinese characters or spaces.
+function contentDisposition(filename: string): string {
+  const encoded = encodeURIComponent(filename)
+    .replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+  return `inline; filename*=UTF-8''${encoded}`
 }
 
 // Server-side R2→R2 object copy (no download/re-upload). Keys in this app are
