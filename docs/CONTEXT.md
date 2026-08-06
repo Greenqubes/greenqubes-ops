@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX redesign live on production; Monday-start weeks app-wide; filter chips removed; no new Bengali translations rule recorded)_
+_Last updated: 2026-08-06 (feat-files — original file names stored in `files.name` + shown app-wide, downloads keep real names, new jobs get readable R2 folders `{date}_{title}_{code}` via DB trigger; migrations 0041–0042; live on production)_
 
 ---
 
@@ -108,7 +108,7 @@ Plus: i18n in EN/ZH/BN, AI smart textarea (suggest from attachments / improve te
 users          — id, name, role, telegram_chat_id, lang, phone
 jobs           — id, status, date, time_start, time_end, client, location, ...
 job_assignees  — job_id, user_id (M:N installers ↔ jobs)
-files          — id, job_id, kind (photo|voice|do|attachment|completion), r2_key, uploader_id, ts
+files          — id, job_id, kind (photo|voice|do|attachment|completion), r2_key, name, uploader_id, ts
 messages       — id, job_id, author_id, kind (text|voice), content/voice_url, ts
 asst_chats     — id, user_id, msgs[], embedding, visibility[], tags[], importance, ts
 kb_chunks      — id, source_path, content, embedding, visibility[], tags[], updated_at

@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to production)_
+_Last updated: 2026-08-06 (feat-files — real file names in app + downloads, readable R2 folders for new jobs; migrations 0041–0042 applied; live on production)_
 
 ---
 
@@ -15,6 +15,7 @@ _Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to
 - [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
 - [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
 - [ ] **Telegram notification tracker on the job form** (noted 2026-08-05, ux-jobs) — build the real notification tracker behind the "Notifications — coming soon" placeholder card (bottom of the Team tab in the new job-form layout): show which Telegram notifications were sent for the job (assignments, clash alerts, chat batches), to whom, and when. Needs its own design session.
+- [ ] **Sub-jobs under a main job** (noted 2026-08-05, ux-jobs) — a job should be able to belong to a parent job (picked via a "parent job" dropdown), so one big project can hold several sub-jobs. Big piece: touches the data model, schedule/FCFS display, installer views, and possibly duplication. Needs its own design session before any build.
 
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
@@ -36,7 +37,7 @@ _Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)
 
-- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", and the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"). Wipe all test data in one pass right before go-live.
+- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"), the Duplicate-testing "… (Copy)" jobs, and the 2026-08-06 feat-files pair ("Test Job R2 Cloudflare Fix" + its Copy). Wipe all test data in one pass right before go-live.
 - [ ] **Remove the test installer account** (or keep it — your call) used to verify installers can't see suggestions.
 - [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them).
 
@@ -46,7 +47,7 @@ _Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to
 
 ### Features (from 2026-05-26, vault-convention)
 
-- [ ] **R2 human-readable folder names** — new pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`. Folder uses `jobs.date`, `jobs.client`, `jobs.client_poc_name`, `jobs.project_title`. Requires: (1) make `client_poc_name` + `project_title` compulsory fields on the job form; (2) cap `project_title` at 50 chars; (3) update `generateKey()` in `r2.ts` + upload API to build readable folder; (4) one-off migration script to rename existing R2 keys + update `files.r2_key`. Do before go-live while data is still clean.
+- [x] **[Nic] R2 human-readable folder names** — DONE 2026-08-06 with a simpler design that supersedes the June plan: new jobs get `{YYYY-MM-DD}_{Project-Title}_{8-char-code}` folders stamped by a DB trigger at creation (migration 0042); no compulsory form fields, no renaming of existing files (your call — old jobs keep code folders), titles stay optional (`Untitled` fallback). See [feat/feat-files-20260806-1-note.md](feat/feat-files-20260806-1-note.md).
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
@@ -114,6 +115,27 @@ _Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-06, feat-files — File Names + Readable R2 Folders)
+
+- [x] **[Nic] Scope + design decisions made** — fix names inside the app (store original name in DB, Cloudflare keys stay coded); folder pattern `{date}_{title}_{code}`; only NEW jobs get readable folders; folder frozen when the job is created (title edits never move files).
+- [x] **[Nic] Ran `npx supabase db push` for migrations 0041 + 0042** — from the session's isolated copy of dev (your usual folder was on the other session's branch). This also cured the preview crash: the new code asked for the file-name column before it existed.
+- [x] **[Nic] Smoke test passed on the preview** — real names in buckets/chat/camera uploads verified in the DB; duplicate carried names; readable folder `2026-08-06_Test-Job-R2-Cloudflare-Fix-Copy_0cd037cb` visible in the R2 dashboard.
+- [x] **[Nic] Approved merge to production** — `dev` → `main` pushed 2026-08-06; DB was migrated before the deploy so production had no crash window.
+- [x] **Old June R2-folder plan retired** — superseded by the simpler trigger design (see the ticked item above).
+
+---
+
+## Done This Session ✓ (2026-08-06, ux-jobs — Job Form Tabs + Duplicate)
+
+- [x] **[Nic] Design decisions made** — phone gets 4 tabs (Details/Team/Files/Chat, "cleaner the better"); PC gets a two-column view (Details+Team left, Files+Chat right) with every card collapsible except Job Chat; New job shows the same 4 tabs with Files/Chat locked until saved.
+- [x] **[Nic] Smoke test passed — phone AND PC** — tabs, columns, collapse memory, locked tabs all green on the preview.
+- [x] **[Nic] Duplicate button scoped + tested** — copies Details-tab fields, attachment buckets and production photos into a new pending job; only location clears; title gets " (Copy)"; signed DO / completion photos / team / chat / tasks never copy.
+- [x] **[Nic] Bug found during testing: bucket uploads appeared in job chat** — pre-existing production bug (chat and buckets share the same internal file tag); fixed and verified on the preview.
+- [x] **[Nic] Approved merge to production** — `dev` → `main` pushed 2026-08-06; tabs redesign + Duplicate + chat fix all live.
+- [x] **Future planning notes added** — Telegram notification tracker (behind the Team-tab placeholder card) and sub-jobs under a parent job (dropdown); both need their own design session.
 
 ---
 

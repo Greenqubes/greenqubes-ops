@@ -73,8 +73,8 @@ export async function POST(
       sales_poc_id:            profile.id,
       visibility:              ['role:sales', 'role:scheduler'],
     } as never)
-    .select('id')
-    .single() as unknown as { data: { id: string } | null; error: Error | null }
+    .select('id, r2_folder')
+    .single() as unknown as { data: { id: string; r2_folder: string | null } | null; error: Error | null }
   if (insertError || !newJob) {
     return NextResponse.json({ error: 'Insert failed' }, { status: 500 })
   }
@@ -101,12 +101,12 @@ export async function POST(
   // Chat attachments (kind 'attachment', NULL bucket_id) and do/completion
   // proof photos are deliberately excluded.
   type FileRow = {
-    bucket_id: string | null; kind: FileKind; r2_key: string
+    bucket_id: string | null; kind: FileKind; r2_key: string; name: string | null
     url_text: string | null; visibility: string[]
   }
   const { data: sourceFiles } = await service
     .from('files')
-    .select('bucket_id, kind, r2_key, url_text, visibility')
+    .select('bucket_id, kind, r2_key, name, url_text, visibility')
     .eq('job_id', jobId)
     .or('bucket_id.not.is.null,kind.eq.production_instructions') as { data: FileRow[] | null; error: unknown }
 
@@ -118,7 +118,7 @@ export async function POST(
     let newKey = file.r2_key
     if (file.kind !== 'url_link' && file.r2_key) {
       // True storage copy under the new job's folder; keep the extension.
-      newKey = generateKey(newJob.id, file.kind, file.r2_key.split('/').pop() ?? 'file')
+      newKey = generateKey(newJob.r2_folder ?? newJob.id, file.kind, file.name ?? file.r2_key.split('/').pop() ?? 'file')
       try {
         await copyObject(file.r2_key, newKey)
       } catch {
@@ -132,6 +132,7 @@ export async function POST(
       bucket_id:   newBucketId,
       kind:        file.kind,
       r2_key:      newKey,
+      name:        file.name,
       url_text:    file.url_text,
       uploader_id: profile.id,
       visibility:  file.visibility,

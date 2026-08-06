@@ -53,6 +53,7 @@ export function PendingFilesSection({ jobId, userId, lang }: Props) {
           job_id:      jobId,
           kind:        'attachment',
           r2_key:      key,
+          name:        file.name,
           uploader_id: userId,
           visibility:  ['public-internal'],
         } as never).throwOnError()

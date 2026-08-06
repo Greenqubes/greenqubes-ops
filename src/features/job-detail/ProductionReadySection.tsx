@@ -41,7 +41,7 @@ function ProductionFrame({ bare, children }: { bare: boolean; children: React.Re
     : <Card className="p-5 space-y-5">{children}</Card>
 }
 
-function DownloadButton({ r2Key, lang }: { r2Key: string; lang: LangCode }) {
+function DownloadButton({ r2Key, filename, lang }: { r2Key: string; filename: string | null; lang: LangCode }) {
   const [loading, setLoading] = useState(false)
 
   const handleDownload = async () => {
@@ -50,7 +50,7 @@ function DownloadButton({ r2Key, lang }: { r2Key: string; lang: LangCode }) {
       const res = await fetch('/api/r2/download-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: r2Key }),
+        body: JSON.stringify({ key: r2Key, filename: filename ?? undefined }),
       })
       const { url } = await res.json() as { url: string }
       window.open(url, '_blank', 'noopener')
@@ -100,7 +100,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
         const { url, key } = await urlRes.json() as { url: string; key: string }
         await fetch(url, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file })
         await supabase.from('files').insert({
-          job_id: jobId, kind, r2_key: key, uploader_id: userId, visibility: ['public-internal'],
+          job_id: jobId, kind, r2_key: key, name: file.name, uploader_id: userId, visibility: ['public-internal'],
         } as never).throwOnError()
       }
       router.refresh()
@@ -118,7 +118,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
       {files.length > 0 && (
         <ul className="divide-y divide-line mb-2">
           {files.map(file => {
-            const filename = file.r2_key.split('/').pop() ?? file.r2_key
+            const filename = file.name ?? (file.r2_key.split('/').pop() ?? file.r2_key)
             const isVideo  = VIDEO_EXT.test(filename)
             return (
               <li key={file.id} className="flex items-center gap-3 py-2.5">
@@ -127,7 +127,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
                   : <ImageIcon size={14} className="text-muted shrink-0" />
                 }
                 <p className="flex-1 min-w-0 text-sm text-ink truncate">{filename}</p>
-                <DownloadButton r2Key={file.r2_key} lang={lang} />
+                <DownloadButton r2Key={file.r2_key} filename={file.name} lang={lang} />
               </li>
             )
           })}

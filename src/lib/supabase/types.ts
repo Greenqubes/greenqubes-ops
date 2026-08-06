@@ -63,6 +63,7 @@ export interface Database {
           approved_at:             string | null
           completed_at:            string | null
           scheduled_at:            string | null
+          r2_folder:               string | null
           completion_override:     boolean
           visibility:              string[]
           created_at:              string
@@ -70,7 +71,7 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end'
+          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder'
         > & {
           id?:            string
           created_at?:    string
@@ -78,6 +79,7 @@ export interface Database {
           scheduled_at?:  string | null
           project_title?: string | null
           date_end?:      string | null
+          r2_folder?:     string | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []
@@ -119,15 +121,17 @@ export interface Database {
           job_id:      string | null
           kind:        FileKind
           r2_key:      string
+          name:        string | null
           uploader_id: string | null
           bucket_id:   string | null
           url_text:    string | null
           visibility:  string[]
           ts:          string
         }
-        Insert: Omit<Database['public']['Tables']['files']['Row'], 'id' | 'ts'> & {
-          id?: string
-          ts?: string
+        Insert: Omit<Database['public']['Tables']['files']['Row'], 'id' | 'ts' | 'name'> & {
+          id?:   string
+          ts?:   string
+          name?: string | null
         }
         Update: Partial<Database['public']['Tables']['files']['Insert']>
         Relationships: []
