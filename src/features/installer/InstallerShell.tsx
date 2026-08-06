@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { Search, X, Briefcase, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { CompanyBar } from '@/components/CompanyBar'
@@ -36,6 +38,18 @@ interface Props {
 }
 
 export function InstallerShell({ jobs, lang, userName }: Props) {
+  const router = useRouter()
+
+  // A newly assigned job appears on its own. RLS scopes events to this
+  // installer's own rows — suggestion inserts don't match their policy
+  // (migration 0037), so suggested jobs stay hidden until formally assigned.
+  useLiveChannel({
+    name:    'installer-jobs-live',
+    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }],
+    onEvent: () => router.refresh(),
+    poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
+  })
+
   const [tab,          setTab]          = useState<Tab>('today')
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [query,        setQuery]        = useState('')
