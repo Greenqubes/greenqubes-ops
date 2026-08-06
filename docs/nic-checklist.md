@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-06 (ux-jobs — job form tabs + two-column redesign, Duplicate button, chat leak fix shipped to production)_
+_Last updated: 2026-08-06 (feat-files — real file names in app + downloads, readable R2 folders for new jobs; migrations 0041–0042 applied; live on production)_
 
 ---
 
@@ -37,7 +37,7 @@ _Last updated: 2026-08-06 (ux-jobs — job form tabs + two-column redesign, Dupl
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)
 
-- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", and the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"). Wipe all test data in one pass right before go-live.
+- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"), the Duplicate-testing "… (Copy)" jobs, and the 2026-08-06 feat-files pair ("Test Job R2 Cloudflare Fix" + its Copy). Wipe all test data in one pass right before go-live.
 - [ ] **Remove the test installer account** (or keep it — your call) used to verify installers can't see suggestions.
 - [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them).
 
@@ -47,7 +47,7 @@ _Last updated: 2026-08-06 (ux-jobs — job form tabs + two-column redesign, Dupl
 
 ### Features (from 2026-05-26, vault-convention)
 
-- [ ] **R2 human-readable folder names** — new pattern agreed: `{YYYY-MM-DD}_{Company}_{Client-Name}_{Project-Title}`. Folder uses `jobs.date`, `jobs.client`, `jobs.client_poc_name`, `jobs.project_title`. Requires: (1) make `client_poc_name` + `project_title` compulsory fields on the job form; (2) cap `project_title` at 50 chars; (3) update `generateKey()` in `r2.ts` + upload API to build readable folder; (4) one-off migration script to rename existing R2 keys + update `files.r2_key`. Do before go-live while data is still clean.
+- [x] **[Nic] R2 human-readable folder names** — DONE 2026-08-06 with a simpler design that supersedes the June plan: new jobs get `{YYYY-MM-DD}_{Project-Title}_{8-char-code}` folders stamped by a DB trigger at creation (migration 0042); no compulsory form fields, no renaming of existing files (your call — old jobs keep code folders), titles stay optional (`Untitled` fallback). See [feat/feat-files-20260806-1-note.md](feat/feat-files-20260806-1-note.md).
 
 ### Onboarding (from 2026-05-25, chore-onboarding)
 
@@ -115,6 +115,16 @@ _Last updated: 2026-08-06 (ux-jobs — job form tabs + two-column redesign, Dupl
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-06, feat-files — File Names + Readable R2 Folders)
+
+- [x] **[Nic] Scope + design decisions made** — fix names inside the app (store original name in DB, Cloudflare keys stay coded); folder pattern `{date}_{title}_{code}`; only NEW jobs get readable folders; folder frozen when the job is created (title edits never move files).
+- [x] **[Nic] Ran `npx supabase db push` for migrations 0041 + 0042** — from the session's isolated copy of dev (your usual folder was on the other session's branch). This also cured the preview crash: the new code asked for the file-name column before it existed.
+- [x] **[Nic] Smoke test passed on the preview** — real names in buckets/chat/camera uploads verified in the DB; duplicate carried names; readable folder `2026-08-06_Test-Job-R2-Cloudflare-Fix-Copy_0cd037cb` visible in the R2 dashboard.
+- [x] **[Nic] Approved merge to production** — `dev` → `main` pushed 2026-08-06; DB was migrated before the deploy so production had no crash window.
+- [x] **Old June R2-folder plan retired** — superseded by the simpler trigger design (see the ticked item above).
 
 ---
 
