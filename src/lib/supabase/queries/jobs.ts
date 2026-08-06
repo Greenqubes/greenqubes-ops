@@ -92,6 +92,8 @@ export type JobFile = {
   bucket_id:   string | null
   kind:        FileKind
   r2_key:      string
+  // Original upload filename; NULL on rows from before migration 0041.
+  name:        string | null
   uploader_id: string | null
   ts:          string
   users:       { name: string } | null
@@ -185,7 +187,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       completed_at, completion_override, created_at, updated_at,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
-      files ( id, bucket_id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
+      files ( id, bucket_id, kind, r2_key, name, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
     `)
     .eq('id', id)
     .maybeSingle()
@@ -312,6 +314,8 @@ export type BucketFile = {
   bucket_id:   string | null
   kind:        FileKind
   r2_key:      string
+  // Original upload filename; NULL on url_link rows and pre-0041 uploads.
+  name:        string | null
   url_text:    string | null
   uploader_id: string | null
   ts:          string
@@ -330,7 +334,7 @@ export async function getJobBuckets(jobId: string): Promise<AttachmentBucket[]> 
   const supabase = createBrowserClient()
   const { data, error } = await supabase
     .from('attachment_buckets')
-    .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts)')
+    .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts)')
     .eq('job_id', jobId)
     .order('position')
   if (error) throw error
