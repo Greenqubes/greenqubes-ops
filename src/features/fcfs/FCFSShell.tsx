@@ -91,16 +91,28 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
   // mirroring the schedule page.
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
-      .channel('fcfs-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' },
-        () => refetch(dateRef.current, false))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_assignees' },
-        () => refetch(dateRef.current, false))
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+      // Realtime must carry the user's JWT — the jobs RLS policy only
+      // delivers events to authenticated listeners (same as ChatSection).
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+
+      channel = supabase
+        .channel('fcfs-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' },
+          () => refetch(dateRef.current, false))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'job_assignees' },
+          () => refetch(dateRef.current, false))
+        .subscribe()
+    })
+
     const poll = setInterval(() => refetch(dateRef.current, false), 2 * 60 * 1000)
     return () => {
-      supabase.removeChannel(channel)
+      active = false
+      if (channel) supabase.removeChannel(channel)
       clearInterval(poll)
     }
   }, [refetch])

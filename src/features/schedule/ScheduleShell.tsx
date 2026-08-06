@@ -39,15 +39,27 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   // (selected date, view mode, filters) — no visible disruption to the user.
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
-      .channel('schedule-jobs-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-        router.refresh()
-      })
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let active = true
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+      // Realtime must carry the user's JWT — the jobs RLS policy only
+      // delivers events to authenticated listeners (same as ChatSection).
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+
+      channel = supabase
+        .channel('schedule-jobs-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+          router.refresh()
+        })
+        .subscribe()
+    })
+
     const poll = setInterval(() => router.refresh(), 2 * 60 * 1000)
     return () => {
-      supabase.removeChannel(channel)
+      active = false
+      if (channel) supabase.removeChannel(channel)
       clearInterval(poll)
     }
   }, [router])
