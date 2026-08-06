@@ -792,7 +792,7 @@ export function JobDetailShell({
             lang={lang}
             completedAt={job.completed_at}
             initialMessages={initialMessages}
-            chatFiles={job.files.filter(f => f.kind === 'attachment')}
+            chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
             preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
           />
         }

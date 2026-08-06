@@ -87,6 +87,9 @@ export type InstallerUser = {
 export type JobFile = {
   id:          string
   job_id:      string
+  // Set when the file lives in an attachment bucket — bucket files share
+  // kind 'attachment' with chat uploads, so chat must filter these out.
+  bucket_id:   string | null
   kind:        FileKind
   r2_key:      string
   uploader_id: string | null
@@ -182,7 +185,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       completed_at, completion_override, created_at, updated_at,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
-      files ( id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
+      files ( id, bucket_id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
     `)
     .eq('id', id)
     .maybeSingle()
@@ -319,7 +322,7 @@ export async function insertFile(
       uploader_id: uploaderId,
       visibility:  ['public-internal'],
     } as never)
-    .select('id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name )')
+    .select('id, bucket_id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name )')
     .single()
   if (error) throw error
   return data as unknown as JobFile
