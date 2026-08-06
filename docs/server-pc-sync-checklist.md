@@ -84,9 +84,11 @@ This tests the GitHub connection directly.
 - [ ] **12.** Bring back: the up-time photo, the two backup-folder photos, the Task Scheduler
   photos, the vault folder answer, and what step 10 and 11 showed.
 
-**Do NOT run the sync itself (`nightly-obsidian-sync.bat`) yet.** The visibility-reading fix
-from 3 Aug lives on the `dev` branch; if this PC's copy follows `main`, running the sync now
-would write wrong access tags. Claude will say when it's safe, based on what step 10 shows.
+**Update (6 Aug):** both sync fixes (visibility reading + note splitting) are now on `main`
+as well as `dev`, and the server's manual pull + sync were confirmed working on 6 Aug.
+Running the sync on the server is safe — just **always run `git pull` in `E:\greenqubes-ops`
+first** so it has the latest fixes. The remaining open question is only whether the 2:30 AM
+scheduled task fires on its own (Parts 1–3 above answer why it stopped on 8 June).
 
 ---
 
