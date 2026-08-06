@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { toISO, shiftDate } from '@/features/schedule/utils'
@@ -88,34 +88,14 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
   }, [date, refetch])
 
   // Live refresh on job / assignment changes + 2-min polling fallback,
-  // mirroring the schedule page.
-  useEffect(() => {
-    const supabase = createClient()
-    let channel: ReturnType<typeof supabase.channel> | null = null
-    let active = true
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return
-      // Realtime must carry the user's JWT — the jobs RLS policy only
-      // delivers events to authenticated listeners (same as ChatSection).
-      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
-
-      channel = supabase
-        .channel('fcfs-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' },
-          () => refetch(dateRef.current, false))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'job_assignees' },
-          () => refetch(dateRef.current, false))
-        .subscribe()
-    })
-
-    const poll = setInterval(() => refetch(dateRef.current, false), 2 * 60 * 1000)
-    return () => {
-      active = false
-      if (channel) supabase.removeChannel(channel)
-      clearInterval(poll)
-    }
-  }, [refetch])
+  // mirroring the schedule page. job_assignees events flow once migration
+  // 0043 adds the table to the realtime publication.
+  useLiveChannel({
+    name:    'fcfs-live',
+    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }],
+    onEvent: () => refetch(dateRef.current, false),
+    poll:    { ms: 2 * 60 * 1000, fn: () => refetch(dateRef.current, false) },
+  })
 
   const allClashes = useMemo(() => detectClashes(jobs), [jobs])
   const boardClashes = useMemo(
