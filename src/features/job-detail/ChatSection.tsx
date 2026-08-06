@@ -126,7 +126,7 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
       authorId: f.uploader_id,
       author:   f.users?.name ?? null,
       r2Key:    f.r2_key,
-      filename: f.r2_key.split('/').pop() ?? f.r2_key,
+      filename: f.name ?? (f.r2_key.split('/').pop() ?? f.r2_key),
       ts:       f.ts,
     })),
   ]
@@ -157,16 +157,14 @@ function FileAttachment({ r2Key, filename, lang, isMine = false }: {
   const download = async () => {
     setDlLoading(true)
     try {
-      const url = await (async () => {
-        if (signedUrl) return signedUrl
-        const res = await fetch('/api/r2/download-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: r2Key }),
-        })
-        const { url: fetchedUrl } = await res.json() as { url: string }
-        return fetchedUrl
-      })()
+      // Always fetch a fresh URL here (not the cached thumbnail one) so the
+      // signed link carries the real filename for saving.
+      const res = await fetch('/api/r2/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: r2Key, filename }),
+      })
+      const { url } = await res.json() as { url: string }
       const a = document.createElement('a')
       a.href = url; a.download = filename; a.target = '_blank'; a.rel = 'noopener'
       a.click()
@@ -663,6 +661,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         job_id:      jobId,
         kind:        'attachment',
         r2_key:      key,
+        name:        file.name,
         uploader_id: userId,
         visibility:  ['public-internal'],
       } as never).throwOnError()
@@ -708,6 +707,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         job_id:      jobId,
         kind:        'attachment',
         r2_key:      key,
+        name:        filename,
         uploader_id: userId,
         visibility:  ['public-internal'],
       } as never).throwOnError()

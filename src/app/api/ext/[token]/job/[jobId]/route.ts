@@ -39,7 +39,7 @@ export async function GET(
   // Chat files (kind 'attachment' with no bucket) are NOT exposed.
   const { data: files } = await supabase
     .from('files')
-    .select('id, kind, r2_key, url_text, ts')
+    .select('id, kind, r2_key, name, url_text, ts')
     .eq('job_id', jobId)
     .not('bucket_id', 'is', null)
     .order('ts', { ascending: true })
@@ -50,8 +50,8 @@ export async function GET(
       kind: f.kind,
       name: f.kind === 'url_link'
         ? (f.url_text ?? 'Link')
-        : (f.r2_key.split('/').pop() ?? 'file'),
-      url:  f.kind === 'url_link' ? (f.url_text ?? '') : await getDownloadUrl(f.r2_key),
+        : (f.name ?? f.r2_key.split('/').pop() ?? 'file'),
+      url:  f.kind === 'url_link' ? (f.url_text ?? '') : await getDownloadUrl(f.r2_key, f.name ?? undefined),
     })),
   )
 

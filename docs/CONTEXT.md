@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX redesign live on production; Monday-start weeks app-wide; filter chips removed; no new Bengali translations rule recorded)_
+_Last updated: 2026-08-06 (ux-jobs — job form reorganised: phone tabs + PC two-column layout with collapsible cards, Duplicate button live, chat bucket-leak fix; all on production)_
 
 ---
 

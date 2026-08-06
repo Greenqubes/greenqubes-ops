@@ -26,10 +26,12 @@ const KIND_FOLDER: Record<FileKind, string> = {
   external_verification:   'external-verification',
 }
 
-export function generateKey(jobId: string, kind: FileKind, originalName: string): string {
+// `folder` is the job's readable r2_folder slug (new jobs) or the bare job id
+// (jobs created before migration 0042 — never renamed).
+export function generateKey(folder: string, kind: FileKind, originalName: string): string {
   const ext  = originalName.includes('.') ? originalName.split('.').pop() : undefined
   const name = ext ? `${randomUUID()}.${ext}` : randomUUID()
-  return `jobs/${jobId}/${KIND_FOLDER[kind]}/${name}`
+  return `jobs/${folder}/${KIND_FOLDER[kind]}/${name}`
 }
 
 export function isImageKind(kind: FileKind): boolean {
@@ -44,12 +46,12 @@ export function validateContentType(kind: FileKind, contentType: string): boolea
 }
 
 export async function getUploadUrlForKind(
-  jobId: string,
+  folder: string,
   kind: FileKind,
   filename: string,
   contentType: string,
 ): Promise<{ url: string; key: string }> {
-  const key = generateKey(jobId, kind, filename)
+  const key = generateKey(folder, kind, filename)
   const url = await getSignedUrl(
     r2,
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
@@ -59,22 +61,35 @@ export async function getUploadUrlForKind(
   return { url, key }
 }
 
-export async function getDownloadUrl(key: string): Promise<string> {
+export async function getDownloadUrl(key: string, filename?: string): Promise<string> {
   const url = await getSignedUrl(
     r2,
-    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key:    key,
+      ...(filename ? { ResponseContentDisposition: contentDisposition(filename) } : {}),
+    }),
     { expiresIn: 3600 },
   )
   void logApiUsage({ service: 'r2', endpoint: 'get', estimated_cost: 0 })
   return url
 }
 
-// Server-side R2→R2 object copy (no download/re-upload). Keys in this app are
-// UUID-based ASCII paths, so the raw `bucket/key` CopySource form is safe.
+// `inline` keeps in-tab previews (PDF/image) working; filename* (RFC 5987)
+// names the file on save — filenames may contain Chinese characters or spaces.
+function contentDisposition(filename: string): string {
+  const encoded = encodeURIComponent(filename)
+    .replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+  return `inline; filename*=UTF-8''${encoded}`
+}
+
+// Server-side R2→R2 object copy (no download/re-upload). CopySource must be
+// percent-encoded per path segment — folder slugs may contain Unicode
+// (Chinese project titles).
 export async function copyObject(sourceKey: string, destKey: string): Promise<void> {
   await r2.send(new CopyObjectCommand({
     Bucket:     BUCKET,
-    CopySource: `${BUCKET}/${sourceKey}`,
+    CopySource: [BUCKET, ...sourceKey.split('/')].map(encodeURIComponent).join('/'),
     Key:        destKey,
   }))
   void logApiUsage({ service: 'r2', endpoint: 'copy', estimated_cost: 0 })

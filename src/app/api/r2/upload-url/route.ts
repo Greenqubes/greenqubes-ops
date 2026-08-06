@@ -34,6 +34,16 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { url, key } = await getUploadUrlForKind(jobId, kind as FileKind, filename, contentType)
+  // Readable folder for jobs created after migration 0042; legacy jobs/{id}/
+  // for older ones. RLS scopes the lookup to jobs the caller can see, so this
+  // also rejects uploads to jobs the user has no access to.
+  const { data: job } = await supabase
+    .from('jobs')
+    .select('r2_folder')
+    .eq('id', jobId)
+    .maybeSingle() as { data: { r2_folder: string | null } | null; error: unknown }
+  if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+
+  const { url, key } = await getUploadUrlForKind(job.r2_folder ?? jobId, kind as FileKind, filename, contentType)
   return NextResponse.json({ url, key })
 }
