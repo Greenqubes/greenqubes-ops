@@ -48,8 +48,8 @@ alter table files add column name text;
 | `AttachmentBuckets.tsx` (bucket file insert) | `file.name` |
 | `ProductionReadySection.tsx` (production_instructions / do / completion insert) | `file.name` |
 | `ChatSection.tsx` (chat attachment insert) | `file.name` |
-| `ChatSection.tsx` (voice / camera insert) | the already-generated `{username} {date} {time}.{ext}` string (currently built then thrown away) |
-| `insertFile()` in `src/lib/supabase/queries/jobs.ts` | new `name` parameter, passed through by its callers |
+| `ChatSection.tsx` (camera insert) | the already-generated `{username} {date} {time}.{ext}` string (currently built then thrown away). Voice notes need nothing — they live in `messages.voice_url`, not `files`, and render as a play card with no filename. |
+| `insertFile()` in `src/lib/supabase/queries/jobs.ts` | verified dead code (defined, never called) — **delete** alongside `AttachmentSection.tsx` |
 | `api/jobs/[id]/duplicate/route.ts` | copy `name` from the source row |
 
 `url_link` rows keep `name = NULL` — they display `url_text`, unchanged.
