@@ -36,6 +36,8 @@ export const en = {
   attachments: 'Attachments',
   duplicateJob: 'Duplicate',
   duplicateSuccess: 'Job duplicated — set the new location',
+  jobUpdatedBanner: 'This job was updated by someone else',
+  jobUpdatedReload: 'Tap to reload',
   createJob: 'Create Job',
   projectTitle: 'Project Title',
   date: 'Date',
