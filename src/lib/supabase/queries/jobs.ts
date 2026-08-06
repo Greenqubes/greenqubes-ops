@@ -304,30 +304,6 @@ export async function insertVoiceMessage(
   return data as unknown as JobMessage
 }
 
-// â”€â”€ Files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-export async function insertFile(
-  jobId:      string,
-  kind:       FileKind,
-  r2Key:      string,
-  uploaderId: string,
-): Promise<JobFile> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('files')
-    .insert({
-      job_id:      jobId,
-      kind,
-      r2_key:      r2Key,
-      uploader_id: uploaderId,
-      visibility:  ['public-internal'],
-    } as never)
-    .select('id, bucket_id, kind, r2_key, uploader_id, ts, users!files_uploader_id_fkey ( name )')
-    .single()
-  if (error) throw error
-  return data as unknown as JobFile
-}
-
 // â”€â”€ Attachment Buckets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type BucketFile = {
