@@ -50,7 +50,7 @@ Three gaps remain:
 
 ## Design
 
-### 1. Migration 0041 — broadcast assignments + task ticks
+### 1. Migration 0043 — broadcast assignments + task ticks
 
 Same idempotent pattern as 0009/0010: add `job_assignees` and `job_tasks` to
 the `supabase_realtime` publication and set `replica identity full` on both.
@@ -136,7 +136,7 @@ their policy → no event → stay hidden (correct).
 
 1. **Schedule**: change a job in window A → window B updates within ~2s.
 2. **FCFS**: assign/unassign an installer in A → board B updates within ~2s
-   (proves migration 0041 + auth fix together).
+   (proves migration 0043 + auth fix together).
 3. **Installer dashboard**: assign a job to the logged-in installer → it
    appears on its own; a *suggestion* must NOT appear.
 4. **Job form, clean**: in B tick a task / upload a bucket file / change
@@ -145,5 +145,5 @@ their policy → no event → stay hidden (correct).
    banner in B, typed text intact; tap → fresh values load.
 6. **Regression**: job chat still live; type-check + production build green.
 
-Rollout: Nic runs `npx supabase db push` for 0041 (safe pre-merge), tests the
+Rollout: Nic runs `npx supabase db push` for 0043 (safe pre-merge), tests the
 preview, then merge `feat-live-updates → dev` (preview check) `→ main`.

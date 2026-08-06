@@ -4,7 +4,7 @@
 
 **Goal:** Make the installer dashboard and job form update live, on shared realtime plumbing that the schedule page and FCFS board also move onto, with a migration that broadcasts assignment and task changes.
 
-**Architecture:** One new client hook (`useLiveChannel`) owns the auth-token → subscribe → cleanup dance that was previously hand-copied (and once mis-copied, causing the dead-listener bug). Server-rendered pages react to events with `router.refresh()`; the job form applies the hybrid rule — clean state syncs silently, dirty state shows an amber reload banner. Migration 0041 adds `job_assignees` + `job_tasks` to the realtime publication.
+**Architecture:** One new client hook (`useLiveChannel`) owns the auth-token → subscribe → cleanup dance that was previously hand-copied (and once mis-copied, causing the dead-listener bug). Server-rendered pages react to events with `router.refresh()`; the job form applies the hybrid rule — clean state syncs silently, dirty state shows an amber reload banner. Migration 0043 adds `job_assignees` + `job_tasks` to the realtime publication.
 
 **Tech Stack:** Next.js 15 App Router, Supabase realtime (`postgres_changes`), react-hook-form, Tailwind.
 
@@ -22,10 +22,10 @@
 
 ---
 
-### Task 1: Migration 0041 — broadcast assignments + tasks
+### Task 1: Migration 0043 — broadcast assignments + tasks
 
 **Files:**
-- Create: `supabase/migrations/0041_realtime_assignees_tasks.sql`
+- Create: `supabase/migrations/0043_realtime_assignees_tasks.sql`
 
 **Interfaces:**
 - Produces: `job_assignees` and `job_tasks` events on the `supabase_realtime` publication (consumed by Tasks 4, 5, 7). Not applied locally — Nic runs `npx supabase db push` against the shared remote DB at rollout.
@@ -70,13 +70,13 @@ alter table job_tasks     replica identity full;
 - [ ] **Step 2: Verify numbering and pattern**
 
 Run: `ls supabase/migrations/ | tail -3`
-Expected: `0040_external_suggestions.sql` is the previous highest; the new file sorts after it. Compare structure against `0009_realtime_setup.sql` — same DO-block idempotency.
+Expected: `0042_job_r2_folder.sql` is the previous highest; the new file sorts after it. Compare structure against `0009_realtime_setup.sql` — same DO-block idempotency.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/0041_realtime_assignees_tasks.sql
-git commit -m "feat: migration 0041 — broadcast job_assignees + job_tasks changes"
+git add supabase/migrations/0043_realtime_assignees_tasks.sql
+git commit -m "feat: migration 0043 — broadcast job_assignees + job_tasks changes"
 ```
 
 ---
@@ -232,7 +232,7 @@ git commit -m "refactor: ScheduleShell live refresh via useLiveChannel"
 - Modify: `src/features/fcfs/FCFSShell.tsx` (the realtime `useEffect` under the comment "Live refresh on job / assignment changes")
 
 **Interfaces:**
-- Consumes: `useLiveChannel` (Task 2); events for `job_assignees` start flowing once migration 0041 (Task 1) is applied.
+- Consumes: `useLiveChannel` (Task 2); events for `job_assignees` start flowing once migration 0043 (Task 1) is applied.
 
 - [ ] **Step 1: Replace the effect**
 
@@ -241,7 +241,7 @@ Delete the whole realtime `useEffect` block (getSession/setAuth version, channel
 ```tsx
   // Live refresh on job / assignment changes + 2-min polling fallback,
   // mirroring the schedule page. job_assignees events flow once migration
-  // 0041 adds the table to the realtime publication.
+  // 0043 adds the table to the realtime publication.
   useLiveChannel({
     name:    'fcfs-live',
     tables:  [{ table: 'jobs' }, { table: 'job_assignees' }],
@@ -574,7 +574,7 @@ Expected: the cherry-picked auth fix + spec + plan + Tasks 1–7 commits; only t
 - [ ] **Step 3: STOP — ask Nic before pushing** (house rule: no push without explicit OK)
 
 Then the rollout sequence from the spec, in order:
-1. Nic runs `npx supabase db push` (applies 0041 — safe while production is live).
+1. Nic runs `npx supabase db push` (applies 0043 — safe while production is live).
 2. Push `feat-live-updates` → Vercel builds the branch preview.
 3. Nic runs the spec's two-window test checklist (schedule, FCFS assign, installer dashboard incl. suggestion-stays-hidden, job form clean-sync, dirty-banner, chat regression).
 4. On green: merge `feat-live-updates → dev` (preview check) `→ main`.
