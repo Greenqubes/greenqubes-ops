@@ -30,7 +30,7 @@ import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
-import { ArrowLeft, Bell, Trash2, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Bell, Trash2, CheckCircle, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 export type FormValues = {
@@ -115,6 +115,7 @@ export function JobDetailShell({
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
+  const [duplicating,          setDuplicating]         = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
   const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
@@ -339,6 +340,22 @@ export function JobDetailShell({
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
       showError(t(lang, 'saveError'))
+    }
+  }
+
+  const handleDuplicate = async () => {
+    setDuplicating(true)
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/duplicate`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      const data = await res.json() as { id: string; skippedFiles: number }
+      showSuccess(data.skippedFiles > 0
+        ? `${t(lang, 'duplicateSuccess')} (${data.skippedFiles} file(s) skipped)`
+        : t(lang, 'duplicateSuccess'))
+      router.push(`/jobs/${data.id}`)
+    } catch {
+      showError(t(lang, 'saveError'))
+      setDuplicating(false)
     }
   }
 
@@ -816,13 +833,17 @@ export function JobDetailShell({
                     Mark job complete
                   </button>
                 )}
-                <button
-                  type="button"
-                  disabled
-                  className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-dashed border-line bg-paper text-xs font-medium text-muted opacity-50 cursor-not-allowed"
-                >
-                  Duplicate (WIP)
-                </button>
+                {canEditCore && (
+                  <button
+                    type="button"
+                    onClick={handleDuplicate}
+                    disabled={duplicating}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Copy size={12} />
+                    {duplicating ? '…' : t(lang, 'duplicateJob')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => router.back()}

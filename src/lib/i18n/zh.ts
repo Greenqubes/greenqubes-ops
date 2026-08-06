@@ -19,6 +19,8 @@ export const zh: Partial<Translations> = {
   tabChat: '聊天',
   jobDetails: '工作详情',
   attachments: '附件',
+  duplicateJob: '复制',
+  duplicateSuccess: '工作已复制 — 请填写新地点',
   newJob: '新工作',
   createJob: '创建工作',
   awaitingApprovalDetail: '此工作已提交审核。撤回后可重新编辑。',
