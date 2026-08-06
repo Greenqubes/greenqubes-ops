@@ -15,6 +15,7 @@ _Last updated: 2026-08-05 (ux-schedule — schedule list scrolling UX shipped to
 - [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
 - [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
 - [ ] **Telegram notification tracker on the job form** (noted 2026-08-05, ux-jobs) — build the real notification tracker behind the "Notifications — coming soon" placeholder card (bottom of the Team tab in the new job-form layout): show which Telegram notifications were sent for the job (assignments, clash alerts, chat batches), to whom, and when. Needs its own design session.
+- [ ] **Sub-jobs under a main job** (noted 2026-08-05, ux-jobs) — a job should be able to belong to a parent job (picked via a "parent job" dropdown), so one big project can hold several sub-jobs. Big piece: touches the data model, schedule/FCFS display, installer views, and possibly duplication. Needs its own design session before any build.
 
 ### Workflow V2 (from 2026-06-05, chore-jobs)
 
