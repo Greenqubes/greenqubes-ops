@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-06 (feat-files — real file names in app + downloads, readable R2 folders for new jobs; migrations 0041–0042 applied; live on production)_
+_Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to last 3 days, cron moved to twice daily 9am + 6pm SGT; live on production)_
 
 ---
 
@@ -115,6 +115,17 @@ _Last updated: 2026-08-06 (feat-files — real file names in app + downloads, re
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-06, infra-notifications — Overdue Alert Scope + Schedule)
+
+- [x] **[Nic] Overdue alerts scoped to the last 3 days** — jobs dated more than 3 days ago no longer alert at all. They're treated as abandoned data rather than work to chase.
+- [x] **[Nic] Cron settled at twice daily, 9am + 6pm SGT** — went daily → every 2 hours → your call to make it just twice a day. Confirmed showing correctly in the Vercel dashboard.
+- [x] **[Nic] Manual production blast run** — sent 27 real Telegram alerts, which is what exposed the problem: the check had no lower date limit, so every old unfinished job re-fired on every run, forever.
+- [x] **[Nic] Merged to production** — `dev` → `main` pushed 2026-08-06.
+
+- [ ] **Clean up the ~27 finished-but-still-`scheduled` jobs** — those alerts weren't false alarms exactly; they're real jobs that were completed in real life but never marked complete in the app. With the 3-day cutoff they've gone quiet, but the data is still wrong and it will distort the FCFS board and any reporting. Worth a pass before go-live — fold into the test-data wipe below.
 
 ---
 
