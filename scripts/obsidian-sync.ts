@@ -9,6 +9,7 @@ import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { embed } from '../src/lib/ai/embed'
 import { parseFrontmatter } from './lib/frontmatter'
+import { chunkText } from './lib/chunk'
 import type { Database } from '../src/lib/supabase/types'
 
 const VAULT_PATH = process.env.OBSIDIAN_VAULT_PATH
@@ -22,26 +23,6 @@ const db = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
-
-// ── Chunker ────────────────────────────────────────────────────────────────────
-
-const CHUNK_CHARS = 2000 // ≈ 500 tokens
-
-function chunkText(text: string): string[] {
-  const paras = text.split(/\n\n+/)
-  const chunks: string[] = []
-  let cur = ''
-
-  for (const p of paras) {
-    if (cur.length + p.length > CHUNK_CHARS && cur.length > 0) {
-      chunks.push(cur.trim())
-      cur = ''
-    }
-    cur += (cur ? '\n\n' : '') + p
-  }
-  if (cur.trim()) chunks.push(cur.trim())
-  return chunks.length ? chunks : [text.slice(0, CHUNK_CHARS).trim()]
-}
 
 // ── Vault walker ───────────────────────────────────────────────────────────────
 
@@ -93,6 +74,14 @@ async function main() {
         if (error) throw error
         upserted++
       }
+      // A file that shrank to fewer chunks leaves orphaned higher-index rows —
+      // the upsert never touches them, so clear them explicitly.
+      const { error: trimError } = await db
+        .from('kb_chunks')
+        .delete()
+        .eq('source_path', sourcePath)
+        .gte('chunk_index', chunks.length)
+      if (trimError) throw trimError
       console.log(`  ✓ ${sourcePath} (${chunks.length} chunk${chunks.length !== 1 ? 's' : ''})`)
     } catch (err) {
       console.error(`  ✗ ${sourcePath}:`, (err as Error).message)
