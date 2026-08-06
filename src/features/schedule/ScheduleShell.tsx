@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -37,32 +37,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   // Refresh server data on job changes (realtime) + every 2 min as fallback.
   // router.refresh() re-fetches server data while preserving all React state
   // (selected date, view mode, filters) — no visible disruption to the user.
-  useEffect(() => {
-    const supabase = createClient()
-    let channel: ReturnType<typeof supabase.channel> | null = null
-    let active = true
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!active) return
-      // Realtime must carry the user's JWT — the jobs RLS policy only
-      // delivers events to authenticated listeners (same as ChatSection).
-      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
-
-      channel = supabase
-        .channel('schedule-jobs-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-          router.refresh()
-        })
-        .subscribe()
-    })
-
-    const poll = setInterval(() => router.refresh(), 2 * 60 * 1000)
-    return () => {
-      active = false
-      if (channel) supabase.removeChannel(channel)
-      clearInterval(poll)
-    }
-  }, [router])
+  useLiveChannel({
+    name:    'schedule-jobs-live',
+    tables:  [{ table: 'jobs' }],
+    onEvent: () => router.refresh(),
+    poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
+  })
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [query,        setQuery]        = useState('')
