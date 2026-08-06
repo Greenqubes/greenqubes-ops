@@ -49,7 +49,7 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
     try {
       const { data, error } = await supabase
         .from('attachment_buckets')
-        .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts)')
+        .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts)')
         .eq('job_id', jobId)
         .order('position')
       if (error) throw error
@@ -131,10 +131,11 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
         bucket_id:   bucket.id,
         kind:        'attachment',
         r2_key:      key,
+        name:        file.name,
         uploader_id: userId,
         visibility:  ['public-internal'],
       } as never)
-      .select('id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts')
+      .select('id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts')
       .single()
     if (error) {
       console.error('[upload] step 3 (files insert) failed', error)
@@ -160,7 +161,7 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
         uploader_id: userId,
         visibility:  ['public-internal'],
       } as never)
-      .select('id, job_id, bucket_id, kind, r2_key, url_text, uploader_id, ts')
+      .select('id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts')
       .single()
     if (error) { showError('Failed to save URL. Please try again.'); return }
     setBuckets(prev => prev.map(b =>
@@ -176,11 +177,11 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
     ))
   }
 
-  async function getDownloadUrl(r2Key: string): Promise<string> {
+  async function getDownloadUrl(r2Key: string, filename?: string): Promise<string> {
     const res = await fetch('/api/r2/download-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: r2Key }),
+      body: JSON.stringify({ key: r2Key, filename }),
     })
     const { url } = await res.json() as { url: string }
     return url
@@ -232,7 +233,7 @@ interface BucketCardProps {
   onAddUrl:       (url: string) => void
   onDeleteFile:   (fileId: string) => void
   onImageClick:   (src: string) => void
-  getDownloadUrl: (key: string) => Promise<string>
+  getDownloadUrl: (key: string, filename?: string) => Promise<string>
 }
 
 function BucketCard({
@@ -356,19 +357,20 @@ function FileRow({ file, readOnly, onDelete, onImageClick, getDownloadUrl }: {
   readOnly:       boolean
   onDelete:       () => void
   onImageClick:   (src: string) => void
-  getDownloadUrl: (key: string) => Promise<string>
+  getDownloadUrl: (key: string, filename?: string) => Promise<string>
 }) {
   const [dlLoading, setDlLoading] = useState(false)
   const isUrl    = file.kind === 'url_link'
   const urlText  = file.url_text ?? file.r2_key
-  const filename = isUrl ? urlText : (file.r2_key.split('/').pop() ?? file.r2_key)
+  const filename = isUrl ? urlText : (file.name ?? file.r2_key.split('/').pop() ?? file.r2_key)
   const imgFile  = !isUrl && isImage(filename)
 
   async function handleClick() {
     if (isUrl) { window.open(urlText, '_blank', 'noopener'); return }
     setDlLoading(true)
     try {
-      const url = await getDownloadUrl(file.r2_key)
+      // `inline` disposition on the signed URL — safe for the lightbox path too.
+      const url = await getDownloadUrl(file.r2_key, file.name ?? undefined)
       if (imgFile) { onImageClick(url) } else { window.open(url, '_blank', 'noopener') }
     } finally { setDlLoading(false) }
   }
