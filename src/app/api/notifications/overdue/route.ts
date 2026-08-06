@@ -8,7 +8,7 @@ import {
 } from '@/lib/supabase/queries/notifications'
 import { createServiceClient } from '@/lib/supabase/service'
 
-// Called by Vercel cron every 2 hours (see vercel.json).
+// Called by Vercel cron every 2 hours during SGT office hours (see vercel.json).
 // Also callable manually: GET /api/notifications/overdue
 // with Authorization: Bearer <CRON_SECRET>
 
