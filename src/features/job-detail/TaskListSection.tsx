@@ -17,13 +17,15 @@ interface Props {
   lang:     LangCode
   /** Completed jobs lock the list for everyone. */
   readOnly: boolean
+  /** Bump to re-pull from the server (live job-form events). */
+  refreshKey?: number
 }
 
 // Job task list (Phase 4, approved mockup). Office roles build the list —
 // drag to reorder, add, delete. Installers get interactive checkboxes with a
 // progress bar and tick tasks off on site (externals do the same on their
 // /ext link page). Checkboxes are decorative in edit mode.
-export function TaskListSection({ jobId, role, lang, readOnly }: Props) {
+export function TaskListSection({ jobId, role, lang, readOnly, refreshKey }: Props) {
   const canEdit = !readOnly && (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
   const canTick = !readOnly && role === 'installer'
 
@@ -39,13 +41,14 @@ export function TaskListSection({ jobId, role, lang, readOnly }: Props) {
   useEffect(() => { tasksRef.current = tasks }, [tasks])
 
   useEffect(() => {
+    if (dragId.current) return   // mid-drag — skip; the next event or reload catches up
     let cancelled = false
     fetch(`/api/jobs/${jobId}/tasks`)
       .then(r => r.ok ? r.json() : [])
       .then((data: Task[]) => { if (!cancelled) { setTasks(data); setLoaded(true) } })
       .catch(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
-  }, [jobId])
+  }, [jobId, refreshKey])
 
   const addTask = async () => {
     const text = newText.trim()
