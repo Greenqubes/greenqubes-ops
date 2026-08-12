@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-12 (infra-config — Obsidian sync outage fixed + KB restored; infra-backup — nightly backup created and verified)_
+_Last updated: 2026-08-12 (feat-realtime — live updates everywhere shipped to production; migration 0043 applied)_
 
 ---
 
@@ -126,6 +126,16 @@ _Last updated: 2026-08-12 (infra-config — Obsidian sync outage fixed + KB rest
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-12, feat-realtime — Live Updates Everywhere)
+
+- [x] **[Nic] Ran `npx supabase db push` for migration 0043** — `job_assignees` + `job_tasks` now broadcast changes; applied while production was live (additive, safe).
+- [x] **[Nic] Two-window live tests passed on the branch preview AND the dev preview** — schedule, FCFS, job form (silent sync + amber banner protecting unsaved typing). First test round was accidentally on the dev preview, which didn't have the code yet — lesson: each branch has its own preview address.
+- [x] **[Nic] Installer live test passed on production** — real installer login: formally assigned job appeared on its own; a suggestion stayed hidden (the security check).
+- [x] **[Nic] Decision — admin page stays refresh-on-visit** — no live push for a single-user page; new bug reports already ping via Telegram.
+- [x] **[Nic] Decision — `feat-live-updates` kept as an archive branch** — same rule as `feat-workflow-v2`: historical record only, no new pushes. Recorded in CLAUDE.md.
 
 ---
 
