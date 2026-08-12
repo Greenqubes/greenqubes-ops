@@ -2,11 +2,21 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-06 (feat-files — real file names in app + downloads, readable R2 folders for new jobs; migrations 0041–0042 applied; live on production)_
+_Last updated: 2026-08-12 (infra-backup — nightly backup created and verified; it had never actually been running)_
 
 ---
 
 ## Pending — Next Session
+
+### Backup — fixed 2026-08-12, two follow-ups
+
+- [x] **[Nic] Nightly backup now working end to end** — R2 files **and** database dump both verified. `SUPABASE_DB_URL` switched from the direct host (`db.<ref>.supabase.co`, now **IPv6-only** and unreachable from this PC) to the **IPv4 session pooler** on port 5432. Set in **machine** scope; the user-scope copy was deleted so there's one source of truth.
+- [x] **[Nic] Database password rotated** — done 2026-08-12, machine env var updated to the new pooler URI and verified. Note: a Supabase password reset takes ~15–30 seconds to reach the pooler; an immediate connection attempt after resetting will fail with "password authentication failed" even when the new password is correct. Wait before assuming it's wrong.
+- [x] **[Nic] Both scheduled tasks now run whether logged in or not** — done 2026-08-12 via `Set-ScheduledTask` with stored credentials (the Task Scheduler GUI dialog silently reverts if the password prompt is cancelled). `Greenqubes Nightly Backup` and `Greenqubes Obsidian Sync` are both `LogonType: Password`, `RunLevel: Highest`; both test-run clean. **If the `GQAdmin` Windows password ever changes, both tasks stop working with no warning** — the stored credential must be re-entered.
+- [ ] **[Nic] Check whether the old DB password is used anywhere else** — anything still holding the pre-2026-08-12 password is now broken: Vercel environment variables, Bryan's `.env.local`, any other script on the server PC. Do before go-live.
+- [ ] **Nothing alerts you if the backup stops** — this is exactly how it went unnoticed for three months. The Obsidian sync and overdue cron both write a row to the `events` table, which the Admin → Health tab reads to show "last run". The backup writes nothing. Small piece of work: have `backup.sh` log an event on success, and show it on the Health tab alongside the others.
+- [ ] **The R2 backup is a mirror, not history** — `rclone sync` makes the local copy match the bucket exactly, so a file deleted in R2 disappears from the local copy on the next run. It protects against Cloudflare being unavailable, not against someone deleting a file. If you want to recover deleted files, that needs dated snapshots or R2 object versioning — a separate decision.
+
 
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
@@ -115,6 +125,27 @@ _Last updated: 2026-08-06 (feat-files — real file names in app + downloads, re
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-12, infra-backup — Nightly Backup Was Never Running)
+
+- [x] **[Nic] Found that there was no backup at all** — not a broken one, none. This checklist had claimed since May that a nightly 02:00 backup was running. The rclone setup and env var were done, and the script was hand-tested once on 7 May, but the Task Scheduler entry was never created. The R2 archive folder held **zero files** — three months of job attachments and photos existed only in Cloudflare.
+- [x] **[Nic] Nightly backup created and verified** — `Greenqubes Nightly Backup`, daily 02:00. First run pulled 41 files / 15.3 MiB from R2 and produced a 205 KB database dump (22 tables with data, verified complete, not just a file of the right size).
+- [x] **[Nic] Database connection fixed** — the saved address pointed at a server this PC physically cannot reach (IPv6-only, no IPv6 here). Switched to the IPv4 pooler address on port 5432.
+- [x] **[Nic] Database password rotated and updated everywhere on the server PC.**
+- [x] **[Nic] Both nightly tasks now run when nobody is logged in** — backup (02:00) and Obsidian sync (02:30). Previously they only ran if someone happened to be signed in to the server PC. Both test-run clean afterwards.
+
+---
+
+## Done This Session ✓ (2026-08-06, infra-notifications — Overdue Alert Scope + Schedule)
+
+- [x] **[Nic] Overdue alerts scoped to the last 3 days** — jobs dated more than 3 days ago no longer alert at all. They're treated as abandoned data rather than work to chase.
+- [x] **[Nic] Cron settled at twice daily, 9am + 6pm SGT** — went daily → every 2 hours → your call to make it just twice a day. Confirmed showing correctly in the Vercel dashboard.
+- [x] **[Nic] Manual production blast run** — sent 27 real Telegram alerts, which is what exposed the problem: the check had no lower date limit, so every old unfinished job re-fired on every run, forever.
+- [x] **[Nic] Merged to production** — `dev` → `main` pushed 2026-08-06.
+
+- [ ] **Clean up the ~27 finished-but-still-`scheduled` jobs** — those alerts weren't false alarms exactly; they're real jobs that were completed in real life but never marked complete in the app. With the 3-day cutoff they've gone quiet, but the data is still wrong and it will distort the FCFS board and any reporting. Worth a pass before go-live — fold into the test-data wipe below.
 
 ---
 
@@ -385,7 +416,9 @@ _Last updated: 2026-08-06 (feat-files — real file names in app + downloads, re
 
 - [x] rclone installed and `greenqubes-r2` remote configured
 - [x] `SUPABASE_DB_URL` set as system environment variable (using Supabase Connection Pooler — IPv4)
-- [x] Nightly backup scheduled in Task Scheduler at 02:00 — syncs R2 → `E:\Greenqubes-Archive\r2` and dumps DB → `E:\Greenqubes-Archive\db\`
+- [x] **Nightly backup scheduled in Task Scheduler at 02:00** — task "Greenqubes Nightly Backup" runs `scripts/nightly-backup.bat` → `scripts/backup.sh`. **Created 2026-08-12** — it was never actually scheduled before that date despite this line previously claiming otherwise; nothing had been backed up since 7 May 2026.
+- [x] **R2 → `E:\Greenqubes-Archive\r2` sync working** — verified 2026-08-12, first successful run: 41 files, 15.3 MiB. Before this, the R2 archive folder was completely empty.
+- [x] **DB dump → `E:\Greenqubes-Archive\db\` working** — verified 2026-08-12: 205 KB gzipped, 22 tables with data, clean `dump complete` marker. Connects via the IPv4 session pooler, port 5432 (the direct host is IPv6-only and unreachable from this PC; port 6543 is transaction mode and cannot dump).
 - [x] Git Bash path confirmed: `C:\Git\bin\bash.exe`
 
 ---

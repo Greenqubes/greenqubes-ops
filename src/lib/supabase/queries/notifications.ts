@@ -93,12 +93,18 @@ export type OverdueJob = {
   }>
 }
 
+// Jobs older than this are considered abandoned rather than overdue — alerting
+// on them forever just trains people to ignore the bot.
+const OVERDUE_LOOKBACK_DAYS = 3
+
 export async function getOverdueJobs(): Promise<OverdueJob[]> {
   const supabase = createServiceClient()
 
   // SGT is UTC+8; compare against today's date in SGT
-  const sgtNow  = new Date(Date.now() + 8 * 3_600_000)
+  const sgtNow   = new Date(Date.now() + 8 * 3_600_000)
   const todaySGT = sgtNow.toISOString().slice(0, 10)
+  const cutoffSGT = new Date(sgtNow.getTime() - OVERDUE_LOOKBACK_DAYS * 86_400_000)
+    .toISOString().slice(0, 10)
 
   const { data, error } = await supabase
     .from('jobs')
@@ -110,6 +116,7 @@ export async function getOverdueJobs(): Promise<OverdueJob[]> {
     `)
     .eq('status', 'scheduled')
     .lte('date', todaySGT)
+    .gte('date', cutoffSGT)
 
   if (error) throw error
   // Suggested installers are not on the job yet — don't send them overdue alerts.
