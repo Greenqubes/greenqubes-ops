@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-12 (infra-backup — nightly backup created and verified; it had never actually been running)_
+_Last updated: 2026-08-12 (infra-config — Obsidian sync outage fixed + KB restored; infra-backup — nightly backup created and verified)_
 
 ---
 
@@ -15,6 +15,7 @@ _Last updated: 2026-08-12 (infra-backup — nightly backup created and verified;
 - [x] **[Nic] Both scheduled tasks now run whether logged in or not** — done 2026-08-12 via `Set-ScheduledTask` with stored credentials (the Task Scheduler GUI dialog silently reverts if the password prompt is cancelled). `Greenqubes Nightly Backup` and `Greenqubes Obsidian Sync` are both `LogonType: Password`, `RunLevel: Highest`; both test-run clean. **If the `GQAdmin` Windows password ever changes, both tasks stop working with no warning** — the stored credential must be re-entered.
 - [ ] **[Nic] Check whether the old DB password is used anywhere else** — anything still holding the pre-2026-08-12 password is now broken: Vercel environment variables, Bryan's `.env.local`, any other script on the server PC. Do before go-live.
 - [ ] **Nothing alerts you if the backup stops** — this is exactly how it went unnoticed for three months. The Obsidian sync and overdue cron both write a row to the `events` table, which the Admin → Health tab reads to show "last run". The backup writes nothing. Small piece of work: have `backup.sh` log an event on success, and show it on the Health tab alongside the others.
+- [ ] **Decision — Telegram watchdog for silent failures** (offered 2026-08-12, infra-config) — the vault sync died for 57 days and nobody noticed because the Health tab only shows the problem if someone looks. Proposal: a small addition to an existing Vercel cron that Telegrams you when no vault-sync (and, once it logs events, backup) row has appeared for ~2 days. Runs on Vercel so it works even when the server PC is down. Say the word and it gets built in a session.
 - [ ] **The R2 backup is a mirror, not history** — `rclone sync` makes the local copy match the bucket exactly, so a file deleted in R2 disappears from the local copy on the next run. It protects against Cloudflare being unavailable, not against someone deleting a file. If you want to recover deleted files, that needs dated snapshots or R2 object versioning — a separate decision.
 
 
@@ -127,6 +128,14 @@ _Last updated: 2026-08-12 (infra-backup — nightly backup created and verified;
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-08-12, infra-config — Obsidian Sync Outage + KB Restore)
+
+- [x] **[Nic] 57-day vault sync outage found and fixed** — sync died 7 June (print-server hang → restart → signed-out PC); revived 7 Aug, verified running unattended 5+ nights straight. Permanent logon fix recorded under infra-backup above.
+- [x] **[Nic] Supplier pricelists restored to the assistant** — DAMA, Jacky Printing and Manhour Labor had been silently deleted from the knowledge base since early June; restored with correct role locks (sales/scheduler; Manhour sales-only) and verified row-by-row.
+- [x] **[Nic] PTW files locked down (your call)** — COMPANY_PROFILE.md and MALLS.md had no visibility setting and would have been visible to installers; now sales/scheduler/coordinator only.
+- [x] **Two sync-script bugs fixed with tests, live on dev + main** — Obsidian's multi-line frontmatter format was misread into garbage visibility tags; Windows line endings made the server produce one giant chunk per note and leave duplicates behind. 20 automated checks now cover both.
+- [x] **Server PC diagnosis checklist written** — [server-pc-sync-checklist.md](server-pc-sync-checklist.md), phone-friendly, with a findings decoder.
 
 ## Done This Session ✓ (2026-08-12, infra-backup — Nightly Backup Was Never Running)
 

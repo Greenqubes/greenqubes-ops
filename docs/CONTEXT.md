@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-12 (infra-backup — nightly backup had never actually been scheduled; now created, DB connection fixed to the IPv4 session pooler, both server tasks run unattended)_
+_Last updated: 2026-08-12 (infra-config — 57-day Obsidian sync outage fixed: knowledge base restored + verified, frontmatter/chunker script bugs fixed with tests on dev+main; same day infra-backup created the never-scheduled nightly backup)_
 
 ---
 
