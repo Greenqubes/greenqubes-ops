@@ -11,8 +11,9 @@ _Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to las
 ### Backup — fixed 2026-08-12, two follow-ups
 
 - [x] **[Nic] Nightly backup now working end to end** — R2 files **and** database dump both verified. `SUPABASE_DB_URL` switched from the direct host (`db.<ref>.supabase.co`, now **IPv6-only** and unreachable from this PC) to the **IPv4 session pooler** on port 5432. Set in **machine** scope; the user-scope copy was deleted so there's one source of truth.
-- [ ] **[Nic] Rotate the database password** — it was pasted in plain text into a Claude conversation on 2026-08-12. Supabase Dashboard → Settings → Database → Reset password, then tell Claude to update the machine environment variable. Not urgent, but do it before go-live.
-- [ ] **[Nic] Decide: should backups run when nobody is logged in?** — both the backup and Obsidian Sync tasks are set to "Interactive" mode, so they only fire if someone is signed in to the server PC. If it sits at the login screen overnight, neither runs. Fixing this means storing the `GQAdmin` password in Task Scheduler ("Run whether user is logged on or not"). Worth doing before go-live.
+- [x] **[Nic] Database password rotated** — done 2026-08-12, machine env var updated to the new pooler URI and verified. Note: a Supabase password reset takes ~15–30 seconds to reach the pooler; an immediate connection attempt after resetting will fail with "password authentication failed" even when the new password is correct. Wait before assuming it's wrong.
+- [x] **[Nic] Both scheduled tasks now run whether logged in or not** — done 2026-08-12 via `Set-ScheduledTask` with stored credentials (the Task Scheduler GUI dialog silently reverts if the password prompt is cancelled). `Greenqubes Nightly Backup` and `Greenqubes Obsidian Sync` are both `LogonType: Password`, `RunLevel: Highest`; both test-run clean. **If the `GQAdmin` Windows password ever changes, both tasks stop working with no warning** — the stored credential must be re-entered.
+- [ ] **[Nic] Check whether the old DB password is used anywhere else** — anything still holding the pre-2026-08-12 password is now broken: Vercel environment variables, Bryan's `.env.local`, any other script on the server PC. Do before go-live.
 
 
 ### Future planning notes (from 2026-07-22, Phase 3 session)
