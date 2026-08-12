@@ -8,6 +8,14 @@ _Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to las
 
 ## Pending — Next Session
 
+### ⚠️ Backup — database dump is broken (2026-08-12)
+
+- [ ] **[Nic] Get the pooler connection string from Supabase** — Dashboard → Settings → Database → Connection string → tick **"Use connection pooling"**, mode **Session**, port **5432** (NOT 6543 — transaction mode can't do a dump). Copy the full URI including the password and give it to Claude, who will update the `SUPABASE_DB_URL` machine environment variable on the server PC.
+  - **Why it's broken:** the stored `SUPABASE_DB_URL` points at the direct host `db.<ref>.supabase.co`, which now resolves to an **IPv6-only** address. This server PC has no IPv6 route, so it simply cannot reach it.
+  - Switching to the IPv4 pooler (`aws-1-ap-southeast-1.pooler.supabase.com`) does reach the server, but the **stored password is rejected** — most likely never updated after the password rotation in Session 17.11.
+  - **Until this is fixed there is no database backup.** File backups (R2) are working and running nightly.
+
+
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
 - [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
@@ -396,7 +404,9 @@ _Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to las
 
 - [x] rclone installed and `greenqubes-r2` remote configured
 - [x] `SUPABASE_DB_URL` set as system environment variable (using Supabase Connection Pooler — IPv4)
-- [x] Nightly backup scheduled in Task Scheduler at 02:00 — syncs R2 → `E:\Greenqubes-Archive\r2` and dumps DB → `E:\Greenqubes-Archive\db\`
+- [x] **Nightly backup scheduled in Task Scheduler at 02:00** — task "Greenqubes Nightly Backup" runs `scripts/nightly-backup.bat` → `scripts/backup.sh`. **Created 2026-08-12** — it was never actually scheduled before that date despite this line previously claiming otherwise; nothing had been backed up since 7 May 2026.
+- [x] **R2 → `E:\Greenqubes-Archive\r2` sync working** — verified 2026-08-12, first successful run: 41 files, 15.3 MiB. Before this, the R2 archive folder was completely empty.
+- [ ] **DB dump → `E:\Greenqubes-Archive\db\` is BROKEN** — see the pending item at the top of this file. The nightly task runs, syncs R2 fine, then fails on the database dump.
 - [x] Git Bash path confirmed: `C:\Git\bin\bash.exe`
 
 ---
