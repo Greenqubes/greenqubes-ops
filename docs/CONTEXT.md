@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-12 (infra-config — 57-day Obsidian sync outage fixed: knowledge base restored + verified, frontmatter/chunker script bugs fixed with tests on dev+main; same day infra-backup created the never-scheduled nightly backup)_
+_Last updated: 2026-08-12 (feat-realtime — live updates everywhere: shared `useLiveChannel` hook, migration 0043, installer dashboard + hybrid job form live; all on production)_
 
 ---
 
