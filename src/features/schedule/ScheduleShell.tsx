@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -37,20 +37,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   // Refresh server data on job changes (realtime) + every 2 min as fallback.
   // router.refresh() re-fetches server data while preserving all React state
   // (selected date, view mode, filters) — no visible disruption to the user.
-  useEffect(() => {
-    const supabase = createClient()
-    const channel = supabase
-      .channel('schedule-jobs-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
-        router.refresh()
-      })
-      .subscribe()
-    const poll = setInterval(() => router.refresh(), 2 * 60 * 1000)
-    return () => {
-      supabase.removeChannel(channel)
-      clearInterval(poll)
-    }
-  }, [router])
+  useLiveChannel({
+    name:    'schedule-jobs-live',
+    tables:  [{ table: 'jobs' }],
+    onEvent: () => router.refresh(),
+    poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
+  })
 
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [query,        setQuery]        = useState('')

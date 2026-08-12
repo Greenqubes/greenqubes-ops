@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
+import { useLiveChannel, type LivePayload } from '@/lib/supabase/useLiveChannel'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
@@ -56,6 +57,28 @@ export type FormValues = {
 }
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
+
+const formValuesFromJob = (job: JobDetail): FormValues => ({
+  project_title:           job.project_title ?? '',
+  date:                    job.date ?? '',
+  date_end:                job.date_end ?? '',
+  time_start:              job.time_start?.slice(0, 5) ?? '',
+  time_end:                job.time_end?.slice(0, 5) ?? '',
+  client:                  job.client ?? '',
+  location:                job.location ?? '',
+  description:             job.description ?? '',
+  client_poc_name:         job.client_poc_name ?? '',
+  client_poc_phone:        job.client_poc_phone ?? '',
+  production_ready:        job.production_ready,
+  do_issued:               job.do_issued,
+  punctuality:             job.punctuality,
+  production_instructions: job.production_instructions ?? '',
+  notes:                   job.notes ?? '',
+  sales_poc_id:            job.sales_poc_id ?? '',
+  quote_amount:            job.job_financials?.quote_amount?.toString() ?? '',
+  supplier_cost:           job.job_financials?.supplier_cost?.toString() ?? '',
+  margin_notes:            job.job_financials?.margin_notes ?? '',
+})
 
 interface Props {
   job:             JobDetail
@@ -121,32 +144,22 @@ export function JobDetailShell({
   const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
   const [suggestedSubIds,         setSuggestedSubIds]        = useState<string[]>(initialSubSuggestedIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
+  const [staleBanner,       setStaleBanner]       = useState(false)
+  const [bucketsRefreshKey, setBucketsRefreshKey] = useState(0)
+  const [tasksRefreshKey,   setTasksRefreshKey]   = useState(0)
+  const suppressUntilRef = useRef(0)
+  const forceApplyRef    = useRef(false)
+  const dirtyRef         = useRef(false)
+
+  // Own writes echo back as realtime events; a short window swallows them so
+  // the user never sees a banner for their own save.
+  const bumpSuppression = () => { suppressUntilRef.current = Date.now() + 5000 }
 
   const {
     register, handleSubmit, getValues, setValue, reset, control, watch,
     formState: { isDirty, errors },
   } = useForm<FormValues>({
-    defaultValues: {
-      project_title:           job.project_title ?? '',
-      date:                    job.date ?? '',
-      date_end:                job.date_end ?? '',
-      time_start:              job.time_start?.slice(0, 5) ?? '',
-      time_end:                job.time_end?.slice(0, 5) ?? '',
-      client:                  job.client ?? '',
-      location:                job.location ?? '',
-      description:             job.description ?? '',
-      client_poc_name:         job.client_poc_name ?? '',
-      client_poc_phone:        job.client_poc_phone ?? '',
-      production_ready:        job.production_ready,
-      do_issued:               job.do_issued,
-      punctuality:             job.punctuality,
-      production_instructions: job.production_instructions ?? '',
-      notes:                   job.notes ?? '',
-      sales_poc_id:            job.sales_poc_id ?? '',
-      quote_amount:            job.job_financials?.quote_amount?.toString() ?? '',
-      supplier_cost:           job.job_financials?.supplier_cost?.toString() ?? '',
-      margin_notes:            job.job_financials?.margin_notes ?? '',
-    },
+    defaultValues: formValuesFromJob(job),
   })
 
   const saveValues = async (values: FormValues) => {
@@ -180,6 +193,7 @@ export function JobDetailShell({
     ids: string[],
     setIds: React.Dispatch<React.SetStateAction<string[]>>,
   ) => {
+    bumpSuppression()
     const wasSuggested = ids.includes(installerId)
     const action = wasSuggested ? 'remove' : 'add'
     setIds(prev =>
@@ -217,6 +231,7 @@ export function JobDetailShell({
   }
 
   const performSave = async (values: FormValues) => {
+    bumpSuppression()
     setSaving(true)
     try {
       const [, addedCoordinatorIds] = await Promise.all([
@@ -330,6 +345,7 @@ export function JobDetailShell({
   }
 
   const handleStatusChange = async (newStatus: JobStatus, newDate?: string) => {
+    bumpSuppression()
     try {
       const patch: Record<string, unknown> = { status: newStatus }
       if (newStatus === 'completed') patch.completed_at = new Date().toISOString()
@@ -373,6 +389,7 @@ export function JobDetailShell({
   }
 
   const handlePushToSchedule = async () => {
+    bumpSuppression()
     setSaving(true)
     try {
       if (isDirty) await saveValues(getValues())
@@ -402,6 +419,7 @@ export function JobDetailShell({
     timeStart: string,
     timeEnd: string,
   ) => {
+    bumpSuppression()
     try {
       for (const [oldId, newId] of Object.entries(replacements)) {
         if (newId === 'keep') continue
@@ -446,6 +464,7 @@ export function JobDetailShell({
   }
 
   const handlePushAnyways = async () => {
+    bumpSuppression()
     try {
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -480,6 +499,72 @@ export function JobDetailShell({
     for (const id of a) if (!b.has(id)) return true
     return false
   }, [selectedSubIds, initialSubAssignedIds])
+
+  const isCoordDirty = useMemo(() => {
+    const a = new Set(selectedCoordinatorIds)
+    const b = new Set(initialCoordinatorIds)
+    if (a.size !== b.size) return true
+    for (const id of a) if (!b.has(id)) return true
+    return false
+  }, [selectedCoordinatorIds, initialCoordinatorIds])
+
+  dirtyRef.current = isDirty || isInstallerDirty || isSubDirty || isCoordDirty
+
+  // Live updates for this job. Hybrid rule ("clean syncs, dirty warns"):
+  // section data (files, tasks, team) applies silently — it never collides
+  // with typing; a jobs-row change only applies silently when the form has
+  // no unsaved edits, otherwise the amber banner offers an explicit reload.
+  const handleLiveEvent = (payload: LivePayload) => {
+    if (Date.now() < suppressUntilRef.current) return
+    const row = (payload.new ?? payload.old) as { kind?: string; bucket_id?: string | null } | null
+    if (payload.table === 'files') {
+      if (row?.kind === 'attachment' && !row?.bucket_id) return   // chat's domain (ChatSection handles)
+      if (row?.bucket_id) { setBucketsRefreshKey(k => k + 1); return }
+      router.refresh()                                            // production / DO / completion photos (prop-driven)
+      return
+    }
+    if (payload.table === 'job_tasks')     { setTasksRefreshKey(k => k + 1); return }
+    if (payload.table === 'job_assignees') { router.refresh(); return }
+    // jobs row — typed fields + status
+    if (dirtyRef.current) setStaleBanner(true)
+    else router.refresh()
+  }
+
+  useLiveChannel({
+    name:   `job-form-live-${job.id}`,
+    tables: [
+      { table: 'jobs',          event: 'UPDATE', filter: `id=eq.${job.id}` },
+      { table: 'job_assignees',                  filter: `job_id=eq.${job.id}` },
+      { table: 'job_tasks',                      filter: `job_id=eq.${job.id}` },
+      { table: 'files',                          filter: `job_id=eq.${job.id}` },
+    ],
+    onEvent: handleLiveEvent,
+  })
+
+  // router.refresh() delivers a fresh `job` prop, but react-hook-form and the
+  // selection states only read it at mount. Re-baseline whenever fresh data
+  // arrives AND nothing is dirty (or the banner tap forced it). This also runs
+  // after the user's own save — keeping the assignment baselines honest.
+  const firstJobApply = useRef(true)
+  useEffect(() => {
+    if (firstJobApply.current) { firstJobApply.current = false; return }
+    if (dirtyRef.current && !forceApplyRef.current) return
+    forceApplyRef.current = false
+    reset(formValuesFromJob(job))
+    setStatus(job.status)
+    setSelectedInstallerIds(job.job_assignees.filter(a => !a.is_suggestion && !a.is_sub_installer).map(a => a.user_id))
+    setSuggestedInstallerIds(job.job_assignees.filter(a => a.is_suggestion && !a.is_sub_installer).map(a => a.user_id))
+    setSelectedSubIds(job.job_assignees.filter(a => !a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
+    setSuggestedSubIds(job.job_assignees.filter(a => a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
+    setSelectedCoordinatorIds(initialCoordinatorIds)
+    setStaleBanner(false)
+  }, [job])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Banner tap — the only path that discards unsaved edits, and it's explicit.
+  const reloadFresh = () => {
+    forceApplyRef.current = true
+    router.refresh()
+  }
 
   // ── Installer grid: per-role behaviour ──────────────────────────────────────
   const toggleFormal = (id: string) =>
@@ -576,6 +661,17 @@ export function JobDetailShell({
     <div className="min-h-screen bg-bg pb-28">
 
       <CompanyBar lang={lang} />
+
+      {staleBanner && (
+        <button
+          type="button"
+          onClick={reloadFresh}
+          className="sticky top-[45px] z-40 w-full flex items-center justify-center gap-2 px-4 py-2 bg-brand-amber-soft border-b border-brand-amber/40 text-xs font-semibold text-brand-amber"
+        >
+          <Bell size={12} />
+          {t(lang, 'jobUpdatedBanner')} — {t(lang, 'jobUpdatedReload')}
+        </button>
+      )}
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
@@ -774,6 +870,7 @@ export function JobDetailShell({
                 userId={userId}
                 lang={lang}
                 readOnly={readOnly || isInstaller}
+                refreshKey={bucketsRefreshKey}
               />
             </CollapseCard>
             <TaskListSection
@@ -781,6 +878,7 @@ export function JobDetailShell({
               role={role}
               lang={lang}
               readOnly={readOnly}
+              refreshKey={tasksRefreshKey}
             />
           </div>
         }

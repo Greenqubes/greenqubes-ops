@@ -31,13 +31,14 @@ function FileTypeIcon({ filename }: { filename: string }) {
 }
 
 interface Props {
-  jobId:     string
-  userId:    string   // app users.id — the FK target for files.uploader_id
-  lang:      LangCode
-  readOnly?: boolean
+  jobId:       string
+  userId:      string   // app users.id — the FK target for files.uploader_id
+  lang:        LangCode
+  readOnly?:   boolean
+  refreshKey?: number   // bump to re-pull from the server (live job-form events)
 }
 
-export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
+export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey }: Props) {
   const [buckets,  setBuckets]  = useState<AttachmentBucket[]>([])
   const [loading,  setLoading]  = useState(true)
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -59,7 +60,7 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false }: Props) {
     }
   }
 
-  useEffect(() => { load() }, [jobId])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [jobId, refreshKey])  // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addBucket() {
     const maxPos = buckets.reduce((m, b) => Math.max(m, b.position), -1)
