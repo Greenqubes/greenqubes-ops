@@ -8,12 +8,11 @@ _Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to las
 
 ## Pending — Next Session
 
-### ⚠️ Backup — database dump is broken (2026-08-12)
+### Backup — fixed 2026-08-12, two follow-ups
 
-- [ ] **[Nic] Get the pooler connection string from Supabase** — Dashboard → Settings → Database → Connection string → tick **"Use connection pooling"**, mode **Session**, port **5432** (NOT 6543 — transaction mode can't do a dump). Copy the full URI including the password and give it to Claude, who will update the `SUPABASE_DB_URL` machine environment variable on the server PC.
-  - **Why it's broken:** the stored `SUPABASE_DB_URL` points at the direct host `db.<ref>.supabase.co`, which now resolves to an **IPv6-only** address. This server PC has no IPv6 route, so it simply cannot reach it.
-  - Switching to the IPv4 pooler (`aws-1-ap-southeast-1.pooler.supabase.com`) does reach the server, but the **stored password is rejected** — most likely never updated after the password rotation in Session 17.11.
-  - **Until this is fixed there is no database backup.** File backups (R2) are working and running nightly.
+- [x] **[Nic] Nightly backup now working end to end** — R2 files **and** database dump both verified. `SUPABASE_DB_URL` switched from the direct host (`db.<ref>.supabase.co`, now **IPv6-only** and unreachable from this PC) to the **IPv4 session pooler** on port 5432. Set in **machine** scope; the user-scope copy was deleted so there's one source of truth.
+- [ ] **[Nic] Rotate the database password** — it was pasted in plain text into a Claude conversation on 2026-08-12. Supabase Dashboard → Settings → Database → Reset password, then tell Claude to update the machine environment variable. Not urgent, but do it before go-live.
+- [ ] **[Nic] Decide: should backups run when nobody is logged in?** — both the backup and Obsidian Sync tasks are set to "Interactive" mode, so they only fire if someone is signed in to the server PC. If it sits at the login screen overnight, neither runs. Fixing this means storing the `GQAdmin` password in Task Scheduler ("Run whether user is logged on or not"). Worth doing before go-live.
 
 
 ### Future planning notes (from 2026-07-22, Phase 3 session)
@@ -406,7 +405,7 @@ _Last updated: 2026-08-06 (infra-notifications — overdue alerts limited to las
 - [x] `SUPABASE_DB_URL` set as system environment variable (using Supabase Connection Pooler — IPv4)
 - [x] **Nightly backup scheduled in Task Scheduler at 02:00** — task "Greenqubes Nightly Backup" runs `scripts/nightly-backup.bat` → `scripts/backup.sh`. **Created 2026-08-12** — it was never actually scheduled before that date despite this line previously claiming otherwise; nothing had been backed up since 7 May 2026.
 - [x] **R2 → `E:\Greenqubes-Archive\r2` sync working** — verified 2026-08-12, first successful run: 41 files, 15.3 MiB. Before this, the R2 archive folder was completely empty.
-- [ ] **DB dump → `E:\Greenqubes-Archive\db\` is BROKEN** — see the pending item at the top of this file. The nightly task runs, syncs R2 fine, then fails on the database dump.
+- [x] **DB dump → `E:\Greenqubes-Archive\db\` working** — verified 2026-08-12: 205 KB gzipped, 22 tables with data, clean `dump complete` marker. Connects via the IPv4 session pooler, port 5432 (the direct host is IPv6-only and unreachable from this PC; port 6543 is transaction mode and cannot dump).
 - [x] Git Bash path confirmed: `C:\Git\bin\bash.exe`
 
 ---
