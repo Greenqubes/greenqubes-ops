@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-06 (infra-notifications — overdue alerts scoped to the last 3 days, cron moved to twice daily 9am + 6pm SGT; live on production)_
+_Last updated: 2026-08-12 (infra-backup — nightly backup had never actually been scheduled; now created, DB connection fixed to the IPv4 session pooler, both server tasks run unattended)_
 
 ---
 
