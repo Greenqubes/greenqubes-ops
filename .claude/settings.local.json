@@ -93,7 +93,17 @@
       "PowerShell(git add supabase/migrations/0033_workflow_v2_roles.sql supabase/migrations/0034_workflow_v2_policies.sql src/lib/supabase/types.ts src/components/Pill.tsx)",
       "PowerShell(git add src/components/BottomNav.tsx)",
       "Bash(grep -rniB1 -A8 \"jobs.*for update\\\\|jobs_update\\\\|jobs: .*update\" supabase/migrations/)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(schtasks /query /tn \"\\\\Greenqubes Obsidian Sync\" /fo LIST /v)",
+      "PowerShell($all = schtasks /query /fo CSV /v | ConvertFrom-Csv; \"TOTAL TASKS: \" + $all.Count; \"--- 2AM-ish start times ---\"; $all | Where-Object { $_.'Start Time' -match '^0?[12]:' -or $_.'Next Run Time' -match ' 0?[12]:' } | Select-Object TaskName,'Task To Run','Start Time','Last Run Time','Last Result' | Format-List)",
+      "PowerShell(foreach \\($d in 'db','logs','r2'\\) { \"=== $d ===\"; $items = Get-ChildItem \"E:\\\\Greenqubes-Archive\\\\$d\" -Recurse -File -ErrorAction SilentlyContinue; \"file count: \" + $items.Count; $items | Sort-Object LastWriteTime -Descending | Select-Object -First 3 FullName,Length,LastWriteTime | Format-Table -AutoSize })",
+      "PowerShell(\"--- bash ---\"; foreach \\($p in 'C:\\\\Git\\\\bin\\\\bash.exe','C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe'\\) { if \\(Test-Path $p\\) { \"FOUND: $p\" } else { \"missing: $p\" } }; \"--- rclone ---\"; $rc = Get-Command rclone -ErrorAction SilentlyContinue; if \\($rc\\) { $rc.Source } else { \"rclone NOT on PATH\" }; \"--- SUPABASE_DB_URL \\(machine\\) ---\"; if \\([Environment]::GetEnvironmentVariable\\('SUPABASE_DB_URL','Machine'\\)\\) { \"set \\(machine scope\\)\" } elseif \\([Environment]::GetEnvironmentVariable\\('SUPABASE_DB_URL','User'\\)\\) { \"set \\(user scope\\)\" } else { \"NOT SET\" })",
+      "PowerShell(schtasks /create /tn \"Greenqubes Nightly Backup\" /tr \"E:\\\\greenqubes-ops\\\\scripts\\\\nightly-backup.bat\" /sc DAILY /st 02:00 /ru GQAdmin /it /f)",
+      "Bash(bash \"C:/Users/GQAdmin/AppData/Local/Temp/claude/e--greenqubes-ops/21b70507-70ee-47a1-998f-6901d89ff956/scratchpad/pooler-test.sh\")",
+      "Bash(bash \"C:/Users/GQAdmin/AppData/Local/Temp/claude/e--greenqubes-ops/21b70507-70ee-47a1-998f-6901d89ff956/scratchpad/inspect-url.sh\")",
+      "PowerShell(\"--- supabase temp/link files ---\"; Get-ChildItem E:\\\\greenqubes-ops\\\\supabase -Force -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\\\.temp|config\\\\.toml' } | Select-Object FullName,Length | Format-Table -AutoSize; \"--- IPv6 connectivity ---\"; try { $t = Test-NetConnection -ComputerName 'db.sotedopqyoondboareyp.supabase.co' -Port 5432 -InformationLevel Detailed -WarningAction SilentlyContinue; \"TcpTestSucceeded: \" + $t.TcpTestSucceeded } catch { \"test failed: \" + $_.Exception.Message })",
+      "PowerShell(schtasks /run /tn \"Greenqubes Nightly Backup\")",
+      "PowerShell(foreach \\($t in 'Greenqubes Nightly Backup','Greenqubes Obsidian Sync'\\) { \"=== $t ===\"; schtasks /query /tn \"$t\" /fo LIST /v | Select-String 'Logon Mode|Run As User|Status|Last Run Time|Last Result|Next Run Time' })"
     ],
     "additionalDirectories": [
       "c:\\Greenqubes_GitHub\\greenqubes-ops\\src\\app\\api\\admin\\users",

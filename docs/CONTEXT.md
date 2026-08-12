@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-06 (feat-files — original file names stored in `files.name` + shown app-wide, downloads keep real names, new jobs get readable R2 folders `{date}_{title}_{code}` via DB trigger; migrations 0041–0042; live on production)_
+_Last updated: 2026-08-12 (infra-config — 57-day Obsidian sync outage fixed: knowledge base restored + verified, frontmatter/chunker script bugs fixed with tests on dev+main; same day infra-backup created the never-scheduled nightly backup)_
 
 ---
 
@@ -69,7 +69,7 @@ The prototype covers six rounds of "boss feedback":
 1. **Three-role link system** — sales / scheduler / installer, each with role-appropriate tabs and permissions.
 2. **Approval workflow** — sales draft → workload preview → scheduler approves → schedule. Either side can send back.
 3. **Workload preview before push** — sales sees per-day team load before sending to scheduler. Can switch dates inline.
-4. **Overdue alerts** — automatic at 2-hour checkpoints, 6 PM end-of-day, and past `timeEnd`. Bell icon + drawer.
+4. **Overdue alerts** — automatic at 2-hour checkpoints, 6 PM end-of-day, and past `timeEnd`. Bell icon + drawer. _(Prototype behaviour. As shipped 2026-08-06: twice daily 9am + 6pm SGT, jobs older than 3 days ignored — see plan.md.)_
 5. **Photo-required completion** — can't mark job done without completion photos; scheduler can override.
 6. **Installer features (latest round)**:
     - Live job chat thread (text + voice notes via `MediaRecorder`)
