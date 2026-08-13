@@ -28,6 +28,15 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('auth_id', user.id)
+    .maybeSingle() as { data: { role: string } | null; error: unknown }
+  if (!profile || !['sales', 'scheduler', 'coordinator', 'admin'].includes(profile.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { name } = await req.json() as { name: string }
   if (!name?.trim()) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 

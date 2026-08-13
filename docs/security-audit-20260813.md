@@ -62,6 +62,12 @@ secret handling, injection surfaces — held up well.
 
 ### 2. MEDIUM — Any logged-in user can delete the entire client list
 
+> **STATUS: FIXED in code 2026-08-13** — migration `0045_lock_client_tables_and_file_key_index.sql`
+> restricts `clients`/`client_contacts` insert+delete to office roles
+> (sales/scheduler/coordinator/admin); SELECT stays open for the dropdowns. The
+> four client mutation routes also gained a matching server-side role gate.
+> **Pending `npx supabase db push` (Nic).**
+
 - **Where:** `supabase/migrations/0026_client_tables.sql` (RLS `using (true)` for
   select/insert/delete on `clients` and `client_contacts`) + `src/app/api/clients/[id]/route.ts`
   (DELETE checks only that you're logged in, no role check).
@@ -84,6 +90,12 @@ secret handling, injection surfaces — held up well.
 
 ### 3. MEDIUM — File download links are minted for any key, with no access check
 
+> **STATUS: FIXED in code 2026-08-13** — the route now looks the key up first:
+> a `files` row → allowed only if the caller can see the owning job (jobs RLS);
+> a `bug_reports` screenshot key → scheduler/admin only; anything else → 404.
+> Uses the new `files_r2_key_idx` (migration 0045). No DB push needed for the
+> route logic itself, but the index ships in 0045.
+
 - **Where:** `src/app/api/r2/download-url/route.ts` → `getDownloadUrl(key)` in
   `src/lib/storage/r2.ts`.
 - **Category:** broken object-level authorization (IDOR).
@@ -105,6 +117,12 @@ secret handling, injection surfaces — held up well.
   job's access). If RLS returns nothing, return 404.
 
 ### 4. LOW–MEDIUM — A user can overwrite/rename another user's saved AI conversation
+
+> **STATUS: FIXED in code 2026-08-13** — `rename` now uses the RLS client (the
+> `asst_chats: own update` policy scopes it; 404 when no owned row matched);
+> `updateChat` takes the caller's `userId` and scopes both its lookup and update
+> by `user_id`, so a foreign `existingId` falls back to inserting the caller's
+> own new row instead of overwriting someone else's. No DB change needed.
 
 - **Where:** `src/app/api/assistant/rename/route.ts` and
   `src/app/api/assistant/save/route.ts` → `updateChat()` in

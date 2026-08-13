@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
 
   let id: string | null
   if (existingId) {
-    id = await updateChat(existingId, messages, tag)
-    if (!id) id = await saveChat(profile.id, messages, tag)  // fallback if row was deleted
+    id = await updateChat(existingId, profile.id, messages, tag)
+    if (!id) id = await saveChat(profile.id, messages, tag)  // fallback if row was deleted or not owned
   } else {
     id = await saveChat(profile.id, messages, tag)
   }
