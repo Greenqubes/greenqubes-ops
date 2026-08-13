@@ -469,4 +469,6 @@ _Last updated: 2026-08-12 (feat-realtime — live updates everywhere shipped to 
 
 ## Admin Security Note
 
-Admin access is hard-gated to `ai@greenqubes.com` only at both the page and API level. No other account — not even other scheduler accounts — can reach `/admin` or any `/api/admin/*` endpoint. The check is against the Google-authenticated email, not a role field, so it cannot be bypassed by editing `public.users`.
+Admin access is granted by the `role = 'admin'` field on the user's `public.users` row (changed from an email gate to a DB role in migration 0019, feat-admin 2026-05-14). The page (`/admin`) and every `/api/admin/*` route check `role === 'admin'` server-side. Only `ai@greenqubes.com` currently holds that role.
+
+> **Correction (security audit 2026-08-13):** the earlier wording here claimed admin was email-gated and "cannot be bypassed by editing `public.users`." That has been false since migration 0019 — admin is now purely a role. Until migration **0044** (2026-08-13), any logged-in user could change their own `role` to `admin`/`scheduler` directly via the browser because the users update RLS rule had no column restriction. Migration 0044 adds a trigger that blocks non-admins from changing `role` (and other privileged columns) on their own row. See `docs/security-audit-20260813.md` finding #1.
