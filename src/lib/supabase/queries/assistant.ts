@@ -45,9 +45,10 @@ export async function deleteChat(id: string): Promise<boolean> {
 }
 
 export async function updateChat(
-  id:   string,
-  msgs: { role: string; content: string }[],
-  tag:  ChatTag,
+  id:     string,
+  userId: string,
+  msgs:   { role: string; content: string }[],
+  tag:    ChatTag,
 ): Promise<string | null> {
   const supabase = createServiceClient()
 
@@ -58,14 +59,18 @@ export async function updateChat(
     embeddingStr = `[${vec.join(',')}]`
   } catch { /* embedding optional */ }
 
-  // Fetch original topic so the title stays the same across the conversation
+  // Scope to the caller's own row (audit 2026-08-13, finding #4): this uses the
+  // service client, so ownership must be enforced here. If existingId belongs to
+  // another user (or was deleted), original is null and the caller falls back to
+  // inserting a fresh row owned by the caller — never overwriting someone else's.
   const { data: original } = await supabase
     .from('asst_chats')
     .select('topic')
     .eq('id', id)
+    .eq('user_id', userId)
     .single()
 
-  if (!original) return null  // row was deleted; caller should fall back to insert
+  if (!original) return null  // not the caller's row (or deleted); fall back to insert
 
   const { error } = await supabase
     .from('asst_chats')
@@ -78,6 +83,7 @@ export async function updateChat(
       ts:         new Date().toISOString(),
     } as never)
     .eq('id', id)
+    .eq('user_id', userId)
 
   if (error) { console.error('updateChat error', error); return null }
   return id

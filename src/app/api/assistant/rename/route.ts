@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
 
 export async function PATCH(req: NextRequest) {
   const supabase = await createClient()
@@ -14,13 +13,15 @@ export async function PATCH(req: NextRequest) {
     return new Response('Bad request', { status: 400 })
   }
 
-  // Use service client for the update (consistent with updateChat/saveChat pattern)
-  const db = createServiceClient()
-  const { error } = await db
+  // Use the RLS-respecting client: the "asst_chats: own update" policy scopes
+  // this to the caller's own conversations, so passing another user's chat id
+  // affects no rows (audit 2026-08-13, finding #4).
+  const { count, error } = await supabase
     .from('asst_chats')
-    .update({ topic: topic.trim() } as never)
+    .update({ topic: topic.trim() } as never, { count: 'exact' })
     .eq('id', id)
 
   if (error) return new Response('Update failed', { status: 500 })
+  if (!count) return new Response('Not found', { status: 404 })
   return Response.json({ ok: true })
 }
