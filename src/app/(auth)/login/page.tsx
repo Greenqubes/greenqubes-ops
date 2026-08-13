@@ -39,13 +39,9 @@ export default function LoginPage() {
           border: '1px solid var(--line)',
         }}
       >
-        {/* Wordmark */}
-        <p
-          className="font-display text-xl font-medium tracking-widest uppercase text-center"
-          style={{ color: 'var(--ink)' }}
-        >
-          Green<span style={{ color: 'var(--terracotta)' }}>qubes</span>
-        </p>
+        {/* Logo */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/greenqubes-logo.png" alt="GreenQubes" className="brand-logo mx-auto h-7 w-auto" />
 
         <div className="space-y-3">
           <button
