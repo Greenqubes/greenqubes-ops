@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-12 (feat-realtime — live updates everywhere shipped to production; migration 0043 applied)_
+_Last updated: 2026-08-13 (security audit — 4 findings fixed live on production; migrations 0044 + 0045 applied)_
 
 ---
 
@@ -24,7 +24,16 @@ _Last updated: 2026-08-12 (feat-realtime — live updates everywhere shipped to 
 - [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
 - [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
 - [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
-- [ ] **Full security + integrity audit before go-live** — check the whole webapp for security loopholes and cyber-attack exposure. Once live this is core operations — downtime means the whole company stops. Must cover: access control (RLS), auth, API routes, exposed secrets, backup/recovery, and what happens if each service (Vercel/Supabase/R2/Telegram) goes down. Has to be bulletproof.
+- [x] **[Nic] Full security + integrity audit — code/access-control portion DONE 2026-08-13.** Full-app review of access control (RLS), auth, all API routes, exposed secrets, file storage, webhooks/crons and injection surfaces. Found **4 real holes and fixed all of them live on production** — headline: any logged-in user could make themselves admin. Full write-up in [security-audit-20260813.md](security-audit-20260813.md); session note [fix/fix-auth-20260813-1-note.md](fix/fix-auth-20260813-1-note.md).
+- [ ] **Security audit — remaining piece: service-outage resilience** — the code/access-control audit is done (above). Still not exercised: what actually happens if each service (Vercel / Supabase / R2 / Telegram) goes down mid-operations, and the recovery drill for each. Worth a dedicated session before go-live. (Backup/recovery itself was covered in the 2026-08-12 infra sessions.)
+
+### Security hardening — lower priority (from the 2026-08-13 audit, fix whenever)
+
+_None of these are blockers; the 4 real findings are already fixed. Details in [security-audit-20260813.md](security-audit-20260813.md)._
+
+- [ ] **Make webhook/cron secret checks fail-closed** — the Telegram webhooks and the cron routes only enforce their secret *if* the secret env var is set (`if (secret) { check }`). If one were ever left unset, that endpoint would be wide open (e.g. someone could forge digest votes → auto-promote a note to the vault, or trigger Telegram blasts). Assuming the secrets are set in Vercel this is inert today — but it should refuse when the secret is missing rather than allow.
+- [ ] **Stop notification-insert spoofing** — the in-app notifications table lets any logged-in user insert a notification into anyone's bell drawer (no owner check on insert). Nuisance-level only; reads/deletes are already locked to the owner.
+- [ ] **Escape user text in Telegram messages** — notifications are sent with HTML formatting and drop in user text (project titles, chat text) unescaped. Not an app security hole, but a crafted title could inject a fake link/formatting inside a Telegram message.
 - [ ] **Telegram notification tracker on the job form** (noted 2026-08-05, ux-jobs) — build the real notification tracker behind the "Notifications — coming soon" placeholder card (bottom of the Team tab in the new job-form layout): show which Telegram notifications were sent for the job (assignments, clash alerts, chat batches), to whom, and when. Needs its own design session.
 - [ ] **Sub-jobs under a main job** (noted 2026-08-05, ux-jobs) — a job should be able to belong to a parent job (picked via a "parent job" dropdown), so one big project can hold several sub-jobs. Big piece: touches the data model, schedule/FCFS display, installer views, and possibly duplication. Needs its own design session before any build.
 
@@ -126,6 +135,20 @@ _Last updated: 2026-08-12 (feat-realtime — live updates everywhere shipped to 
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-13, fix-auth — Security Audit + Fixes)
+
+- [x] **[Nic] Full security + integrity audit run** — whole webapp checked: access control (RLS), login/session, every API route, exposed secrets, file storage, webhooks/crons, injection surfaces. Write-up: [security-audit-20260813.md](security-audit-20260813.md).
+- [x] **[Nic] CRITICAL fixed — any logged-in user could make themselves admin** — the database rule that lets you edit your own profile didn't stop you changing your own **role**, so an installer could flip to admin/scheduler from the browser and see all jobs, all money figures, and everyone's private assistant chats. Migration **0044** adds a guard that blocks non-admins from changing their own role (and other sensitive fields). Applied to the shared DB + merged to main.
+- [x] **[Nic] MEDIUM fixed — anyone could delete the client list** — client tables + routes now limited to office roles (sales/scheduler/coordinator/admin). Migration **0045**.
+- [x] **[Nic] MEDIUM fixed — file download links weren't access-checked** — the app now confirms you're allowed to see a file's job before handing out a download link; bug screenshots limited to scheduler/admin.
+- [x] **[Nic] LOW fixed — could rename/overwrite another user's saved AI chat** — chat edits now locked to the owner.
+- [x] **[Nic] Ran `npx supabase db push` for migrations 0044 + 0045** — both applied to the shared DB; production covered.
+- [x] **[Nic] Verified on preview + merged to main** — the three legitimate flows (add a client, download a job file, rename an assistant chat) confirmed still working; `dev` → `main` merged, all four fixes live on production.
+- [x] **[Nic] Stale doc corrected** — the "admin is email-gated / can't be bypassed" note was false since May (admin became a role in migration 0019); rewritten with the correct picture.
+- Lower-priority hardening notes captured above under "Security hardening — lower priority" for a future session (fix whenever).
 
 ---
 

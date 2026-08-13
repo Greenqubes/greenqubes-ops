@@ -19,8 +19,9 @@ secret handling, injection surfaces — held up well.
 > **STATUS: FIXED in code 2026-08-13** — `supabase/migrations/0044_users_guard_privileged_columns.sql`
 > adds a `BEFORE UPDATE` trigger that blocks non-admin end-user sessions from
 > changing `role`, `auth_id`, `email`, `deleted_at`, `digest_subscriber`, or
-> `telegram_chat_id` on any `users` row. **Pending `npx supabase db push` (Nic) +
-> preview verification.** Also fixed the stale claim in `docs/nic-checklist.md`.
+> `telegram_chat_id` on any `users` row. **Applied to the shared DB + merged to
+> `main` — LIVE ON PRODUCTION 2026-08-13.** Also fixed the stale claim in
+> `docs/nic-checklist.md`.
 
 - **Where:** `supabase/migrations/0002_rls.sql` — policy `users: own record update only`
   (never overridden by a later migration).
@@ -66,7 +67,7 @@ secret handling, injection surfaces — held up well.
 > restricts `clients`/`client_contacts` insert+delete to office roles
 > (sales/scheduler/coordinator/admin); SELECT stays open for the dropdowns. The
 > four client mutation routes also gained a matching server-side role gate.
-> **Pending `npx supabase db push` (Nic).**
+> **Applied to the shared DB + merged to `main` — LIVE ON PRODUCTION 2026-08-13.**
 
 - **Where:** `supabase/migrations/0026_client_tables.sql` (RLS `using (true)` for
   select/insert/delete on `clients` and `client_contacts`) + `src/app/api/clients/[id]/route.ts`

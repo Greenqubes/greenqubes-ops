@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-12 (feat-realtime — live updates everywhere: shared `useLiveChannel` hook, migration 0043, installer dashboard + hybrid job form live; all on production)_
+_Last updated: 2026-08-13 (fix-auth — full security audit: 4 access-control findings fixed live on production; migrations 0044 + 0045; see `docs/security-audit-20260813.md`)_
 
 ---
 
@@ -57,6 +57,8 @@ Migration from the original React prototype to a feature-folder Next.js app with
 - **Admin** — full access; hard-gated to `ai@greenqubes.com`. Can "preview as" any of the other roles.
 
 Role is bound to the user's authenticated Supabase session, not a UI toggle. Row-level security policies in the DB enforce this — there is no path where the client can lie about their role and get sensitive data.
+
+**Admin is a DB role, not an email gate** (since migration 0019, feat-admin 2026-05-14) — `role = 'admin'` on the user's `public.users` row grants it; every gate checks `role === 'admin'`. Because admin is now a pure DB field, users must never be able to change their own `role`: the security audit (2026-08-13) found the self-update RLS had no column restriction and any user could escalate to admin/scheduler from the browser. **Migration 0044** now blocks non-admins from changing role (and auth_id/email/deleted_at/digest_subscriber/telegram_chat_id) on their own row. Any future change to the `users` update policy must preserve this.
 
 **Note on "preview as":** the admin role switcher changes the *UI role only* — the database still sees you as admin (who can read everything). Anything gated by row-level security (e.g. suggestion-hiding from installers) must be tested with a **real non-admin login**.
 
