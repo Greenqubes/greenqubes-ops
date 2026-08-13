@@ -52,6 +52,11 @@
   }
 }
 
+/* Brand logo — lift the grey half in dark mode so it stays readable */
+.dark .brand-logo {
+  filter: brightness(1.4);
+}
+
 /* Hide scrollbars on horizontally scrolling rows (date strip, toggle rows) */
 .scrollbar-none {
   -ms-overflow-style: none;
