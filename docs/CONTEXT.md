@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-13 (fix-auth — full security audit: 4 access-control findings fixed live on production; migrations 0044 + 0045; see `docs/security-audit-20260813.md`)_
+_Last updated: 2026-08-13 (chore-db — brand logo PNG live in CompanyBar + login; production test data wiped clean: all jobs, job files, bug reports, crash logs gone from DB + R2; users/clients/KB kept — ready for Session 19 pre-alpha)_
 
 ---
 
