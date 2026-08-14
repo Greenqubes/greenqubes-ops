@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-13 (security audit — 4 findings fixed live on production; migrations 0044 + 0045 applied)_
+_Last updated: 2026-08-13 (chore-db — brand logo live on production; full test-data wipe: jobs, job files, bug reports, crash logs cleared from DB + R2)_
 
 ---
 
@@ -57,9 +57,9 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 
 ### Test data to wipe before go-live (from Phase 1 + 2 testing)
 
-- [ ] **Delete the test jobs** created during testing — "Test Job" (2026-06-12), "123", "test123smoke345", the Phase 2 ones ("Testing sales suggest installer -> confirm installer -> installer otp"), the Duplicate-testing "… (Copy)" jobs, and the 2026-08-06 feat-files pair ("Test Job R2 Cloudflare Fix" + its Copy). Wipe all test data in one pass right before go-live.
-- [ ] **Remove the test installer account** (or keep it — your call) used to verify installers can't see suggestions.
-- [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them).
+- [x] **[Nic] Delete the test jobs** — DONE 2026-08-13, went further than planned: **all 46 jobs wiped** (every test job plus the stale backlog), together with all attachments, chats, buckets, tasks and assignments, plus all job files in R2. Verified zero remaining.
+- [x] **[Nic] Remove the test installer account** — KEPT (your call 2026-08-13): the wipe preserved every user account for logins.
+- [ ] **Delete the test external contacts** created during Phase 4 testing — remove them from the External installers bucket on any job form (delete + their links die with them). _Note (2026-08-13): the wipe removed their job links but kept the contact pool, so their lifetime links still open (showing no jobs). Delete them from any job form's External installers bucket if you want the links dead._
 
 ### Setup (from 2026-05-29, feat-admin-3)
 
@@ -138,6 +138,16 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 
 ---
 
+## Done This Session ✓ (2026-08-13, chore-db — Brand Logo + Test-Data Wipe)
+
+- [x] **[Nic] Brand logo live on production** — your GreenQubes logo PNG now replaces the text wordmark in the top bar (every page) and on the login card. Pre-Alpha tag removed (your call); in dark mode the grey half gets a small brightness lift so it stays readable. Preview checked, then merged `dev` → `main`.
+- [x] **[Nic] Full test-data wipe executed on production** — your call on scope: all jobs + their attachments, bug reports + screenshots, in-app notifications, crash logs. Deleted: 46 jobs (35 scheduled / 10 pending / 1 completed) with all cascaded data, 1 bug report, 27 crash logs, and 44 R2 files (15.6 MB). A dry-run count was shown and approved before anything was deleted; every count verified zero afterwards.
+- [x] **[Nic] Kept: everything login- and reference-related** — all user accounts, the client company list, the external installer contact pool, assistant chats, and the knowledge base.
+- [x] **One-off wipe script deleted after use** (your call) — it was dry-run-by-default with an explicit `--execute` flag; not kept in the repo.
+- ⚠️ **Archive mirror note** — the deleted R2 files still sit in `E:\Greenqubes-Archive\r2` on the server PC until the next 02:00 sync mirrors the deletion. Copy that folder first if you ever want the old test attachments back; this morning's DB dump keeps the pre-wipe database snapshot either way.
+
+---
+
 ## Done This Session ✓ (2026-08-13, fix-auth — Security Audit + Fixes)
 
 - [x] **[Nic] Full security + integrity audit run** — whole webapp checked: access control (RLS), login/session, every API route, exposed secrets, file storage, webhooks/crons, injection surfaces. Write-up: [security-audit-20260813.md](security-audit-20260813.md).
@@ -187,7 +197,7 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **[Nic] Manual production blast run** — sent 27 real Telegram alerts, which is what exposed the problem: the check had no lower date limit, so every old unfinished job re-fired on every run, forever.
 - [x] **[Nic] Merged to production** — `dev` → `main` pushed 2026-08-06.
 
-- [ ] **Clean up the ~27 finished-but-still-`scheduled` jobs** — those alerts weren't false alarms exactly; they're real jobs that were completed in real life but never marked complete in the app. With the 3-day cutoff they've gone quiet, but the data is still wrong and it will distort the FCFS board and any reporting. Worth a pass before go-live — fold into the test-data wipe below.
+- [x] **[Nic] Clean up the ~27 finished-but-still-`scheduled` jobs** — DONE 2026-08-13: gone in the full test-data wipe (all 46 jobs deleted).
 
 ---
 
