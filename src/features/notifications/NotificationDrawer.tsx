@@ -19,10 +19,22 @@ type InAppNotif = {
 }
 
 type OverdueJob = {
-  id:       string
-  client:   string
-  date:     string
-  location: string | null
+  id:            string
+  client:        string
+  project_title: string | null
+  date:          string
+  location:      string | null
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] // always English (CLAUDE.md hard rule)
+
+// '2026-08-13' → '13/08/2026 (Thu)' — static table, not toLocaleDateString (the
+// locale formatters caused the /schedule hydration saga; never again)
+function fmtOverdueDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  const [y, m, day] = iso.split('-')
+  return `${day}/${m}/${y} (${DAYS[d.getDay()]})`
 }
 
 function timeAgo(iso: string): string {
@@ -62,10 +74,10 @@ export function NotificationDrawer({ lang }: Props) {
       const now = new Date()
       const nowMins = now.getHours() * 60 + now.getMinutes()
 
-      type JobRow = { id: string; client: string; date: string; time_end: string | null; location: string | null }
+      type JobRow = { id: string; client: string; project_title: string | null; date: string; time_end: string | null; location: string | null }
       const { data } = await (supabase
         .from('jobs')
-        .select('id, client, date, time_end, location')
+        .select('id, client, project_title, date, time_end, location')
         .eq('status', 'scheduled')
         .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
 
@@ -81,10 +93,11 @@ export function NotificationDrawer({ lang }: Props) {
       })
 
       setOverdueJobs(overdue.map(j => ({
-        id:       j.id,
-        client:   j.client,
-        date:     j.date,
-        location: j.location ?? null,
+        id:            j.id,
+        client:        j.client,
+        project_title: j.project_title ?? null,
+        date:          j.date,
+        location:      j.location ?? null,
       })))
     } catch { /* best-effort */ }
   }, [])
@@ -287,8 +300,13 @@ export function NotificationDrawer({ lang }: Props) {
                     >
                       <Hourglass size={14} className="text-bad mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-bad truncate">{job.client}</p>
-                        <p className="text-[11px] text-bad/70 mt-0.5">{job.date}</p>
+                        <p className="text-xs font-medium text-bad truncate">
+                          {job.project_title || job.client || 'Untitled job'}
+                        </p>
+                        {job.project_title && job.client && (
+                          <p className="text-[11px] text-bad/70 mt-0.5 truncate">{job.client}</p>
+                        )}
+                        <p className="text-[11px] text-bad/70 mt-0.5">{fmtOverdueDate(job.date)}</p>
                         {job.location && (
                           <p className="text-[11px] text-bad/60 truncate">{job.location}</p>
                         )}
