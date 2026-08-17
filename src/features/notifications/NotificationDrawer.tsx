@@ -81,26 +81,52 @@ export function NotificationDrawer({ lang }: Props) {
       let seen: Record<string, string> = {}
       try { seen = JSON.parse(localStorage.getItem(seenKeyRef.current) ?? '{}') } catch { /* corrupt entry — treat all as unread */ }
 
+      // Overdue alerts are scoped to the job's team (POC / coordinator /
+      // formally assigned installer) — scheduler + admin keep the full view.
+      // Preview-as does not apply here: it changes the UI role only.
+      let myId: string | null = null
+      let seesAll = false
+      if (session?.user?.id) {
+        type MeRow = { id: string; role: string }
+        const { data: me } = await (supabase
+          .from('users')
+          .select('id, role')
+          .eq('auth_id', session.user.id)
+          .single() as unknown as Promise<{ data: MeRow | null }>)
+        myId = me?.id ?? null
+        seesAll = me?.role === 'scheduler' || me?.role === 'admin'
+      }
+
       const today = new Date().toISOString().split('T')[0]
       const now = new Date()
       const nowMins = now.getHours() * 60 + now.getMinutes()
 
-      type JobRow = { id: string; client: string; project_title: string | null; date: string; time_end: string | null; location: string | null }
+      type JobRow = {
+        id: string; client: string; project_title: string | null; date: string
+        time_end: string | null; location: string | null; sales_poc_id: string | null
+        job_assignees: Array<{ user_id: string; is_suggestion: boolean }> | null
+        job_coordinators: Array<{ user_id: string }> | null
+      }
       const { data } = await (supabase
         .from('jobs')
-        .select('id, client, project_title, date, time_end, location')
+        .select('id, client, project_title, date, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id)')
         .eq('status', 'scheduled')
         .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
 
       if (!data) return
 
       const overdue = data.filter(j => {
-        if (j.date < today) return true
-        if (j.date === today && j.time_end) {
+        let isOverdue = j.date < today
+        if (!isOverdue && j.date === today && j.time_end) {
           const [h, m] = j.time_end.split(':').map(Number)
-          return nowMins > h * 60 + m
+          isOverdue = nowMins > h * 60 + m
         }
-        return false
+        if (!isOverdue) return false
+        if (seesAll) return true
+        if (!myId) return false
+        return j.sales_poc_id === myId
+          || (j.job_coordinators ?? []).some(c => c.user_id === myId)
+          || (j.job_assignees ?? []).some(a => a.user_id === myId && !a.is_suggestion)
       })
 
       setOverdueJobs(overdue.map(j => ({
@@ -328,8 +354,8 @@ export function NotificationDrawer({ lang }: Props) {
                         <p className={cn('text-xs font-medium truncate', job.read ? 'text-ink2' : 'text-bad')}>
                           {job.project_title || job.client || 'Untitled job'}
                         </p>
-                        {job.project_title && job.client && (
-                          <p className={cn('text-[11px] mt-0.5 truncate', job.read ? 'text-muted' : 'text-bad/70')}>{job.client}</p>
+                        {job.project_title && (
+                          <p className={cn('text-[11px] mt-0.5 truncate', job.read ? 'text-muted' : 'text-bad/70')}>{job.client || 'Untitled'}</p>
                         )}
                         <p className={cn('text-[11px] mt-0.5', job.read ? 'text-muted' : 'text-bad/70')}>{fmtOverdueDate(job.date)}</p>
                         {job.location && (
