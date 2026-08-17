@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-13 (chore-db — brand logo PNG live in CompanyBar + login; production test data wiped clean: all jobs, job files, bug reports, crash logs gone from DB + R2; users/clients/KB kept — ready for Session 19 pre-alpha)_
+_Last updated: 2026-08-14 (Session 19 pre-alpha testing passed clean — no issues; Session 20 skipped; next milestone: Session 21 alpha testing with the scheduler)_
 
 ---
 
@@ -21,7 +21,7 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is in pre-production on Vercel preview. Next milestone: Session 19 pre-alpha testing.
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is live on production. Pre-alpha testing passed clean 2026-08-14. Next milestone: Session 21 alpha testing (Nic + scheduler).
 
 ---
 
@@ -288,8 +288,8 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 - [x] **Phase 4** — external installer links, sub-installers, task list, external POC bucket (smoke test passed 2026-07-30; live chat on the external page deferred)
 - [x] **Full V2 regression test → clean-cut switchover** — regression test passed [Nic]; switchover done 2026-08-03: feat-workflow-v2 → dev → main, production verified live on V2
 
-- [ ] **Session 19** — Pre-Alpha testing (Myself); versioning starts V.0.0.0.1 — hotfixes from pre-alpha done, ready to re-test
-- [ ] **Session 20** — Pre-Alpha feedback + hotfix; iterate V.0.0.0.X until green light
+- [x] **Session 19** — Pre-Alpha testing (Myself) — PASSED clean 2026-08-14 [Nic]; no issues found, version stays V.0.0.0.1
+- [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-14: clean pass left nothing to fix; green light to alpha
 - [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
 - [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
 - [ ] **Session 23** — Launch; production cutover → V.1.0.0.0

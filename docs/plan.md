@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-08-13 (chore-db — brand logo PNG live on production; full test-data wipe: 46 jobs + attachments/chats, bug reports, crash logs, all R2 job files deleted — clean slate for pre-alpha)_
+_Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issues found; Session 20 hotfix round not needed; next milestone: Session 21 alpha testing with the scheduler)_
 
 ---
 
@@ -10,8 +10,8 @@ _Last updated: 2026-08-13 (chore-db — brand logo PNG live on production; full 
 
 - [Current State](#current-state)
 - [Completed Sessions](#completed-sessions)
-- [Session 19 — Pre-Alpha Testing (planned)](#session-19)
-- [Session 20 — Pre-Alpha Feedback (planned)](#session-20)
+- [Session 19 — Pre-Alpha Testing (PASSED 2026-08-14)](#session-19)
+- [Session 20 — Pre-Alpha Feedback (skipped — clean pass)](#session-20)
 - [Session 21 — Alpha Testing (planned)](#session-21)
 - [Session 22 — Beta Testing (planned)](#session-22)
 - [Session 23 — Launch (planned)](#session-23)
@@ -22,7 +22,7 @@ _Last updated: 2026-08-13 (chore-db — brand logo PNG live on production; full 
 
 ## Current State
 
-**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. Next milestone: Session 19 pre-alpha testing on V2.
+**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. **Session 19 pre-alpha testing PASSED clean 2026-08-14** (Nic's solo run on the wiped production slate — no issues found, so the Session 20 hotfix round is not needed). Next milestone: Session 21 alpha testing (Nic + scheduler).
 
 **Schedule list navigation redesigned (2026-08-05, live on production):** the endless date strip is gone — the list view now shows a windowed strip (week Mon–Sun ↔ full month, icon toggle remembered per device), paging arrows that peek without changing the selection, a persistent centred month label, a jump calendar off the heading, and an amber Today button. Filter chips (All/Today/This week/Upcoming) were **removed** — superseded by the strip + Today button; the List/Week/Month view toggle stays. **Weeks are Monday-start app-wide** (Week tab, Month tab, installer views, strip) and **date labels are always English** (`langToLocale` deleted per the CLAUDE.md hard rule). **No new Bengali translations** (boss decision 2026-08-03 via Nic): new i18n keys get en + zh only; bn falls back to English automatically.
 
@@ -159,17 +159,17 @@ _Last updated: 2026-08-13 (chore-db — brand logo PNG live on production; full 
 
 ## Session 19
 
-**Pre-Alpha Testing (Myself)** _(planned)_
+**Pre-Alpha Testing (Myself)** _(PASSED clean 2026-08-14 [Nic])_
 
-Solo end-to-end run through every flow (sales → scheduler → installer → completion) on the Vercel preview. Test on mobile. Versioning starts at **V.0.0.0.1** — each fix increments the last digit.
+Solo end-to-end run through every flow (sales → scheduler → installer → completion). **Result: clean pass — no issues found.** Version stays at **V.0.0.0.1** (no fixes were needed).
 
 ---
 
 ## Session 20
 
-**Pre-Alpha Feedback** _(planned)_
+**Pre-Alpha Feedback** _(skipped 2026-08-14 — clean pass left nothing to fix)_
 
-Review findings from Session 19, apply hotfixes, and iterate until green light to bring in the scheduler. Version continues at **V.0.0.0.X** (X increments per change). No Session 21 until satisfied.
+Session 19 surfaced no findings, so no hotfix round was needed. Green light given to bring in the scheduler — proceed to Session 21.
 
 ---
 
