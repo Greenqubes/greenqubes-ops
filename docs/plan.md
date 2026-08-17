@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issues found; Session 20 hotfix round not needed; next milestone: Session 21 alpha testing with the scheduler)_
+_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts: rich cards, per-device Mark as read, team-scoped visibility, live on production; Session 19 pre-alpha PASSED clean, Session 20 skipped — next: Session 21 alpha testing)_
 
 ---
 
@@ -10,7 +10,7 @@ _Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issu
 
 - [Current State](#current-state)
 - [Completed Sessions](#completed-sessions)
-- [Session 19 — Pre-Alpha Testing (PASSED 2026-08-14)](#session-19)
+- [Session 19 — Pre-Alpha Testing (PASSED 2026-08-17)](#session-19)
 - [Session 20 — Pre-Alpha Feedback (skipped — clean pass)](#session-20)
 - [Session 21 — Alpha Testing (planned)](#session-21)
 - [Session 22 — Beta Testing (planned)](#session-22)
@@ -22,7 +22,9 @@ _Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issu
 
 ## Current State
 
-**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. **Session 19 pre-alpha testing PASSED clean 2026-08-14** (Nic's solo run on the wiped production slate — no issues found, so the Session 20 hotfix round is not needed). Next milestone: Session 21 alpha testing (Nic + scheduler).
+**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. **Session 19 pre-alpha testing PASSED clean 2026-08-17** (Nic's solo run on the wiped production slate — no issues found, so the Session 20 hotfix round is not needed). Next milestone: Session 21 alpha testing (Nic + scheduler).
+
+**Overdue bell alerts upgraded (2026-08-17, live on production):** the drawer's overdue cards now show project title (fallback "Untitled job"), company ("Untitled" when blank), day+date as `13/08/2026 (Thu)` (static English tables, no locale calls — the hydration lesson), and location. New **Mark as read** button in the drawer header greys all red alerts and clears the red bell + badge — remembered **per device per user** (localStorage `overdue-seen:{userId}`; a job rescheduled to a new overdue date re-alerts). **Alerts are team-scoped:** only the job's Person-in-Charge, coordinators and formally assigned installers see them (suggested installers never do); **scheduler + admin keep the company-wide view** (Nic's call 2026-08-17). Preview-as does not apply (UI role only — test scoping with a real login). Telegram overdue cron untouched. Also this session: Bryan's stale 2026-05-28 gitignore/settings commit **permanently skipped** via a `-s ours` merge — `.claude/settings.local.json` stays tracked; the session-start dev-bryan check is quiet again.
 
 **Schedule list navigation redesigned (2026-08-05, live on production):** the endless date strip is gone — the list view now shows a windowed strip (week Mon–Sun ↔ full month, icon toggle remembered per device), paging arrows that peek without changing the selection, a persistent centred month label, a jump calendar off the heading, and an amber Today button. Filter chips (All/Today/This week/Upcoming) were **removed** — superseded by the strip + Today button; the List/Week/Month view toggle stays. **Weeks are Monday-start app-wide** (Week tab, Month tab, installer views, strip) and **date labels are always English** (`langToLocale` deleted per the CLAUDE.md hard rule). **No new Bengali translations** (boss decision 2026-08-03 via Nic): new i18n keys get en + zh only; bn falls back to English automatically.
 
@@ -152,6 +154,7 @@ _Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issu
 | feat-realtime [Nic] | Live Updates Everywhere | Root cause of the long-standing "must refresh" complaint: schedule + FCFS realtime listeners subscribed without the user's JWT — RLS delivers events to authenticated listeners only, so both were silently deaf (job chat had the identical bug, fixed 2026-05-19 chat-only; 17.3's 2-min poll was the crutch). New shared hook `useLiveChannel` (setAuth → subscribe → cleanup in one place); ScheduleShell + FCFSShell refactored onto it. Migration 0043: `job_assignees` + `job_tasks` into the realtime publication (never broadcast before). Installer dashboard live (suggestions verified hidden with a real installer login on production). Job form hybrid: files/tasks/team/status stream in; jobs-row change vs unsaved edits → amber tap-to-reload banner; own-save echo suppression + clean re-baseline; `refreshKey` re-pull on AttachmentBuckets/TaskListSection. Admin left refresh-on-visit, assistant untouched (by design). Built on `feat-live-updates` off main (kept for archive, no new pushes); other agent's feat-files work merged through; migration renumbered 0041→0043 mid-flight. | [feat/feat-realtime-20260812-1-note.md](feat/feat-realtime-20260812-1-note.md) |
 | fix-auth [Nic] | Security Audit + Fixes | First full-app security review (access control/RLS, auth, all API routes, secrets, file storage, webhooks/crons, injection). **4 real access-control findings, all fixed live on production.** #1 CRITICAL — the `users: own record update only` RLS (0002) had no column restriction, so any authenticated user could change their own `role` from the browser (installer → admin/scheduler = all jobs/financials/private chats/audit log; admin became a pure DB role in 0019). Fixed by **migration 0044** (BEFORE UPDATE trigger guarding role/auth_id/email/deleted_at/digest_subscriber/telegram_chat_id; service-role + real-admin paths unaffected). #2 MEDIUM — `clients`/`client_contacts` `using(true)` insert+delete → **migration 0045** locks writes to office roles + 4 route role-gates. #3 MEDIUM — `/api/r2/download-url` signed any key with no object check → now authorizes by job visibility (bug screenshots scheduler/admin only; `files_r2_key_idx`). #4 LOW — assistant `rename`/`updateChat` wrote asst_chats via service client unscoped → owner-scoped. Type-check + build green; preview-verified; migrations 0044+0045 applied; `dev`→`main`. Stale "admin is email-gated" note corrected. Hardening (fail-closed webhook/cron secrets, notification-insert spoofing, Telegram HTML escaping) logged non-blocking. Audit: [security-audit-20260813.md](security-audit-20260813.md). | [fix/fix-auth-20260813-1-note.md](fix/fix-auth-20260813-1-note.md) |
 | chore-db [Nic] | Brand Logo + Test-Data Wipe | Logo PNG replaces text wordmark in CompanyBar + login (Pre-Alpha tag removed, dark-mode `.brand-logo` brightness lift; dev→main same day). Production test-data wipe via one-off dry-run-first script: 46 jobs + all cascaded children (files, chats, buckets, tasks, assignments, external links), 1 bug report, 27 crash logs, 44 R2 objects (15.6 MB, `jobs/` + `bug-reports/`) deleted; users/clients/external pool/asst chats/KB kept; all counts verified zero; script deleted after use. | [chore/chore-db-20260813-1-note.md](chore/chore-db-20260813-1-note.md) |
+| ux-notifications [Nic] | Overdue Bell Alerts — Rich Cards + Mark-as-Read + Team Scoping | Session 19 pre-alpha PASSED clean (no issues; Session 20 skipped — green light for alpha). Overdue drawer cards show project title / company ("Untitled" when blank) / `13/08/2026 (Thu)` day+date / location. Mark as read button greys red alerts + clears red bell, per device per user (localStorage; reschedule to a new overdue date re-alerts). Alerts team-scoped: POC + coordinators + formally assigned installers only (suggestions never alert); scheduler + admin see all. dev→main same day. Bryan's stale settings/gitignore commit permanently skipped (`-s ours`). | [ux/ux-notifications-20260817-1-note.md](ux/ux-notifications-20260817-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
@@ -159,7 +162,7 @@ _Last updated: 2026-08-14 (Session 19 pre-alpha testing PASSED clean — no issu
 
 ## Session 19
 
-**Pre-Alpha Testing (Myself)** _(PASSED clean 2026-08-14 [Nic])_
+**Pre-Alpha Testing (Myself)** _(PASSED clean 2026-08-17 [Nic])_
 
 Solo end-to-end run through every flow (sales → scheduler → installer → completion). **Result: clean pass — no issues found.** Version stays at **V.0.0.0.1** (no fixes were needed).
 
@@ -167,7 +170,7 @@ Solo end-to-end run through every flow (sales → scheduler → installer → co
 
 ## Session 20
 
-**Pre-Alpha Feedback** _(skipped 2026-08-14 — clean pass left nothing to fix)_
+**Pre-Alpha Feedback** _(skipped 2026-08-17 — clean pass left nothing to fix)_
 
 Session 19 surfaced no findings, so no hotfix round was needed. Green light given to bring in the scheduler — proceed to Session 21.
 
