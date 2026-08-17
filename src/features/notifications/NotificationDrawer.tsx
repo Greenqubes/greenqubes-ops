@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Bell, X, Hourglass, ArrowRight, RotateCcw, Trash2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -19,10 +19,23 @@ type InAppNotif = {
 }
 
 type OverdueJob = {
-  id:       string
-  client:   string
-  date:     string
-  location: string | null
+  id:            string
+  client:        string
+  project_title: string | null
+  date:          string
+  location:      string | null
+  read:          boolean
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] // always English (CLAUDE.md hard rule)
+
+// '2026-08-13' → '13/08/2026 (Thu)' — static table, not toLocaleDateString (the
+// locale formatters caused the /schedule hydration saga; never again)
+function fmtOverdueDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  const [y, m, day] = iso.split('-')
+  return `${day}/${m}/${y} (${DAYS[d.getDay()]})`
 }
 
 function timeAgo(iso: string): string {
@@ -45,8 +58,13 @@ export function NotificationDrawer({ lang }: Props) {
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
 
-  const unreadCount = notifs.filter(n => !n.read).length
-  const totalBadge  = unreadCount + overdueJobs.length
+  // localStorage key for overdue alerts this user has marked read on this
+  // device (job_id → job date; a reschedule to a new date re-alerts)
+  const seenKeyRef = useRef<string | null>(null)
+
+  const unreadCount   = notifs.filter(n => !n.read).length
+  const unreadOverdue = overdueJobs.filter(j => !j.read).length
+  const totalBadge    = unreadCount + unreadOverdue
 
   const fetchNotifs = useCallback(async () => {
     try {
@@ -58,33 +76,66 @@ export function NotificationDrawer({ lang }: Props) {
   const fetchOverdue = useCallback(async () => {
     try {
       const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      seenKeyRef.current = `overdue-seen:${session?.user?.id ?? 'anon'}`
+      let seen: Record<string, string> = {}
+      try { seen = JSON.parse(localStorage.getItem(seenKeyRef.current) ?? '{}') } catch { /* corrupt entry — treat all as unread */ }
+
+      // Overdue alerts are scoped to the job's team (POC / coordinator /
+      // formally assigned installer) — scheduler + admin keep the full view.
+      // Preview-as does not apply here: it changes the UI role only.
+      let myId: string | null = null
+      let seesAll = false
+      if (session?.user?.id) {
+        type MeRow = { id: string; role: string }
+        const { data: me } = await (supabase
+          .from('users')
+          .select('id, role')
+          .eq('auth_id', session.user.id)
+          .single() as unknown as Promise<{ data: MeRow | null }>)
+        myId = me?.id ?? null
+        seesAll = me?.role === 'scheduler' || me?.role === 'admin'
+      }
+
       const today = new Date().toISOString().split('T')[0]
       const now = new Date()
       const nowMins = now.getHours() * 60 + now.getMinutes()
 
-      type JobRow = { id: string; client: string; date: string; time_end: string | null; location: string | null }
+      type JobRow = {
+        id: string; client: string; project_title: string | null; date: string
+        time_end: string | null; location: string | null; sales_poc_id: string | null
+        job_assignees: Array<{ user_id: string; is_suggestion: boolean }> | null
+        job_coordinators: Array<{ user_id: string }> | null
+      }
       const { data } = await (supabase
         .from('jobs')
-        .select('id, client, date, time_end, location')
+        .select('id, client, project_title, date, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id)')
         .eq('status', 'scheduled')
         .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
 
       if (!data) return
 
       const overdue = data.filter(j => {
-        if (j.date < today) return true
-        if (j.date === today && j.time_end) {
+        let isOverdue = j.date < today
+        if (!isOverdue && j.date === today && j.time_end) {
           const [h, m] = j.time_end.split(':').map(Number)
-          return nowMins > h * 60 + m
+          isOverdue = nowMins > h * 60 + m
         }
-        return false
+        if (!isOverdue) return false
+        if (seesAll) return true
+        if (!myId) return false
+        return j.sales_poc_id === myId
+          || (j.job_coordinators ?? []).some(c => c.user_id === myId)
+          || (j.job_assignees ?? []).some(a => a.user_id === myId && !a.is_suggestion)
       })
 
       setOverdueJobs(overdue.map(j => ({
-        id:       j.id,
-        client:   j.client,
-        date:     j.date,
-        location: j.location ?? null,
+        id:            j.id,
+        client:        j.client,
+        project_title: j.project_title ?? null,
+        date:          j.date,
+        location:      j.location ?? null,
+        read:          seen[j.id] === j.date,
       })))
     } catch { /* best-effort */ }
   }, [])
@@ -106,10 +157,20 @@ export function NotificationDrawer({ lang }: Props) {
   }
 
   async function handleMarkAllRead() {
-    try {
-      await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
-      setNotifs(prev => prev.map(n => ({ ...n, read: true })))
-    } catch { /* best-effort */ }
+    // Grey out overdue alerts on this device (pruned to the current list so
+    // the stored map never grows unbounded)
+    if (overdueJobs.length > 0 && seenKeyRef.current) {
+      const seen: Record<string, string> = {}
+      for (const j of overdueJobs) seen[j.id] = j.date
+      try { localStorage.setItem(seenKeyRef.current, JSON.stringify(seen)) } catch { /* best-effort */ }
+      setOverdueJobs(prev => prev.map(j => ({ ...j, read: true })))
+    }
+    if (unreadCount > 0) {
+      try {
+        await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+        setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+      } catch { /* best-effort */ }
+    }
   }
 
   function toggleSelect(id: string) {
@@ -145,7 +206,7 @@ export function NotificationDrawer({ lang }: Props) {
         aria-label={t(lang, 'notifications')}
         className={cn(
           'flex items-center gap-1.5 px-2 py-2 rounded-lg border transition-colors',
-          overdueJobs.length > 0
+          unreadOverdue > 0
             ? 'bg-bad border-bad text-white'
             : unreadCount > 0
               ? 'bg-terracotta border-terracotta text-white'
@@ -183,14 +244,14 @@ export function NotificationDrawer({ lang }: Props) {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {unreadCount > 0 && !selectMode && (
+            {(unreadCount > 0 || unreadOverdue > 0) && !selectMode && (
               <button
                 onClick={handleMarkAllRead}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-muted hover:text-ink2 hover:bg-bg transition-colors"
-                title="Mark all as read"
+                title="Mark as read"
               >
                 <Check size={11} />
-                Mark all read
+                Mark as read
               </button>
             )}
             <button
@@ -283,14 +344,22 @@ export function NotificationDrawer({ lang }: Props) {
                       key={job.id}
                       href={`/jobs/${job.id}`}
                       onClick={handleClose}
-                      className="flex items-start gap-2.5 p-3 rounded-xl border border-bad bg-bad-soft hover:brightness-95 transition-colors group"
+                      className={cn(
+                        'flex items-start gap-2.5 p-3 rounded-xl border hover:brightness-95 transition-colors group',
+                        job.read ? 'border-line bg-paper' : 'border-bad bg-bad-soft',
+                      )}
                     >
-                      <Hourglass size={14} className="text-bad mt-0.5 shrink-0" />
+                      <Hourglass size={14} className={cn('mt-0.5 shrink-0', job.read ? 'text-muted' : 'text-bad')} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-bad truncate">{job.client}</p>
-                        <p className="text-[11px] text-bad/70 mt-0.5">{job.date}</p>
+                        <p className={cn('text-xs font-medium truncate', job.read ? 'text-ink2' : 'text-bad')}>
+                          {job.project_title || job.client || 'Untitled job'}
+                        </p>
+                        {job.project_title && (
+                          <p className={cn('text-[11px] mt-0.5 truncate', job.read ? 'text-muted' : 'text-bad/70')}>{job.client || 'Untitled'}</p>
+                        )}
+                        <p className={cn('text-[11px] mt-0.5', job.read ? 'text-muted' : 'text-bad/70')}>{fmtOverdueDate(job.date)}</p>
                         {job.location && (
-                          <p className="text-[11px] text-bad/60 truncate">{job.location}</p>
+                          <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>{job.location}</p>
                         )}
                       </div>
                       <ArrowRight
