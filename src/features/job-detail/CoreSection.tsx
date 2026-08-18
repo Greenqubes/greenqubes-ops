@@ -325,8 +325,8 @@ export function CoreSection({
             render={({ field }) => (
               <div className="flex gap-2">
                 {([
-                  { v: 'strict'   as const, label: t(lang, 'strictOnTime'),   activeBg: 'bg-terracotta-soft', activeBorder: 'border-terracotta', dot: 'bg-terracotta'  },
-                  { v: 'flexible' as const, label: t(lang, 'flexibleWindow'), activeBg: 'bg-brand-blue-soft', activeBorder: 'border-brand-blue', dot: 'bg-brand-blue' },
+                  { v: 'strict'   as const, label: t(lang, 'strictOnTime'),   activeBg: 'bg-punct-strict-soft', activeBorder: 'border-punct-strict', dot: 'bg-punct-strict'  },
+                  { v: 'flexible' as const, label: t(lang, 'flexibleWindow'), activeBg: 'bg-punct-flex-soft', activeBorder: 'border-punct-flex', dot: 'bg-punct-flex' },
                 ]).map(opt => (
                   <button
                     key={opt.v}

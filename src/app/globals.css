@@ -31,6 +31,15 @@
 
   --bad: #A83D3D;
   --bad-soft: #F5E0E0;
+
+  /* ── Scheduling signal colors (Nic 2026-08-18) ──
+     Punctuality indicators are company-standard signals: strict = red,
+     flexible = blue. FIXED values, deliberately outside the brand palette —
+     never change these in a rebrand. */
+  --punct-strict: #D14545;
+  --punct-strict-soft: #F5E8E3;
+  --punct-flex: #3D6FB5;
+  --punct-flex-soft: #E5EEFC;
 }
 
 .dark {
@@ -46,6 +55,9 @@
   --blue-soft: #1D2126;
   --amber-soft: #272110;
   --bad-soft: #2A1515;
+
+  --punct-strict-soft: #2A1A17;
+  --punct-flex-soft: #152030;
 }
 
 @layer base {

@@ -21,10 +21,10 @@ const ROW_PAD   = 4
 type BarVariant = 'flex' | 'strict' | 'strict-clash' | 'flex-warn' | 'sug'
 
 const BAR_CLASS: Record<BarVariant, string> = {
-  flex:           'bg-brand-blue border border-brand-blue',
-  strict:         'bg-terracotta border border-terracotta',
+  flex:           'bg-punct-flex border border-punct-flex',
+  strict:         'bg-punct-strict border border-punct-strict',
   'strict-clash': 'bg-bad border border-bad ring-1 ring-bad',
-  'flex-warn':    'bg-brand-blue border-2 border-dashed border-brand-amber',
+  'flex-warn':    'bg-punct-flex border-2 border-dashed border-brand-amber',
   sug:            'bg-brand-amber border border-brand-amber opacity-90',
 }
 

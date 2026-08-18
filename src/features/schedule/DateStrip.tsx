@@ -136,13 +136,13 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
                   <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-white" />
                 ) : (hasStrict && hasFlexible) ? (
                   <>
-                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
-                    <span className="absolute top-1.5 right-[9px] w-1.5 h-1.5 rounded-full bg-[#D14545]" />
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-punct-flex" />
+                    <span className="absolute top-1.5 right-[9px] w-1.5 h-1.5 rounded-full bg-punct-strict" />
                   </>
                 ) : hasFlexible ? (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand-blue" />
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-punct-flex" />
                 ) : (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#D14545]" />
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-punct-strict" />
                 )
               )}
             </button>

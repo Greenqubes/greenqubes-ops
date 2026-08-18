@@ -37,6 +37,14 @@ const config: Config = {
           DEFAULT: 'var(--bad)',
           soft: 'var(--bad-soft)',
         },
+        'punct-strict': {
+          DEFAULT: 'var(--punct-strict)',
+          soft: 'var(--punct-strict-soft)',
+        },
+        'punct-flex': {
+          DEFAULT: 'var(--punct-flex)',
+          soft: 'var(--punct-flex-soft)',
+        },
       },
       fontFamily: {
         display: ['var(--font-fraunces)', ...defaultTheme.fontFamily.serif],

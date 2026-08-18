@@ -99,7 +99,11 @@ Plus: i18n in EN/ZH/BN, AI smart textarea (suggest from attachments / improve te
 --green: #3E7F7B;       /* installer / success — teal (NOT green: company green stays unique, Nic 2026-08-18) */
 --blue: #6C747C;        /* secondary / info — logo slate */
 --amber: #A9852F;       /* warning — sand gold */
+--punct-strict: #D14545; /* SCHEDULING SIGNAL — strict on-time. Fixed company indicator, never rebrand */
+--punct-flex: #3D6FB5;   /* SCHEDULING SIGNAL — flexible window. Fixed company indicator, never rebrand */
 ```
+
+**Punctuality red/blue are signal colors, not brand colors** (Nic, 2026-08-18): strict = red, flexible = blue is a company scheduling convention. They live in their own `--punct-*` tokens precisely so a future palette change can't touch them.
 
 **Fonts:** Fraunces (display, weights 400–600, optical sizing) + IBM Plex Sans (body, 400–600). Bengali fallback: Noto Sans Bengali. Chinese fallback: Noto Sans SC.
 

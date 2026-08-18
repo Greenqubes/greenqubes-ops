@@ -51,11 +51,11 @@ export function ListView({
             {/* Punctuality legend */}
             <div className="flex gap-3 mb-2">
               <span className="flex items-center gap-1 text-[10px] text-muted">
-                <span className="w-1.5 h-1.5 rounded-sm bg-[#D14545] inline-block" />
+                <span className="w-1.5 h-1.5 rounded-sm bg-punct-strict inline-block" />
                 {strings.strictOnTime}
               </span>
               <span className="flex items-center gap-1 text-[10px] text-muted">
-                <span className="w-1.5 h-1.5 rounded-sm bg-brand-blue inline-block" />
+                <span className="w-1.5 h-1.5 rounded-sm bg-punct-flex inline-block" />
                 {strings.flexibleWindow}
               </span>
             </div>

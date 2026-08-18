@@ -103,11 +103,11 @@ export function ExternalJobDetail({ token, summary, onBack }: Props) {
               ? ` – ${fmtExtDate(summary.job.date_end)}` : ''}
           </span>
           {summary.job.punctuality === 'strict' ? (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-terracotta-soft text-terracotta">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-punct-strict-soft text-punct-strict">
               {summary.job.time_start ? `Strict ${fmtExtTime(summary.job.time_start)}` : 'Strict'}
             </span>
           ) : (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-brand-blue-soft text-brand-blue">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-punct-flex-soft text-punct-flex">
               Flexible window
             </span>
           )}

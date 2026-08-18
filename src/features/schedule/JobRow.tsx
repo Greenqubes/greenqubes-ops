@@ -97,7 +97,7 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
               {/* Punctuality bar */}
               <div className={cn(
                 'w-1.5 shrink-0 rounded-full self-stretch',
-                job.punctuality === 'strict' ? 'bg-[#D14545]' : 'bg-brand-blue'
+                job.punctuality === 'strict' ? 'bg-punct-strict' : 'bg-punct-flex'
               )} />
 
               <div className="flex-1 min-w-0">
