@@ -64,6 +64,7 @@ async function sendDigestNow(
     .from('users')
     .select('telegram_chat_id')
     .eq('digest_subscriber', true)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
 
   if (!schedulers?.length) return

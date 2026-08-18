@@ -52,12 +52,14 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   const db = createServiceClient()
   const telegramUserId = String(cq.from.id)
 
-  const { data: voterRow } = await db
+  const { data: voterRow, error: voterErr } = await db
     .from('users')
     .select('id, name')
     .eq('telegram_chat_id', telegramUserId)
-    .single()
+    .is('deleted_at', null)
+    .maybeSingle()
 
+  if (voterErr) console.error('[digest webhook] voter lookup failed:', voterErr.message)
   if (!voterRow) {
     await answerDigestCallbackQuery(cq.id, 'Your account is not registered in the system.')
     return
@@ -101,6 +103,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
     .from('users')
     .select('id', { count: 'exact', head: true })
     .eq('digest_subscriber', true)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
 
   const total = totalVoters ?? 1
@@ -143,6 +146,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
       .from('users')
       .select('telegram_chat_id')
       .eq('digest_subscriber', true)
+      .is('deleted_at', null)
       .not('telegram_chat_id', 'is', null)
 
     for (const s of subscribers ?? []) {

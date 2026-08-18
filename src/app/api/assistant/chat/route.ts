@@ -32,6 +32,28 @@ export async function POST(req: NextRequest) {
 
   // Retrieve relevant context for the last user message
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
+
+  // D-Promote is the secret digest-promotion command — acknowledge it with a
+  // wink instead of letting the model answer it like a normal question.
+  // Same exact-case match as the tagger and the save route.
+  if (lastUserMsg.includes('D-Promote')) {
+    const enc    = new TextEncoder()
+    const canned = new ReadableStream({
+      start(controller) {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'text', text: 'I see what you did there 😏' })}\n\n`))
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
+        controller.close()
+      },
+    })
+    return new Response(canned, {
+      headers: {
+        'Content-Type':  'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection':    'keep-alive',
+      },
+    })
+  }
+
   const ctx         = await retrieveContext(lastUserMsg)
   const contextBlock = formatContext(ctx)
 

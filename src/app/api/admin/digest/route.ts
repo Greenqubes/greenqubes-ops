@@ -3,7 +3,7 @@ import Anthropic                    from '@anthropic-ai/sdk'
 import { createClient }             from '@/lib/supabase/server'
 import { createServiceClient }      from '@/lib/supabase/service'
 import { getDigestItems, getDigestSubscribers } from '@/lib/supabase/queries/admin'
-import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
+import { sendDigestTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplDigestItem }            from '@/lib/telegram/templates'
 import type { Json }                from '@/lib/supabase/types'
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
   for (const u of users) {
     if (!u.telegram_chat_id) continue
     try {
-      await sendTelegramWithKeyboard(u.telegram_chat_id, text, keyboard)
+      await sendDigestTelegramWithKeyboard(u.telegram_chat_id, text, keyboard)
       sent++
     } catch {
       // Continue sending to remaining subscribers
