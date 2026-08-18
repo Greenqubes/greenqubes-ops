@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts: rich cards, per-device Mark as read, team-scoped; Session 19 pre-alpha passed clean, Session 20 skipped — next: Session 21 alpha testing with the scheduler)_
+_Last updated: 2026-08-18 (chore-mobile — webapp declared LAUNCHED v1.0.0 by Nic, Sessions 21–23 closed; mobile app (Android + iPhone, React Native + Expo) design spec approved — the mobile app build is the new roadmap)_
 
 ---
 
@@ -21,7 +21,9 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is live on production. Pre-alpha testing passed clean 2026-08-17. Next milestone: Session 21 alpha testing (Nic + scheduler).
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. **The webapp is LAUNCHED — v1.0.0, declared by Nic 2026-08-18** (all necessary testing done; the planned alpha/beta/launch rounds were closed without being run). The webapp continues as the **desktop/office tool**.
+
+**Next milestone: the mobile app** — a native Android + iPhone app (React Native + Expo, one codebase in `mobile/`, same Supabase/R2/Vercel backend), built in 3 stages, Android first via direct .apk; iPhone gated on the directors' Apple Developer greenlight; Telegram bots retire only when Stage 3 + iPhone rollout are both live. Spec: `docs/superpowers/specs/2026-08-18-mobile-app-design.md`. Admin screens + FCFS board stay desktop-only; external installers keep their web links.
 
 ---
 
@@ -297,10 +299,8 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 
 - [x] **Session 19** — Pre-Alpha testing (Myself) — PASSED clean 2026-08-17 [Nic]; no issues found, version stays V.0.0.0.1
 - [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-17: clean pass left nothing to fix; green light to alpha
-- [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
-- [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
-- [ ] **Session 23** — Launch; production cutover → V.1.0.0.0
-- [ ] **Session 24** — Post-launch features (to be defined)
+- [x] **Sessions 21–23** — Alpha / Beta / Launch — CLOSED 2026-08-18 [Nic]: webapp declared launched **v1.0.0**, all necessary testing done; current production deployment is the launched product (no prod-tier promotion or custom domain wired — future infra tasks if ever wanted)
+- [ ] **Mobile app build** — the new roadmap (replaces "Session 24 post-launch features"): Stage 1 communication core → Stage 2 installer field work + offline → Stage 3 office on the go + AI; spec at `docs/superpowers/specs/2026-08-18-mobile-app-design.md`, awaiting Nic's spec review → implementation plan → build sessions
 
 ---
 

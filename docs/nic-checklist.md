@@ -2,15 +2,22 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on production; Session 19 pre-alpha passed clean, green light for alpha)_
+_Last updated: 2026-08-18 (chore-mobile — webapp declared launched v1.0.0; mobile app spec approved, awaiting your review)_
 
 ---
 
 ## Pending — Next Session
 
-### Alpha testing prep (Session 21)
+### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
 
-- [ ] **Set up the scheduler's account for alpha** — they sign in via Google once, then Admin → Users: provision them and paste in their Telegram chat ID (message the bot once to get it). Tick the digest subscriber box if they should get the Monday digest.
+- [ ] **Review the mobile app spec** — read [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md) and give the go-ahead (or changes). Nothing gets built until you approve it; the implementation plan is written right after.
+- [ ] **Ask the directors for the Apple Developer greenlight** — US$99/year, one company account, covers the whole team; installing is free for everyone. Without it the iPhone half of the team stays on the webapp and **Telegram cannot be retired**. If they say yes: request a **D-U-N-S number** for GreenQubes first (free, takes days–weeks — the longest lead-time item in the project), then enroll in the Apple Developer Program **as an organization**, set to auto-renew. A lapsed subscription stops iPhone notifications and new installs (installed apps keep working; nothing is lost permanently).
+- [ ] **Create a free Expo account when the build starts** — Expo is the build service that produces the .apk and handles updates. Free tier; needs an email. Claude will tell you exactly when it's needed.
+- [ ] **(Optional, anytime) Google Play account — US$25 once** — only if you ever want store auto-updates instead of sending .apk links. Skippable for a 10-person team.
+
+### Team onboarding (was "alpha testing prep" — Sessions 21–23 closed, webapp launched v1.0.0)
+
+- [ ] **Set up the scheduler's account** — they sign in via Google once, then Admin → Users: provision them and paste in their Telegram chat ID (message the bot once to get it). Tick the digest subscriber box if they should get the Monday digest.
 
 ### Backup — fixed 2026-08-12, two follow-ups
 
@@ -26,8 +33,8 @@ _Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on 
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
 - [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
-- [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
-- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
+- [x] **[Nic] Port to mobile apps — Android (.apk) + iOS (.ipa) — PLANNING DONE 2026-08-18.** Full design session held: React Native + Expo, one codebase, same backend, 3 build stages, Android-first, iPhone gated on the Apple Developer greenlight. Spec: [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md). Build sessions follow once you approve the spec (see "Mobile app" section at the top).
+- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Explicitly deferred in the 2026-08-18 mobile spec — separate decision after the mobile app ships.
 - [x] **[Nic] Full security + integrity audit — code/access-control portion DONE 2026-08-13.** Full-app review of access control (RLS), auth, all API routes, exposed secrets, file storage, webhooks/crons and injection surfaces. Found **4 real holes and fixed all of them live on production** — headline: any logged-in user could make themselves admin. Full write-up in [security-audit-20260813.md](security-audit-20260813.md); session note [fix/fix-auth-20260813-1-note.md](fix/fix-auth-20260813-1-note.md).
 - [ ] **Security audit — remaining piece: service-outage resilience** — the code/access-control audit is done (above). Still not exercised: what actually happens if each service (Vercel / Supabase / R2 / Telegram) goes down mid-operations, and the recovery drill for each. Worth a dedicated session before go-live. (Backup/recovery itself was covered in the 2026-08-12 infra sessions.)
 
@@ -139,6 +146,26 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-18, chore-mobile — Webapp Launched v1.0.0 + Mobile App Design)
+
+- [x] **[Nic] Webapp declared LAUNCHED at v1.0.0** — your call: all necessary testing already done, so the planned alpha/beta/launch rounds (Sessions 21–23) are closed without being run. The current production site is the launched product; the webapp continues as the desktop/office tool.
+- [x] **[Nic] Mobile app fully designed and specced** — Android + iPhone app, one codebase, same data as the webapp, built in 3 stages with per-job chat as the make-or-break feature. Your decisions recorded: Android first (free .apk installs), iPhone waits for the directors' Apple Developer greenlight, Telegram retires only when both halves of the team have the app, chat stays per-job only, email sign-in link added as the second login method (webapp + app).
+- [x] **[Nic] Scope decisions** — app v1 covers everything except the admin screens and FCFS board (desktop-only); external installers keep their web links; chat extras (read receipts, replies, reactions) deliberately deferred.
+- [x] **Spec committed** — [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md); your read-through is the next step before any code.
+
+---
+
+## Done This Session ✓ (2026-08-18, visual-design — Logo Palette Rebrand + Clickable Logo)
+
+- [x] **[Nic] Top-bar logo made clickable** — tapping the GreenQubes logo anywhere in the app now goes to the Schedule page; installers get sent to their My Jobs page instead. Verified on preview, merged to main.
+- [x] **[Nic] Decision — rebrand scope: accents only** — backgrounds, text and borders stay; the five accent colors moved to the logo palette (lime `#91C740` + slate `#6C747C` anchors, plus teal/sand from the palette strip).
+- [x] **[Nic] Decision — buttons use a darker lime with white text** — the true logo lime stays for small highlights only (chat live dot, browser-tab icon), since white text on bright lime is unreadable.
+- [x] **[Nic] Decision — installer/success color is teal, not a second green** — the company green stays the only green in the app.
+- [x] **[Nic] Caught on preview: punctuality colors must not rebrand** — strict = red / flexible = blue is a company scheduling signal. Now locked in dedicated `--punct-*` tokens that no future palette change can touch; rule recorded in CONTEXT.md.
+- [x] **[Nic] Verified both rounds on preview + merged to main** — rebrand live on production same day.
 
 ---
 
