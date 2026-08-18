@@ -45,9 +45,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (forcePromote && id) {
-    sendDigestNow(id, messages, tag.topic).catch(err =>
+    // Awaited on purpose: Vercel kills un-awaited work once the response
+    // returns, so a fire-and-forget send can die before Telegram is called.
+    try {
+      await sendDigestNow(id, messages, tag.topic)
+    } catch (err) {
       console.error('[save] D-Promote digest send failed:', (err as Error).message)
-    )
+    }
   }
 
   return Response.json({ ok: true, id })

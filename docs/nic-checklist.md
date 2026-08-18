@@ -30,6 +30,10 @@ _Last updated: 2026-08-18 (chore-mobile — webapp declared launched v1.0.0; mob
 - [ ] **The R2 backup is a mirror, not history** — `rclone sync` makes the local copy match the bucket exactly, so a file deleted in R2 disappears from the local copy on the next run. It protects against Cloudflare being unavailable, not against someone deleting a file. If you want to recover deleted files, that needs dated snapshots or R2 object versioning — a separate decision.
 
 
+### Future planning notes (from 2026-08-18, rollout session)
+
+- [ ] **Instant promotion to the assistant's brain** — when a digest vote promotes a note to the vault, also feed it into the assistant's knowledge base immediately (embed + upsert at promotion time). Today the assistant only learns it after the server's 2:30 AM sync. Small build — needs a session. (Nic requested 2026-08-18.)
+
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
 - [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
