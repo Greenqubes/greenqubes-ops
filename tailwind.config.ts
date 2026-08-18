@@ -20,6 +20,7 @@ const config: Config = {
           DEFAULT: 'var(--terracotta)',
           soft: 'var(--terracotta-soft)',
         },
+        'brand-lime': 'var(--lime)',
         'brand-green': {
           DEFAULT: 'var(--green)',
           soft: 'var(--green-soft)',
