@@ -21,6 +21,8 @@ export default async function SchedulePage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  if (effectiveRole === 'installer') redirect('/installer')
+
   const jobs = await getScheduleJobs()
 
   return (
