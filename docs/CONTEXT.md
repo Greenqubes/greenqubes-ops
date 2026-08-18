@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts: rich cards, per-device Mark as read, team-scoped; Session 19 pre-alpha passed clean, Session 20 skipped — next: Session 21 alpha testing with the scheduler)_
+_Last updated: 2026-08-18 (visual-design — accent rebrand to the company logo palette, fixed punctuality signal tokens, clickable top-bar logo; next: Session 21 alpha testing with the scheduler)_
 
 ---
 

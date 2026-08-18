@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on production; Session 19 pre-alpha passed clean, green light for alpha)_
+_Last updated: 2026-08-18 (visual-design — company logo palette rebrand + clickable logo live on production)_
 
 ---
 
@@ -139,6 +139,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-18, visual-design — Logo Palette Rebrand + Clickable Logo)
+
+- [x] **[Nic] Top-bar logo made clickable** — tapping the GreenQubes logo anywhere in the app now goes to the Schedule page; installers get sent to their My Jobs page instead. Verified on preview, merged to main.
+- [x] **[Nic] Decision — rebrand scope: accents only** — backgrounds, text and borders stay; the five accent colors moved to the logo palette (lime `#91C740` + slate `#6C747C` anchors, plus teal/sand from the palette strip).
+- [x] **[Nic] Decision — buttons use a darker lime with white text** — the true logo lime stays for small highlights only (chat live dot, browser-tab icon), since white text on bright lime is unreadable.
+- [x] **[Nic] Decision — installer/success color is teal, not a second green** — the company green stays the only green in the app.
+- [x] **[Nic] Caught on preview: punctuality colors must not rebrand** — strict = red / flexible = blue is a company scheduling signal. Now locked in dedicated `--punct-*` tokens that no future palette change can touch; rule recorded in CONTEXT.md.
+- [x] **[Nic] Verified both rounds on preview + merged to main** — rebrand live on production same day.
 
 ---
 
