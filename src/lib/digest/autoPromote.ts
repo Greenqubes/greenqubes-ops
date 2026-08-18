@@ -43,10 +43,14 @@ ${conversation}`,
   return res.content[0].type === 'text' ? res.content[0].text : '[Summary unavailable]'
 }
 
+// Nic reorganised the vault under "Table of Content/" (2026-08-18) — promoted
+// notes must land inside that structure, not the original root digest/ folder.
+const VAULT_DIGEST_DIR = 'Table of Content/Digest'
+
 /**
  * Promotes an asst_chats conversation to the Obsidian vault.
  * Generates a Sonnet summary, assembles frontmatter from stored visibility/tags,
- * and commits a .md file to vault/digest/ via GitHub API.
+ * and commits a .md file to VAULT_DIGEST_DIR via GitHub API.
  *
  * Returns the vault file path on success, throws on failure.
  */
@@ -86,7 +90,7 @@ date: ${date}
 ${summary}
 `
 
-  const filePath = `digest/${date}-${slug}.md`
+  const filePath = `${VAULT_DIGEST_DIR}/${date}-${slug}.md`
   await commitVaultFile(filePath, noteContent, `digest: promote "${topic}" (${date})`)
 
   return { path: filePath }
