@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-14 (Session 19 pre-alpha testing passed clean — no issues; Session 20 skipped; next milestone: Session 21 alpha testing with the scheduler)_
+_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts: rich cards, per-device Mark as read, team-scoped; Session 19 pre-alpha passed clean, Session 20 skipped — next: Session 21 alpha testing with the scheduler)_
 
 ---
 
@@ -21,7 +21,7 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is live on production. Pre-alpha testing passed clean 2026-08-14. Next milestone: Session 21 alpha testing (Nic + scheduler).
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is live on production. Pre-alpha testing passed clean 2026-08-17. Next milestone: Session 21 alpha testing (Nic + scheduler).
 
 ---
 
@@ -71,7 +71,7 @@ The prototype covers six rounds of "boss feedback":
 1. **Three-role link system** — sales / scheduler / installer, each with role-appropriate tabs and permissions.
 2. **Approval workflow** — sales draft → workload preview → scheduler approves → schedule. Either side can send back.
 3. **Workload preview before push** — sales sees per-day team load before sending to scheduler. Can switch dates inline.
-4. **Overdue alerts** — automatic at 2-hour checkpoints, 6 PM end-of-day, and past `timeEnd`. Bell icon + drawer. _(Prototype behaviour. As shipped 2026-08-06: twice daily 9am + 6pm SGT, jobs older than 3 days ignored — see plan.md.)_
+4. **Overdue alerts** — automatic at 2-hour checkpoints, 6 PM end-of-day, and past `timeEnd`. Bell icon + drawer. _(Prototype behaviour. As shipped 2026-08-06: twice daily 9am + 6pm SGT, jobs older than 3 days ignored. Bell drawer 2026-08-17: alerts team-scoped — POC/coordinators/assigned installers; scheduler+admin see all — with per-device Mark as read. See plan.md.)_
 5. **Photo-required completion** — can't mark job done without completion photos; scheduler can override.
 6. **Installer features (latest round)**:
     - Live job chat thread (text + voice notes via `MediaRecorder`)
@@ -288,8 +288,8 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 - [x] **Phase 4** — external installer links, sub-installers, task list, external POC bucket (smoke test passed 2026-07-30; live chat on the external page deferred)
 - [x] **Full V2 regression test → clean-cut switchover** — regression test passed [Nic]; switchover done 2026-08-03: feat-workflow-v2 → dev → main, production verified live on V2
 
-- [x] **Session 19** — Pre-Alpha testing (Myself) — PASSED clean 2026-08-14 [Nic]; no issues found, version stays V.0.0.0.1
-- [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-14: clean pass left nothing to fix; green light to alpha
+- [x] **Session 19** — Pre-Alpha testing (Myself) — PASSED clean 2026-08-17 [Nic]; no issues found, version stays V.0.0.0.1
+- [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-17: clean pass left nothing to fix; green light to alpha
 - [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
 - [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
 - [ ] **Session 23** — Launch; production cutover → V.1.0.0.0

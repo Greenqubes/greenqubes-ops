@@ -2,11 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-13 (chore-db — brand logo live on production; full test-data wipe: jobs, job files, bug reports, crash logs cleared from DB + R2)_
+_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on production; Session 19 pre-alpha passed clean, green light for alpha)_
 
 ---
 
 ## Pending — Next Session
+
+### Alpha testing prep (Session 21)
+
+- [ ] **Set up the scheduler's account for alpha** — they sign in via Google once, then Admin → Users: provision them and paste in their Telegram chat ID (message the bot once to get it). Tick the digest subscriber box if they should get the Monday digest.
 
 ### Backup — fixed 2026-08-12, two follow-ups
 
@@ -135,6 +139,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-17, ux-notifications — Overdue Bell Alerts + Pre-Alpha Green Light)
+
+- [x] **[Nic] Session 19 pre-alpha testing PASSED clean** — your solo run found no issues, so the Session 20 hotfix round was skipped entirely. Green light to bring in the scheduler for Session 21 alpha testing.
+- [x] **[Nic] Overdue bell alerts made informative** — the cards now show project title, company ("Untitled" when the job has none), the date with its day (`13/08/2026 (Thu)`, your pick), and location — no more bare-date cards.
+- [x] **[Nic] Mark as read added to the drawer** — greys every red alert and returns the bell to normal; remembered on the device you pressed it (your pick over a database version). A job rescheduled to a new overdue date turns red again.
+- [x] **[Nic] Decision — alerts are team-scoped** — only a job's Person-in-Charge, coordinators and formally assigned installers get its overdue alert (suggested installers never do); scheduler + admin keep the company-wide view (your pick).
+- [x] **[Nic] Verified on preview, merged dev → main** — all three notification changes live on production and spot-checked there.
+- [x] **[Nic] Decision — Bryan's old settings change skipped permanently** — his 28 May commit (which would have untracked the shared Claude settings file you edit) is recorded as merged without taking effect; the session-start check stays quiet from now on and his future work merges normally.
 
 ---
 
