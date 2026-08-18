@@ -64,10 +64,21 @@ No other field edits, no financials, no other buckets.
 - Placeholder coaches scope: *"What exactly does the designer need to produce?
   Which area / items?"* — this is what fixes the
   whole-floorplan-but-only-one-area problem: the text narrows the attachment.
-- **Required rule:** when at least one designer is assigned, brief **text** is
-  required (attachment alone does not satisfy it — text is what steers the
-  AI). Save is blocked with a clear message until text exists. Jobs with no
-  designer assigned don't require a brief.
+- **Required rule (two-stage, Nic 2026-08-18):**
+  - **First push / pre-booking is exempt** — sales can create a job and push
+    it to the schedule, even with a designer already selected, with no brief.
+    Booking the slot fast comes first.
+  - **Afterwards, on the edit form:** once the job is scheduled and has at
+    least one designer assigned, **every save requires brief text**
+    (attachments alone don't satisfy it — text is what steers the AI). Save
+    blocks with a clear message until text exists. Attachments are never a
+    precondition. Jobs with no designer assigned never require a brief.
+  - **Leave guard:** back / refresh with unsaved changes (including an
+    unfilled required brief) prompts "Leave page? Your changes won't be
+    saved" — no silent loss; the requirement catches them on the next save.
+  - **Scoring waits for text:** no AI call fires while brief text is empty —
+    a pre-booked job simply renders grey on Design Load until the brief is
+    written.
 - **Design due date** field inside the card: shows the AI-proposed date with an
   "AI suggested" tag; sales can overtype it. A manually set date is never
   overwritten by the AI again.
@@ -246,7 +257,9 @@ which is English-only.
 5. Type-check + production build green before every push; `dev` → `main`
    only after preview sign-off.
 
-Smoke-test checklist to cover: brief required-on-assign block · designer
+Smoke-test checklist to cover: pre-book push with designer + no brief
+(allowed) · edit-save on scheduled job with designer + empty brief (blocked)
+· leave-guard prompt on back/refresh · designer
 three permissions (and nothing more) · scoring fires on brief/assign/date
 change · manual due date never overwritten · board colours/heights/hover/tap
 · click-through to job · one-tick-clears-all · button gated on JO file ·
