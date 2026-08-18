@@ -2,7 +2,7 @@
 
 > Updated after each session. Read this alongside CONTEXT.md at the start of every session.
 
-_Last updated: 2026-08-18 (visual-design — accent rebrand to the company logo palette + fixed punctuality signal tokens, live on production; top-bar logo now clickable → schedule)_
+_Last updated: 2026-08-18 (chore-mobile — webapp declared LAUNCHED **v1.0.0** by Nic, Sessions 21–23 closed; mobile app (Android + iOS) design spec approved + committed — the mobile app build is the new roadmap)_
 
 ---
 
@@ -12,17 +12,19 @@ _Last updated: 2026-08-18 (visual-design — accent rebrand to the company logo 
 - [Completed Sessions](#completed-sessions)
 - [Session 19 — Pre-Alpha Testing (PASSED 2026-08-17)](#session-19)
 - [Session 20 — Pre-Alpha Feedback (skipped — clean pass)](#session-20)
-- [Session 21 — Alpha Testing (planned)](#session-21)
-- [Session 22 — Beta Testing (planned)](#session-22)
-- [Session 23 — Launch (planned)](#session-23)
-- [Session 24 — Post-Launch (planned)](#session-24)
+- [Sessions 21–23 — closed: webapp declared launched v1.0.0](#sessions-21-23)
+- [Mobile App — the new roadmap](#mobile-app)
 - [Environment Status](#environment-status)
 
 ---
 
 ## Current State
 
-**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. **Session 19 pre-alpha testing PASSED clean 2026-08-17** (Nic's solo run on the wiped production slate — no issues found, so the Session 20 hotfix round is not needed). Next milestone: Session 21 alpha testing (Nic + scheduler).
+**The webapp is LAUNCHED — v1.0.0, declared by Nic 2026-08-18.** Nic confirmed all necessary testing is done, closing Sessions 21–23 (alpha / beta / launch) without further rounds — the production deployment at greenqubes-ops.vercel.app IS the launched product. The webapp continues as the **desktop/office tool**; no new feature track is planned for it beyond the email-link sign-in below.
+
+**The mobile app is the new roadmap (spec approved 2026-08-18):** a native Android + iPhone app (React Native + Expo, one codebase in `mobile/`, same Supabase/R2/Vercel backend) built in 3 stages — 1: communication core (login incl. new **email sign-in link** on webapp + app, job list/detail, WhatsApp-grade per-job chat, push notifications, bell); 2: installer field work + offline; 3: schedule + create/assign + AI assistant. **Android ships first** (direct .apk, free); iPhone waits for the directors' greenlight on the Apple Developer subscription (US$99/yr). **Telegram bots retire only after Stage 3 + the iPhone rollout are both live.** Admin + FCFS board stay desktop-only; external installers keep their web links. Full spec: [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md).
+
+**Workflow V2 is LIVE on production — clean-cut switchover completed 2026-08-03.** All four phases were built and smoke-tested on `feat-workflow-v2`, Nic's full regression test passed, and the branch was merged `feat-workflow-v2` → `dev` → `main` in one shot. **Session 19 pre-alpha testing PASSED clean 2026-08-17** (Nic's solo run on the wiped production slate — no issues found, so the Session 20 hotfix round is not needed).
 
 **Accent rebrand to the company logo palette (2026-08-18, live on production):** all accent colors moved to the logo palette (Nic's call — accents only; neutrals + red untouched). Primary accent (buttons, own chat bubbles, active states) is now **moss green `#5A801F`** — the logo lime darkened so white text passes contrast; the **true logo lime `#91C740`** lives in a new `--lime` token reserved for small non-text highlights (chat live dot, favicon). Info/secondary = **logo slate `#6C747C`**; installer/success = **teal `#3E7F7B`** (Nic: the company green stays the only green in the app); warnings = **sand gold `#A9852F`**. Dark-mode soft tints regenerated. Token NAMES kept for compatibility (`--terracotta` etc. still appear in code — only the values changed; documented in CONTEXT.md). **Punctuality strict/flexible are company scheduling signal colors, NOT brand colors** (Nic caught this on the preview): new fixed tokens `--punct-strict` (#D14545) / `--punct-flex` (#3D6FB5) now drive the job-form toggle, schedule rows/legend/date-strip/month dots, FCFS bars/legend/assignment panel, and the external pages — never touch them in a future rebrand. Also 2026-08-18: **the top-bar logo is clickable → /schedule**, and /schedule now bounces installers to /installer (same pattern as /fcfs).
 
@@ -158,6 +160,7 @@ _Last updated: 2026-08-18 (visual-design — accent rebrand to the company logo 
 | chore-db [Nic] | Brand Logo + Test-Data Wipe | Logo PNG replaces text wordmark in CompanyBar + login (Pre-Alpha tag removed, dark-mode `.brand-logo` brightness lift; dev→main same day). Production test-data wipe via one-off dry-run-first script: 46 jobs + all cascaded children (files, chats, buckets, tasks, assignments, external links), 1 bug report, 27 crash logs, 44 R2 objects (15.6 MB, `jobs/` + `bug-reports/`) deleted; users/clients/external pool/asst chats/KB kept; all counts verified zero; script deleted after use. | [chore/chore-db-20260813-1-note.md](chore/chore-db-20260813-1-note.md) |
 | ux-notifications [Nic] | Overdue Bell Alerts — Rich Cards + Mark-as-Read + Team Scoping | Session 19 pre-alpha PASSED clean (no issues; Session 20 skipped — green light for alpha). Overdue drawer cards show project title / company ("Untitled" when blank) / `13/08/2026 (Thu)` day+date / location. Mark as read button greys red alerts + clears red bell, per device per user (localStorage; reschedule to a new overdue date re-alerts). Alerts team-scoped: POC + coordinators + formally assigned installers only (suggestions never alert); scheduler + admin see all. dev→main same day. Bryan's stale settings/gitignore commit permanently skipped (`-s ours`). | [ux/ux-notifications-20260817-1-note.md](ux/ux-notifications-20260817-1-note.md) |
 | visual-design [Nic] | Logo Palette Rebrand + Clickable Logo | Accents remapped to the company logo palette (accents only — neutrals/red untouched): moss green #5A801F primary (logo lime darkened for contrast), new `--lime` #91C740 highlight token (live dot, favicon), slate #6C747C info, teal #3E7F7B installer/success (company green stays unique), sand gold #A9852F warning; dark softs regenerated; token names kept. Punctuality extracted to fixed signal tokens `--punct-strict` #D14545 / `--punct-flex` #3D6FB5 (company scheduling indicators — never rebrand) across toggle/schedule/FCFS/external. Top-bar logo clickable → /schedule; installers hitting /schedule bounced to /installer. dev→main same day (two merges). | [visual/visual-design-20260818-1-note.md](visual/visual-design-20260818-1-note.md) |
+| chore-mobile [Nic] | Webapp Launched v1.0.0 + Mobile App Design Spec | Nic declared the webapp LAUNCHED at v1.0.0 (all testing done — Sessions 21–23 closed without further rounds; webapp continues as the desktop/office tool). Mobile app (Android + iPhone) designed + specced in a brainstorming session: React Native + Expo, one codebase in `mobile/`, same backend; 3 stages (communication core → installer field work + offline → office on the go + AI); Android-first via direct .apk, iPhone gated on the directors' Apple Developer greenlight (US$99/yr, org enrollment, D-U-N-S first); Telegram retires only after Stage 3 + iPhone rollout both live; per-job chat is the make-or-break feature; email magic-link sign-in approved for webapp + app. Spec committed: [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md). No code written. | [chore/chore-mobile-20260818-1-note.md](chore/chore-mobile-20260818-1-note.md) |
 
 > Archived notes are in `docs/pre-rebase-notes/`.
 
@@ -179,35 +182,25 @@ Session 19 surfaced no findings, so no hotfix round was needed. Green light give
 
 ---
 
-## Session 21
+## Sessions 21–23
 
-**Alpha Testing (Scheduler)** _(planned)_
+**Alpha / Beta / Launch** _(closed 2026-08-18 — webapp declared LAUNCHED **v1.0.0** by Nic)_
 
-Real-team test with Me + Scheduler on the Vercel preview using live-ish data. Versioning moves to **V.0.0.X.0** (X increments per change). Hotfix loop until green light to proceed to Beta.
-
----
-
-## Session 22
-
-**Beta Testing (Management)** _(planned)_
-
-Expanded test with Me + Scheduler + Sales. Full approval workflow, financials, Telegram notifications tested with all three roles simultaneously. Versioning at **V.0.X.0.0** (X increments per change). Hotfix loop until green light to launch.
+Nic confirmed all necessary testing was already done, so the planned alpha (scheduler), beta (management) and formal launch-cutover rounds were closed without being run. The current production deployment (greenqubes-ops.vercel.app, existing Supabase project, existing Telegram webhooks) **is** the launched product. No prod-tier promotion or custom domain was wired — those remain available as future infra tasks if ever wanted. The webapp continues as the desktop/office tool.
 
 ---
 
-## Session 23
+## Mobile App
 
-**Launch** _(planned)_
+**The new roadmap** _(spec approved + committed 2026-08-18 — see [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md))_
 
-Production cutover: Supabase project promoted to prod tier (or new org), Vercel deployment promoted, Telegram webhook pointed at prod URL, custom domain (if any) wired. Version becomes **V.1.0.0.0**. Hotfix window open.
+Native Android + iPhone app, React Native + Expo, one codebase in `mobile/`, same backend. Nic reviews the spec, then an implementation plan gets written, then build sessions begin.
 
----
+- **Stage 1 — Communication core:** login (Google + new email sign-in link, also added to the webapp), job list/detail, per-job chat at WhatsApp quality, push notifications, bell. App versioning starts at V.0.X.0.0.
+- **Stage 2 — Field work:** installer dashboard, tasks, photo/DO uploads, offline read + queued sync.
+- **Stage 3 — Office on the go:** schedule list, create/push jobs with clash warnings, assign installers, AI assistant, in-app digest vote. App becomes **V.1.0.0.0**.
 
-## Session 24
-
-**Post-Launch** _(planned)_
-
-New features to be defined after launch feedback. Versioning continues at **V.1.X.0.0** for minor additions.
+Android rolls out first (direct .apk, free). iPhone waits on the directors' Apple Developer greenlight (US$99/yr; D-U-N-S number first, weeks of lead time). **Telegram bots retire only when Stage 3 AND the iPhone rollout are both live.** Admin + FCFS stay desktop-only; externals keep their web links.
 
 ---
 
