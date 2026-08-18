@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-18 (chore-mobile — webapp declared launched v1.0.0; mobile app spec approved, awaiting your review)_
+_Last updated: 2026-08-18 (feat-rollout — rollout pack built, Connect Telegram self-link live, digest pipeline fixed end-to-end)_
 
 ---
 
@@ -17,7 +17,12 @@ _Last updated: 2026-08-18 (chore-mobile — webapp declared launched v1.0.0; mob
 
 ### Team onboarding (was "alpha testing prep" — Sessions 21–23 closed, webapp launched v1.0.0)
 
-- [ ] **Set up the scheduler's account** — they sign in via Google once, then Admin → Users: provision them and paste in their Telegram chat ID (message the bot once to get it). Tick the digest subscriber box if they should get the Monday digest.
+_The whole-company rollout pack is ready (built 2026-08-18). Follow the runbook: [rollout/rollout-runbook.md](rollout/rollout-runbook.md) — deck + printable role cheat sheets are linked at the top of it._
+
+- [ ] **Collect everyone's exact Google email** — one group-chat message (template in the runbook). Copy-pasted, not typed: an email typo = "account not set up" on the day.
+- [ ] **Fill the roster + pre-provision everyone** — Admin → Users → Provision (email + name + role), tick digest where wanted. No one needs to have signed in first.
+- [ ] **Rollout meeting** — present the deck, everyone signs in with Google + taps **Connect Telegram** (self-service now — no more chat-ID pasting); digest subscribers also press START on @Greenqubes_digest_bot once. Fallbacks for every failure mode are in the runbook.
+- [ ] **After: verify every user row has a Telegram chat ID** (Admin → Users) and chase gaps while it's fresh.
 
 ### Backup — fixed 2026-08-12, two follow-ups
 
@@ -58,7 +63,7 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
 - [x] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
 - [x] **[Nic] Clean-cut switchover (strategy reminder)** — executed 2026-08-03; see the regression test → switchover item below.
-- [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
+- [x] **[Nic] (Optional, for testing) See push notifications yourself** — resolved by 2026-08-18: a data check during the digest debugging confirmed **no other user row carries a Telegram chat ID anymore** (only your own account has one), so there's nothing to remove before go-live. Going forward everyone links their own via the Connect Telegram button.
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
 - [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
 - [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
@@ -150,6 +155,20 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-18, feat-rollout — Rollout Pack + Connect Telegram + Digest Fixes)
+
+- [x] **[Nic] Rollout materials approved + built** — 10-slide deck, 6 printable role cheat sheets, and your step-by-step runbook (all in `docs/rollout/` and published as private artifact pages; links at the top of the runbook). Your decisions: deck + cheat sheets format, English only, collect emails before the meeting (Option A).
+- [x] **[Nic] Connect Telegram self-link chosen and live on production** — everyone links their own Telegram with two taps (profile picture → Connect Telegram → START); no chat-ID pasting, no database migration, no new Vercel settings. You verified the button on the preview.
+- [x] **[Nic] Digest mis-route caught and fixed** — your test exposed that the Admin → Digest tab still sent via the ops bot (leftover from before the digest bot existed). Now routes via @Greenqubes_digest_bot; you verified the send arrives from the right bot.
+- [x] **[Nic] Digest voting fixed** — "your account is not registered" was your deleted old account sharing your Telegram ID; deleted accounts are now ignored everywhere in the digest (votes, majority count, broadcasts, D-Promote) and the ghost row's Telegram ID + digest tick were cleared from the data (your call).
+- [x] **[Nic] Vanishing vault notes root-caused and fixed** — Vercel kills background work once a response is sent, so the vault write was dying mid-flight. Now awaited; you verified live: vote at 20:24:09 → note on GitHub at 20:24:17 (8 seconds).
+- [x] **[Nic] Promoted notes follow your reorganised vault** — they now land in `Table of Content/Digest/` (your call), matching where you moved the May note. Your stranded "Plywood" promotion was rescued there, then all three test notes deleted at your request before the 2:30 AM sync could teach them to the assistant.
+- [x] **[Nic] D-Promote smirk reply added** — the assistant answers any message containing `D-Promote` with "I see what you did there 😏" instead of a normal AI reply (your request; no API cost).
+- [x] **[Nic] Four dev → main merges, each verified by you on production.**
+- Your Obsidian already auto-pulls every 11 minutes + on startup (Git plugin) — promoted notes appear in Obsidian within minutes, no setup needed.
 
 ---
 

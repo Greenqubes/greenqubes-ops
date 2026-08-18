@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-18 (chore-mobile — webapp declared LAUNCHED v1.0.0 by Nic, Sessions 21–23 closed; mobile app (Android + iPhone, React Native + Expo) design spec approved — the mobile app build is the new roadmap)_
+_Last updated: 2026-08-18 (feat-rollout — company rollout pack (deck + cheat sheets + runbook); Connect Telegram self-link live; digest pipeline fixed end-to-end; promoted vault notes now land in `Table of Content/Digest/`. Earlier same day: chore-mobile — webapp declared LAUNCHED v1.0.0, Sessions 21–23 closed; mobile app spec approved — the mobile app build is the new roadmap)_
 
 ---
 
@@ -208,6 +208,8 @@ Every Monday at 9 AM SGT, a Vercel cron (`/api/cron/monday-digest`) runs:
 **D-Promote secret command:** typing `D-Promote` anywhere in an assistant conversation forces `importance = 5` and immediately sends the conversation to all digest subscribers outside the Monday schedule. The word is stripped from the Telegram summary so recipients don't see it.
 
 The loop: organic conversations → flagged on Monday (or immediately via D-Promote) → human majority approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+
+**Promoted notes land in `Table of Content/Digest/`** in greenqubes-kb (the vault was reorganised under `Table of Content/`, 2026-08-18) — the original root `digest/` folder is retired. **Vercel lesson (2026-08-18): never fire-and-forget async work in an API route** — Vercel freezes the function once the response returns, killing unfinished promises; the vault write and D-Promote send are awaited for this reason.
 
 This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop majority vote is the safety mechanism against the AI mis-classifying something as broadly shareable.
 
