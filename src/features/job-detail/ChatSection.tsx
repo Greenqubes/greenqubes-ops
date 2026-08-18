@@ -748,7 +748,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
             <span className="flex items-center gap-1.5">
               <span className={cn(
                 'w-1.5 h-1.5 rounded-full shrink-0',
-                realtimeStatus === 'live'  ? 'bg-brand-green' :
+                realtimeStatus === 'live'  ? 'bg-brand-lime' :
                 realtimeStatus === 'error' ? 'bg-bad animate-pulse' :
                 'bg-muted animate-pulse'
               )} />

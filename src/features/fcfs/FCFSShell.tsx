@@ -209,10 +209,10 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
         {/* Legend */}
         <div className="flex items-center gap-4 flex-wrap px-4 py-2 border-t border-line mt-2">
           {([
-            ['bg-brand-blue',                                        'flexibleWindow'],
-            ['bg-terracotta',                                        'strictOnTime'],
+            ['bg-punct-flex',                                        'flexibleWindow'],
+            ['bg-punct-strict',                                      'strictOnTime'],
             ['bg-bad',                                               'fcfsLegendHard'],
-            ['bg-brand-blue border-2 border-dashed border-brand-amber', 'fcfsLegendSoft'],
+            ['bg-punct-flex border-2 border-dashed border-brand-amber', 'fcfsLegendSoft'],
             ['bg-brand-amber opacity-90',                            'fcfsLegendSuggestion'],
           ] as const).map(([swatch, key]) => (
             <span key={key} className="flex items-center gap-1.5 text-[11px] text-ink2">

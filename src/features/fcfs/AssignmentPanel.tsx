@@ -169,8 +169,8 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
           <span className={cn(
             'text-[11px] font-semibold px-2 py-0.5 rounded-full',
             job.punctuality === 'strict'
-              ? 'bg-terracotta-soft text-terracotta'
-              : 'bg-brand-blue-soft text-brand-blue',
+              ? 'bg-punct-strict-soft text-punct-strict'
+              : 'bg-punct-flex-soft text-punct-flex',
           )}>
             {t(lang, job.punctuality === 'strict' ? 'strictOnTime' : 'flexibleWindow')}
           </span>

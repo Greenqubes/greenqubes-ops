@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 :root {
-  /* ── Brand tokens ── */
+  /* ── Brand tokens ──
+     Rebrand 2026-08-18 (logo palette): token NAMES kept for compatibility,
+     values remapped — terracotta = brand moss green (darkened logo lime),
+     green = teal (success/installer), blue = logo slate, amber = sand gold.
+     --lime is the true logo green: small non-text highlights only. */
   --bg: #F4F1EC;
   --paper: #FFFFFF;
   --ink: #1A1815;
@@ -11,20 +15,31 @@
   --muted: #8B8478;
   --line: #E8E2D7;
 
-  --terracotta: #B5523D;
-  --terracotta-soft: #F5E8E3;
+  --terracotta: #5A801F;
+  --terracotta-soft: #EDF3DC;
 
-  --green: #3F7D5C;
-  --green-soft: #E8F0EB;
+  --lime: #91C740;
 
-  --blue: #3D6FB5;
-  --blue-soft: #E5EEFC;
+  --green: #3E7F7B;
+  --green-soft: #E3EEED;
 
-  --amber: #C8893D;
-  --amber-soft: #F8EFDF;
+  --blue: #6C747C;
+  --blue-soft: #E9EBED;
+
+  --amber: #A9852F;
+  --amber-soft: #F5EDD8;
 
   --bad: #A83D3D;
   --bad-soft: #F5E0E0;
+
+  /* ── Scheduling signal colors (Nic 2026-08-18) ──
+     Punctuality indicators are company-standard signals: strict = red,
+     flexible = blue. FIXED values, deliberately outside the brand palette —
+     never change these in a rebrand. */
+  --punct-strict: #D14545;
+  --punct-strict-soft: #F5E8E3;
+  --punct-flex: #3D6FB5;
+  --punct-flex-soft: #E5EEFC;
 }
 
 .dark {
@@ -35,11 +50,14 @@
   --muted: #8B8478;
   --line: #2E2B27;
 
-  --terracotta-soft: #2A1A17;
-  --green-soft: #172319;
-  --blue-soft: #152030;
-  --amber-soft: #271E10;
+  --terracotta-soft: #1F2711;
+  --green-soft: #132120;
+  --blue-soft: #1D2126;
+  --amber-soft: #272110;
   --bad-soft: #2A1515;
+
+  --punct-strict-soft: #2A1A17;
+  --punct-flex-soft: #152030;
 }
 
 @layer base {

@@ -20,6 +20,7 @@ const config: Config = {
           DEFAULT: 'var(--terracotta)',
           soft: 'var(--terracotta-soft)',
         },
+        'brand-lime': 'var(--lime)',
         'brand-green': {
           DEFAULT: 'var(--green)',
           soft: 'var(--green-soft)',
@@ -35,6 +36,14 @@ const config: Config = {
         bad: {
           DEFAULT: 'var(--bad)',
           soft: 'var(--bad-soft)',
+        },
+        'punct-strict': {
+          DEFAULT: 'var(--punct-strict)',
+          soft: 'var(--punct-strict-soft)',
+        },
+        'punct-flex': {
+          DEFAULT: 'var(--punct-flex)',
+          soft: 'var(--punct-flex-soft)',
         },
       },
       fontFamily: {
