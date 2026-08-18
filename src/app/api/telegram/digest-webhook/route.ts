@@ -135,12 +135,16 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   }
 
   if (promoted) {
-    // Auto-commit to vault in the background — don't block the webhook response
-    autoPromoteToVault(chatId).then(({ path }) => {
+    // Must be awaited: Vercel freezes the function once the response is sent,
+    // killing fire-and-forget work — the vault write was dying mid-flight.
+    // The button spinner is already dismissed (answerCallbackQuery above), so
+    // the extra seconds here cost nothing visible.
+    try {
+      const { path } = await autoPromoteToVault(chatId)
       console.log(`[digest webhook] vault note committed: ${path}`)
-    }).catch(err => {
+    } catch (err) {
       console.error('[digest webhook] auto-promote failed:', (err as Error).message)
-    })
+    }
 
     const { data: subscribers } = await db
       .from('users')
