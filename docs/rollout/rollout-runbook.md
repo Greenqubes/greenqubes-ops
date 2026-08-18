@@ -51,10 +51,18 @@ For each row: **Admin → Users → Provision new user** → email + name + role
 - [ ] Wi-Fi password ready for the room — everyone needs internet on their phones.
 - [ ] (Separate but due: **2FA on GitHub / Vercel / Supabase / Anthropic / Cloudflare** before the whole team is on the system.)
 
+## The three bots — which is which
+
+| Bot | What it does | Who needs to Start it |
+|---|---|---|
+| **@GreenqubesOps_bot** (Greenqubes Ops) | Job assignments, chat pings, overdue alerts. **This is the one the Connect Telegram button opens** — pressing START here is what links the account. | Everyone |
+| **@Greenqubes_digest_bot** (Greenqubes Digest) | Monday knowledge digest + Promote/Skip voting. | Digest subscribers only — Telegram blocks a bot from messaging anyone who never pressed Start on it, so each subscriber must open this bot once and press START (no code, no linking — just Start). |
+| **@greenqubes_bugs_bot** (Bug Reports) | Sends bug reports to you. | Nobody — it only talks to you. |
+
 ## Meeting agenda (~30 min)
 
 1. **Present the deck** (~15 min) — slides 1–8 are the story, slide 9 is the signup, slide 10 is house rules.
-2. **Signup** (~10 min) — everyone does slide 9's three steps on their phones while you walk the room. Hand out cheat sheets while they do it.
+2. **Signup** (~10 min) — everyone does slide 9's three steps on their phones while you walk the room. Hand out cheat sheets while they do it. **Digest subscribers do one extra tap:** search **@Greenqubes_digest_bot** in Telegram and press START, so Monday digests can reach them.
 3. **Questions** (~5 min).
 
 ## Day-of fallback playbook
@@ -70,6 +78,7 @@ For each row: **Admin → Users → Provision new user** → email + name + role
 ## After the meeting
 
 - [ ] Admin → Users: **every row shows a Telegram chat ID** — chase the gaps within a day or two while it's fresh.
+- [ ] Each **digest subscriber** confirmed they pressed START on @Greenqubes_digest_bot (next Monday's digest is the proof).
 - [ ] Send one test ping if you want certainty (assign someone a real upcoming job — that's the realistic test).
 - [ ] Tick off the roster's "Linked TG" column.
 - [ ] Keep the cheat-sheet link pinned in the company group chat for latecomers.
