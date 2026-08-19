@@ -50,10 +50,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const [selectedDate, setSelectedDate] = useState(today)
   const [showJump,     setShowJump]     = useState(false)
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
-  const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [confirmBulk,  setConfirmBulk]  = useState(false)
+  const [bulkBusy,     setBulkBusy]     = useState(false)
+  const [confirmBulk,  setConfirmBulk]  = useState<'delete' | 'revert' | false>(false)
 
   const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending')
+  // Undo accidental completions straight from the Completed list (Nic, 2026-08-19).
+  const canBulkRevert = role === 'scheduler' && pageMode === 'completed'
 
   function toggleJob(id: string) {
     setSelectedIds(prev => {
@@ -69,7 +71,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   }
 
   async function handleBulkDelete() {
-    setBulkDeleting(true)
+    setBulkBusy(true)
     try {
       await Promise.all(
         [...selectedIds].map(id => fetch(`/api/jobs/${id}`, { method: 'DELETE' }))
@@ -78,7 +80,21 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
       setConfirmBulk(false)
       router.refresh()
     } finally {
-      setBulkDeleting(false)
+      setBulkBusy(false)
+    }
+  }
+
+  async function handleBulkRevert() {
+    setBulkBusy(true)
+    try {
+      await Promise.all(
+        [...selectedIds].map(id => fetch(`/api/jobs/${id}/revert-complete`, { method: 'POST' }))
+      )
+      setSelectedIds(new Set())
+      setConfirmBulk(false)
+      router.refresh()
+    } finally {
+      setBulkBusy(false)
     }
   }
 
@@ -322,23 +338,27 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           {confirmBulk ? (
             <>
               <p className="text-sm font-medium text-ink">
-                Delete {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''}? This can&apos;t be undone.
+                {confirmBulk === 'delete'
+                  ? <>Delete {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''}? This can&apos;t be undone.</>
+                  : <>Revert {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''} back to the schedule?</>}
               </p>
               <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => setConfirmBulk(false)}
-                  disabled={bulkDeleting}
+                  disabled={bulkBusy}
                   className="px-3 py-1.5 text-xs font-medium text-ink2 border border-line rounded-lg hover:border-ink2 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleting}
+                  onClick={confirmBulk === 'delete' ? handleBulkDelete : handleBulkRevert}
+                  disabled={bulkBusy}
                   className="px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
                   style={{ backgroundColor: 'var(--terracotta)' }}
                 >
-                  {bulkDeleting ? 'Deleting…' : 'Confirm'}
+                  {bulkBusy
+                    ? (confirmBulk === 'delete' ? 'Deleting…' : 'Reverting…')
+                    : 'Confirm'}
                 </button>
               </div>
             </>
@@ -354,8 +374,16 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
                 >
                   Clear
                 </button>
+                {canBulkRevert && (
+                  <button
+                    onClick={() => setConfirmBulk('revert')}
+                    className="px-3 py-1.5 text-xs font-medium text-amber-800 border border-amber-400 bg-amber-50 rounded-lg transition-colors"
+                  >
+                    Revert {selectedIds.size}
+                  </button>
+                )}
                 <button
-                  onClick={() => setConfirmBulk(true)}
+                  onClick={() => setConfirmBulk('delete')}
                   className="px-3 py-1.5 text-xs font-medium text-white rounded-lg transition-colors"
                   style={{ backgroundColor: 'var(--terracotta)' }}
                 >
