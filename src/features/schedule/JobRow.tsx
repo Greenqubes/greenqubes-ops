@@ -48,6 +48,14 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
     .filter(Boolean)
     .join(', ')
 
+  // Sales / Coordinator lines (Nic, 2026-08-19). Only when the feeding query
+  // loaded team fields — installer views pass InstallerJob rows without them.
+  const hasTeamInfo = job.sales_name !== undefined || job.job_coordinators !== undefined
+  const coordinatorNames = (job.job_coordinators ?? [])
+    .map(c => c.users?.name)
+    .filter(Boolean)
+    .join(', ')
+
   // No time set = whole-day floater — say so instead of leaving a blank
   // (matches the FCFS board's "All day" bars).
   const timeRange = [fmtTime(job.time_start), fmtTime(job.time_end)]
@@ -157,6 +165,21 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                     <Pill variant={job.status} />
                   )}
                 </div>
+
+                {/* Sales / Coordinator — box sits right, text inside stays
+                    left-aligned so both labels start at the same edge */}
+                {hasTeamInfo && (
+                  <div className="flex justify-end mt-1.5">
+                    <div className="text-left space-y-0.5 min-w-0">
+                      <p className="text-[11px] text-muted leading-tight truncate">
+                        Sales: {job.sales_name || 'NIL'}
+                      </p>
+                      <p className="text-[11px] text-muted leading-tight truncate">
+                        Coordinator: {coordinatorNames || 'NIL'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
