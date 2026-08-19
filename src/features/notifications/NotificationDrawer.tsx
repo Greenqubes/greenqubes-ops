@@ -24,6 +24,7 @@ type OverdueJob = {
   project_title: string | null
   date:          string
   location:      string | null
+  sales_name:    string | null
   read:          boolean
 }
 
@@ -129,12 +130,26 @@ export function NotificationDrawer({ lang }: Props) {
           || (j.job_assignees ?? []).some(a => a.user_id === myId && !a.is_suggestion)
       })
 
+      // Sales POC names in a follow-up query — never embed users onto jobs
+      // in a PostgREST select (standing rule; it has broken twice).
+      const pocIds = [...new Set(overdue.map(j => j.sales_poc_id).filter(Boolean))] as string[]
+      const nameById = new Map<string, string>()
+      if (pocIds.length > 0) {
+        type NameRow = { id: string; name: string }
+        const { data: pocs } = await (supabase
+          .from('users')
+          .select('id, name')
+          .in('id', pocIds) as unknown as Promise<{ data: NameRow[] | null }>)
+        for (const p of pocs ?? []) nameById.set(p.id, p.name)
+      }
+
       setOverdueJobs(overdue.map(j => ({
         id:            j.id,
         client:        j.client,
         project_title: j.project_title ?? null,
         date:          j.date,
         location:      j.location ?? null,
+        sales_name:    j.sales_poc_id ? (nameById.get(j.sales_poc_id) ?? null) : null,
         read:          seen[j.id] === j.date,
       })))
     } catch { /* best-effort */ }
@@ -360,6 +375,9 @@ export function NotificationDrawer({ lang }: Props) {
                         <p className={cn('text-[11px] mt-0.5', job.read ? 'text-muted' : 'text-bad/70')}>{fmtOverdueDate(job.date)}</p>
                         {job.location && (
                           <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>{job.location}</p>
+                        )}
+                        {job.sales_name && (
+                          <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>Sales: {job.sales_name}</p>
                         )}
                       </div>
                       <ArrowRight
