@@ -126,6 +126,15 @@ export async function POST(
     .eq('is_sub_installer', false) as { data: Array<{ user_id: string }> | null }
   const existingIds = new Set((existing ?? []).map(r => r.user_id))
   const newlyAddedIds = installerIds.filter(id => !existingIds.has(id))
+  const removedIds    = [...existingIds].filter(id => !installerIds.includes(id))
+
+  // Header for the POC/coordinator message (Nic, 2026-08-19):
+  //   team emptied → Removed; existing team modified → Changed; else Assigned
+  //   (fresh assignment, or an unchanged team re-notified).
+  const notifKind: 'assigned' | 'changed' | 'removed' =
+    installerIds.length === 0 && existingIds.size > 0 ? 'removed'
+    : existingIds.size > 0 && (newlyAddedIds.length > 0 || removedIds.length > 0) ? 'changed'
+    : 'assigned'
 
   // Replace suggestions + formal assignments with the new formal set —
   // touching MAIN rows only. Sub-installer rows (Phase 4) live in their own
@@ -201,6 +210,7 @@ export async function POST(
         location:       job.location,
         installerNames,
         jobUrl,
+        kind: notifKind,
       })
       await Promise.all([...targets].map(chatId => sendTelegram(chatId, msg)))
     }
