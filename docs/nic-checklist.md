@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-18 (feat-rollout — rollout pack built, Connect Telegram self-link live, digest pipeline fixed end-to-end)_
+_Last updated: 2026-08-19 (fix-files — attachment delete fixed: server routes now delete R2 object + DB row; bucket delete no longer leaks files into job chat)_
 
 ---
 
@@ -155,6 +155,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-19, fix-files — Attachment Delete Fix)
+
+- [x] **[Nic] "Deleted attachments come back" root-caused and fixed** — your Cloudflare theory was half right: the app never deleted anything from Cloudflare, but the reason files reappeared was the database silently refusing the delete (no delete permission rule was ever written for the files table, and the app never checked). Deletes now go through the server, which checks who's asking, deletes the Cloudflare copy first, then the database row.
+- [x] **[Nic] Decision — who can delete attachments** — matches the screen as it already was: every office role (sales, scheduler, coordinator, designer, production, admin) on non-completed jobs; installers never; completed jobs locked for everyone.
+- [x] **[Nic] Bucket delete no longer leaks files into job chat** — deleting a bucket used to quietly unhook its files (which then showed up in the job chat) and strand their Cloudflare copies; it now truly deletes the files with the bucket.
+- [x] **[Nic] Real error messages on failed deletes** — a failed delete now shows a red error instead of the file pretending to vanish; successful deletes show a green confirmation.
+- [x] **[Nic] Verified on preview, merged dev → main** — fix live on production (confirmed the new delete route is serving).
+- [x] **[Nic] Stale-tab leak caught right after the merge and cleaned up** — you deleted the DESIGNER JO bucket from a tab still running the old code (an open tab keeps the old version until refreshed), which leaked its two PDFs into the job chat one last time. Both leaked files were fully removed with a one-off script you approved (Cloudflare copy + database row); verified zero leaked attachments remain on any job. Lesson: after a production deploy, refresh open tabs before testing.
+- Note: files deleted from the app also disappear from the server-PC archive at the next 02:00 sync — the archive is a mirror, not history (existing checklist item covers the snapshot decision).
 
 ---
 
