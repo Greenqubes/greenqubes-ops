@@ -74,13 +74,28 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey 
   }
 
   async function renameBucket(id: string, name: string) {
-    await supabase.from('attachment_buckets').update({ name } as never).eq('id', id)
+    const { error } = await supabase.from('attachment_buckets').update({ name } as never).eq('id', id)
+    if (error) { showError('Could not rename the bucket.'); return }
     setBuckets(prev => prev.map(b => b.id === id ? { ...b, name } : b))
   }
 
+  // Deletes go through the server: RLS has no DELETE policy on files, so a
+  // browser-side delete silently removes nothing and the file "comes back".
+  // The server route also deletes the R2 object (browser deletes never did).
   async function deleteBucket(id: string) {
-    await supabase.from('attachment_buckets').delete().eq('id', id)
+    try {
+      const res = await fetch(`/api/buckets/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: '' })) as { error?: string }
+        showError(`Could not delete the bucket${error ? ` — ${error}` : ''}.`)
+        return
+      }
+    } catch {
+      showError('Could not delete the bucket — no connection.')
+      return
+    }
     setBuckets(prev => prev.filter(b => b.id !== id))
+    showSuccess('Bucket deleted.')
   }
 
   async function uploadFile(bucket: AttachmentBucket, file: File, isImage: boolean) {
@@ -172,10 +187,21 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey 
   }
 
   async function deleteFile(bucketId: string, fileId: string) {
-    await supabase.from('files').delete().eq('id', fileId)
+    try {
+      const res = await fetch(`/api/files/${fileId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: '' })) as { error?: string }
+        showError(`Could not delete the file${error ? ` — ${error}` : ''}.`)
+        return
+      }
+    } catch {
+      showError('Could not delete the file — no connection.')
+      return
+    }
     setBuckets(prev => prev.map(b =>
       b.id === bucketId ? { ...b, files: b.files.filter(f => f.id !== fileId) } : b,
     ))
+    showSuccess('File deleted.')
   }
 
   async function getDownloadUrl(r2Key: string, filename?: string): Promise<string> {
