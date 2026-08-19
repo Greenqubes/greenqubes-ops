@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 import type { FileKind } from '@/lib/supabase/types'
@@ -93,6 +93,12 @@ export async function copyObject(sourceKey: string, destKey: string): Promise<vo
     Key:        destKey,
   }))
   void logApiUsage({ service: 'r2', endpoint: 'copy', estimated_cost: 0 })
+}
+
+// R2 delete is idempotent — deleting a missing key succeeds silently.
+export async function deleteObject(key: string): Promise<void> {
+  await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+  void logApiUsage({ service: 'r2', endpoint: 'delete', estimated_cost: 0 })
 }
 
 export async function getBugScreenshotUploadUrl(
