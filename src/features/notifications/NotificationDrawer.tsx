@@ -24,6 +24,8 @@ type OverdueJob = {
   project_title: string | null
   date:          string
   location:      string | null
+  sales_name:    string | null
+  coord_names:   string | null
   read:          boolean
 }
 
@@ -105,11 +107,11 @@ export function NotificationDrawer({ lang }: Props) {
         id: string; client: string; project_title: string | null; date: string
         time_end: string | null; location: string | null; sales_poc_id: string | null
         job_assignees: Array<{ user_id: string; is_suggestion: boolean }> | null
-        job_coordinators: Array<{ user_id: string }> | null
+        job_coordinators: Array<{ user_id: string; users: { name: string } | null }> | null
       }
       const { data } = await (supabase
         .from('jobs')
-        .select('id, client, project_title, date, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id)')
+        .select('id, client, project_title, date, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id, users(name))')
         .eq('status', 'scheduled')
         .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
 
@@ -129,12 +131,27 @@ export function NotificationDrawer({ lang }: Props) {
           || (j.job_assignees ?? []).some(a => a.user_id === myId && !a.is_suggestion)
       })
 
+      // Sales POC names in a follow-up query — never embed users onto jobs
+      // in a PostgREST select (standing rule; it has broken twice).
+      const pocIds = [...new Set(overdue.map(j => j.sales_poc_id).filter(Boolean))] as string[]
+      const nameById = new Map<string, string>()
+      if (pocIds.length > 0) {
+        type NameRow = { id: string; name: string }
+        const { data: pocs } = await (supabase
+          .from('users')
+          .select('id, name')
+          .in('id', pocIds) as unknown as Promise<{ data: NameRow[] | null }>)
+        for (const p of pocs ?? []) nameById.set(p.id, p.name)
+      }
+
       setOverdueJobs(overdue.map(j => ({
         id:            j.id,
         client:        j.client,
         project_title: j.project_title ?? null,
         date:          j.date,
         location:      j.location ?? null,
+        sales_name:    j.sales_poc_id ? (nameById.get(j.sales_poc_id) ?? null) : null,
+        coord_names:   (j.job_coordinators ?? []).map(c => c.users?.name).filter(Boolean).join(', ') || null,
         read:          seen[j.id] === j.date,
       })))
     } catch { /* best-effort */ }
@@ -361,6 +378,8 @@ export function NotificationDrawer({ lang }: Props) {
                         {job.location && (
                           <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>{job.location}</p>
                         )}
+                        <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>Sales: {job.sales_name || 'NIL'}</p>
+                        <p className={cn('text-[11px] truncate', job.read ? 'text-muted/70' : 'text-bad/60')}>Coordinator: {job.coord_names || 'NIL'}</p>
                       </div>
                       <ArrowRight
                         size={12}

@@ -19,13 +19,20 @@ export type ScheduleJob = {
   production_ready: boolean
   do_issued:        boolean
   job_assignees:    Array<{ is_suggestion?: boolean; users: { id: string; name: string } | null }>
+  // Team lines on the list cards (Nic, 2026-08-19). Optional because the
+  // installer views feed InstallerJob rows (no team fields) into JobRow —
+  // the card only renders the lines when these are present.
+  sales_poc_id?:     string | null
+  sales_name?:       string | null
+  job_coordinators?: Array<{ users: { name: string } | null }>
 }
 
 const SCHEDULE_SELECT = `
   id, status, date, date_end, time_start, time_end,
   project_title, client, location, description, punctuality,
-  production_ready, do_issued,
-  job_assignees ( is_suggestion, users ( id, name ) )
+  production_ready, do_issued, sales_poc_id,
+  job_assignees ( is_suggestion, users ( id, name ) ),
+  job_coordinators ( users ( name ) )
 `
 
 // Suggestions (is_suggestion=true) are tentative sales picks — they must not
@@ -38,6 +45,26 @@ function stripSuggestions<T extends { job_assignees: Array<{ is_suggestion?: boo
   }))
 }
 
+// Sales POC names come from a follow-up query — never embed users directly
+// onto jobs in a PostgREST select (standing rule; it has broken twice).
+async function attachSalesNames(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  rows: ScheduleJob[],
+): Promise<ScheduleJob[]> {
+  const ids = [...new Set(rows.map(r => r.sales_poc_id).filter(Boolean))] as string[]
+  if (ids.length === 0) return rows.map(r => ({ ...r, sales_name: null }))
+  type NameRow = { id: string; name: string }
+  const { data } = await (supabase
+    .from('users')
+    .select('id, name')
+    .in('id', ids) as unknown as Promise<{ data: NameRow[] | null }>)
+  const nameById = new Map((data ?? []).map(u => [u.id, u.name]))
+  return rows.map(r => ({
+    ...r,
+    sales_name: r.sales_poc_id ? (nameById.get(r.sales_poc_id) ?? null) : null,
+  }))
+}
+
 export async function getScheduleJobs(): Promise<ScheduleJob[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -46,7 +73,7 @@ export async function getScheduleJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
+  return attachSalesNames(supabase, stripSuggestions((data ?? []) as unknown as ScheduleJob[]))
 }
 
 export async function getCompletedJobs(): Promise<ScheduleJob[]> {
@@ -58,7 +85,7 @@ export async function getCompletedJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: false })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
+  return attachSalesNames(supabase, stripSuggestions((data ?? []) as unknown as ScheduleJob[]))
 }
 
 export async function getPendingJobs(): Promise<ScheduleJob[]> {
@@ -70,7 +97,7 @@ export async function getPendingJobs(): Promise<ScheduleJob[]> {
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
-  return stripSuggestions((data ?? []) as unknown as ScheduleJob[])
+  return attachSalesNames(supabase, stripSuggestions((data ?? []) as unknown as ScheduleJob[]))
 }
 
 // â”€â”€ Job detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

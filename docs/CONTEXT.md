@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-18 (feat-rollout — company rollout pack (deck + cheat sheets + runbook); Connect Telegram self-link live; digest pipeline fixed end-to-end; promoted vault notes now land in `Table of Content/Digest/`. Earlier same day: chore-mobile — webapp declared LAUNCHED v1.0.0, Sessions 21–23 closed; mobile app spec approved — the mobile app build is the new roadmap)_
+_Last updated: 2026-08-19 (fix-files — attachment delete fixed: `files` table had no RLS DELETE policy, so browser deletes silently removed nothing; deletes now go through server routes that check permissions and remove the R2 object + DB row; bucket delete no longer orphans files into job chat)_
 
 ---
 
