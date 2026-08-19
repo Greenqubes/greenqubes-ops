@@ -96,6 +96,9 @@ export const en = {
 
   // ── Completion ─────────────────────────────────────────────────────────────
   completeJob: 'Mark job complete',
+  revertJob: 'Revert to Scheduled',
+  revertJobConfirmTitle: 'Revert this job?',
+  revertJobConfirmBody: 'This puts the job back on the schedule. Use this if it was marked complete by accident.',
   completed: 'Completed',
   restoreJob: 'Restore to schedule',
   productionPhotos: 'Production photos',

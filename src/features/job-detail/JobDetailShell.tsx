@@ -31,7 +31,7 @@ import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
-import { ArrowLeft, Bell, Trash2, CheckCircle, Copy } from 'lucide-react'
+import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 export type FormValues = {
@@ -138,6 +138,8 @@ export function JobDetailShell({
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
   const [deleting,             setDeleting]            = useState(false)
+  const [showRevertModal,      setShowRevertModal]     = useState(false)
+  const [reverting,            setReverting]           = useState(false)
   const [duplicating,          setDuplicating]         = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
@@ -356,6 +358,27 @@ export function JobDetailShell({
       showSuccess(t(lang, 'savedSuccessfully'))
     } catch {
       showError(t(lang, 'saveError'))
+    }
+  }
+
+  // Undo an accidental completion: server route (RLS blocks sales/designer
+  // from updating completed jobs client-side) puts the job back on the
+  // schedule and keeps its original FCFS rank. router.refresh() re-renders
+  // the server component so the form unlocks without a manual reload.
+  const handleRevertComplete = async () => {
+    setReverting(true)
+    bumpSuppression()
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/revert-complete`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      setStatus('scheduled')
+      setShowRevertModal(false)
+      showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setReverting(false)
     }
   }
 
@@ -931,6 +954,16 @@ export function JobDetailShell({
                     Mark job complete
                   </button>
                 )}
+                {completed && (
+                  <button
+                    type="button"
+                    onClick={() => setShowRevertModal(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors"
+                  >
+                    <RotateCcw size={12} />
+                    {t(lang, 'revertJob')}
+                  </button>
+                )}
                 {canEditCore && (
                   <button
                     type="button"
@@ -1037,6 +1070,23 @@ export function JobDetailShell({
           <Btn variant="primary" size="sm" onClick={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
             OK
           </Btn>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showRevertModal} onClose={() => setShowRevertModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'revertJobConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'revertJobConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowRevertModal(false)} disabled={reverting}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleRevertComplete} disabled={reverting}>
+              {reverting ? t(lang, 'loading') : t(lang, 'revertJob')}
+            </Btn>
+          </div>
         </div>
       </Modal>
 
