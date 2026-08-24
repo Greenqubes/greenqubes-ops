@@ -106,6 +106,19 @@ choppy").**
 - **No layout jumps:** status lines, source chips and the stop/send swap
   appear via subtle fade/height transitions; history loads behind skeleton
   rows instead of popping in.
+- **Composer redesign** (Nic 2026-08-24, from a Claude composer screenshot):
+  two-row card — auto-growing text area with "Write a message…" placeholder on
+  top; controls row beneath: left side **+** attach (disabled placeholder until
+  Phase 3 wires it; Phase 4 adds the project chip when chatting inside a
+  project), right side **mic** + send/stop. **No model picker** (Nic's call —
+  the model is managed in code, never a user choice). No thinking/effort
+  selector either — adaptive thinking decides on its own.
+- **Mic = browser dictation** (Nic approved): Web Speech API speech-to-text
+  typing into the composer — free, no new services (stack untouched); the
+  button renders only when the browser supports it (feature-detect, quietly
+  absent otherwise, e.g. Firefox); interim results stream into the text area,
+  tap again to stop. Distinct from job-chat voice *notes* — this types text,
+  it does not record audio.
 - Applies to both the Assistant page and the floating bubble.
 
 **Out of Phase 1:** no tools beyond web search, no retrieval changes.
