@@ -16,8 +16,8 @@ asker's own permissions, searches the knowledge base itself, remembers past
 conversations properly, and can turn attached PDFs/photos into a filled-out
 **pending** job for review.
 
-Built in **three phases**, each verified on the Vercel preview before merge to main
-(Nic's pick — Option 1, 2026-08-24).
+Built in **four phases**, each verified on the Vercel preview before merge to main
+(Nic's pick — Option 1, 2026-08-24; Phase 4 Projects added same day).
 
 ---
 
@@ -186,6 +186,55 @@ Failed tools return `tool_result` with `is_error: true` (never dropped).
 
 ---
 
+## Phase 4 — Projects (folders + shared files + instructions + linked memory)
+
+Nic's pick 2026-08-24: full projects **with linked memory** and folder grouping,
+like modern AI chat products. Strictly per-user, per the Privacy model — a
+project, its files, its instructions and its memory belong to one account and
+are invisible to every other user.
+
+**Data model (migration 0047):**
+- `asst_projects` — id, user_id (owner), name, instructions (free text),
+  created/updated timestamps. RLS: owner-only for select/insert/update/delete.
+- `asst_chats.project_id uuid NULL` → FK to `asst_projects`,
+  `ON DELETE SET NULL` (deleting a project releases its chats back to the
+  general history list — never deletes conversations).
+- `asst_project_files` — id, project_id, name, r2_key, mime, size, created_at.
+  Objects live under `asst-projects/{userId}/{projectId}/…` in R2 (not `files`
+  rows — they belong to no job). Owner-only RLS.
+
+**Folder grouping (sidebar + mobile history page):**
+- Projects render as collapsible folders in `HistorySidebar` above the flat
+  history list; chats inside a project appear under its folder.
+- Create / rename / delete project; move a chat into or out of a project via
+  the existing ⋮ row menu ("Move to project…"). Delete keeps chats (released
+  to the main list) — stated in the confirm modal.
+- The mobile `/assistant/history` route gets the same grouping.
+- Any picker/confirm overlay layers `z-[60]`+ (hard rule).
+
+**Shared project context (every chat inside the project):**
+- **Instructions**: the project's free-text instructions are appended to the
+  system prompt ("always answer in bullet points", "this is about the Changi
+  site").
+- **Files**: project files (PDF/images, uploaded via the Phase 3 paperclip
+  infra but stored at project level, managed from a small project header
+  panel — list / add / remove) are included as document/image blocks.
+- **Linked memory**: past-chat retrieval inside a project is scoped to the
+  project's own chats first (summaries from Phase 2), so sibling chats
+  remember each other; general per-user memory still applies beneath it.
+- Project context (instructions + files) is a stable block — placed inside the
+  cached prefix so repeat turns in a project stay cheap (caching matters here:
+  files ride along on every message).
+- Starting a **new chat from inside a project** files it there automatically;
+  the create-pending-job flow works normally within project chats.
+
+**Testing (preview):** two accounts cannot see each other's projects; a chat
+moved into a project picks up its instructions + files on the next message;
+sibling-chat recall works; deleting a project releases its chats intact;
+folder UI usable on phone.
+
+---
+
 ## Guardrails & constraints
 
 - Tool-round cap 8; per-file and per-message attachment size caps; `max_tokens`
@@ -225,6 +274,6 @@ pending tab and pushes to schedule normally.
 
 ## Deployment
 
-Per phase: migration first (`npx supabase db push`, Phase 2 only) → `dev` →
-Vercel preview smoke test by Nic → merge `main`. Type-check + production build
-green before each push.
+Per phase: migration first (`npx supabase db push` — 0046 in Phase 2, 0047 in
+Phase 4) → `dev` → Vercel preview smoke test by Nic → merge `main`. Type-check
++ production build green before each push.
