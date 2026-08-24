@@ -119,7 +119,22 @@ choppy").**
   absent otherwise, e.g. Firefox); interim results stream into the text area,
   tap again to stop. Distinct from job-chat voice *notes* — this types text,
   it does not record audio.
-- Applies to both the Assistant page and the floating bubble.
+- **Mobile: app-like chat screen** (Nic 2026-08-24, from Claude mobile app
+  screenshots — "doesn't look like I'm squeezing a webapp into the chat"):
+  - On phone, the assistant page sheds the CompanyBar + "← Assistant"
+    sub-header for a clean chat-first layout: slim top bar with a **hamburger
+    (3-line) button top-RIGHT** (Nic's placement), messages filling the
+    screen, composer at the bottom. BottomNav stays (app navigation).
+  - The hamburger opens a **left slide-in drawer** (`z-[60]`+, hard rule)
+    holding everything that left the screen: **GreenQubes branding at the
+    top** (where "Claude" sits in the reference), **New chat**, Pinned,
+    Recents — and the Projects folders once Phase 4 lands. This drawer
+    replaces the separate mobile `/assistant/history` route (redirect kept
+    for old links).
+  - **Empty-state greeting** centered on a fresh chat — Fraunces display
+    greeting with the user's first name (e.g. "Nicholas returns!" energy,
+    English/zh per UI language) above the composer.
+  - Desktop keeps the persistent sidebar; the drawer is the phone treatment.
 
 **Out of Phase 1:** no tools beyond web search, no retrieval changes.
 
@@ -161,6 +176,13 @@ Failed tools return `tool_result` with `is_error: true` (never dropped).
 - Old rows without summaries fall back to the current truncation.
 - Per-user isolation as per Privacy model — covered by RLS; add a two-account
   test to the smoke checklist.
+- **Memory manager (Nic 2026-08-24):** a **Memory** view reachable from the
+  sidebar/drawer showing everything the assistant remembers about you — one
+  row per saved chat's summary (topic + summary text). Actions: **edit** the
+  summary (corrects what the assistant will recall; re-embeds on save) and
+  **remove** it (clears summary + embedding so the chat is forgotten by
+  retrieval — the conversation itself stays in history; deleting the chat
+  already removes both). Strictly own memories, like everything else.
 - **DB push before code push** (standing lesson) — the summary column must exist
   before code that selects it deploys.
 
