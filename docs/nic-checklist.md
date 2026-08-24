@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-19 (fix-files — attachment delete fixed: server routes now delete R2 object + DB row; bucket delete no longer leaks files into job chat)_
+_Last updated: 2026-08-24 (feat-schedule — revert completed jobs, bulk Complete/Revert, team lines on list + bell cards, Telegram Assigned/Changed/Removed headers)_
 
 ---
 
@@ -155,6 +155,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-24, feat-schedule — Revert Completed Jobs + Bulk Actions + Card Team Lines)
+
+- [x] **[Nic] Decision — who can revert a completed job** — every role except installer (your call, incl. designer/production), and no Telegram message fires on a revert (quiet undo).
+- [x] **[Nic] Revert to Scheduled live** — button + confirm popup in the completed job's bottom bar; the job goes back to the schedule, unlocks on the spot, and keeps its original FCFS queue position instead of dropping to the back.
+- [x] **[Nic] Bulk buttons on the selection bars** — Completed tab: Revert N; Schedule tab: Complete N (green) — both scheduler-only with the same inline confirm step as Delete.
+- [x] **[Nic] Team lines on list cards** — schedule/pending/completed cards now show `Installer:` bottom-left and a left-aligned `Sales:`/`Coordinator:` box bottom-right, with NIL when empty (your mockup); installer screens deliberately unchanged.
+- [x] **[Nic] Bell overdue cards show Sales + Coordinator** — under the address, NIL when empty.
+- [x] **[Nic] Telegram header matches what happened** — assigning to an empty job says ✅ Installer Assigned; modifying an existing team says ❗ Installer Changed; removing the last installer says ❌ Installer Removed (your screenshots drove this).
+- [x] **[Nic] Verified everything on the dev preview, merged dev → main** — all live on production same day.
 
 ---
 

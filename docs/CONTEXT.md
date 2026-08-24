@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-19 (fix-files — attachment delete fixed: `files` table had no RLS DELETE policy, so browser deletes silently removed nothing; deletes now go through server routes that check permissions and remove the R2 object + DB row; bucket delete no longer orphans files into job chat)_
+_Last updated: 2026-08-24 (feat-schedule — completed jobs can be reverted back to the schedule by every role except installer (server route, FCFS rank preserved, no Telegram); scheduler gets bulk Complete/Revert on the Schedule/Completed tabs; list cards + overdue bell cards show Installer/Sales/Coordinator lines with NIL fallback; installer-assignment Telegram header now reads Assigned/Changed/Removed)_
 
 ---
 
