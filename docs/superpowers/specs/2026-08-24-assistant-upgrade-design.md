@@ -171,6 +171,19 @@ Failed tools return `tool_result` with `is_error: true` (never dropped).
   (already a Haiku call) additionally produces a 2–3 sentence summary of the
   conversation; stored on the row and embedded (embedding input becomes
   topic + summary instead of raw first-message).
+- **Only meaningful chats enter memory (Nic's pick, 2026-08-24):** the tagger
+  also answers "does this contain anything reusable in a future conversation?"
+  (preferences, standing facts, decisions, ongoing matters — vs throwaway
+  lookups). Trivial chats still save to history but get no summary/embedding,
+  so they never appear in the Memory view or in recall. Digest importance
+  scoring is unchanged and independent.
+- **Memory vs the vault (recorded for the docs):** memory is the private,
+  automatic, unvetted layer (per-user notebook); the vault/KB is the shared,
+  human-curated layer (company handbook, role-filtered). Because memories
+  never cross users, the digest vote → vault promotion remains the ONLY
+  bridge from one person's chat to company knowledge — deliberately
+  human-approved. The tagger feeds both: memory gate for the user, importance
+  score for the digest.
 - `match_asst_chats` returns `summary`; the automatic past-chat context block
   feeds summaries instead of `first user msg.slice(0,200)`.
 - Old rows without summaries fall back to the current truncation.
