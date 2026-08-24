@@ -81,6 +81,33 @@ and role; nothing may leak into another user's assistant chat.
 - D-Promote canned wink behaviour unchanged.
 - New UI strings in `en.ts` + `zh.ts` only (Bengali frozen).
 
+**UI/UX — Claude-grade feel (Nic 2026-08-24, from a Claude.ai sidebar
+screenshot: "make it look much closer to Claude itself — my asst chat feels
+choppy").**
+
+- **Brand rule:** adopt Claude.ai's *layout and interaction patterns*, keep
+  Greenqubes' design tokens — warm editorial, moss-green accents,
+  Fraunces/IBM Plex, 14px-radius cards. Structure like Claude, dressed like
+  Greenqubes. Never emoji in UI (replace the `📌` in `HistoryList` with the
+  stroke `Pin` icon — standing no-emoji rule).
+- **Sidebar restructure** (`HistorySidebar` + mobile `/assistant/history`),
+  modeled on the screenshot: **New chat** action at top; **Pinned** section
+  (pinning + 5-cap already exist — surface it Claude-style); **Chats** recents
+  list below with tidy hover/active states and the ⋮ row menu. The **Projects**
+  section (Phase 4) slots into this same layout with collapsible folders and
+  nested chats, matching the reference.
+- **Streaming smoothness (the "choppy" fix):** streamed text renders at a
+  steady pace (buffered appends on an animation frame, not raw chunk-by-chunk
+  re-renders); markdown renders progressively without flashing/reflowing.
+- **Scroll behaviour:** auto-follow the stream ONLY while the user is at the
+  bottom — today `scrollIntoView` fires on every message update and fights
+  manual scrolling; scrolling up pauses follow, the existing scroll-down button
+  resumes it.
+- **No layout jumps:** status lines, source chips and the stop/send swap
+  appear via subtle fade/height transitions; history loads behind skeleton
+  rows instead of popping in.
+- Applies to both the Assistant page and the floating bubble.
+
 **Out of Phase 1:** no tools beyond web search, no retrieval changes.
 
 ---
@@ -205,7 +232,9 @@ are invisible to every other user.
 
 **Folder grouping (sidebar + mobile history page):**
 - Projects render as collapsible folders in `HistorySidebar` above the flat
-  history list; chats inside a project appear under its folder.
+  history list; chats inside a project appear nested under its folder — per
+  Nic's Claude.ai sidebar reference (Phase 1 UI/UX section): a **Projects**
+  header with a `+` to create, folder rows, nested chat rows.
 - Create / rename / delete project; move a chat into or out of a project via
   the existing ⋮ row menu ("Move to project…"). Delete keeps chats (released
   to the main list) — stated in the confirm modal.
