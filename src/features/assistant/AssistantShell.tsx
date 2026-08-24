@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User,
-  ExternalLink, Sparkles, ChevronDown, Menu, Plus, Mic, Square,
+  ExternalLink, Sparkles, ChevronDown, Menu, Plus, Mic, Square, Home,
 } from 'lucide-react'
 import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
@@ -482,21 +482,22 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         )}
       </div>
 
-      {/* ── Phone: slim app-like top bar — hamburger top-right opens the drawer ── */}
-      <div className="md:hidden shrink-0 border-b border-line bg-paper px-4 py-2.5 flex items-center gap-2.5">
-        <div className="shrink-0 w-7 h-7 rounded-full bg-terracotta flex items-center justify-center">
-          <Sparkles size={13} className="text-white" />
-        </div>
-        <h1 className="flex-1 font-display text-[15px] font-medium text-ink leading-none">
-          {t(lang, 'assistant')}
-        </h1>
+      {/* ── Phone: slim app-like top bar — hamburger left (drawer side), home right ── */}
+      <div className="md:hidden shrink-0 border-b border-line bg-paper px-2.5 py-2 flex items-center justify-between">
         <button
           onClick={() => setDrawerOpen(true)}
-          className="p-2 -mr-1.5 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
           aria-label="Menu"
         >
           <Menu size={18} />
         </button>
+        <Link
+          href={backHref}
+          className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+          aria-label={t(lang, 'backToSchedule')}
+        >
+          <Home size={18} />
+        </Link>
       </div>
 
       {/* ── Below header: sidebar + main content side by side ── */}
