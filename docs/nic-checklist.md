@@ -2,11 +2,17 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-24 (feat-schedule — revert completed jobs, bulk Complete/Revert, team lines on list + bell cards, Telegram Assigned/Changed/Removed headers)_
+_Last updated: 2026-08-24 (chore-assistant — assistant upgrade spec approved, 4 phases; Phase 1 implementation plan is the next session's first job)_
 
 ---
 
 ## Pending — Next Session
+
+### Assistant upgrade (from 2026-08-24, chore-assistant — spec approved)
+
+- [ ] **Phase 1 build session** — say the word and Claude writes the Phase 1 implementation plan, then builds: Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources. No migration needed for Phase 1. Spec: [superpowers/specs/2026-08-24-assistant-upgrade-design.md](superpowers/specs/2026-08-24-assistant-upgrade-design.md).
+- [ ] **Phase 2 will need `npx supabase db push` (migration 0046)** and **Phase 4 another (0047)** — flagged now so they're expected; Claude will remind you at each build session (DB push before code push).
+- [ ] **(Later) Scratch-file cleanup** — chat attachments live in a scratch area in Cloudflare; a periodic cleanup for old scratch files is deferred out of the build (noted in the spec).
 
 ### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
 
@@ -155,6 +161,14 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-24, chore-assistant — Assistant Upgrade Design Spec)
+
+- [x] **[Nic] Full assistant upgrade designed and approved** — four phases: smarter brain + Claude-grade look and feel, live-data lookups + memory, attachments → pending job, Projects. Spec committed and pushed to dev; no code written yet.
+- [x] **[Nic] Decisions made this session** — model: **Sonnet 5** (same price tier as today, currently cheaper on intro pricing); phased build (Option 1); **privacy rule: assistant memory never crosses users** — the digest vote → vault stays the only bridge; job creation is the **only** action the assistant may take, saved as pending with a **quick confirm in chat** first; **Move to…** on bucket files so wrong filings need no re-upload; Projects at full depth (folders + shared files + instructions + linked memory); composer mic = free browser dictation; **no model picker** in the UI; mobile gets the app-like drawer layout (3-line button top-right); **only meaningful chats** enter memory, with a Memory view to edit/remove; **incognito mode skipped** (your call after discussion).
+- [x] **Vault submodule bookmark updated** — the repo now records the vault at its 18 Aug state (the digest promotions); the `M vault` git noise is gone.
 
 ---
 
