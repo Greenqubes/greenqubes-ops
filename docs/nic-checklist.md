@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-25 (feat-assistant-2 — assistant upgrade Phase 2 SHIPPED to production same day as Phase 1; migration 0046 applied. Phase 3 is next — no migration needed; Phase 4 needs 0047)_
+_Last updated: 2026-08-25 (feat-assistant-3 — assistant upgrade Phase 3 SHIPPED to production, third same-day ship; no migration. Phase 4 (Projects) is the last one — it needs migration 0047 BEFORE its code deploys; Claude will remind you at that session)_
 
 ---
 
@@ -12,7 +12,8 @@ _Last updated: 2026-08-25 (feat-assistant-2 — assistant upgrade Phase 2 SHIPPE
 
 - [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
 - [x] **[Nic] Phase 2 build session — SHIPPED 2026-08-25** — live schedule/job/team lookups (always under the asker's own permissions), the assistant searches the knowledge base itself, real memory with the Memory view. You ran `npx supabase db push` (migration 0046) BEFORE the code deployed; preview smoke test passed and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase2.md](superpowers/plans/2026-08-25-assistant-upgrade-phase2.md).
-- [ ] **Phase 3 build session (next)** — say the word: chat attachments (PDF/photos) → quick confirm → pending job with auto-filed buckets, plus a Move-to-bucket control on the job form. **No database migration needed.** **Phase 4 needs migration 0047** — Claude will remind you at that build session.
+- [x] **[Nic] Phase 3 build session — SHIPPED 2026-08-25** — chat attachments (photos + PDF) → quick confirm → pending job with auto-filed buckets + a tappable job chip, Move-to-bucket on the job form, and the 30-day scratch cleanup built in the same session (your pick). No migration was needed. Smoke-tested by you on the preview (phone) and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase3.md](superpowers/plans/2026-08-25-assistant-upgrade-phase3.md).
+- [ ] **Phase 4 build session (next — the last one)** — say the word: Projects (folders in the sidebar, shared files + instructions per project, linked memory). **Needs migration 0047: run `npx supabase db push` BEFORE the code deploys** — Claude will walk you through it at that session.
 - [ ] **Phase 3 smoke test 4 — unsupported file rejection, on PC** — in the assistant chat, press +, switch the file dialog to "All Files", pick a Word/Excel file → expect the red "Only images (JPG, PNG, WebP, GIF) and PDF files can be attached" message and no upload. (Skipped on Android — the phone's picker filters unsupported files out before you can select them, which you confirmed 2026-08-25.)
 - [ ] **Deferred Phase 2 security checks — run on PRODUCTION after all phases ship** (your call, 2026-08-25): (1) **real installer login** asks the assistant about a job they are NOT assigned to → it must find nothing and say so (preview-as doesn't test this — the database permission check needs a real login); (2) **two accounts** — nothing from account A's chats or Memory view may ever surface for account B. Both were points 4 and 5 of the Phase 2 preview smoke checklist.
 
@@ -168,6 +169,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant-3 — Assistant Upgrade Phase 3 SHIPPED)
+
+- [x] **[Nic] Phase 3 live on production** — the assistant now takes photo and PDF attachments in chat, reads them, and can turn them into a filled-out pending job: it shows you a summary, waits for your yes, creates the job with the files sorted into the right buckets, and drops a tappable chip that opens the job. Third phase merged to main in a single day.
+- [x] **[Nic] Decision — 30-day scratch cleanup built now, not deferred** — old chat attachments are swept from Cloudflare automatically every night at 3 AM; the deferred checklist item is closed.
+- [x] **[Nic] Move file between buckets live** — hover any file on the job form → folder icon → pick the destination bucket; works for URL links too. Wrong AI (or manual) filings need no re-upload.
+- [x] **[Nic] Smoke test passed on the preview (phone)** — attach + ask, create-job confirm flow with correct buckets, move-to-bucket, and the regression pass all green. On Android the picker filters unsupported files out by itself; the reject-message check moved to a PC item (pending above).
+- [x] **[Nic] Question answered — Word/Excel/PPTX in chat** — the AI service can only read images and PDFs, so the chat paperclip accepts only those (the job form itself accepts every file type, unchanged). Workaround: export as PDF. Two future items logged above: filing-only Office attachments (small) and Office-file reading (needs a new dependency — your OK required).
+- [x] **[Nic] Decision — installer refusal test (smoke test 3) folded into the deferred production checks** — runs together with the real-installer-login and two-account tests after all phases ship.
+- [x] **[Nic] Merged dev → main** — Phase 3 live on production same day.
 
 ---
 
