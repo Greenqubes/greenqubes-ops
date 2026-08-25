@@ -3,9 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  ArrowLeft, Send, RotateCcw, Bot, User,
-  ExternalLink, Sparkles, ChevronDown, Menu, Plus, Mic, Square, Home,
+  ArrowLeft, Send, RotateCcw, Bot, User, ExternalLink, Sparkles,
+  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList,
 } from 'lucide-react'
+import { useToast } from '@/components/Toast'
+import { MAX_FILES_PER_MESSAGE, MAX_MESSAGE_BYTES, validateAttachment } from '@/lib/ai/attachments'
+import type { ChatAttachment } from '@/lib/ai/attachments'
 import { BottomNav } from '@/components/BottomNav'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
@@ -26,6 +29,8 @@ export interface Message {
   status?:   string
   streaming?: boolean
   error?:    boolean
+  attachments?: ChatAttachment[]
+  jobCard?:  { id: string; title: string | null }
 }
 
 interface Props {
@@ -38,6 +43,8 @@ interface Props {
 function uid() {
   return Math.random().toString(36).slice(2)
 }
+
+type PendingAtt = ChatAttachment & { status: 'uploading' | 'ready' }
 
 // ── Web Speech dictation (minimal local typings — lib.dom has none) ─────────
 
@@ -75,6 +82,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const [drawerOpen,     setDrawerOpen]     = useState(false)
   const [dictating,      setDictating]      = useState(false)
   const [micSupported,   setMicSupported]   = useState(false)
+  const [pendingAtts,    setPendingAtts]    = useState<PendingAtt[]>([])
 
   const [showScrollDown, setShowScrollDown] = useState(false)
 
@@ -89,6 +97,9 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const stickToBottomRef     = useRef(true)
   const abortRef             = useRef<AbortController | null>(null)
   const recognitionRef       = useRef<SpeechRecognitionLike | null>(null)
+  const fileInputRef         = useRef<HTMLInputElement>(null)
+
+  const { error: showAttachError } = useToast()
 
   const searchParams = useSearchParams()
   const chatIdParam  = searchParams.get('chat')
@@ -130,7 +141,11 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const saveConversation = useCallback(async (msgs: Message[], existingId?: string) => {
     const payload = msgs
       .filter(m => !m.streaming && !m.error)
-      .map(m => ({ role: m.role, content: m.content }))
+      .map(m => ({
+        role: m.role, content: m.content,
+        ...(m.attachments?.length ? { attachments: m.attachments } : {}),
+        ...(m.jobCard ? { jobCard: m.jobCard } : {}),
+      }))
     if (payload.length < 2) return
     try {
       await fetch('/api/assistant/save', {
@@ -187,8 +202,12 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     }
     isDirtyRef.current      = false
     titleGeneratedRef.current = false
-    const msgs = (chat.msgs as { role: 'user' | 'assistant'; content: string }[])
-      .map(m => ({ id: uid(), role: m.role, content: m.content }))
+    type SavedMsg = {
+      role: 'user' | 'assistant'; content: string
+      attachments?: ChatAttachment[]; jobCard?: { id: string; title: string | null }
+    }
+    const msgs = (chat.msgs as unknown as SavedMsg[])
+      .map(m => ({ id: uid(), role: m.role, content: m.content, attachments: m.attachments, jobCard: m.jobCard }))
     stickToBottomRef.current = true
     setMessages(msgs)
     setActiveChatId(chat.id)
@@ -240,9 +259,53 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     abortRef.current?.abort()
   }
 
+  // ── Chat attachments (Phase 3) ────────────────────────────────────────────
+
+  function handleFilesPicked(list: FileList | null) {
+    if (!list?.length) return
+    let count = pendingAtts.length
+    let bytes = pendingAtts.reduce((s, a) => s + a.size, 0)
+    for (const f of [...list]) {
+      if (count >= MAX_FILES_PER_MESSAGE) { showAttachError(t(lang, 'attachTooMany')); break }
+      const problem = validateAttachment(f.name, f.type, f.size)
+      if (problem === 'type') { showAttachError(t(lang, 'attachUnsupported')); continue }
+      if (problem === 'size') { showAttachError(t(lang, 'attachTooLarge')); continue }
+      if (bytes + f.size > MAX_MESSAGE_BYTES) { showAttachError(t(lang, 'attachTotalTooLarge')); continue }
+      count++; bytes += f.size
+      const id = uid()
+      setPendingAtts(prev => [...prev, { id, key: '', name: f.name, mime: f.type, size: f.size, status: 'uploading' }])
+      void uploadScratch(id, f)
+    }
+  }
+
+  async function uploadScratch(id: string, f: File) {
+    try {
+      const res = await fetch('/api/assistant/upload-url', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ filename: f.name, contentType: f.type, size: f.size }),
+      })
+      if (!res.ok) throw new Error()
+      const { url, key } = await res.json() as { url: string; key: string }
+      const put = await fetch(url, { method: 'PUT', body: f, headers: { 'Content-Type': f.type } })
+      if (!put.ok) throw new Error()
+      setPendingAtts(prev => prev.map(a => a.id === id ? { ...a, key, status: 'ready' } : a))
+    } catch {
+      showAttachError(t(lang, 'attachUploadFailed'))
+      setPendingAtts(prev => prev.filter(a => a.id !== id))
+    }
+  }
+
+  function removeAtt(id: string) {
+    setPendingAtts(prev => prev.filter(a => a.id !== id))
+    // The scratch object (if uploaded) stays in R2 — the 30-day cron removes it.
+  }
+
   async function sendMessage() {
     const text = input.trim()
-    if (!text || isStreaming) return
+    const uploading = pendingAtts.some(a => a.status === 'uploading')
+    const readyAtts = pendingAtts.filter(a => a.status === 'ready')
+    if ((!text && readyAtts.length === 0) || isStreaming || uploading) return
 
     recognitionRef.current?.stop()
     isDirtyRef.current = true
@@ -262,7 +325,12 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       })
     }
 
-    const userMsg: Message = { id: uid(), role: 'user', content: text }
+    const userMsg: Message = {
+      id: uid(), role: 'user', content: text,
+      ...(readyAtts.length > 0
+        ? { attachments: readyAtts.map(({ id, key, name, mime, size }) => ({ id, key, name, mime, size })) }
+        : {}),
+    }
     const asstId = uid()
     const asstMsg: Message = { id: asstId, role: 'assistant', content: '', streaming: true, status: 'thinking' }
 
@@ -270,12 +338,18 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     stickToBottomRef.current = true
     setMessages(next)
     setInput('')
+    setPendingAtts([])
     setIsStreaming(true)
 
+    // Everything except the streaming placeholder — ends with the user message
+    // just sent, attachments riding along for the route to load.
     const history = next
       .filter(m => !m.streaming)
-      .slice(0, -1)
-      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        ...(m.attachments?.length ? { attachments: m.attachments } : {}),
+      }))
 
     // Buffered streaming: chunks accumulate in `pending` and flush to state at
     // most once per animation frame — steady rendering instead of one re-render
@@ -308,9 +382,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       const res = await fetch('/api/assistant/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          messages: [...history, { role: 'user', content: text }],
-        }),
+        body:    JSON.stringify({ messages: history }),
         signal: controller.signal,
       })
 
@@ -336,6 +408,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
           let payload: {
             type: string; text?: string; key?: string
             sources?: { url: string; title: string }[]; message?: string
+            id?: string; title?: string | null
           }
           try { payload = JSON.parse(raw) } catch { continue }
 
@@ -348,6 +421,10 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
             setMessages(prev =>
               prev.map(m => m.id === asstId ? { ...m, sources: payload.sources } : m),
             )
+          } else if (payload.type === 'job_created' && payload.id) {
+            flush()
+            const jobCard = { id: payload.id, title: payload.title ?? null }
+            setMessages(prev => prev.map(m => m.id === asstId ? { ...m, jobCard } : m))
           } else if (payload.type === 'error') {
             flush()
             setMessages(prev =>
@@ -375,10 +452,11 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       flush()
       const aborted = controller.signal.aborted || (err instanceof Error && err.name === 'AbortError')
       if (aborted) {
-        // Stopped by the user — keep the partial answer (drop the bubble if empty)
+        // Stopped by the user — keep the partial answer (drop the bubble if
+        // empty, unless a created-job chip already landed on it)
         setMessages(prev => prev
           .map(m => m.id === asstId ? { ...m, streaming: false, status: undefined } : m)
-          .filter(m => m.id !== asstId || m.content !== ''),
+          .filter(m => m.id !== asstId || m.content !== '' || m.jobCard !== undefined),
         )
       } else {
         setMessages(prev =>
@@ -561,6 +639,29 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
               'rounded-2xl border border-line bg-bg transition-colors',
               'focus-within:ring-2 focus-within:ring-terracotta/40 focus-within:border-terracotta/60',
             )}>
+              {pendingAtts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+                  {pendingAtts.map(a => (
+                    <span
+                      key={a.id}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg border border-line bg-paper text-[11px] text-ink2 max-w-[200px]',
+                        a.status === 'uploading' && 'opacity-60 animate-pulse',
+                      )}
+                    >
+                      <Paperclip size={10} className="shrink-0" />
+                      <span className="truncate">{a.name}</span>
+                      <button
+                        onClick={() => removeAtt(a.id)}
+                        className="p-0.5 rounded hover:bg-line/60 text-muted hover:text-ink"
+                        aria-label="Remove"
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
               <textarea
                 ref={inputRef}
                 value={input}
@@ -575,12 +676,19 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
               <div className="flex items-center gap-1 px-2 pb-2">
-                {/* Attach — placeholder until Phase 3 wires attachments */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                  multiple
+                  className="hidden"
+                  onChange={e => { handleFilesPicked(e.target.files); e.target.value = '' }}
+                />
                 <button
-                  disabled
-                  title={t(lang, 'attachComingSoon')}
-                  aria-label={t(lang, 'attachComingSoon')}
-                  className="p-2 rounded-lg text-muted/50 cursor-not-allowed"
+                  onClick={() => fileInputRef.current?.click()}
+                  title={t(lang, 'attachFiles')}
+                  aria-label={t(lang, 'attachFiles')}
+                  className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-line/60 transition-colors"
                 >
                   <Plus size={16} />
                 </button>
@@ -612,10 +720,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
                 ) : (
                   <button
                     onClick={sendMessage}
-                    disabled={!input.trim()}
+                    disabled={
+                      (!input.trim() && !pendingAtts.some(a => a.status === 'ready')) ||
+                      pendingAtts.some(a => a.status === 'uploading')
+                    }
                     className={cn(
                       'shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors',
-                      input.trim()
+                      (input.trim() || pendingAtts.some(a => a.status === 'ready')) &&
+                      !pendingAtts.some(a => a.status === 'uploading')
                         ? 'bg-terracotta text-white hover:bg-terracotta/90'
                         : 'bg-line text-muted cursor-not-allowed',
                     )}
@@ -664,6 +776,16 @@ function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
               ? 'bg-paper border border-line text-ink2 rounded-tl-sm'
               : 'bg-paper border border-line text-ink rounded-tl-sm',
         )}>
+          {msg.attachments && msg.attachments.length > 0 && (
+            <div className={cn('flex flex-wrap gap-1.5', msg.content && 'mb-1.5')}>
+              {msg.attachments.map(a => (
+                <span key={a.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/15 text-[11px] text-white max-w-[180px]">
+                  <Paperclip size={9} className="shrink-0" />
+                  <span className="truncate">{a.name}</span>
+                </span>
+              ))}
+            </div>
+          )}
           {msg.content && <MarkdownMessage content={msg.content} />}
           {msg.streaming && (msg.status || !msg.content) && (
             <p className={cn('text-xs italic text-muted animate-pulse', msg.content && 'mt-1.5')}>
@@ -671,6 +793,18 @@ function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
             </p>
           )}
         </div>
+
+        {/* Created-job link chip */}
+        {msg.jobCard && (
+          <Link
+            href={`/jobs/${msg.jobCard.id}`}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-terracotta/40 bg-terracotta/5 text-xs hover:border-terracotta transition-colors"
+          >
+            <ClipboardList size={13} className="text-terracotta shrink-0" />
+            <span className="font-medium text-ink truncate max-w-[220px]">{msg.jobCard.title || 'Untitled job'}</span>
+            <span className="text-muted shrink-0">{t(lang, 'assistantJobCreated')}</span>
+          </Link>
+        )}
 
         {/* Sources */}
         {msg.sources && msg.sources.length > 0 && (
