@@ -138,7 +138,7 @@ export const en = {
 
   // ── AI assistant ───────────────────────────────────────────────────────────
   askPlaceholder: 'Ask, search, or describe a job…',
-  assistantSubtitle: 'with web search',
+  assistantSubtitle: 'with schedule, knowledge and web search',
   assistantEmpty: 'Ask anything about your jobs, schedule, or team.',
   assistantSources: 'Sources',
   assistantError: 'Something went wrong — please try again.',
@@ -147,6 +147,12 @@ export const en = {
   writeMessage: 'Write a message…',
   assistantThinking: 'Thinking…',
   assistantSearching: 'Searching the web…',
+  assistantSearchingKb: 'Searching the knowledge base…',
+  assistantCheckingSchedule: 'Checking the schedule…',
+  assistantFindingJobs: 'Finding jobs…',
+  assistantLookingUpJob: 'Looking up the job…',
+  assistantCheckingWorkload: 'Checking team availability…',
+  assistantCheckingClashes: 'Checking for clashes…',
   stopGenerating: 'Stop',
   attachComingSoon: 'Attachments — coming soon',
   dictate: 'Dictate',

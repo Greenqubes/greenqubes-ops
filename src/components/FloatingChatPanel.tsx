@@ -6,6 +6,7 @@ import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximiz
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
+import { statusLabelKey } from '@/features/assistant/statusLabels'
 import type { LangCode } from '@/lib/i18n'
 
 interface Message {
@@ -13,7 +14,7 @@ interface Message {
   role:      'user' | 'assistant'
   content:   string
   sources?:  { url: string; title: string }[]
-  status?:   'thinking' | 'searching'
+  status?:   string
   streaming?: boolean
   error?:    boolean
 }
@@ -179,7 +180,7 @@ export function FloatingChatPanel({ lang }: Props) {
             queueText(payload.text)
           } else if (payload.type === 'status' && payload.key) {
             flush()
-            const status = payload.key === 'searching' ? 'searching' as const : 'thinking' as const
+            const status = payload.key
             setMessages(prev => prev.map(m => m.id === asstId ? { ...m, status } : m))
           } else if (payload.type === 'sources' && payload.sources) {
             flush()
@@ -360,9 +361,7 @@ export function FloatingChatPanel({ lang }: Props) {
 
 function FloatingBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
   const isUser = msg.role === 'user'
-  const statusLabel = msg.status === 'searching'
-    ? t(lang, 'assistantSearching')
-    : t(lang, 'assistantThinking')
+  const statusLabel = t(lang, statusLabelKey(msg.status))
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
