@@ -512,6 +512,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         onDelete={handleSidebarDelete}
         refreshTrigger={sidebarKey}
         optimisticChat={optimisticChat}
+        lang={lang}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />

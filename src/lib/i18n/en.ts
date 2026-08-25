@@ -158,6 +158,14 @@ export const en = {
   dictate: 'Dictate',
   stopDictation: 'Stop dictation',
   assistantGreeting: 'Good to see you, {name}',
+  memory: 'Memory',
+  memoryTitle: 'What the assistant remembers about you',
+  memoryEmpty: 'Nothing remembered yet — meaningful conversations are added automatically.',
+  memoryForget: 'Forget',
+  memoryForgetConfirm: 'Forget this? The conversation stays in your history, but the assistant will no longer recall it.',
+  memoryEditLabel: 'Edit memory',
+  memorySave: 'Save',
+  memoryCancel: 'Cancel',
 
   // ── Telegram notifications ─────────────────────────────────────────────────
   notifySaveBtn: 'Save & notify',

@@ -2,10 +2,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X, Brain } from 'lucide-react'
 import { HistoryList } from './HistoryList'
+import { MemoryView } from './MemoryView'
 import { Modal } from '@/components/Modal'
 import { cn } from '@/lib/utils/cn'
+import { t } from '@/lib/i18n'
+import type { LangCode } from '@/lib/i18n'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
 interface Props {
@@ -15,6 +18,7 @@ interface Props {
   onDelete:        (id: string) => void
   refreshTrigger?: number
   optimisticChat?: AsstChatRow | null
+  lang:            LangCode
   /** Phone slide-in drawer (replaces the old /assistant/history route) */
   drawerOpen?:     boolean
   onDrawerClose?:  () => void
@@ -34,8 +38,9 @@ function SkeletonRows({ count = 6 }: { count?: number }) {
 
 export function HistorySidebar({
   activeChatId, onLoad, onNewChat, onDelete, refreshTrigger, optimisticChat,
-  drawerOpen = false, onDrawerClose,
+  lang, drawerOpen = false, onDrawerClose,
 }: Props) {
+  const [memoryOpen, setMemoryOpen] = useState(false)
   const [chats,             setChats]             = useState<AsstChatRow[]>([])
   const [loading,           setLoading]           = useState(true)
   const [toast,             setToast]             = useState<string | null>(null)
@@ -182,6 +187,18 @@ export function HistorySidebar({
     </button>
   )
 
+  const memoryButton = (
+    <button
+      onClick={() => { setMemoryOpen(true); onDrawerClose?.() }}
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-ink2 hover:bg-bg text-sm font-medium transition-colors"
+    >
+      <span className="w-6 h-6 rounded-full border border-line flex items-center justify-center">
+        <Brain size={13} />
+      </span>
+      {t(lang, 'memory')}
+    </button>
+  )
+
   return (
     <>
       {/* ── Desktop sidebar ── */}
@@ -189,6 +206,7 @@ export function HistorySidebar({
         {/* New chat — top of the sidebar, Claude-style */}
         <div className="shrink-0 px-2 pt-3 pb-1">
           {newChatButton}
+          {memoryButton}
         </div>
 
         {/* Header */}
@@ -282,9 +300,10 @@ export function HistorySidebar({
             </button>
           </div>
 
-          {/* New chat */}
+          {/* New chat + Memory */}
           <div className="shrink-0 px-2 pt-3 pb-1">
             {newChatButton}
+            {memoryButton}
           </div>
 
           {/* Chats */}
@@ -354,6 +373,9 @@ export function HistorySidebar({
           </button>
         </div>
       </Modal>
+
+      {/* Memory manager overlay (z-[70] — above the phone drawer) */}
+      <MemoryView open={memoryOpen} onClose={() => setMemoryOpen(false)} lang={lang} />
 
       {/* Rename modal */}
       <Modal
