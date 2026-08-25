@@ -7,16 +7,22 @@ import type Anthropic from '@anthropic-ai/sdk'
  *  told to answer with what it has and tool_choice is forced to none. */
 export const MAX_TOOL_ROUNDS = 8
 
+/** The four default buckets every job gets — the model files attachments into
+ *  these by name; the executor maps name → bucket id on the new job. */
+export const JOB_BUCKETS = ['PERMIT-TO-WORK', 'BCA', 'DESIGNER JO', 'OTHERS'] as const
+export type JobBucket = typeof JOB_BUCKETS[number]
+
 /** Tool name → SSE status key. The client maps keys to i18n labels and falls
  *  back to "Thinking…" for unknown keys, so adding tools later is safe. */
 export const TOOL_STATUS_KEYS: Record<string, string> = {
-  web_search:        'searching',
-  search_knowledge:  'kb',
-  get_schedule:      'schedule',
-  find_jobs:         'jobs',
-  get_job:           'job',
-  get_team_workload: 'workload',
-  check_clashes:     'clashes',
+  web_search:         'searching',
+  search_knowledge:   'kb',
+  get_schedule:       'schedule',
+  find_jobs:          'jobs',
+  get_job:            'job',
+  get_team_workload:  'workload',
+  check_clashes:      'clashes',
+  create_pending_job: 'creating',
 }
 
 export function isIsoDate(s: unknown): s is string {
@@ -97,6 +103,38 @@ export const TOOL_DEFINITIONS: Anthropic.Messages.Tool[] = [
         time_end:       { type: 'string', description: 'HH:MM 24h, optional' },
       },
       required: ['installer_name', 'date'],
+    },
+  },
+  {
+    name: 'create_pending_job',
+    description: 'Create a new job in pending status — the only write action available. Call ONLY after you have presented the job details to the user in this conversation and they clearly agreed. The job is saved as pending for the user to review and push to the schedule; this tool can never schedule it. Optionally files attachments from this conversation into the new job\'s buckets.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        project_title: { type: 'string', description: 'Short project name; omit if not stated' },
+        client:        { type: 'string', description: 'Client company name' },
+        location:      { type: 'string', description: 'Site address or venue; omit if unknown' },
+        date:          { type: 'string', description: 'Job date YYYY-MM-DD' },
+        date_end:      { type: 'string', description: 'Last day for multi-day jobs, YYYY-MM-DD; omit for single-day' },
+        time_start:    { type: 'string', description: 'HH:MM 24h; omit if not stated' },
+        time_end:      { type: 'string', description: 'HH:MM 24h; omit if not stated' },
+        description:   { type: 'string', description: 'What the job involves' },
+        notes:         { type: 'string', description: 'Internal notes' },
+        production_instructions: { type: 'string', description: 'Instructions for the production team — only if clearly present' },
+        files: {
+          type: 'array',
+          description: 'Attachments from this conversation to file into the job',
+          items: {
+            type: 'object',
+            properties: {
+              id:     { type: 'string', description: 'Attachment id from the message it was attached to' },
+              bucket: { type: 'string', enum: [...JOB_BUCKETS], description: 'Destination bucket; use OTHERS when unsure' },
+            },
+            required: ['id', 'bucket'],
+          },
+        },
+      },
+      required: ['client', 'date'],
     },
   },
 ]

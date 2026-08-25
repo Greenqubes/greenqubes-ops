@@ -7,7 +7,10 @@ import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS } from '@/lib/ai/to
 import { logApiUsage } from '@/lib/supabase/queries/admin'
 import { isOwnScratchKey, validateAttachment, attachmentNote, MAX_PDF_BYTES } from '@/lib/ai/attachments'
 import type { ChatAttachment } from '@/lib/ai/attachments'
+import type { ToolContext } from '@/lib/ai/tool-runner'
 import { getObjectBase64 } from '@/lib/storage/r2'
+import { getEffectiveRole } from '@/lib/utils/role-override'
+import type { Role } from '@/lib/supabase/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -46,12 +49,14 @@ What you can and cannot do:
 - You may be given relevant past conversations with this user in a later system section — use them for continuity and preferences.
 - You can search the web for current, public information — prices, regulations, suppliers, technical specs, general knowledge. Use it when the question needs fresh or external facts; skip it when you already know the answer or the company knowledge already covers it.
 - You have live, read-only access to the schedule, jobs, team workload and clash checks through your tools. Look things up instead of guessing — never answer a live-schedule question from memory or from retrieved documents alone.
-- You cannot create, edit or delete anything in the app. Never imply that you have taken an action.
+- You can take exactly ONE action in the app: creating a pending job with create_pending_job. You cannot edit, schedule, complete or delete anything, and you must never imply that you have taken any other action.
 - If you genuinely do not know something and cannot find it, say so directly. Never invent job details, prices, client information or company facts.
 
 Using your tools:
 - search_knowledge searches the company knowledge base (SOPs, supplier pricelists, client notes, procedures, contacts). Search it before answering company-specific questions; if the first search misses, retry once or twice with different wording, then say plainly what you could not find. Mention which note a fact came from when that helps.
 - get_schedule lists jobs in a date range; find_jobs searches jobs by name; get_job fetches one job's details, team and task list; get_team_workload shows every installer's bookings over a range; check_clashes tests whether an installer is free at a proposed date and time.
+- create_pending_job creates a new job in pending status — the only action you can take. Protocol, strictly: FIRST present a short summary of everything you intend to save (project title, client, location, date and times, description, and which bucket each attached file goes to), THEN wait for the user to clearly agree, and only THEN call the tool. Never call it without that explicit agreement in this conversation. If the client or the job date is missing, ask instead of guessing; leave unknown optional fields out entirely. File attachments into the buckets by content: Permit-to-Work for PTW documents, BCA for BCA submissions, Designer JO for design job orders, Others when unsure. Only sales, scheduler, coordinator and admin accounts can create jobs — if the tool refuses for the user's role, relay that politely; you can still answer questions about their attachments. After a successful creation, tell the user the job is saved on the Pending tab, ready to review and Push to Schedule.
+- Users may attach images and PDFs to their messages — read them directly and answer questions about them for any role. Each attachment is listed at the end of its message with an id; pass those ids in the files argument of create_pending_job when the user wants them filed into the new job.
 - Every lookup runs under the asking user's own permissions. If a tool returns nothing, the user may simply not be allowed to see it — say you found nothing they can access, and never speculate about data you cannot see.
 - You have a limited number of tool calls per question. Be purposeful: fetch what you need, then answer. Independent lookups can be requested together in one turn.
 - Job money figures (quotes, supplier costs, margins) are not available to you. Point those questions to the Financials card on the job's own page.
@@ -146,6 +151,11 @@ export async function POST(req: NextRequest) {
   // Automatic per-user memory (the KB lookup moved into the search_knowledge tool)
   const pastChats    = await retrievePastChats(lastUserMsg)
   const contextBlock = formatPastChats(pastChats)
+
+  // Tool-execution context: effective role (preview-as applies) gates
+  // create_pending_job; the validated attachments resolve file ids to keys.
+  const effectiveRole = await getEffectiveRole(profile.role as Role)
+  const toolCtx: ToolContext = { userId: profile.id, role: effectiveRole, attachments: attachmentIndex }
 
   const today = new Date().toLocaleDateString('en-SG', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -274,7 +284,8 @@ export async function POST(req: NextRequest) {
           // Parallel tool calls execute concurrently; failures return
           // is_error tool_results, never dropped (spec).
           const results = await Promise.all(toolUses.map(async tu => {
-            const r = await executeTool(tu.name, tu.input)
+            const r = await executeTool(tu.name, tu.input, toolCtx)
+            if (r.jobCreated) send({ type: 'job_created', id: r.jobCreated.id, title: r.jobCreated.title })
             return {
               type: 'tool_result' as const,
               tool_use_id: tu.id,

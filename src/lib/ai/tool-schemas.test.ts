@@ -4,7 +4,7 @@
  * Exits 1 on any failure.
  */
 
-import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS, isIsoDate, validateRange } from './tool-schemas'
+import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS, JOB_BUCKETS, isIsoDate, validateRange } from './tool-schemas'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -14,9 +14,10 @@ function check(name: string, actual: unknown, expected: unknown) {
 
 // 1. Every tool has a status key and vice versa (web_search is server-side, keyed separately)
 const names = TOOL_DEFINITIONS.map(t => t.name).sort()
-check('six tools defined', names, ['check_clashes', 'find_jobs', 'get_job', 'get_schedule', 'get_team_workload', 'search_knowledge'])
+check('seven tools defined', names, ['check_clashes', 'create_pending_job', 'find_jobs', 'get_job', 'get_schedule', 'get_team_workload', 'search_knowledge'])
 for (const n of names) check(`status key for ${n}`, typeof TOOL_STATUS_KEYS[n], 'string')
 check('web_search status key', TOOL_STATUS_KEYS['web_search'], 'searching')
+check('create status key', TOOL_STATUS_KEYS['create_pending_job'], 'creating')
 
 // 2. Round cap per spec
 check('cap is 8', MAX_TOOL_ROUNDS, 8)
@@ -39,6 +40,16 @@ for (const t of TOOL_DEFINITIONS) {
   const schema = t.input_schema as { required?: string[] }
   check(`${t.name} has required[]`, Array.isArray(schema.required), true)
 }
+
+// 6. create_pending_job shape
+const create = TOOL_DEFINITIONS.find(t => t.name === 'create_pending_job')!
+const createSchema = create.input_schema as {
+  required?: string[]
+  properties?: { files?: { items?: { properties?: { bucket?: { enum?: string[] } } } } }
+}
+check('create requires client+date', createSchema.required?.slice().sort(), ['client', 'date'])
+check('bucket enum matches defaults', createSchema.properties?.files?.items?.properties?.bucket?.enum, [...JOB_BUCKETS])
+check('four default buckets', JOB_BUCKETS.length, 4)
 
 if (failures > 0) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll tool-schema checks passed')
