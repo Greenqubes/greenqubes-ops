@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-25 (feat-assistant — assistant upgrade Phase 1 SHIPPED to production; Phase 2 is next and needs migration 0046 — db push before code push)_
+_Last updated: 2026-08-25 (feat-assistant-2 — assistant upgrade Phase 2 SHIPPED to production same day as Phase 1; migration 0046 applied. Phase 3 is next — no migration needed; Phase 4 needs 0047)_
 
 ---
 
@@ -11,7 +11,8 @@ _Last updated: 2026-08-25 (feat-assistant — assistant upgrade Phase 1 SHIPPED 
 ### Assistant upgrade (from 2026-08-24, chore-assistant — spec approved)
 
 - [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
-- [ ] **Phase 2 build session (next)** — say the word: live schedule/job/team lookups + real memory + Memory manager. **Needs `npx supabase db push` (migration 0046) BEFORE the code deploys**; **Phase 4 needs another (0047)** — Claude will remind you at each build session.
+- [x] **[Nic] Phase 2 build session — SHIPPED 2026-08-25** — live schedule/job/team lookups (always under the asker's own permissions), the assistant searches the knowledge base itself, real memory with the Memory view. You ran `npx supabase db push` (migration 0046) BEFORE the code deployed; preview smoke test passed and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase2.md](superpowers/plans/2026-08-25-assistant-upgrade-phase2.md).
+- [ ] **Phase 3 build session (next)** — say the word: chat attachments (PDF/photos) → quick confirm → pending job with auto-filed buckets, plus a Move-to-bucket control on the job form. **No database migration needed.** **Phase 4 needs migration 0047** — Claude will remind you at that build session.
 - [ ] **(Later) Scratch-file cleanup** — chat attachments live in a scratch area in Cloudflare; a periodic cleanup for old scratch files is deferred out of the build (noted in the spec).
 - [ ] **Deferred Phase 2 security checks — run on PRODUCTION after all phases ship** (your call, 2026-08-25): (1) **real installer login** asks the assistant about a job they are NOT assigned to → it must find nothing and say so (preview-as doesn't test this — the database permission check needs a real login); (2) **two accounts** — nothing from account A's chats or Memory view may ever surface for account B. Both were points 4 and 5 of the Phase 2 preview smoke checklist.
 
@@ -162,6 +163,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant-2 — Assistant Upgrade Phase 2 SHIPPED)
+
+- [x] **[Nic] Phase 2 live on production** — the assistant now looks up the real schedule, jobs, team availability and clashes when you ask ("who's free Friday?"), searches the knowledge base itself (retrying with different wording), and remembers meaningful conversations properly. Merged to main the same day Phase 1 shipped.
+- [x] **[Nic] Ran `npx supabase db push` for migration 0046** — the memory-summary column, applied BEFORE the code went out (no crash window — the feat-files lesson followed).
+- [x] **[Nic] Privacy built in as designed** — every lookup runs under the asking person's own permissions (an installer's assistant cannot see jobs they aren't assigned to), money figures are never available to the assistant at all, and memories never cross accounts.
+- [x] **[Nic] Memory view live** — the Memory button (sidebar and phone drawer) shows everything the assistant remembers about you; you can correct a memory or make it forget one. Throwaway chats ("hello") stay out of memory automatically.
+- [x] **[Nic] Decision — two security checks deferred to production** — the real-installer-login test and the two-account isolation test will be run on production once ALL phases are complete (tracked as a pending item above).
+- [x] **[Nic] Preview smoke test passed → merged dev → main** — schedule/workload/clash questions, job lookup, knowledge-base search, Memory view, and the Phase 1 regression pass all green.
+- Note: this folder's installed packages were still on the old Anthropic SDK (the Phase 1 session ran in a parallel window; `npm install` had never run here) — fixed during the session, no code impact.
 
 ---
 
