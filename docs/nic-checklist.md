@@ -43,6 +43,11 @@ _The whole-company rollout pack is ready (built 2026-08-18). Follow the runbook:
 - [ ] **The R2 backup is a mirror, not history** — `rclone sync` makes the local copy match the bucket exactly, so a file deleted in R2 disappears from the local copy on the next run. It protects against Cloudflare being unavailable, not against someone deleting a file. If you want to recover deleted files, that needs dated snapshots or R2 object versioning — a separate decision.
 
 
+### Future planning notes (from 2026-08-25, Phase 3 session)
+
+- [ ] **Assistant chat: filing-only Office attachments** — let the chat paperclip accept Word/Excel/PPTX files that the AI cannot read but CAN still file into the job's buckets when it creates a pending job (today the chat accepts only images + PDF, because those are the only formats the AI service can read; the job form itself accepts everything, unchanged). Small build — say the word.
+- [ ] **Assistant chat: read Office files** — convert Word/Excel/PPTX to readable text before handing them to the AI, so it can answer questions about them like it does for PDFs. Bigger build and needs a new software dependency (stack is locked, so this needs your explicit OK first). Workaround today: export the file as PDF and attach that.
+
 ### Future planning notes (from 2026-08-18, rollout session)
 
 - [ ] **Instant promotion to the assistant's brain** — when a digest vote promotes a note to the vault, also feed it into the assistant's knowledge base immediately (embed + upsert at promotion time). Today the assistant only learns it after the server's 2:30 AM sync. Small build — needs a session. (Nic requested 2026-08-18.)
