@@ -4,7 +4,7 @@
 
 **Goal:** Per-user Projects in the assistant — collapsible folders in the sidebar/drawer that group chats, with shared instructions + reference files (images/PDF) injected into every chat in the project, and project-scoped memory recall — the last phase of the assistant upgrade.
 
-**Architecture:** Migration 0047 adds `asst_projects`, `asst_chats.project_id` (ON DELETE SET NULL — deleting a project releases chats, never deletes them) and `asst_project_files`, all owner-only RLS. Project files live in R2 under `asst-projects/{userId}/{projectId}/…` (never `files` rows; the 30-day scratch cron only sweeps `asst-chat/`, so project files are permanent). The chat route injects the project as a **cached prefix**: instructions as a second cached system block, files as blocks at the front of the first user message with a cache breakpoint — and for project chats the volatile context (date/user/past-chat recall) moves out of `system` into the last user message, because a changing system block before the messages would invalidate the message-level breakpoint every turn. `match_asst_chats` gains an optional `project_filter` param so sibling chats recall each other first.
+**Architecture:** Migration 0047 adds `asst_projects`, `asst_chats.project_id` (ON DELETE SET NULL — deleting a project releases chats, never deletes them) and `asst_project_files`, all owner-only RLS. Project files live in R2 under `asst-projects/{userId}/{projectId}/…` (never `files` rows; the 30-day scratch cron only sweeps `asst-chat/`, so project files are permanent). Caps: **10 files / 20 MB total per project** (Nic 2026-08-26 — count raised from 5; the byte total is bounded by the API's 32 MB per-request ceiling, since project files ride on every message as base64 at ~4/3 inflation). A request-file budget guard degrades message attachments to text notes before a full project + full message could ever exceed that ceiling. Also in this phase (Nic 2026-08-26): the Admin → Health API usage tracker gains a 30 days / 7 days / Today window filter (Task 12). The chat route injects the project as a **cached prefix**: instructions as a second cached system block, files as blocks at the front of the first user message with a cache breakpoint — and for project chats the volatile context (date/user/past-chat recall) moves out of `system` into the last user message, because a changing system block before the messages would invalidate the message-level breakpoint every turn. `match_asst_chats` gains an optional `project_filter` param so sibling chats recall each other first.
 
 **Tech Stack:** Next.js 15 App Router, Supabase (RLS = the enforcement mechanism), Cloudflare R2 (`@aws-sdk/client-s3`), `@anthropic-ai/sdk` ^0.120 (`claude-sonnet-5`, prompt caching), Tailwind + design tokens, standalone `tsx` test suites.
 
@@ -49,6 +49,9 @@
 | `src/features/assistant/HistoryList.tsx` | Modify | Export `ChatRow`; "Move to project…" menu item |
 | `src/features/assistant/AssistantShell.tsx` | Modify | Projects state, active project, chip, send/save wiring |
 | `src/lib/i18n/en.ts`, `src/lib/i18n/zh.ts` | Modify | New strings (folded into UI tasks) |
+| `src/lib/supabase/queries/admin.ts` | Modify | `getUsageSummary` takes a `since` ISO instead of days |
+| `src/app/api/admin/health/route.ts` | Modify | `?window=30d\|7d\|today` param |
+| `src/features/admin/HealthTab.tsx` | Modify | Usage window chips + dynamic labels |
 
 ---
 
@@ -252,7 +255,7 @@ git commit -m "feat: migration 0047 — asst_projects + project_id + project fil
 
 - [ ] **Step 5: 🛑 GATE — Nic runs the migration NOW**
 
-Tell Nic (plain language): "Migration 0047 is ready. Please run `npx supabase db push` in this folder now — it creates the project tables. Nothing deploys until you confirm it succeeded." **Do not push any commit to `origin/dev` until Nic confirms.** Execution of the remaining tasks may continue locally while waiting, but the gate must be confirmed before the final push in Task 12.
+Tell Nic (plain language): "Migration 0047 is ready. Please run `npx supabase db push` in this folder now — it creates the project tables. Nothing deploys until you confirm it succeeded." **Do not push any commit to `origin/dev` until Nic confirms.** Execution of the remaining tasks may continue locally while waiting, but the gate must be confirmed before the final push in Task 13.
 
 ---
 
@@ -264,23 +267,25 @@ Tell Nic (plain language): "Migration 0047 is ready. Please run `npx supabase db
 
 **Interfaces:**
 - Consumes: existing `validateAttachment(name, mime, size): 'type' | 'size' | null`.
-- Produces: `MAX_PROJECT_FILES = 5`, `MAX_PROJECT_BYTES = 20 MB`, `isOwnProjectKey(key: string, userId: string, projectId: string): boolean`, `validateProjectFile(name: string, mime: string, size: number, existingCount: number, existingBytes: number): 'count' | 'type' | 'size' | 'total' | null`. Tasks 6 (routes) and 10 (panel) call these.
+- Produces: `MAX_PROJECT_FILES = 10`, `MAX_PROJECT_BYTES = 20 MB`, `REQUEST_FILE_BUDGET = 22 MB`, `isOwnProjectKey(key: string, userId: string, projectId: string): boolean`, `validateProjectFile(name: string, mime: string, size: number, existingCount: number, existingBytes: number): 'count' | 'type' | 'size' | 'total' | null`. Tasks 6 (routes) and 10 (panel) call the validators; Task 8 (chat route) uses `REQUEST_FILE_BUDGET`.
 
 - [ ] **Step 1: Write the failing tests** — append to `src/lib/ai/attachments.test.ts` (before the final failure-count exit), and extend the import:
 
 ```ts
 import {
   MAX_FILES_PER_MESSAGE, MAX_IMAGE_BYTES, MAX_PDF_BYTES, MAX_MESSAGE_BYTES,
-  MAX_PROJECT_FILES, MAX_PROJECT_BYTES,
+  MAX_PROJECT_FILES, MAX_PROJECT_BYTES, REQUEST_FILE_BUDGET,
   validateAttachment, isOwnScratchKey, attachmentNote,
   isOwnProjectKey, validateProjectFile,
 } from './attachments'
 ```
 
 ```ts
-// 6. Project file rules (Phase 4) — same request-cap rationale as messages
-check('5 files per project', MAX_PROJECT_FILES, 5)
+// 6. Project file rules (Phase 4) — count is cheap, bytes are the physics:
+// files ride on every message, so the total is bounded by the API request cap
+check('10 files per project', MAX_PROJECT_FILES, 10)
 check('20 MB per project', MAX_PROJECT_BYTES, 20 * 1024 * 1024)
+check('22 MB request budget', REQUEST_FILE_BUDGET, 22 * 1024 * 1024)
 
 // 7. Project-key ownership guard
 check('own project key ok',       isOwnProjectKey('asst-projects/u1/p1/a.pdf', 'u1', 'p1'), true)
@@ -291,7 +296,8 @@ check('dotdot rejected',          isOwnProjectKey('asst-projects/u1/p1/../../x',
 
 // 8. Project file validation (count → per-file type/size → running total)
 check('project file ok',        validateProjectFile('a.pdf', 'application/pdf', 1000, 0, 0), null)
-check('project count cap',      validateProjectFile('a.pdf', 'application/pdf', 1000, 5, 0), 'count')
+check('project count cap',      validateProjectFile('a.pdf', 'application/pdf', 1000, 10, 0), 'count')
+check('9 existing still ok',    validateProjectFile('a.pdf', 'application/pdf', 1000, 9, 0), null)
 check('project type rejected',  validateProjectFile('a.docx', 'application/msword', 1000, 0, 0), 'type')
 check('project per-file size',  validateProjectFile('a.jpg', 'image/jpeg', 6 * 1024 * 1024, 0, 0), 'size')
 check('project total cap',      validateProjectFile('a.pdf', 'application/pdf', 6 * 1024 * 1024, 1, 15 * 1024 * 1024), 'total')
@@ -307,11 +313,17 @@ Expected: FAIL — `isOwnProjectKey` not exported (tsx errors on the import).
 
 ```ts
 // ── Project files (Phase 4) ─────────────────────────────────────────────────
-// Same request-cap rationale as messages: project files ride on EVERY message
-// in the project, so the per-project total mirrors the per-message total.
+// Count is cheap; bytes are the physics. Project files ride on EVERY message
+// in the project as base64 (~4/3 inflation) under the API's 32 MB request
+// cap, so the per-project byte total mirrors the per-message total. The
+// request budget below is the raw-bytes ceiling for ONE request (project
+// files + all message attachments combined) with headroom for text, history
+// and tool definitions — the chat route degrades attachments past it to text
+// notes instead of letting the API reject the request.
 
-export const MAX_PROJECT_FILES = 5
-export const MAX_PROJECT_BYTES = 20 * 1024 * 1024
+export const MAX_PROJECT_FILES  = 10
+export const MAX_PROJECT_BYTES  = 20 * 1024 * 1024
+export const REQUEST_FILE_BUDGET = 22 * 1024 * 1024
 
 /** A request may only reference the caller's own project objects. */
 export function isOwnProjectKey(key: string, userId: string, projectId: string): boolean {
@@ -1176,10 +1188,33 @@ and in the `anthropic.messages.stream({ ... })` call replace the `system: [...]`
         }
 ```
 
+2g. **Request-file budget guard** — the existing message-attachment loop (`for (const m of messages)` … `getObjectBase64(a.key, MAX_PDF_BYTES)`) must respect the combined budget: a full project (20 MB) plus a full message (20 MB) would exceed the API's 32 MB request cap. Extend the `attachments.ts` import in this route with `REQUEST_FILE_BUDGET`, declare before the loop (inside `start()`, `projectFiles` is already resolved):
+
+```ts
+        // Combined request budget: project files + every attachment in the
+        // history ride on each request. Attachments past the budget degrade
+        // to a text note (oldest first wins — deterministic, so the cached
+        // prefix stays byte-stable across turns) instead of letting the API
+        // reject the whole request. Non-project chats get the full budget.
+        let fileBudget = REQUEST_FILE_BUDGET - projectFiles.reduce((s, f) => s + f.size, 0)
+```
+
+and inside the per-attachment loop, before the `getObjectBase64` call:
+
+```ts
+            if (a.size > fileBudget) {
+              blocks.push({ type: 'text', text: `[Attachment "${a.name}" not included — file size limit for this conversation]` })
+              continue
+            }
+```
+
+and after a successful load (the non-null `data` branch, once the image/document block is pushed): `fileBudget -= a.size`.
+
 Notes for the implementer:
 - `getObjectBase64` and `MAX_PDF_BYTES` are already imported (Phase 3).
 - Do NOT touch `SYSTEM_PREFIX`, the D-Promote early return, the tool loop, or usage/cost logging — they are unchanged.
 - The first user message can equal the last (first turn): project blocks land first, volatile lands after the user's text — deterministic order either way.
+- Project files are never budget-degraded — they are the stable cached prefix and their own total is already capped at `MAX_PROJECT_BYTES` (20 MB < 22 MB budget); only message attachments degrade.
 
 - [ ] **Step 3: Type-check + build**
 
@@ -1188,7 +1223,7 @@ Expected: both PASS.
 
 - [ ] **Step 4: Manual dev check (if a dev server is practical)**
 
-`npm run dev` → assistant page → send a normal (non-project) message: must stream exactly as before (regression). Project-path verification happens on the preview smoke test (Task 12) since projects need the UI.
+`npm run dev` → assistant page → send a normal (non-project) message: must stream exactly as before (regression). Project-path verification happens on the preview smoke test (Task 13) since projects need the UI.
 
 - [ ] **Step 5: Commit**
 
@@ -1653,9 +1688,9 @@ git commit -m "feat: sidebar project folders + active-project wiring"
   projectInstructions: 'Project instructions',
   projectInstructionsHint: 'The assistant follows these in every chat inside this project.',
   projectFiles: 'Project files',
-  projectFilesHint: 'Shared with every chat in this project. Images and PDF only, up to 5 files / 20 MB.',
+  projectFilesHint: 'Shared with every chat in this project. Images and PDF only, up to 10 files / 20 MB.',
   projectAddFile: 'Add file',
-  projectFileTooMany: 'Up to 5 files per project.',
+  projectFileTooMany: 'Up to 10 files per project.',
   projectFileTotalTooLarge: 'Project files can total up to 20 MB.',
 ```
 
@@ -1665,9 +1700,9 @@ git commit -m "feat: sidebar project folders + active-project wiring"
   projectInstructions: '项目说明',
   projectInstructionsHint: '此项目内的每个对话都会遵循这些说明。',
   projectFiles: '项目文件',
-  projectFilesHint: '供此项目内所有对话共用。仅支持图片和 PDF，最多 5 个文件 / 20 MB。',
+  projectFilesHint: '供此项目内所有对话共用。仅支持图片和 PDF，最多 10 个文件 / 20 MB。',
   projectAddFile: '添加文件',
-  projectFileTooMany: '每个项目最多 5 个文件。',
+  projectFileTooMany: '每个项目最多 10 个文件。',
   projectFileTotalTooLarge: '项目文件总大小不能超过 20 MB。',
 ```
 
@@ -2021,7 +2056,144 @@ git commit -m "feat: move chat into/out of a project"
 
 ---
 
-### Task 12: Full verification + deploy gates
+### Task 12: Health tab — API usage window filter (30 days / 7 days / Today)
+
+Nic's request 2026-08-26 — independent of Projects, riding in the same phase. The Admin → Health "API usage tracker" currently shows a fixed last-30-days summary; add a window toggle. Admin UI is desktop-only and hardcoded English (existing convention — no i18n needed).
+
+**Files:**
+- Modify: `src/lib/supabase/queries/admin.ts` (`getUsageSummary`, ~line 215)
+- Modify: `src/app/api/admin/health/route.ts`
+- Modify: `src/features/admin/HealthTab.tsx`
+
+**Interfaces:**
+- Produces: `GET /api/admin/health?window=30d|7d|today` (default `30d`); `getUsageSummary(sinceIso: string)` replaces `getUsageSummary(days = 30)`.
+
+- [ ] **Step 1: `queries/admin.ts`** — change the signature to take an ISO timestamp (the route computes the window):
+
+```ts
+export async function getUsageSummary(sinceIso: string): Promise<UsageSummary[]> {
+  const db = createServiceClient()
+
+  const { data, error } = await db
+    .from('api_usage_logs')
+    .select('service, tokens_in, tokens_out, estimated_cost')
+    .gte('ts', sinceIso)
+```
+
+(the aggregation body below is unchanged — delete the old `const since = …` line). Then `grep -n "getUsageSummary" src/` to confirm the health route is the ONLY caller; if any other caller exists, update it to pass `new Date(Date.now() - 30 * 86_400_000).toISOString()`.
+
+- [ ] **Step 2: `api/admin/health/route.ts`** — accept the window param. Change the handler signature to `export async function GET(req: NextRequest)` (add `NextRequest` to the next/server import) and add above the handler:
+
+```ts
+type UsageWindow = '30d' | '7d' | 'today'
+
+// "Today" = since midnight Singapore time (UTC+8, no DST), not last-24-hours.
+function windowSince(window: UsageWindow): string {
+  if (window === 'today') {
+    const sgt = new Date(Date.now() + 8 * 3_600_000)
+    return new Date(Date.UTC(sgt.getUTCFullYear(), sgt.getUTCMonth(), sgt.getUTCDate()) - 8 * 3_600_000).toISOString()
+  }
+  const days = window === '7d' ? 7 : 30
+  return new Date(Date.now() - days * 86_400_000).toISOString()
+}
+```
+
+and in the handler:
+
+```ts
+  const raw    = req.nextUrl.searchParams.get('window')
+  const window: UsageWindow = raw === '7d' || raw === 'today' ? raw : '30d'
+```
+
+with the usage call becoming `getUsageSummary(windowSince(window))`. (`getUnusualActivity(7)` and the system checks stay as they are.)
+
+- [ ] **Step 3: `HealthTab.tsx`** — window chips + dynamic labels:
+
+1. Types/state:
+
+```ts
+type UsageWindow = '30d' | '7d' | 'today'
+const WINDOW_LABELS: Record<UsageWindow, string> = {
+  '30d':  'last 30 days',
+  '7d':   'last 7 days',
+  today:  'today',
+}
+```
+
+```ts
+  const [window,  setWindow]  = useState<UsageWindow>('30d')
+```
+
+2. `load` takes the window and keeps existing data visible while switching (no full-page "Running checks…" flash after first load):
+
+```ts
+  const load = useCallback(async (win: UsageWindow) => {
+    setLoading(true)
+    setLoadErr(null)
+    try {
+      const res  = await fetch(`/api/admin/health?window=${win}`)
+      const json = await res.json() as HealthData | { error: string }
+      if (!res.ok) throw new Error((json as { error: string }).error ?? `HTTP ${res.status}`)
+      setData(json as HealthData)
+    } catch (err) {
+      setLoadErr((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load(window) }, [load, window])
+```
+
+Change the full-page loading guard to only blank when there is no data yet: `if (loading && !data) return <p …>Running checks…</p>` — and the Refresh button at the bottom becomes `onClick={() => load(window)}`.
+
+3. Chips row — replace the section heading block (`API usage tracker — last 30 days`) with:
+
+```tsx
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[11px] uppercase tracking-widest text-muted font-medium">
+            API usage tracker — {WINDOW_LABELS[window]}
+          </p>
+          <div className="flex items-center gap-1">
+            {(['30d', '7d', 'today'] as const).map(w => (
+              <button
+                key={w}
+                onClick={() => setWindow(w)}
+                disabled={loading}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                  window === w
+                    ? 'bg-terracotta text-white border-terracotta'
+                    : 'border-line text-ink2 hover:border-ink2',
+                )}
+              >
+                {w === '30d' ? '30 days' : w === '7d' ? '7 days' : 'Today'}
+              </button>
+            ))}
+          </div>
+        </div>
+```
+
+4. `UsageCard` gains a `windowLabel: string` prop replacing the hardcoded `last 30 days` badge (`<span …>{windowLabel}</span>`); the tab root passes `windowLabel={WINDOW_LABELS[window]}`.
+5. Optional polish while switching: wrap the usage grid in `<div className={cn(loading && 'opacity-60 pointer-events-none transition-opacity')}>`.
+
+- [ ] **Step 4: Verify**
+
+Run: `npm run type-check` then `npm run build` — both PASS.
+
+Dev check (admin login): Health tab loads on 30 days as before; 7 days and Today shrink the call counts/costs; Today resets at midnight Singapore time; chips disabled while loading; Refresh keeps the selected window; the drift warning and provider links behave as before.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/supabase/queries/admin.ts src/app/api/admin/health/route.ts src/features/admin/HealthTab.tsx
+git commit -m "feat: API usage tracker window filter (30d / 7d / today)"
+```
+
+---
+
+### Task 13: Full verification + deploy gates
 
 **Files:** none (verification only)
 
@@ -2059,15 +2231,16 @@ Confirm BOTH with Nic, in plain language: (1) "Did `npx supabase db push` for mi
 7. `create_pending_job` still works from inside a project chat; a normal non-project chat behaves exactly as before (regression).
 8. Two accounts: neither sees the other's projects/files (the standing per-user privacy rule).
 9. Second turn inside a project: check the Vercel function logs / Admin → API usage — cache-read tokens should be non-zero (the cached project prefix working).
+10. Admin → Health: the usage tracker's 30 days / 7 days / Today chips change the numbers; Today shows only today's calls (Singapore midnight cutoff).
 
 - [ ] **Step 5: After Nic's pass — merge gate**
 
-Ask Nic to confirm the smoke test, then (with his explicit OK) merge `dev` → `main`. Session-end docs (plan.md, context.md, nic-checklist.md, session note) follow the CLAUDE.md session-end flow — not part of this plan.
+Ask Nic to confirm the smoke test, then (with their explicit OK) merge `dev` → `main`. Session-end docs (plan.md, context.md, nic-checklist.md, session note) follow the CLAUDE.md session-end flow — not part of this plan.
 
 ---
 
 ## Self-Review (completed)
 
-- **Spec coverage:** data model → Task 1; folder grouping + create/rename/delete + released-chats confirm copy → Tasks 9, 10 (rename lives in the panel), 5; move via ⋮ → Tasks 7, 11; mobile grouping → the drawer renders the same `ProjectsSection` (the spec's `/assistant/history` route was replaced by the drawer in Phase 1; the redirect stands); instructions in system prompt → Tasks 3, 8; files as document/image blocks from a project header panel → Tasks 6, 8, 10; linked memory project-first → Tasks 1, 8; cached-prefix placement → Task 8 (design note); new-chat-from-project auto-files → Tasks 7, 9; create-pending-job works in project chats → unchanged tool path, verified in smoke 7; overlays z-rule → Tasks 9–11; testing list → Task 12.
+- **Spec coverage:** data model → Task 1; folder grouping + create/rename/delete + released-chats confirm copy → Tasks 9, 10 (rename lives in the panel), 5; move via ⋮ → Tasks 7, 11; mobile grouping → the drawer renders the same `ProjectsSection` (the spec's `/assistant/history` route was replaced by the drawer in Phase 1; the redirect stands); instructions in system prompt → Tasks 3, 8; files as document/image blocks from a project header panel → Tasks 6, 8, 10; linked memory project-first → Tasks 1, 8; cached-prefix placement → Task 8 (design note); new-chat-from-project auto-files → Tasks 7, 9; create-pending-job works in project chats → unchanged tool path, verified in smoke 7; overlays z-rule → Tasks 9–11; testing list → Task 13. Additions on Nic's 2026-08-26 request: 10-file cap + request-budget guard → Tasks 2, 8; Health usage window filter → Task 12.
 - **Placeholder scan:** none — every step carries real code or an exact command.
 - **Type consistency:** `ProjectRow`/`ProjectFileRow`/`ProjectWithFiles` defined once in Task 4 and consumed by name in 5, 6, 8, 9, 10; `validateProjectFile` error codes (`count`/`type`/`size`/`total`) match between Task 2, Task 6 responses, and Task 10's toast mapping; `saveChat`/`updateChat` 4th/5th params match between Tasks 4 and 7; `retrievePastChats(query, projectId?)` matches between Tasks 8's two edits.
