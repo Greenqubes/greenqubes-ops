@@ -10,6 +10,7 @@ const STATUS_I18N: Record<string, keyof Translations> = {
   job:       'assistantLookingUpJob',
   workload:  'assistantCheckingWorkload',
   clashes:   'assistantCheckingClashes',
+  creating:  'assistantCreatingJob',
 }
 
 export function statusLabelKey(status: string | undefined): keyof Translations {
