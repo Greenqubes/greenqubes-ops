@@ -52,13 +52,6 @@ export async function updateChat(
 ): Promise<string | null> {
   const supabase = createServiceClient()
 
-  let embeddingStr: string | null = null
-  try {
-    const text   = msgs.map(m => m.content).join(' ').slice(0, 2000)
-    const vec    = await embed(text)
-    embeddingStr = `[${vec.join(',')}]`
-  } catch { /* embedding optional */ }
-
   // Scope to the caller's own row (audit 2026-08-13, finding #4): this uses the
   // service client, so ownership must be enforced here. If existingId belongs to
   // another user (or was deleted), original is null and the caller falls back to
@@ -72,6 +65,19 @@ export async function updateChat(
 
   if (!original) return null  // not the caller's row (or deleted); fall back to insert
 
+  // Only meaningful chats enter memory — same gate as saveChat. Continuing a
+  // conversation regenerates its summary, so a manual Memory-view edit is
+  // overwritten if the same chat is continued afterwards (accepted trade-off;
+  // avoiding that would need an extra "edited" flag — YAGNI).
+  const summary = tag.meaningful && tag.summary.trim() ? tag.summary.trim() : null
+  let embeddingStr: string | null = null
+  if (summary) {
+    try {
+      const vec    = await embed(`${original.topic ?? tag.topic}\n${summary}`, 'document')
+      embeddingStr = `[${vec.join(',')}]`
+    } catch { /* embedding optional */ }
+  }
+
   const { error } = await supabase
     .from('asst_chats')
     .update({
@@ -80,6 +86,7 @@ export async function updateChat(
       topic:      original.topic ?? tag.topic,
       tags:       tag.tags,
       importance: tag.importance,
+      summary,
       ts:         new Date().toISOString(),
     } as never)
     .eq('id', id)
@@ -96,13 +103,16 @@ export async function saveChat(
 ): Promise<string | null> {
   const supabase = createServiceClient()
 
+  // Only meaningful chats enter memory (Nic 2026-08-24): trivial chats keep
+  // summary + embedding NULL so they never match in retrieval and never show
+  // in the Memory view. Embedding input is topic + summary (not raw messages).
+  const summary = tag.meaningful && tag.summary.trim() ? tag.summary.trim() : null
   let embeddingStr: string | null = null
-  try {
-    const text    = msgs.map(m => m.content).join(' ').slice(0, 2000)
-    const vec     = await embed(text)
-    embeddingStr  = `[${vec.join(',')}]`
-  } catch {
-    // embedding is optional — save without it
+  if (summary) {
+    try {
+      const vec    = await embed(`${tag.topic}\n${summary}`, 'document')
+      embeddingStr = `[${vec.join(',')}]`
+    } catch { /* embedding optional */ }
   }
 
   const { data, error } = await supabase
@@ -116,6 +126,7 @@ export async function saveChat(
       tags:       tag.tags,
       importance: tag.importance,
       visibility: tag.visibility,
+      summary,
     })
     .select('id')
     .single()

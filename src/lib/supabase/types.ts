@@ -168,6 +168,7 @@ export interface Database {
           importance: number | null
           pinned:     boolean
           visibility: string[]
+          summary:    string | null
           ts:         string
           updated_at: string
         }
@@ -182,6 +183,7 @@ export interface Database {
           importance?: number | null
           pinned?:     boolean
           visibility:  string[]
+          summary?:    string | null
           ts?:         string
           updated_at?: string
         }
@@ -196,6 +198,7 @@ export interface Database {
           importance?: number | null
           pinned?:     boolean
           visibility?: string[]
+          summary?:    string | null
           ts?:         string
           updated_at?: string
         }
@@ -446,7 +449,7 @@ export interface Database {
       }
       match_asst_chats: {
         Args: { query_embedding: number[]; match_threshold?: number; match_count?: number }
-        Returns: { id: string; topic: string | null; msgs: Json; tags: string[] | null; importance: number | null; similarity: number }[]
+        Returns: { id: string; topic: string | null; summary: string | null; msgs: Json; tags: string[] | null; importance: number | null; similarity: number }[]
       }
     }
 
