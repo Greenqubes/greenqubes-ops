@@ -9,6 +9,28 @@ export interface ChatTag {
   tags:       string[]
   importance: number
   visibility: string[]
+  /** 2–3 sentence recall summary. Empty when nothing reusable. */
+  summary:    string
+  /** Only meaningful chats enter memory (Nic 2026-08-24) — gates summary + embedding. */
+  meaningful: boolean
+}
+
+/** Pure parsing of the classifier's response — exported for the standalone test. */
+export function parseChatTag(text: string, forcePromote: boolean): ChatTag {
+  try {
+    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? '{}') as Record<string, unknown>
+    return {
+      topic:      typeof json.topic === 'string'      ? json.topic : 'General',
+      entities:   Array.isArray(json.entities)        ? (json.entities as string[]) : [],
+      tags:       Array.isArray(json.tags)            ? (json.tags as string[])     : [],
+      importance: forcePromote ? 5 : (typeof json.importance === 'number' ? Math.max(1, Math.min(5, json.importance)) : 2),
+      visibility: Array.isArray(json.visibility)      ? (json.visibility as string[]) : ['public-internal'],
+      summary:    typeof json.summary === 'string'    ? json.summary : '',
+      meaningful: json.meaningful === true,
+    }
+  } catch {
+    return { topic: 'General', entities: [], tags: [], importance: forcePromote ? 5 : 2, visibility: ['public-internal'], summary: '', meaningful: false }
+  }
 }
 
 export async function tagConversation(
@@ -38,7 +60,9 @@ Return ONLY valid JSON with these exact fields:
   - "public-internal" → install techniques, SOPs, how-to, general logistics
   - "role:sales" or "role:scheduler" → client costs, quotes, margins, financial info
   - "role:installer" → field-crew-only information
-  - Default to ["public-internal"] unless clearly sensitive`,
+  - Default to ["public-internal"] unless clearly sensitive
+- summary: string — 2 to 3 plain sentences capturing what would matter if this topic comes up again (decisions made, standing facts, prices quoted, preferences stated, ongoing matters). Empty string "" if nothing is worth remembering.
+- meaningful: boolean — true ONLY if the conversation contains something reusable in a future conversation (preferences, standing facts, decisions, ongoing work). Throwaway lookups, greetings, tests and chitchat are false.`,
       messages: [{ role: 'user', content: `Classify this conversation:\n\n${transcript}` }],
     })
     text = res.content.find(b => b.type === 'text')?.text ?? '{}'
@@ -46,16 +70,5 @@ Return ONLY valid JSON with these exact fields:
     // classification is best-effort; fall back to safe defaults
   }
 
-  try {
-    const json = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? '{}') as Record<string, unknown>
-    return {
-      topic:      typeof json.topic === 'string'      ? json.topic : 'General',
-      entities:   Array.isArray(json.entities)        ? (json.entities as string[]) : [],
-      tags:       Array.isArray(json.tags)            ? (json.tags as string[])     : [],
-      importance: forcePromote ? 5 : (typeof json.importance === 'number' ? Math.max(1, Math.min(5, json.importance)) : 2),
-      visibility: Array.isArray(json.visibility)      ? (json.visibility as string[]) : ['public-internal'],
-    }
-  } catch {
-    return { topic: 'General', entities: [], tags: [], importance: forcePromote ? 5 : 2, visibility: ['public-internal'] }
-  }
+  return parseChatTag(text, forcePromote)
 }
