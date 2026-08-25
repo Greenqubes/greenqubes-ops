@@ -13,6 +13,7 @@ _Last updated: 2026-08-25 (feat-assistant — assistant upgrade Phase 1 SHIPPED 
 - [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
 - [ ] **Phase 2 build session (next)** — say the word: live schedule/job/team lookups + real memory + Memory manager. **Needs `npx supabase db push` (migration 0046) BEFORE the code deploys**; **Phase 4 needs another (0047)** — Claude will remind you at each build session.
 - [ ] **(Later) Scratch-file cleanup** — chat attachments live in a scratch area in Cloudflare; a periodic cleanup for old scratch files is deferred out of the build (noted in the spec).
+- [ ] **Deferred Phase 2 security checks — run on PRODUCTION after all phases ship** (your call, 2026-08-25): (1) **real installer login** asks the assistant about a job they are NOT assigned to → it must find nothing and say so (preview-as doesn't test this — the database permission check needs a real login); (2) **two accounts** — nothing from account A's chats or Memory view may ever surface for account B. Both were points 4 and 5 of the Phase 2 preview smoke checklist.
 
 ### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
 
