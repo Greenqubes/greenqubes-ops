@@ -5,6 +5,9 @@ import { retrievePastChats, formatPastChats } from '@/lib/ai/retrieve'
 import { executeTool } from '@/lib/ai/tool-runner'
 import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS } from '@/lib/ai/tool-schemas'
 import { logApiUsage } from '@/lib/supabase/queries/admin'
+import { isOwnScratchKey, validateAttachment, attachmentNote, MAX_PDF_BYTES } from '@/lib/ai/attachments'
+import type { ChatAttachment } from '@/lib/ai/attachments'
+import { getObjectBase64 } from '@/lib/storage/r2'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -99,9 +102,22 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get('user-agent') ?? undefined
 
   const body = await req.json() as {
-    messages: { role: 'user' | 'assistant'; content: string }[]
+    messages: { role: 'user' | 'assistant'; content: string; attachments?: ChatAttachment[] }[]
   }
   const { messages } = body
+
+  // Only the caller's own, rule-passing scratch files are ever loaded — a
+  // forged key pointing at another user's scratch (or a job folder) is dropped.
+  const attachmentIndex = new Map<string, ChatAttachment>()
+  for (const m of messages) {
+    for (const a of m.attachments ?? []) {
+      if (typeof a?.id === 'string' && typeof a?.key === 'string' &&
+          isOwnScratchKey(a.key, profile.id) &&
+          validateAttachment(a.name, a.mime, a.size) === null) {
+        attachmentIndex.set(a.id, a)
+      }
+    }
+  }
 
   // Retrieve relevant context for the last user message
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
@@ -161,7 +177,37 @@ export async function POST(req: NextRequest) {
         // The agentic loop: stream → on tool_use execute → append results →
         // continue. Cap MAX_TOOL_ROUNDS executions; the final round forces a
         // text answer (tool_choice none + a budget note in the last results).
-        const convo: Anthropic.MessageParam[] = [...messages]
+        //
+        // Messages with attachments become content-block arrays: image and
+        // document blocks first, then the text with an id-note so the model
+        // can reference files in create_pending_job. A scratch object that has
+        // expired (30-day cleanup) degrades to a text note, never an error.
+        const convo: Anthropic.MessageParam[] = []
+        for (const m of messages) {
+          const atts = (m.attachments ?? []).filter(a => attachmentIndex.has(a.id))
+          if (m.role !== 'user' || atts.length === 0) {
+            convo.push({ role: m.role, content: m.content })
+            continue
+          }
+          const blocks: Anthropic.ContentBlockParam[] = []
+          for (const a of atts) {
+            const data = await getObjectBase64(a.key, MAX_PDF_BYTES)
+            if (!data) {
+              blocks.push({ type: 'text', text: `[Attachment "${a.name}" is no longer available]` })
+              continue
+            }
+            if (a.mime === 'application/pdf') {
+              blocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } })
+            } else {
+              blocks.push({
+                type: 'image',
+                source: { type: 'base64', media_type: a.mime as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif', data },
+              })
+            }
+          }
+          blocks.push({ type: 'text', text: `${m.content || '(see attached files)'}\n\n${attachmentNote(atts)}` })
+          convo.push({ role: 'user', content: blocks })
+        }
         const sources: { url: string; title: string }[] = []
         let tokensIn = 0, tokensOut = 0, cacheWrite = 0, cacheRead = 0, searches = 0
         let forceAnswer = false
