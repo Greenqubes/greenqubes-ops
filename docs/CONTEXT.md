@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-24 (chore-assistant — assistant upgrade spec approved: 4 phases (Sonnet 5 brain + Claude-grade UI/UX → live-data tools + per-user memory → attachments → pending job → Projects); memory is strictly per-user, digest→vault stays the only cross-user knowledge bridge; build not started)_
+_Last updated: 2026-08-25 (feat-assistant — assistant upgrade **Phase 1 live on production**: Sonnet 5 + adaptive thinking, Claude-grade chat UI/UX, phone drawer layout. Phases 2–4 pending; memory stays strictly per-user, digest→vault the only cross-user knowledge bridge. Phase 2 needs migration 0046 — db push before code push.)_
 
 ---
 
@@ -25,7 +25,7 @@ Migration from the original React prototype to a feature-folder Next.js app with
 
 **Next milestone: the mobile app** — a native Android + iPhone app (React Native + Expo, one codebase in `mobile/`, same Supabase/R2/Vercel backend), built in 3 stages, Android first via direct .apk; iPhone gated on the directors' Apple Developer greenlight; Telegram bots retire only when Stage 3 + iPhone rollout are both live. Spec: `docs/superpowers/specs/2026-08-18-mobile-app-design.md`. Admin screens + FCFS board stay desktop-only; external installers keep their web links.
 
-**Second approved track: the assistant upgrade** (spec approved 2026-08-24) — four phases on the webapp: Sonnet 5 + thinking + Claude-grade UI/UX, read-only live-data tools + agentic KB search + per-user memory (only meaningful chats; Memory manager view), chat attachments → pending job creation (the one allowed action), and Projects. **Standing privacy rule (Nic 2026-08-24): assistant memory never crosses users — the digest vote → vault promotion is the only bridge from one person's chat to company knowledge.** Spec: `docs/superpowers/specs/2026-08-24-assistant-upgrade-design.md`. The stack table's "Claude (Sonnet 4.6)" row becomes Sonnet 5 when Phase 1 ships.
+**Second approved track: the assistant upgrade** (spec approved 2026-08-24) — four phases on the webapp. **Phase 1 shipped 2026-08-25** (Sonnet 5 + adaptive thinking + Claude-grade UI/UX — see plan.md). Remaining: read-only live-data tools + agentic KB search + per-user memory (only meaningful chats; Memory manager view — migration 0046), chat attachments → pending job creation (the one allowed action), and Projects (migration 0047). **Standing privacy rule (Nic 2026-08-24): assistant memory never crosses users — the digest vote → vault promotion is the only bridge from one person's chat to company knowledge.** Spec: `docs/superpowers/specs/2026-08-24-assistant-upgrade-design.md`.
 
 ---
 
@@ -37,7 +37,7 @@ Migration from the original React prototype to a feature-folder Next.js app with
 | Database / auth / realtime | **Supabase** | Postgres + magic-link auth + websockets + pgvector all in one. RLS enforces access control at DB layer. |
 | File storage | **Cloudflare R2** | S3-compatible, **zero egress fees** — critical for installers downloading photos on mobile data |
 | Image processing | **Cloudflare Images** | Auto-resize phone photos (8MB → thumbnails). $5/mo flat for 100k images. |
-| AI assistant | **Anthropic Claude (Sonnet 4.6)** | Pay-per-use API. Web search tool enabled. |
+| AI assistant | **Anthropic Claude (Sonnet 5)** | Pay-per-use API. Adaptive thinking + web search + prompt caching (since Phase 1, 2026-08-25). Haiku 4.5 for tagger/titles/suggest. |
 | Embeddings | **Voyage AI** | Anthropic's recommended embedding partner. Pairs cleanly with Claude. Single AI ecosystem rather than mixing vendors. ~$0.05–$0.12/M tokens. |
 | Notifications | **Telegram Bot API** | Team already uses Telegram. Free. |
 | Knowledge base | **Obsidian vault** | Markdown ownership, no vendor lock-in. Synced to Supabase nightly. |
