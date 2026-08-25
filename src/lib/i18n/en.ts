@@ -144,6 +144,14 @@ export const en = {
   assistantError: 'Something went wrong — please try again.',
   newChat: 'New chat',
   thinking: 'Thinking…',
+  writeMessage: 'Write a message…',
+  assistantThinking: 'Thinking…',
+  assistantSearching: 'Searching the web…',
+  stopGenerating: 'Stop',
+  attachComingSoon: 'Attachments — coming soon',
+  dictate: 'Dictate',
+  stopDictation: 'Stop dictation',
+  assistantGreeting: 'Good to see you, {name}',
 
   // ── Telegram notifications ─────────────────────────────────────────────────
   notifySaveBtn: 'Save & notify',

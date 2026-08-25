@@ -162,7 +162,7 @@ function ChatRow({
 
         <div className={cn('flex flex-col gap-0.5 min-w-0 flex-1', !isSelecting && (!mobile ? 'pr-10' : 'pr-8'))}>
           <span className="text-sm font-medium text-ink line-clamp-2 leading-tight">
-            {chat.pinned && !isSelecting && <span className="mr-1 text-amber text-[11px]">📌</span>}
+            {chat.pinned && !isSelecting && <Pin size={11} className="inline mr-1 -mt-0.5 text-amber" fill="currentColor" />}
             {topic}
           </span>
         </div>

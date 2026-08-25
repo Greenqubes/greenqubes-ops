@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-24 (feat-schedule — completed jobs can be reverted back to the schedule by every role except installer (server route, FCFS rank preserved, no Telegram); scheduler gets bulk Complete/Revert on the Schedule/Completed tabs; list cards + overdue bell cards show Installer/Sales/Coordinator lines with NIL fallback; installer-assignment Telegram header now reads Assigned/Changed/Removed)_
+_Last updated: 2026-08-24 (chore-assistant — assistant upgrade spec approved: 4 phases (Sonnet 5 brain + Claude-grade UI/UX → live-data tools + per-user memory → attachments → pending job → Projects); memory is strictly per-user, digest→vault stays the only cross-user knowledge bridge; build not started)_
 
 ---
 
@@ -24,6 +24,8 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. **The webapp is LAUNCHED — v1.0.0, declared by Nic 2026-08-18** (all necessary testing done; the planned alpha/beta/launch rounds were closed without being run). The webapp continues as the **desktop/office tool**.
 
 **Next milestone: the mobile app** — a native Android + iPhone app (React Native + Expo, one codebase in `mobile/`, same Supabase/R2/Vercel backend), built in 3 stages, Android first via direct .apk; iPhone gated on the directors' Apple Developer greenlight; Telegram bots retire only when Stage 3 + iPhone rollout are both live. Spec: `docs/superpowers/specs/2026-08-18-mobile-app-design.md`. Admin screens + FCFS board stay desktop-only; external installers keep their web links.
+
+**Second approved track: the assistant upgrade** (spec approved 2026-08-24) — four phases on the webapp: Sonnet 5 + thinking + Claude-grade UI/UX, read-only live-data tools + agentic KB search + per-user memory (only meaningful chats; Memory manager view), chat attachments → pending job creation (the one allowed action), and Projects. **Standing privacy rule (Nic 2026-08-24): assistant memory never crosses users — the digest vote → vault promotion is the only bridge from one person's chat to company knowledge.** Spec: `docs/superpowers/specs/2026-08-24-assistant-upgrade-design.md`. The stack table's "Claude (Sonnet 4.6)" row becomes Sonnet 5 when Phase 1 ships.
 
 ---
 

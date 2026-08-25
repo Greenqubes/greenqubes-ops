@@ -19,11 +19,13 @@ const PROVIDER_LINKS: Record<string, { label: string; url: string }> = {
   telegram:  { label: 'BotFather',            url: 'https://t.me/BotFather' },
 }
 
-// Anthropic pricing as of 2025 (Sonnet 4.6): $3/$15 per 1M in/out tokens
 // Voyage AI (voyage-3): $0.06 per 1M tokens
+// Anthropic is deliberately absent: its rows mix models (Sonnet 5 chat, Haiku
+// tagger/titles) plus prompt-cache discounts and flat per-search web fees, so a
+// flat-rate recompute from token totals can no longer match the logged cost —
+// the provider-dashboard comparison is the real check for that card.
 const PRICING: Record<string, { inPer1M: number; outPer1M: number }> = {
-  anthropic: { inPer1M: 3.00,  outPer1M: 15.00 },
-  voyage:    { inPer1M: 0.06,  outPer1M: 0     },
+  voyage: { inPer1M: 0.06, outPer1M: 0 },
 }
 
 // ── System health card ────────────────────────────────────────────────────────
