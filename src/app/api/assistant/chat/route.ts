@@ -1,10 +1,20 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { retrieveContext, formatContext } from '@/lib/ai/retrieve'
+import { retrievePastChats, formatPastChats } from '@/lib/ai/retrieve'
+import { executeTool } from '@/lib/ai/tool-runner'
+import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS } from '@/lib/ai/tool-schemas'
 import { logApiUsage } from '@/lib/supabase/queries/admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// All tools sent on every request. Tool definitions sit before the system
+// blocks in the prompt, so they are part of the cached prefix — keep them
+// byte-stable (they are module constants).
+const ALL_TOOLS: Anthropic.Messages.ToolUnion[] = [
+  ...TOOL_DEFINITIONS,
+  { type: 'web_search_20260209', name: 'web_search' },
+]
 
 // Sonnet 5 standard rates per 1M tokens (intro pricing through 2026-08-31 is
 // lower — we log at standard rates so this never needs a follow-up edit) plus
@@ -30,11 +40,18 @@ About the company and the app:
 - Job statuses are: pending (created, not yet on the schedule), scheduled, and completed.
 
 What you can and cannot do:
-- You may be given retrieved company knowledge and relevant past conversations in a later system section. Treat that material as your primary source when it answers the question, and mention which note or document the answer came from when that helps.
+- You may be given relevant past conversations with this user in a later system section — use them for continuity and preferences.
 - You can search the web for current, public information — prices, regulations, suppliers, technical specs, general knowledge. Use it when the question needs fresh or external facts; skip it when you already know the answer or the company knowledge already covers it.
-- You do NOT have live access to the schedule, jobs, or team database. If someone asks about today's jobs, a specific job's status, who is assigned where, or team availability, say plainly that you cannot see the live schedule yet and point them to the right place in the app (the Schedule tab, the FCFS board, or the job's own page).
+- You have live, read-only access to the schedule, jobs, team workload and clash checks through your tools. Look things up instead of guessing — never answer a live-schedule question from memory or from retrieved documents alone.
 - You cannot create, edit or delete anything in the app. Never imply that you have taken an action.
 - If you genuinely do not know something and cannot find it, say so directly. Never invent job details, prices, client information or company facts.
+
+Using your tools:
+- search_knowledge searches the company knowledge base (SOPs, supplier pricelists, client notes, procedures, contacts). Search it before answering company-specific questions; if the first search misses, retry once or twice with different wording, then say plainly what you could not find. Mention which note a fact came from when that helps.
+- get_schedule lists jobs in a date range; find_jobs searches jobs by name; get_job fetches one job's details, team and task list; get_team_workload shows every installer's bookings over a range; check_clashes tests whether an installer is free at a proposed date and time.
+- Every lookup runs under the asking user's own permissions. If a tool returns nothing, the user may simply not be allowed to see it — say you found nothing they can access, and never speculate about data you cannot see.
+- You have a limited number of tool calls per question. Be purposeful: fetch what you need, then answer. Independent lookups can be requested together in one turn.
+- Job money figures (quotes, supplier costs, margins) are not available to you. Point those questions to the Financials card on the job's own page.
 
 Terms the team uses (so you understand questions correctly):
 - "FCFS" — the first-come-first-served board schedulers use to rank jobs by when they were pushed to the schedule and assign installers for a day.
@@ -110,8 +127,9 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const ctx          = await retrieveContext(lastUserMsg)
-  const contextBlock = formatContext(ctx)
+  // Automatic per-user memory (the KB lookup moved into the search_knowledge tool)
+  const pastChats    = await retrievePastChats(lastUserMsg)
+  const contextBlock = formatPastChats(pastChats)
 
   const today = new Date().toLocaleDateString('en-SG', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -140,66 +158,116 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const stream = anthropic.messages.stream({
-          model:      'claude-sonnet-5',
-          max_tokens: 8192,
-          thinking:   { type: 'adaptive' },
-          system: [
-            { type: 'text', text: SYSTEM_PREFIX, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: volatileParts.join('\n') },
-          ],
-          messages,
-          tools: [{ type: 'web_search_20260209', name: 'web_search' }],
-        }, { signal: req.signal })
-
-        for await (const event of stream) {
-          if (event.type === 'content_block_start') {
-            const block = event.content_block
-            if (block.type === 'thinking') {
-              send({ type: 'status', key: 'thinking' })
-            } else if (block.type === 'server_tool_use') {
-              send({ type: 'status', key: 'searching' })
-            }
-          } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            send({ type: 'text', text: event.delta.text })
-          }
-        }
-
-        const final = await stream.finalMessage()
-
-        // Surface web search citations as link chips under the answer
+        // The agentic loop: stream → on tool_use execute → append results →
+        // continue. Cap MAX_TOOL_ROUNDS executions; the final round forces a
+        // text answer (tool_choice none + a budget note in the last results).
+        const convo: Anthropic.MessageParam[] = [...messages]
         const sources: { url: string; title: string }[] = []
-        for (const block of final.content) {
-          if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {
-            for (const result of block.content) {
-              if (result.type === 'web_search_result' && !sources.some(s => s.url === result.url)) {
-                sources.push({ url: result.url, title: result.title })
+        let tokensIn = 0, tokensOut = 0, cacheWrite = 0, cacheRead = 0, searches = 0
+        let forceAnswer = false
+
+        for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+          if (req.signal.aborted) break
+
+          const stream = anthropic.messages.stream({
+            model:      'claude-sonnet-5',
+            max_tokens: 8192,
+            thinking:   { type: 'adaptive' },
+            system: [
+              { type: 'text', text: SYSTEM_PREFIX, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: volatileParts.join('\n') },
+            ],
+            messages: convo,
+            tools:    ALL_TOOLS,
+            ...(forceAnswer ? { tool_choice: { type: 'none' as const } } : {}),
+          }, { signal: req.signal })
+
+          for await (const event of stream) {
+            if (event.type === 'content_block_start') {
+              const block = event.content_block
+              if (block.type === 'thinking') {
+                send({ type: 'status', key: 'thinking' })
+              } else if (block.type === 'server_tool_use') {
+                send({ type: 'status', key: 'searching' })
+              } else if (block.type === 'tool_use') {
+                send({ type: 'status', key: TOOL_STATUS_KEYS[block.name] ?? 'thinking' })
+              }
+            } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              send({ type: 'text', text: event.delta.text })
+            }
+          }
+
+          const final = await stream.finalMessage()
+
+          // Accumulate usage + web sources across rounds
+          const usage = final.usage
+          tokensIn   += usage.input_tokens
+          tokensOut  += usage.output_tokens
+          cacheWrite += usage.cache_creation_input_tokens ?? 0
+          cacheRead  += usage.cache_read_input_tokens ?? 0
+          searches   += usage.server_tool_use?.web_search_requests ?? 0
+          for (const block of final.content) {
+            if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {
+              for (const result of block.content) {
+                if (result.type === 'web_search_result' && !sources.some(s => s.url === result.url)) {
+                  sources.push({ url: result.url, title: result.title })
+                }
               }
             }
           }
+
+          if (final.stop_reason !== 'tool_use') break
+
+          const toolUses = final.content.filter(
+            (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+          )
+          // Thinking blocks must ride back unmodified alongside the tool_use
+          // blocks — push the response content as-is.
+          convo.push({ role: 'assistant', content: final.content as Anthropic.ContentBlockParam[] })
+
+          // Parallel tool calls execute concurrently; failures return
+          // is_error tool_results, never dropped (spec).
+          const results = await Promise.all(toolUses.map(async tu => {
+            const r = await executeTool(tu.name, tu.input)
+            return {
+              type: 'tool_result' as const,
+              tool_use_id: tu.id,
+              content: r.content,
+              ...(r.isError ? { is_error: true as const } : {}),
+            }
+          }))
+
+          // tool_result blocks must LEAD the user message; the budget note
+          // (cap reached) goes after them.
+          const content: Anthropic.ContentBlockParam[] = [...results]
+          if (round === MAX_TOOL_ROUNDS - 1) {
+            forceAnswer = true
+            content.push({
+              type: 'text',
+              text: 'Tool budget for this question is used up — answer now with the information you already have.',
+            })
+          }
+          convo.push({ role: 'user', content })
         }
+
         if (sources.length > 0) send({ type: 'sources', sources })
 
-        const usage      = final.usage
-        const cacheWrite = usage.cache_creation_input_tokens ?? 0
-        const cacheRead  = usage.cache_read_input_tokens ?? 0
-        const searches   = usage.server_tool_use?.web_search_requests ?? 0
         const cost =
-          (usage.input_tokens  / 1_000_000) * RATE.input +
-          (usage.output_tokens / 1_000_000) * RATE.output +
-          (cacheWrite          / 1_000_000) * RATE.cacheWrite +
-          (cacheRead           / 1_000_000) * RATE.cacheRead +
+          (tokensIn   / 1_000_000) * RATE.input +
+          (tokensOut  / 1_000_000) * RATE.output +
+          (cacheWrite / 1_000_000) * RATE.cacheWrite +
+          (cacheRead  / 1_000_000) * RATE.cacheRead +
           searches * RATE.perSearch
 
         void logApiUsage({
-          service:         'anthropic',
-          endpoint:        'messages.stream',
-          called_by:       profile.id,
-          tokens_in:       usage.input_tokens + cacheWrite + cacheRead,
-          tokens_out:      usage.output_tokens,
-          estimated_cost:  cost,
-          ip_address:      ip,
-          user_agent:      userAgent,
+          service:        'anthropic',
+          endpoint:       'messages.stream',
+          called_by:      profile.id,
+          tokens_in:      tokensIn + cacheWrite + cacheRead,
+          tokens_out:     tokensOut,
+          estimated_cost: cost,
+          ip_address:     ip,
+          user_agent:     userAgent,
         })
 
         send({ type: 'done' })
