@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2, Square } from 'lucide-react'
+import Link from 'next/link'
+import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2, Square, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
@@ -17,6 +18,7 @@ interface Message {
   status?:   string
   streaming?: boolean
   error?:    boolean
+  jobCard?:  { id: string; title: string | null }
 }
 
 interface Props {
@@ -75,7 +77,10 @@ export function FloatingChatPanel({ lang }: Props) {
   const saveConversation = useCallback(async (msgs: Message[]) => {
     const payload = msgs
       .filter(m => !m.streaming && !m.error)
-      .map(m => ({ role: m.role, content: m.content }))
+      .map(m => ({
+        role: m.role, content: m.content,
+        ...(m.jobCard ? { jobCard: m.jobCard } : {}),
+      }))
     if (payload.length < 2) return
     try {
       await fetch('/api/assistant/save', {
@@ -173,6 +178,7 @@ export function FloatingChatPanel({ lang }: Props) {
           let payload: {
             type: string; text?: string; key?: string
             sources?: { url: string; title: string }[]; message?: string
+            id?: string; title?: string | null
           }
           try { payload = JSON.parse(raw) } catch { continue }
 
@@ -185,6 +191,10 @@ export function FloatingChatPanel({ lang }: Props) {
           } else if (payload.type === 'sources' && payload.sources) {
             flush()
             setMessages(prev => prev.map(m => m.id === asstId ? { ...m, sources: payload.sources } : m))
+          } else if (payload.type === 'job_created' && payload.id) {
+            flush()
+            const jobCard = { id: payload.id, title: payload.title ?? null }
+            setMessages(prev => prev.map(m => m.id === asstId ? { ...m, jobCard } : m))
           } else if (payload.type === 'error') {
             flush()
             setMessages(prev => prev.map(m =>
@@ -389,6 +399,16 @@ function FloatingBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
             </p>
           )}
         </div>
+        {msg.jobCard && (
+          <Link
+            href={`/jobs/${msg.jobCard.id}`}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-terracotta/40 bg-terracotta/5 text-[11px] hover:border-terracotta transition-colors"
+          >
+            <ClipboardList size={12} className="text-terracotta shrink-0" />
+            <span className="font-medium text-ink truncate max-w-[180px]">{msg.jobCard.title || 'Untitled job'}</span>
+            <span className="text-muted shrink-0">{t(lang, 'assistantJobCreated')}</span>
+          </Link>
+        )}
         {msg.sources && msg.sources.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {msg.sources.map((src, i) => (
