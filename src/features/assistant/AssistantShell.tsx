@@ -14,6 +14,7 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
+import { statusLabelKey } from './statusLabels'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
@@ -22,7 +23,7 @@ export interface Message {
   role:      'user' | 'assistant'
   content:   string
   sources?:  { url: string; title: string }[]
-  status?:   'thinking' | 'searching'
+  status?:   string
   streaming?: boolean
   error?:    boolean
 }
@@ -341,7 +342,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
           if (payload.type === 'text' && payload.text) {
             queueText(payload.text)
           } else if (payload.type === 'status' && payload.key) {
-            setStatus(payload.key === 'searching' ? 'searching' : 'thinking')
+            setStatus(payload.key)
           } else if (payload.type === 'sources' && payload.sources) {
             flush()
             setMessages(prev =>
@@ -511,6 +512,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         onDelete={handleSidebarDelete}
         refreshTrigger={sidebarKey}
         optimisticChat={optimisticChat}
+        lang={lang}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />
@@ -638,9 +640,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
 
 function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
   const isUser = msg.role === 'user'
-  const statusLabel = msg.status === 'searching'
-    ? t(lang, 'assistantSearching')
-    : t(lang, 'assistantThinking')
+  const statusLabel = t(lang, statusLabelKey(msg.status))
 
   return (
     <div className={cn('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>

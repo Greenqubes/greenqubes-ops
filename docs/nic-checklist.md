@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-24 (chore-assistant — assistant upgrade spec approved, 4 phases; Phase 1 implementation plan is the next session's first job)_
+_Last updated: 2026-08-25 (feat-assistant — assistant upgrade Phase 1 SHIPPED to production; Phase 2 is next and needs migration 0046 — db push before code push)_
 
 ---
 
@@ -10,9 +10,10 @@ _Last updated: 2026-08-24 (chore-assistant — assistant upgrade spec approved, 
 
 ### Assistant upgrade (from 2026-08-24, chore-assistant — spec approved)
 
-- [ ] **Phase 1 build session** — say the word and Claude writes the Phase 1 implementation plan, then builds: Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources. No migration needed for Phase 1. Spec: [superpowers/specs/2026-08-24-assistant-upgrade-design.md](superpowers/specs/2026-08-24-assistant-upgrade-design.md).
-- [ ] **Phase 2 will need `npx supabase db push` (migration 0046)** and **Phase 4 another (0047)** — flagged now so they're expected; Claude will remind you at each build session (DB push before code push).
+- [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
+- [ ] **Phase 2 build session (next)** — say the word: live schedule/job/team lookups + real memory + Memory manager. **Needs `npx supabase db push` (migration 0046) BEFORE the code deploys**; **Phase 4 needs another (0047)** — Claude will remind you at each build session.
 - [ ] **(Later) Scratch-file cleanup** — chat attachments live in a scratch area in Cloudflare; a periodic cleanup for old scratch files is deferred out of the build (noted in the spec).
+- [ ] **Deferred Phase 2 security checks — run on PRODUCTION after all phases ship** (your call, 2026-08-25): (1) **real installer login** asks the assistant about a job they are NOT assigned to → it must find nothing and say so (preview-as doesn't test this — the database permission check needs a real login); (2) **two accounts** — nothing from account A's chats or Memory view may ever surface for account B. Both were points 4 and 5 of the Phase 2 preview smoke checklist.
 
 ### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
 
@@ -161,6 +162,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant — Assistant Upgrade Phase 1 SHIPPED)
+
+- [x] **[Nic] Phase 1 live on production** — the assistant now runs on Sonnet 5, thinks before answering, gives much longer answers, shows "Thinking…"/"Searching the web…" status lines, has a Stop button, and shows web source chips under answers. Repeat messages in a chat are cheaper thanks to prompt caching.
+- [x] **[Nic] New look verified by you** — smoother streaming (no more choppy scroll-fighting), two-row composer with mic dictation (browser feature — appears in Chrome/Safari, quietly absent in Firefox), no model picker; desktop sidebar with New chat on top; phone gets the app-like chat screen with the slide-in drawer.
+- [x] **[Nic] Your phone feedback folded in same day** — hamburger moved to the LEFT (matches the drawer side), assistant icon + title removed from the top bar, Home icon added on the right (goes to Schedule; installers to My Jobs). Bottom nav staying visible under the drawer accepted as-is (your call).
+- [x] **[Nic] API usage question answered** — it lives at Admin → Health → "API Usage Tracker" (30-day totals per service, not per-message rows). The amber "cost estimate drift" warning you spotted was a stale sanity check that can't work now that costs mix models, cache discounts and search fees — removed for the Anthropic card only; the real check (comparing against the Anthropic billing dashboard) stays.
+- [x] **[Nic] Phase 3 scratch-file question answered** — chat attachments will live in a per-person scratch area in Cloudflare (`asst-chat/…`), never in job files, whether or not a job gets created; the deferred scratch-cleanup checklist item covers the leftover files. Offer on the table: build a simple 30-day auto-cleanup during the Phase 3 session instead of deferring.
+- [x] **[Nic] AI importance tagger** — skipped, no changes (your call at session start).
+- [x] **[Nic] Smoke test passed → merged dev → main** — live on production same day.
 
 ---
 
