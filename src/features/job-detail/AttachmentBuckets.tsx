@@ -6,8 +6,9 @@ import { useToast } from '@/components/Toast'
 import { ImageLightbox } from '@/components/ImageLightbox'
 import {
   Image as ImageIcon, Paperclip, Link as LinkIcon, Trash2, Plus,
-  FileText, FileSpreadsheet, FileArchive, Download,
+  FileText, FileSpreadsheet, FileArchive, Download, FolderInput,
 } from 'lucide-react'
+import { MoveFileModal } from './MoveFileModal'
 import { cn } from '@/lib/utils/cn'
 import type { AttachmentBucket, BucketFile } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
@@ -38,10 +39,11 @@ interface Props {
   refreshKey?: number   // bump to re-pull from the server (live job-form events)
 }
 
-export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey }: Props) {
-  const [buckets,  setBuckets]  = useState<AttachmentBucket[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [lightbox, setLightbox] = useState<string | null>(null)
+export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refreshKey }: Props) {
+  const [buckets,    setBuckets]    = useState<AttachmentBucket[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [lightbox,   setLightbox]   = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState<BucketFile | null>(null)
   const supabase = createClient()
   const { success: showSuccess, error: showError } = useToast()
 
@@ -204,6 +206,19 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey 
     showSuccess('File deleted.')
   }
 
+  // A move is just the bucket_id column changing — re-home the file in state.
+  function handleMoved(fileId: string, toBucketId: string) {
+    setBuckets(prev => {
+      let moved: BucketFile | undefined
+      const stripped = prev.map(b => {
+        const found = b.files.find(f => f.id === fileId)
+        if (found) moved = { ...found, bucket_id: toBucketId }
+        return { ...b, files: b.files.filter(f => f.id !== fileId) }
+      })
+      return stripped.map(b => (b.id === toBucketId && moved) ? { ...b, files: [...b.files, moved] } : b)
+    })
+  }
+
   async function getDownloadUrl(r2Key: string, filename?: string): Promise<string> {
     const res = await fetch('/api/r2/download-url', {
       method: 'POST',
@@ -219,6 +234,15 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey 
   return (
     <div className="space-y-3">
       {lightbox && <ImageLightbox src={lightbox} onClose={() => setLightbox(null)} />}
+      {moveTarget && (
+        <MoveFileModal
+          file={moveTarget}
+          buckets={buckets.map(b => ({ id: b.id, name: b.name }))}
+          lang={lang}
+          onClose={() => setMoveTarget(null)}
+          onMoved={handleMoved}
+        />
+      )}
 
       {buckets.map(bucket => (
         <BucketCard
@@ -230,6 +254,7 @@ export function AttachmentBuckets({ jobId, userId, readOnly = false, refreshKey 
           onUpload={(file, isImg) => uploadFile(bucket, file, isImg)}
           onAddUrl={url => addUrl(bucket, url)}
           onDeleteFile={fileId => deleteFile(bucket.id, fileId)}
+          onMoveFile={file => setMoveTarget(file)}
           onImageClick={src => setLightbox(src)}
           getDownloadUrl={getDownloadUrl}
         />
@@ -259,12 +284,13 @@ interface BucketCardProps {
   onUpload:       (file: File, isImage: boolean) => void
   onAddUrl:       (url: string) => void
   onDeleteFile:   (fileId: string) => void
+  onMoveFile:     (file: BucketFile) => void
   onImageClick:   (src: string) => void
   getDownloadUrl: (key: string, filename?: string) => Promise<string>
 }
 
 function BucketCard({
-  bucket, readOnly, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onImageClick, getDownloadUrl,
+  bucket, readOnly, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onMoveFile, onImageClick, getDownloadUrl,
 }: BucketCardProps) {
   const [name,       setName]       = useState(bucket.name)
   const [urlModal,   setUrlModal]   = useState(false)
@@ -316,6 +342,7 @@ function BucketCard({
                 file={file}
                 readOnly={readOnly}
                 onDelete={() => onDeleteFile(file.id)}
+                onMove={() => onMoveFile(file)}
                 onImageClick={onImageClick}
                 getDownloadUrl={getDownloadUrl}
               />
@@ -379,10 +406,11 @@ function ActionBtn({ icon, label, onClick }: { icon: React.ReactNode; label: str
   )
 }
 
-function FileRow({ file, readOnly, onDelete, onImageClick, getDownloadUrl }: {
+function FileRow({ file, readOnly, onDelete, onMove, onImageClick, getDownloadUrl }: {
   file:           BucketFile
   readOnly:       boolean
   onDelete:       () => void
+  onMove:         () => void
   onImageClick:   (src: string) => void
   getDownloadUrl: (key: string, filename?: string) => Promise<string>
 }) {
@@ -431,6 +459,13 @@ function FileRow({ file, readOnly, onDelete, onImageClick, getDownloadUrl }: {
         <button type="button" onClick={handleClick} disabled={dlLoading}
           className="text-muted hover:text-ink transition-colors shrink-0">
           <Download size={13} />
+        </button>
+      )}
+
+      {!readOnly && (
+        <button type="button" onClick={onMove} title="Move to…"
+          className="text-muted opacity-0 group-hover:opacity-100 hover:text-ink transition-all shrink-0">
+          <FolderInput size={12} />
         </button>
       )}
 
