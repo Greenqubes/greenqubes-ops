@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid } from 'lucide-react'
+import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { Role } from '@/lib/supabase/types'
 
@@ -10,17 +10,19 @@ type Tab = { href: string; label: string; Icon: typeof Calendar }
 
 const TABS: Record<Role, Tab[]> = {
   scheduler: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+    { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
+    { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   sales: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/pending',   label: 'Pending',   Icon: Clock         },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+    { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
+    { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   // No FCFS for installers — the board is a scheduler/coordinator planning tool.
   // Installers only need to know the jobs they're on. (Nic's call, 2026-07-22.)
@@ -30,22 +32,25 @@ const TABS: Record<Role, Tab[]> = {
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
   admin: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+    { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
+    { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   coordinator: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+    { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
+    { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   designer: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
+    { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
+    { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   production: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },

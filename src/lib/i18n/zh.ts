@@ -297,4 +297,22 @@ export const zh: Partial<Translations> = {
   extBucketRestoreInfo: '同一专属链接将重新生效——原有书签即可继续使用。所有待回应、已接受和历史工作将原样恢复。',
   extBucketRestoreConfirm: '恢复联系人',
   extBucketSuspended: '个工作已暂停 · 恢复后重新生效',
+
+  // ── Design Load board (Task 10) ─────────────────────────────────────────────
+  designLoadTitle: '设计负载',
+  boardTab: '看板',
+  myJobsTab: '我的任务',
+  myJobsTodo: '待办',
+  myJobsReady: '待安装',
+  myJobsPast: '已过往',
+  urgency0: '未评分',
+  urgency1: '宽松',
+  urgency2: '较低',
+  urgency3: '中等',
+  urgency4: '较高',
+  urgency5: '紧急',
+  noDesigners: '尚未添加设计师',
+  openJobBtn: '打开项目',
+  lowConfidence: '置信度低',
+  untitledJob: '未命名工作',
 }

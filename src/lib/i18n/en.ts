@@ -412,6 +412,24 @@ export const en = {
   extBucketRestoreInfo: 'The same unique link will be reactivated — their existing bookmark works again. All pending, accepted, and past jobs are restored exactly as they were.',
   extBucketRestoreConfirm: 'Restore contact',
   extBucketSuspended: 'jobs suspended · Restore to reactivate',
+
+  // ── Design Load board (Task 10) ─────────────────────────────────────────────
+  designLoadTitle: 'Design Load',
+  boardTab: 'Board',
+  myJobsTab: 'My Jobs',
+  myJobsTodo: 'To-do',
+  myJobsReady: 'Ready to install',
+  myJobsPast: 'Past',
+  urgency0: 'Not scored',
+  urgency1: 'Relaxed',
+  urgency2: 'Low',
+  urgency3: 'Medium',
+  urgency4: 'High',
+  urgency5: 'Urgent',
+  noDesigners: 'No designers provisioned yet',
+  openJobBtn: 'Open job',
+  lowConfidence: 'Low confidence',
+  untitledJob: 'Untitled job',
 }
 
 export type Translations = typeof en
