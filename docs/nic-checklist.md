@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-25 (feat-assistant-3 — assistant upgrade Phase 3 SHIPPED to production, third same-day ship; no migration. Phase 4 (Projects) is the last one — it needs migration 0047 BEFORE its code deploys; Claude will remind you at that session)_
+_Last updated: 2026-08-26 (feat-assistant-4 — assistant upgrade Phase 4 (Projects) SHIPPED to production; migration 0047 applied before the code. **The four-phase assistant upgrade is COMPLETE.** Deferred security checks all passed on production same day; false-confession guard added to the assistant prompt)_
 
 ---
 
@@ -13,9 +13,9 @@ _Last updated: 2026-08-25 (feat-assistant-3 — assistant upgrade Phase 3 SHIPPE
 - [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
 - [x] **[Nic] Phase 2 build session — SHIPPED 2026-08-25** — live schedule/job/team lookups (always under the asker's own permissions), the assistant searches the knowledge base itself, real memory with the Memory view. You ran `npx supabase db push` (migration 0046) BEFORE the code deployed; preview smoke test passed and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase2.md](superpowers/plans/2026-08-25-assistant-upgrade-phase2.md).
 - [x] **[Nic] Phase 3 build session — SHIPPED 2026-08-25** — chat attachments (photos + PDF) → quick confirm → pending job with auto-filed buckets + a tappable job chip, Move-to-bucket on the job form, and the 30-day scratch cleanup built in the same session (your pick). No migration was needed. Smoke-tested by you on the preview (phone) and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase3.md](superpowers/plans/2026-08-25-assistant-upgrade-phase3.md).
-- [ ] **Phase 4 build session (next — the last one)** — say the word: Projects (folders in the sidebar, shared files + instructions per project, linked memory). **Needs migration 0047: run `npx supabase db push` BEFORE the code deploys** — Claude will walk you through it at that session.
-- [ ] **Phase 3 smoke test 4 — unsupported file rejection, on PC** — in the assistant chat, press +, switch the file dialog to "All Files", pick a Word/Excel file → expect the red "Only images (JPG, PNG, WebP, GIF) and PDF files can be attached" message and no upload. (Skipped on Android — the phone's picker filters unsupported files out before you can select them, which you confirmed 2026-08-25.)
-- [ ] **Deferred Phase 2 security checks — run on PRODUCTION after all phases ship** (your call, 2026-08-25): (1) **real installer login** asks the assistant about a job they are NOT assigned to → it must find nothing and say so (preview-as doesn't test this — the database permission check needs a real login); (2) **two accounts** — nothing from account A's chats or Memory view may ever surface for account B. Both were points 4 and 5 of the Phase 2 preview smoke checklist.
+- [x] **[Nic] Phase 4 build session — SHIPPED 2026-08-26 (the last one — upgrade COMPLETE)** — Projects: folders in the sidebar/drawer, per-project instructions + reference files (10 files / 20 MB) the assistant knows in every chat inside the project, linked memory, Move-to-project. Migration 0047 was applied BEFORE the code deployed (Claude ran `npx supabase db push` at your request — you were away from the PC). Your caps decision: 10 files / 20 MB (100 MB isn't possible — the AI service caps one request at 32 MB and re-reads every project file on every message). Health-tab usage window filter (30 days / 7 days / Today) shipped in the same session. Smoke-tested by you on the preview (phone) and merged to main same day. Plan: [superpowers/plans/2026-08-26-assistant-upgrade-phase4.md](superpowers/plans/2026-08-26-assistant-upgrade-phase4.md).
+- [x] **[Nic] Phase 3 smoke test 4 — unsupported file rejection, on PC** — PASSED 2026-08-26: the red "Only images … and PDF files can be attached" message shows and nothing uploads.
+- [x] **[Nic] Deferred Phase 2 security checks — ALL PASSED on production 2026-08-26**: (1) real installer login asked about an unassigned job → the assistant found nothing and said so (the assigned job's details were correct); (2) two accounts — no chats, memories or projects crossed between accounts. Side-catch during the installer test: the assistant wrongly "confessed" to not having verified an earlier (correct) answer — root cause: its past lookups aren't kept in the conversation history, so it speculated. Fixed same day with a standing-instruction line (never speculate about past checks; just re-check) — shipped dev→main.
 
 ### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
 
@@ -169,6 +169,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-26, feat-assistant-4 — Assistant Upgrade Phase 4 SHIPPED, Upgrade COMPLETE)
+
+- [x] **[Nic] Phase 4 live on production — the whole assistant upgrade is done** — the assistant now has Projects: folders that group your chats, each with its own instructions and reference files the assistant automatically knows in every chat inside it, and chats in the same project remember each other. Move any chat in or out from its ⋮ menu; deleting a project keeps its chats.
+- [x] **[Nic] Decision — project file limits: 10 files / 20 MB per project** — you asked about 100 MB; not possible: the AI re-reads every project file on every message, and one request to the AI service is capped at 32 MB (plus page/reading limits). For big document libraries the knowledge base (vault) is the right home — the assistant searches it instead of re-reading it.
+- [x] **[Nic] Migration 0047 applied by Claude at your request** — you were away from the PC; dry-run first, applied, verified up to date. Code pushed only after.
+- [x] **[Nic] Health tab: API usage filter live** — 30 days / 7 days / Today buttons on the usage tracker (Today counts from midnight Singapore time).
+- [x] **[Nic] Deferred security checks — all three passed on production** (see the ticked items at the top).
+- [x] **[Nic] "False confession" fixed same day** — during the installer test the assistant apologised for supposedly not verifying an answer that was actually correct (it can't see its own past lookups in a continued chat, so it guessed). A standing-instruction line now tells it to simply re-check instead of speculating — your call: "false confession erodes trust". Live on production.
+- [x] **[Nic] Preview smoke passed (phone) → merged dev → main twice** — Phase 4, then the confession guard.
 
 ---
 
