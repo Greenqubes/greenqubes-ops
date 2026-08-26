@@ -15,6 +15,7 @@ import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
 import { AttachmentBuckets } from './AttachmentBuckets'
+import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
@@ -30,7 +31,7 @@ import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
-import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
+import type { JobDetail, InstallerUser, JobMessage, AttachmentBucket } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
@@ -176,6 +177,19 @@ export function JobDetailShell({
   // right after a successful save, and — worse — let a second save PATCH the
   // stale pre-shift date back over the server's own shift).
   const [dueDateBaseline, setDueDateBaseline] = useState<string | null>(job.design_due_date ?? null)
+
+  // Design-completed flow (Task 8). `buckets` is AttachmentBuckets' own
+  // fetched state, lifted up via onBucketsChange — the designer completion
+  // button gates on the real DESIGNER JO bucket's file count this way,
+  // without a second, possibly-stale buckets query living in the shell too.
+  const [designCompletedAt,       setDesignCompletedAt]       = useState<string | null>(job.design_completed_at ?? null)
+  const [buckets,                 setBuckets]                 = useState<AttachmentBucket[]>([])
+  const [designSliderOpen,        setDesignSliderOpen]        = useState(false)
+  const [designSubmitting,        setDesignSubmitting]        = useState(false)
+  const [showDesignCompleteModal, setShowDesignCompleteModal] = useState(false)
+  const [designCompleteSubmitting, setDesignCompleteSubmitting] = useState(false)
+  const [showDesignReopenModal,   setShowDesignReopenModal]   = useState(false)
+  const [designReopening,         setDesignReopening]         = useState(false)
 
   const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
   const handleBriefText = (v: string) => {
@@ -476,6 +490,94 @@ export function JobDetailShell({
     }
   }
 
+  // Reads a JSON { error } body off a failed response, if there is one —
+  // used to turn a 409 no-jo-file into the same hint text as the disabled
+  // button, instead of the generic save-failed toast.
+  const errorCodeOf = async (res: Response): Promise<string | null> => {
+    try {
+      const body = await res.json() as { error?: string }
+      return body.error ?? null
+    } catch {
+      return null
+    }
+  }
+
+  // Designer path: POSTs the confirmed rating from the inline slider panel.
+  const handleDesignComplete = async (rating: number) => {
+    setDesignSubmitting(true)
+    bumpSuppression()
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/design-complete`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ rating }),
+      })
+      if (!res.ok) {
+        if (res.status === 409 && await errorCodeOf(res) === 'no-jo-file') {
+          showError(t(lang, 'designCompletedNeedsJo'))
+          return
+        }
+        throw new Error()
+      }
+      setDesignCompletedAt(new Date().toISOString())
+      setDesignSliderOpen(false)
+      showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setDesignSubmitting(false)
+    }
+  }
+
+  // Scheduler/admin override path — no rating, straight confirm.
+  const handleDesignCompleteOverride = async () => {
+    setDesignCompleteSubmitting(true)
+    bumpSuppression()
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/design-complete`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({}),
+      })
+      if (!res.ok) {
+        if (res.status === 409 && await errorCodeOf(res) === 'no-jo-file') {
+          showError(t(lang, 'designCompletedNeedsJo'))
+          setShowDesignCompleteModal(false)
+          return
+        }
+        throw new Error()
+      }
+      setDesignCompletedAt(new Date().toISOString())
+      setShowDesignCompleteModal(false)
+      showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setDesignCompleteSubmitting(false)
+    }
+  }
+
+  // Scheduler/admin only — clears the completion + rating, job reappears on
+  // the Design Load board (design_completed_at is null there).
+  const handleDesignReopen = async () => {
+    setDesignReopening(true)
+    bumpSuppression()
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/design-reopen`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      setDesignCompletedAt(null)
+      setShowDesignReopenModal(false)
+      showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setDesignReopening(false)
+    }
+  }
+
   const handleDuplicate = async () => {
     setDuplicating(true)
     try {
@@ -607,6 +709,13 @@ export function JobDetailShell({
   const showMarkComplete   = role === 'scheduler' && status === 'scheduled'
   const originalSalesPocId = job.sales_poc_id ?? ''
 
+  // Design-completed flow (Task 8). hasJoFile mirrors the route's own
+  // `ilike '%designer jo%'` + files-count check, so the button's disabled
+  // state and the server's 409 always agree.
+  const joBucket = buckets.find(b => /designer\s*jo/i.test(b.name))
+  const hasJoFile = !!joBucket && joBucket.files.length > 0
+  const canOverrideDesign = role === 'scheduler'   // effective role — covers admin (getEffectiveRole never returns 'admin' itself)
+
   const isInstallerDirty = useMemo(() => {
     const a = new Set(selectedInstallerIds)
     const b = new Set(initialAssigneeIds)
@@ -711,6 +820,7 @@ export function JobDetailShell({
     setDueManual(job.design_due_manual ?? false)
     setBriefError(false)
     setStaleBanner(false)
+    setDesignCompletedAt(job.design_completed_at ?? null)
   }, [job])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Banner tap — the only path that discards unsaved edits, and it's explicit.
@@ -1046,12 +1156,19 @@ export function JobDetailShell({
         files={
           <div className="flex flex-col gap-4">
             <CollapseCard title={t(lang, 'attachments')} storageKey="gq-jobcard-attachments">
+              {/* Designers get FULL Files access here — uploads, URL links,
+                  add bucket — identical to sales (Task 8, 2026-08-26). No
+                  designer-specific readOnly flag: `completed` (job status)
+                  and `isInstaller` are the only two gates. The Designer JO
+                  bucket's own rename/delete controls are protected for
+                  every role inside AttachmentBuckets itself. */}
               <AttachmentBuckets
                 jobId={job.id}
                 userId={userId}
                 lang={lang}
                 readOnly={readOnly || isInstaller}
                 refreshKey={bucketsRefreshKey}
+                onBucketsChange={setBuckets}
               />
             </CollapseCard>
             <TaskListSection
@@ -1122,6 +1239,26 @@ export function JobDetailShell({
                     {t(lang, 'revertJob')}
                   </button>
                 )}
+                {canOverrideDesign && initialDesignerIds.length > 0 && !designCompletedAt && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDesignCompleteModal(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors"
+                  >
+                    <CheckCircle size={12} />
+                    {t(lang, 'designCompletedBtn')}
+                  </button>
+                )}
+                {canOverrideDesign && designCompletedAt && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDesignReopenModal(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors"
+                  >
+                    <RotateCcw size={12} />
+                    {t(lang, 'designReopenBtn')}
+                  </button>
+                )}
                 {canEditCore && (
                   <button
                     type="button"
@@ -1144,7 +1281,45 @@ export function JobDetailShell({
                   Cancel
                 </button>
               </div>
-              {readOnly || role === 'designer' ? null : role === 'sales' ? (
+              {readOnly ? null : role === 'designer' ? (
+                <div>
+                  {/* Inline rating panel — height-animated, stays inside this
+                      sticky action-bar container so it layers above BottomNav
+                      (z-50) without a modal/popup (Nic, 2026-08-26). */}
+                  <div className={cn(
+                    'overflow-hidden transition-[max-height] duration-300 ease-in-out',
+                    designSliderOpen ? 'max-h-[240px]' : 'max-h-0',
+                  )}>
+                    <DesignRatingSlider
+                      lang={lang}
+                      busy={designSubmitting}
+                      onCancel={() => setDesignSliderOpen(false)}
+                      onConfirm={handleDesignComplete}
+                    />
+                  </div>
+                  {!designSliderOpen && (
+                    designCompletedAt ? (
+                      <div className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-[10px] bg-brand-green-soft text-brand-green text-sm font-semibold">
+                        {t(lang, 'designCompletedDone')}
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setDesignSliderOpen(true)}
+                          disabled={!hasJoFile}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-brand-green text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {t(lang, 'designCompletedBtn')}
+                        </button>
+                        {!hasJoFile && (
+                          <p className="text-center text-xs text-muted mt-1.5">{t(lang, 'designCompletedNeedsJo')}</p>
+                        )}
+                      </>
+                    )
+                  )}
+                </div>
+              ) : role === 'sales' ? (
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -1243,6 +1418,40 @@ export function JobDetailShell({
             </Btn>
             <Btn variant="primary" size="sm" onClick={handleRevertComplete} disabled={reverting}>
               {reverting ? t(lang, 'loading') : t(lang, 'revertJob')}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showDesignCompleteModal} onClose={() => setShowDesignCompleteModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'designCompleteConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'designCompleteConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowDesignCompleteModal(false)} disabled={designCompleteSubmitting}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleDesignCompleteOverride} disabled={designCompleteSubmitting}>
+              {designCompleteSubmitting ? t(lang, 'loading') : t(lang, 'confirm')}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showDesignReopenModal} onClose={() => setShowDesignReopenModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'designReopenConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'designReopenConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowDesignReopenModal(false)} disabled={designReopening}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleDesignReopen} disabled={designReopening}>
+              {designReopening ? t(lang, 'loading') : t(lang, 'designReopenBtn')}
             </Btn>
           </div>
         </div>
