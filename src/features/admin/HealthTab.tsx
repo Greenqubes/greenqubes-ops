@@ -11,6 +11,14 @@ type HealthData = {
   unusual: UnusualEvent[]
 }
 
+type UsageWindow = '30d' | '7d' | 'today'
+
+const WINDOW_LABELS: Record<UsageWindow, string> = {
+  '30d': 'last 30 days',
+  '7d':  'last 7 days',
+  today: 'today',
+}
+
 // ── Provider links — manual comparison shortcuts ──────────────────────────────
 const PROVIDER_LINKS: Record<string, { label: string; url: string }> = {
   anthropic: { label: 'Anthropic dashboard', url: 'https://console.anthropic.com/settings/billing' },
@@ -73,7 +81,7 @@ function SystemChecks({ checks }: { checks: HealthCheck[] }) {
 
 // ── Usage card (per service) ──────────────────────────────────────────────────
 
-function UsageCard({ summary }: { summary: UsageSummary }) {
+function UsageCard({ summary, windowLabel }: { summary: UsageSummary; windowLabel: string }) {
   const link     = PROVIDER_LINKS[summary.service]
   const pricing  = PRICING[summary.service]
 
@@ -96,7 +104,7 @@ function UsageCard({ summary }: { summary: UsageSummary }) {
       <div className="flex items-center justify-between mb-3">
         <p className="font-medium text-sm text-ink capitalize">{summary.service}</p>
         <span className="text-[11px] uppercase tracking-widest text-muted font-medium">
-          last 30 days
+          {windowLabel}
         </span>
       </div>
 
@@ -273,12 +281,13 @@ export function HealthTab() {
   const [data,    setData]    = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadErr, setLoadErr] = useState<string | null>(null)
+  const [window,  setWindow]  = useState<UsageWindow>('30d')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (win: UsageWindow) => {
     setLoading(true)
     setLoadErr(null)
     try {
-      const res  = await fetch('/api/admin/health')
+      const res  = await fetch(`/api/admin/health?window=${win}`)
       const json = await res.json() as HealthData | { error: string }
       if (!res.ok) throw new Error((json as { error: string }).error ?? `HTTP ${res.status}`)
       setData(json as HealthData)
@@ -289,14 +298,16 @@ export function HealthTab() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(window) }, [load, window])
 
-  if (loading) return <p className="text-sm text-muted py-6 text-center">Running checks…</p>
+  // Blank-page loader only before the first payload — window switches keep
+  // the previous numbers visible (dimmed) instead of flashing the page away.
+  if (loading && !data) return <p className="text-sm text-muted py-6 text-center">Running checks…</p>
   if (loadErr) return (
     <div className="rounded-card border border-terracotta/30 bg-terracotta/5 p-4">
       <p className="text-sm font-medium text-terracotta mb-1">Failed to load health data</p>
       <p className="text-xs text-ink2">{loadErr}</p>
-      <button onClick={load} className="mt-2 text-xs text-muted underline underline-offset-2">Retry</button>
+      <button onClick={() => load(window)} className="mt-2 text-xs text-muted underline underline-offset-2">Retry</button>
     </div>
   )
   if (!data) return null
@@ -315,17 +326,36 @@ export function HealthTab() {
 
       {/* API usage tracker */}
       <div>
-        <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-1">
-          API usage tracker — last 30 days
-        </p>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-[11px] uppercase tracking-widest text-muted font-medium">
+            API usage tracker — {WINDOW_LABELS[window]}
+          </p>
+          <div className="flex items-center gap-1 shrink-0">
+            {(['30d', '7d', 'today'] as const).map(w => (
+              <button
+                key={w}
+                onClick={() => setWindow(w)}
+                disabled={loading}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                  window === w
+                    ? 'bg-terracotta text-white border-terracotta'
+                    : 'border-line text-ink2 hover:border-ink2',
+                )}
+              >
+                {w === '30d' ? '30 days' : w === '7d' ? '7 days' : 'Today'}
+              </button>
+            ))}
+          </div>
+        </div>
         <p className="text-xs text-muted mb-3">
           Compare our internal logs against each provider's billing page to detect
           API key misuse outside this app.
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className={cn('grid grid-cols-1 lg:grid-cols-2 gap-3', loading && 'opacity-60 pointer-events-none transition-opacity')}>
           {ALL_SERVICES.map(svc =>
             servicesWithData.has(svc)
-              ? <UsageCard key={svc} summary={usageMap.get(svc)!} />
+              ? <UsageCard key={svc} summary={usageMap.get(svc)!} windowLabel={WINDOW_LABELS[window]} />
               : <UsagePlaceholder key={svc} service={svc} />,
           )}
         </div>
@@ -335,7 +365,7 @@ export function HealthTab() {
       <UnusualFeed events={data.unusual} />
 
       <button
-        onClick={load}
+        onClick={() => load(window)}
         className="text-xs text-muted underline underline-offset-2 hover:text-ink2 text-center pb-2"
       >
         Refresh
