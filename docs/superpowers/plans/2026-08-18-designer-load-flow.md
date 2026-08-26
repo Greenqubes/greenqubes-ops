@@ -10,6 +10,18 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-18-design-load-design.md`
 
+> **Amended 2026-08-26** (spec updated same day — the spec is authoritative):
+> migration renumbered **0048** (0046/0047 taken by the assistant-upgrade
+> session) · designers get FULL Files-tab access (not JO-bucket-only) ·
+> Designer JO bucket protected from rename/delete · required 1–5 rating
+> slider at completion (inline, no popup; also on the bell-Yes path; skipped
+> on scheduler/admin override) · rating trust check + admin Flagged strip ·
+> NO mid-flight score correction · designer Board | My Jobs toggle (To-do /
+> Ready to install / Past) · due date auto-shifts with install-date moves
+> (gap preserved, clamps at today, designers notified) · re-score only on
+> real content change · Duplicate copies brief text + files only · Reopen
+> design for scheduler/admin.
+
 ## Global Constraints
 
 - **Branch:** ALL work on `feat-designer-load-flow`. Never commit to `dev` or `main` (Nic's call, 2026-08-18 — clean-cut like `feat-workflow-v2`).
@@ -28,7 +40,7 @@
 ## Task 1: Migration 0046 + TypeScript types
 
 **Files:**
-- Create: `supabase/migrations/0046_design_load.sql`
+- Create: `supabase/migrations/0048_design_load.sql`
 - Modify: `src/lib/supabase/types.ts` (jobs Row/Insert/Update + two new table types)
 
 **Interfaces:**
@@ -44,7 +56,7 @@ If the files INSERT policy is restricted to specific roles that exclude `designe
 - [ ] **Step 2: Write the migration**
 
 ```sql
--- Migration: 0046_design_load
+-- Migration: 0048_design_load
 -- Designer Load Flow: job_designers join table, design columns on jobs,
 -- design_scores history, design_brief file kind, realtime for job_designers.
 
@@ -97,7 +109,10 @@ alter table jobs
   add column design_score_reason text,
   add column design_scored_at    timestamptz,
   add column design_completed_at timestamptz,
-  add column design_completed_by uuid;  -- plain uuid, NO users FK (the 0035 lesson)
+  add column design_completed_by uuid,  -- plain uuid, NO users FK (the 0035 lesson)
+  add column design_rated_complexity int check (design_rated_complexity between 1 and 5),
+  add column design_rating_suspect boolean not null default false,
+  add column design_rating_resolution text check (design_rating_resolution in ('kept','discarded'));
 
 -- 3. design_scores append-only history (admin AI Scores tab)
 create table design_scores (
@@ -149,6 +164,9 @@ design_score_reason: string | null
 design_scored_at:    string | null
 design_completed_at: string | null
 design_completed_by: string | null
+design_rated_complexity: number | null
+design_rating_suspect: boolean
+design_rating_resolution: 'kept' | 'discarded' | null
 ```
 
 Add the same keys as optional to the jobs `Insert`/`Update` types (match how `r2_folder` is declared). Add two new table blocks following the shape of existing tables:
@@ -181,8 +199,8 @@ Run: `npm run type-check` — Expected: PASS (nothing consumes the new types yet
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/0046_design_load.sql src/lib/supabase/types.ts
-git commit -m "feat: migration 0046 - job_designers, jobs design columns, design_scores"
+git add supabase/migrations/0048_design_load.sql src/lib/supabase/types.ts
+git commit -m "feat: migration 0048 - job_designers, jobs design columns, design_scores"
 ```
 
 - [ ] **Step 6: Tell Nic to run `npx supabase db push`**
@@ -547,9 +565,29 @@ A `CollapseCard` (same wrapper the other cards use) titled with key `designBrief
 3. Due date row: date input bound to `dueDate`. When `dueManual === false` and a date exists, show an `'AI suggested'` pill (en) / `'AI 建议'` (zh) beside it; user editing the field calls `onDueDate` and the parent sets `dueManual = true`.
 4. Whiteboard placeholder: disabled dashed-border button, key `whiteboardSoon` — en `'Whiteboard — coming soon'`, zh `'白板 — 即将推出'` (mirror the old "Duplicate (WIP)" placeholder styling).
 
-- [ ] **Step 2: Mount + PATCH plumbing**
+- [ ] **Step 2: Mount + PATCH plumbing (incl. due-date auto-shift + Duplicate)**
 
 JobDetailShell: state `briefText/dueDate/dueManual` seeded from the job row; include `design_brief`, `design_due_date`, `design_due_manual` in the PATCH body of Save Changes; add them to the allowed-fields handling in `src/app/api/jobs/[id]/route.ts` (read the route first — extend whatever whitelist/passthrough pattern it uses). NewJobShell: same card, brief text passed into the create payload (`design_brief` on insert), attachments unlocked after save like Files/Chat.
+
+**Due-date auto-shift (server-side, in the PATCH route):** when the incoming body changes `date` (install date) on a job that has a `design_due_date`, shift the due date by the same delta — the lead-time gap is preserved regardless of `design_due_manual` (spec, Nic 2026-08-26). Clamp at today. Use `daysBetween` from Task 2:
+
+```typescript
+// inside the PATCH handler, before writing, when body.date && body.date !== job.date
+if (job.design_due_date) {
+  const delta = daysBetween(job.date, body.date)          // signed days moved
+  const shifted = addDaysISO(job.design_due_date, delta)  // add helper below
+  const todayISO = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10) // SGT, same as fcfs page
+  updates.design_due_date = shifted < todayISO ? todayISO : shifted
+  // notify each assigned designer: bell always; Telegram only when delta < 0
+  // (insert notifications type 'design_due_shift', title = project title,
+  //  body = `${oldDue} → ${newDue}`; Telegram via a small tplDesignDueShift
+  //  template next to tplDesignAssigned — same style, "⏰ Design Due Date Moved")
+}
+```
+
+Add `addDaysISO(iso: string, days: number): string` to `design-urgency.ts` with a test in its test file (`check('addDaysISO', addDaysISO('2026-09-15', -8), '2026-09-07')` — Nic's own example). The AI still never re-proposes over a manual date; the shift is mechanical.
+
+**Duplicate:** in `src/app/api/jobs/[id]/duplicate/route.ts`, copy `design_brief` (text) into the new job and copy `design_brief`-kind files as true R2 copies (the route already does this for buckets/production photos — reuse its `copyObject` loop). Never copy: designers, `design_due_date`, `design_due_manual`, any `design_*` score/completion/rating column (they stay at column defaults).
 
 - [ ] **Step 3: Wire the required rule into Save**
 
@@ -671,7 +709,7 @@ photo-real mockups wanted; client known for many revision rounds; site measureme
 `scoreDesignJob(jobId, trigger)` (service client throughout):
 1. Load job (`design_brief, design_due_manual, design_due_date, date, design_completed_at, status`); bail silently if brief text empty/whitespace, `design_completed_at` set, or no `job_designers` rows.
 2. Load `design_brief` files for the job. For up to 3 files with `content-type` pdf/image and size ≤ 10MB: fetch bytes server-side via the existing R2 GET helper (see how `/api/r2/download-url` builds signed URLs — sign, fetch, base64) and attach as `document`/`image` content blocks; remaining files are named in the prompt only.
-3. History: last 5 jobs with `design_completed_at not null and design_brief not null`, computing `daysTaken` from earliest `job_designers.assigned_at` to `design_completed_at`.
+3. History: last 5 jobs with `design_completed_at not null and design_brief not null`, computing `daysTaken` from earliest `job_designers.assigned_at` to `design_completed_at`. The `complexity` fed into each history line is the **designer's rating when trusted** (`design_rated_complexity` where `design_rating_suspect = false` OR `design_rating_resolution = 'kept'`), else the AI's `design_complexity` — quarantined ratings never teach (spec trust check).
 4. Call `anthropic.messages.create` with `pickModel(files.length > 0)`, `max_tokens: 400`; parse the JSON (strip anything outside the outermost braces before `JSON.parse`; on parse failure log + return, leaving the job unscored).
 5. Write `jobs`: `design_complexity, design_confidence, design_score_reason, design_scored_at = now`; plus `design_due_date = proposed_due` ONLY when `design_due_manual === false`. Insert the `design_scores` row (`trigger_kind: trigger`). `void logApiUsage({ service: 'anthropic', endpoint: 'design-score', ... })` with the Haiku rates from the suggest route or Sonnet rates (~$3/M in, ~$15/M out).
 
@@ -680,7 +718,7 @@ photo-real mockups wanted; client known for many revision rounds; site measureme
 - [ ] **Step 5: Wire the triggers**
 
 - `designers/route.ts`: replace the landmark with `void scoreDesignJob(jobId, 'assign')` after a successful set with `added.length > 0`.
-- `jobs/[id]/route.ts` PATCH: after a successful update, if the incoming body touched `design_brief`, `date`, or `design_due_date` (manual edit), fire `void scoreDesignJob(id, body.design_brief !== undefined ? 'brief_change' : 'date_change')`. A brief-file upload also re-scores: add the same fire-and-forget call in the `files` insert path used by the brief card IF that path is a server route; if the insert is client-side, POST a lightweight `{ rescore: true }` PATCH after upload instead.
+- `jobs/[id]/route.ts` PATCH: after a successful update, fire scoring ONLY when content **actually changed** (spec: a save resubmitting the same values must not re-score — diff the pre-update row against the incoming body): `const briefChanged = body.design_brief !== undefined && body.design_brief !== job.design_brief; const dateChanged = body.date !== undefined && body.date !== job.date;` then `if (briefChanged || dateChanged) void scoreDesignJob(id, briefChanged ? 'brief_change' : 'date_change')`. A brief-file upload also re-scores: add the same fire-and-forget call in the `files` insert path used by the brief card IF that path is a server route; if the insert is client-side, POST a lightweight `{ rescore: true }` PATCH after upload instead (the rescore flag bypasses the diff, nothing else).
 
 - [ ] **Step 6: Verify live** — dev server with real env: fill a brief on a designer-assigned job, save, then reload after ~10s: complexity/reason populated, `design_scores` row exists (visible later in Task 10's tab; for now check via the due-date pill appearing). Confirm an api_usage row appears in Admin → Health.
 
@@ -697,16 +735,20 @@ git commit -m "feat: AI design scoring engine - Haiku/Sonnet routing, baseline t
 
 **Files:**
 - Create: `src/app/api/jobs/[id]/design-complete/route.ts`
+- Create: `src/app/api/jobs/[id]/design-reopen/route.ts`
 - Create: `src/lib/utils/design-reminder.ts` + Test: `src/lib/utils/design-reminder.test.ts`
-- Modify: `src/features/job-detail/JobDetailShell.tsx` (designer action bar + JO-bucket upload unlock)
-- Modify: `src/features/job-detail/AttachmentBuckets.tsx` (designer may upload to the DESIGNER JO bucket only)
+- Create: `src/lib/utils/design-rating-trust.ts` + Test: `src/lib/utils/design-rating-trust.test.ts`
+- Modify: `src/features/job-detail/JobDetailShell.tsx` (designer action bar with inline rating slider)
+- Modify: `src/features/job-detail/AttachmentBuckets.tsx` (designers get FULL access; Designer JO bucket protected from rename/delete for everyone)
 - Modify: `src/lib/i18n/en.ts`, `src/lib/i18n/zh.ts`
 
 **Interfaces:**
 - Consumes: jobs design columns (Task 1)
 - Produces:
-  - `POST /api/jobs/[id]/design-complete` → `{ ok: true }`. Allowed: an assigned designer of the job, scheduler, admin. 409 `{ error: 'no-jo-file' }` when the job has no file in its DESIGNER JO bucket (server-checked: `attachment_buckets` row for the job whose name matches `DESIGNER JO` case-insensitively, with ≥1 `files` row). Sets `design_completed_at = now()`, `design_completed_by = <users.id>` via service client.
+  - `POST /api/jobs/[id]/design-complete` body `{ rating?: number }` → `{ ok: true }`. Allowed: an assigned designer of the job, scheduler, admin. **Designer path requires `rating` 1–5** (400 `{ error: 'rating-required' }` without it); scheduler/admin override path ignores any rating (no fake data). 409 `{ error: 'no-jo-file' }` when the job has no file in its DESIGNER JO bucket (server-checked: `attachment_buckets` row for the job whose name matches `DESIGNER JO` case-insensitively, with ≥1 `files` row). Sets `design_completed_at = now()`, `design_completed_by = <users.id>`, and on the designer path `design_rated_complexity` + `design_rating_suspect` (from `ratingSuspect`, below) via service client.
+  - `POST /api/jobs/[id]/design-reopen` → `{ ok: true }`. Scheduler/admin only (mirror the role gate of the existing `revert-complete` route — read it first, it's the same shape). Clears `design_completed_at/by`, `design_rated_complexity`, `design_rating_suspect` → false, `design_rating_resolution` → null. The job reappears on the board (it derives from `design_completed_at is null`).
   - `reminderDue(input: { joUploadedAtISO: string | null; completedAtISO: string | null; lastReminderAtISO: string | null; nowISO: string }): boolean` — consumed by the Task 9 cron.
+  - `ratingSuspect(input: { rating: number; aiComplexity: number | null; daysTaken: number }): boolean` — consumed by design-complete and shown in Task 11's Flagged strip.
 
 - [ ] **Step 1: TDD the reminder rule**
 
@@ -745,6 +787,55 @@ export function reminderDue(input: {
 
 Re-run → all ✓. Commit: `git add src/lib/utils/design-reminder.* && git commit -m "feat: 3-day design reminder eligibility rule"`
 
+Then TDD the trust check the same way (`design-rating-trust.test.ts`):
+
+```typescript
+import { ratingSuspect, impliedComplexityFromDays } from './design-rating-trust'
+
+// time evidence: days taken → implied complexity band
+check('half day implies 1', impliedComplexityFromDays(0.5), 1)
+check('one day implies 2',  impliedComplexityFromDays(1), 2)
+check('two days implies 3', impliedComplexityFromDays(2), 3)
+check('four days implies 4', impliedComplexityFromDays(4), 4)
+check('six days implies 5', impliedComplexityFromDays(6), 5)
+// suspect only when the rating disagrees >=2 with BOTH witnesses
+check('agrees with AI → trusted', ratingSuspect({ rating: 4, aiComplexity: 4, daysTaken: 0.5 }), false)
+check('agrees with time → trusted', ratingSuspect({ rating: 4, aiComplexity: 2, daysTaken: 4 }), false)
+check('disagrees with both (inflated) → suspect', ratingSuspect({ rating: 5, aiComplexity: 2, daysTaken: 0.5 }), true)
+check('disagrees with both (sandbagged) → suspect', ratingSuspect({ rating: 1, aiComplexity: 4, daysTaken: 6 }), true)
+check('no AI score → time is the only witness', ratingSuspect({ rating: 5, aiComplexity: null, daysTaken: 0.5 }), true)
+check('no AI score but time agrees → trusted', ratingSuspect({ rating: 5, aiComplexity: null, daysTaken: 6 }), false)
+```
+
+Run → FAIL, then implement:
+
+```typescript
+// Trust check (spec 2026-08-26): a completion rating is quarantined when it
+// disagrees by >=2 levels with BOTH independent witnesses — the AI's own
+// prediction from the brief, and the actual time taken. Quarantined ratings
+// are stored but never teach; admin can Keep/Discard in the AI Scores tab.
+export function impliedComplexityFromDays(days: number): number {
+  if (days <= 0.5) return 1
+  if (days <= 1) return 2
+  if (days <= 3) return 3
+  if (days <= 5) return 4
+  return 5
+}
+
+export function ratingSuspect(input: {
+  rating: number
+  aiComplexity: number | null
+  daysTaken: number
+}): boolean {
+  const timeGap = Math.abs(input.rating - impliedComplexityFromDays(input.daysTaken))
+  const aiGap = input.aiComplexity == null ? null : Math.abs(input.rating - input.aiComplexity)
+  if (aiGap == null) return timeGap >= 2
+  return aiGap >= 2 && timeGap >= 2
+}
+```
+
+Re-run → all ✓. Commit: `git add src/lib/utils/design-rating-trust.* && git commit -m "feat: completion rating trust check"`
+
 - [ ] **Step 2: The design-complete route**
 
 Auth + profile lookup (same opening as Task 4's route). Permission: `profile.role` in `['scheduler','admin']` OR a `job_designers` row for `(jobId, profile.id)` exists. JO-file check with the service client:
@@ -761,21 +852,42 @@ if (joBucket) {
 if (!hasJoFile) return Response.json({ error: 'no-jo-file' }, { status: 409 })
 ```
 
-Then update `jobs` set `design_completed_at: new Date().toISOString(), design_completed_by: profile.id` and return `{ ok: true }`.
+Then branch on role. **Override path** (`scheduler`/`admin` who is NOT an assigned designer of this job): update `jobs` set `design_completed_at: new Date().toISOString(), design_completed_by: profile.id` only. **Designer path**: require `rating` (integer 1–5; else 400 `{ error: 'rating-required' }`), compute `daysTaken` (earliest `job_designers.assigned_at` → now, in fractional days) and the job's `design_complexity`, then:
 
-- [ ] **Step 3: Designer action bar + JO upload unlock**
+```typescript
+const suspect = ratingSuspect({ rating, aiComplexity: job.design_complexity, daysTaken })
+await svc.from('jobs').update({
+  design_completed_at: new Date().toISOString(),
+  design_completed_by: profile.id,
+  design_rated_complexity: rating,
+  design_rating_suspect: suspect,
+} as never).eq('id', jobId)
+```
 
-JobDetailShell: designers currently get no Save bar. Give the designer role (effective role) a single-button bar: **Design completed** (green `Btn`, key `designCompletedBtn` — en `'Design completed'`, zh `'设计完成'`), disabled with a muted hint (`designCompletedNeedsJo` — en `'Upload the Job Order PDF first'`, zh `'请先上传 Job Order PDF'`) until the DESIGNER JO bucket has ≥1 file (the shell already loads buckets/files for AttachmentBuckets — derive from that data). Click → small confirm modal (`designCompletedConfirm` — en `'Mark your design work on this job as done?'`, zh `'确认此项目的设计工作已完成？'`) → POST → success toast; the button area then shows a completed state (`designCompletedDone` — en `'Design completed ✓'`, zh `'设计已完成 ✓'` — reuse the pill styling of other done-states). For scheduler/admin, add the same tick as a secondary button in their existing bars, only when ≥1 designer is assigned and not yet completed.
+Return `{ ok: true }`. Also write the `design-reopen` route per its Interfaces entry (read `src/app/api/jobs/[id]/revert-complete/route.ts` first and mirror its gate + shape).
 
-AttachmentBuckets: add an optional prop `uploadOnlyBucketNames?: string[]` — when set (designer view: `['DESIGNER JO']` matched case-insensitively), all buckets render read-only except uploads enabled on the matching bucket(s); no bucket create/rename/delete, no file delete on others' files. Wire in the shell: designers get `uploadOnlyBucketNames`, other roles unchanged.
+- [ ] **Step 3: Designer action bar with inline rating slider + full bucket access**
 
-- [ ] **Step 4: Verify** — type-check; dev server as preview-designer (UI gating) AND confirm the route's real role check by calling design-complete as a designer login if available: tick disabled without JO file, enabled after upload, confirm → job gains completed state, second tick idempotent-safe (route can be called again; update is harmless).
+JobDetailShell: designers currently get no Save bar. Give the designer role (effective role) a single-button bar: **Design completed** (green `Btn`, key `designCompletedBtn` — en `'Design completed'`, zh `'设计完成'`), disabled with a muted hint (`designCompletedNeedsJo` — en `'Upload the Job Order PDF first'`, zh `'请先上传 Job Order PDF'`) until the DESIGNER JO bucket has ≥1 file (the shell already loads buckets/files for AttachmentBuckets — derive from that data).
+
+**No popup (Nic, 2026-08-26):** clicking does NOT open a modal — an inline panel slides open directly above the action bar (height-animated div, still within the sticky bar container so it layers above BottomNav):
+- Question line: `designRatingQ` — en `'How heavy was this design work?'`, zh `'这项设计工作有多重？'`
+- `<input type="range" min={1} max={5} step={1}>` styled to the token palette, end labels `designRatingLight` — en `'1 · quick prep'`, zh `'1 · 简单处理'` and `designRatingHeavy` — en `'5 · multi-day'`, zh `'5 · 多天工作'`; the selected value shows as a bold number above the thumb. Track `touched` state — start untouched with no default shown.
+- **Confirm** button (`designRatingConfirm` — en `'Confirm — design done'`, zh `'确认 — 设计完成'`) disabled until `touched`; POSTs `design-complete` with `{ rating }` → success toast → panel closes; the button area then shows a completed state (`designCompletedDone` — en `'Design completed ✓'`, zh `'设计已完成 ✓'` — reuse the pill styling of other done-states). A Cancel (X) collapses the panel without submitting.
+
+For scheduler/admin: the same tick as a secondary button in their existing bars (no slider — straight confirm, the route's override path), only when ≥1 designer is assigned and not yet completed; and on design-completed jobs a **Reopen design** secondary button (`designReopenBtn` — en `'Reopen design'`, zh `'重新打开设计'`) POSTing `design-reopen` with a confirm modal.
+
+AttachmentBuckets — two changes (2026-08-26):
+1. **Designers get FULL access** — no designer-specific restriction props; the shell simply stops passing designers a read-only flag for the Files group (uploads, URL links, add bucket — identical to sales). Designers still cannot edit non-Files fields; that gating lives outside this component.
+2. **The Designer JO bucket is protected for everyone:** where the rename and delete controls render, skip them when the bucket name matches `/designer\s*jo/i` (tooltip via title attr, key `designJoProtected` — en `'This bucket is required for design completion'`, zh `'设计完成需要此文件夹'`). The completion tick and 3-day reminder key off this bucket by name — an unprotected rename silently breaks both.
+
+- [ ] **Step 4: Verify** — type-check; dev server as preview-designer (UI gating) AND confirm the route's real role check by calling design-complete as a designer login if available: tick disabled without JO file, enabled after upload → slider panel opens, Confirm disabled until the slider is touched, confirm with a wildly-off rating (e.g. 5 on a job scored 2 that took minutes) → job completes AND `design_rating_suspect` is true; scheduler tick skips the slider; Reopen returns the job to an uncompleted state with the rating cleared; Designer JO bucket shows no rename/delete controls on any role.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/app/api/jobs/[id]/design-complete src/features/job-detail/JobDetailShell.tsx src/features/job-detail/AttachmentBuckets.tsx src/lib/i18n/en.ts src/lib/i18n/zh.ts
-git commit -m "feat: design completed tick - route, designer action bar, JO-gated"
+git add src/app/api/jobs/[id]/design-complete src/app/api/jobs/[id]/design-reopen src/lib/utils/design-rating-trust.ts src/lib/utils/design-rating-trust.test.ts src/features/job-detail/JobDetailShell.tsx src/features/job-detail/AttachmentBuckets.tsx src/lib/i18n/en.ts src/lib/i18n/zh.ts
+git commit -m "feat: design completed - rating slider, trust check, reopen, protected JO bucket"
 ```
 
 ---
@@ -811,8 +923,10 @@ Add to `vercel.json` crons: `{ "path": "/api/cron/design-daily", "schedule": "30
 - [ ] **Step 2: Yes/No card in NotificationDrawer**
 
 Read how the drawer renders `sent_back`/overdue cards first. Add a branch for `type === 'design_reminder'`: card text key `designReminderQ` — en `'Is your design work on “{title}” finished?'`, zh `'“{title}”的设计工作完成了吗？'` (interpolate like existing drawer strings; check the repo's interpolation helper — if `t()` has none, build the string in code around the translated fragments). Two buttons:
-- **Yes** (`yesBtn` en `'Yes'` / zh `'是'`): POST `design-complete`; on ok → mark this notification read (existing mark-read helper) + success toast. On 409 no-jo-file → toast `designReminderNoJo` — en `'No Job Order PDF uploaded yet — open the job to finish up'`, zh `'尚未上传 Job Order PDF——请打开项目完成上传'`.
+- **Yes** (`yesBtn` en `'Yes'` / zh `'是'`): does NOT complete immediately — it expands the same inline 1–5 slider used in Task 8's action bar **inside the notification card** (extract the slider+confirm into a small shared component `src/features/job-detail/DesignRatingSlider.tsx` used by both; same keys, Confirm disabled until touched). Confirm POSTs `design-complete` with `{ rating }`; on ok → mark this notification read (existing mark-read helper) + success toast. On 409 no-jo-file → toast `designReminderNoJo` — en `'No Job Order PDF uploaded yet — open the job to finish up'`, zh `'尚未上传 Job Order PDF——请打开项目完成上传'`.
 - **No** (`noBtn` en `'No'` / zh `'否'`): mark the notification read. (The cron's `reminderDue` uses the notification's `created_at` as `lastReminderAtISO`, so the next nudge is automatically ≥3 days later — no extra state.)
+
+Also add a plain card branch for `type === 'design_due_shift'` (from Task 6's auto-shift): title + the `old → new` body line, click navigates to the job, no buttons.
 
 Card click elsewhere navigates to the job (`/jobs/{job_id}`) like other job-linked notifications.
 
@@ -833,6 +947,7 @@ git commit -m "feat: design daily cron - sweep scoring + 3-day Yes/No reminders"
 - Create: `src/app/design-load/page.tsx`
 - Create: `src/features/design-load/DesignLoadShell.tsx`
 - Create: `src/features/design-load/DesignerBar.tsx`
+- Create: `src/features/design-load/MyJobsView.tsx`
 - Create: `src/lib/supabase/queries/design-load.ts`
 - Modify: `src/components/BottomNav.tsx`
 - Modify: `src/lib/i18n/en.ts`, `src/lib/i18n/zh.ts`
@@ -852,6 +967,8 @@ export type DesignLoadJob = {
 export type DesignLoadData = { designers: Array<{ id: string; name: string; jobs: DesignLoadJob[] }> }
 ```
 
+  - `getMyDesignJobs(designerUserId: string): Promise<Array<DesignLoadJob & { designCompletedAt: string | null; status: string }>>` — ALL of one designer's design jobs including completed ones (the board query excludes those); feeds the My Jobs view, which buckets client-side: **To-do** = `designCompletedAt === null` · **Ready to install** = completed, `status !== 'completed'`, install date ≥ today · **Past** = completed and (job `status === 'completed'` or install date < today).
+
 - [ ] **Step 1: The query**
 
 `getDesignLoad()` in `design-load.ts`:
@@ -859,6 +976,7 @@ export type DesignLoadData = { designers: Array<{ id: string; name: string; jobs
 2. `from('job_designers').select('user_id, assigned_at, jobs(id, project_title, client, location, date, created_at, sales_poc_id, status, design_complexity, design_confidence, design_score_reason, design_due_date, design_completed_at)')` — embedding `jobs` onto `job_designers` is safe (single FK); filter in JS: keep rows where `jobs.design_completed_at === null && jobs.status !== 'completed'`.
 3. POC names: collect distinct `sales_poc_id`, one `from('users').select('id, name').in('id', ids)` follow-up (NEVER embed users on jobs).
 4. Group by designer, sort each designer's jobs by `assigned_at` DESC (newest first = top of bar).
+5. `getMyDesignJobs(designerUserId)`: same embed shape but `eq('user_id', designerUserId)` and NO completed-filter — keep all rows, also select `design_completed_at` + `status`, sort by `assigned_at` DESC. POC names via the same follow-up-query helper.
 
 - [ ] **Step 2: Page + role gate**
 
@@ -874,11 +992,13 @@ Per designer, before rendering, compute `openCount = jobs.length`, `maxOpenCount
 
 Empty designer → muted dashed placeholder slot + name. Empty state when no designers exist: centered muted text (`noDesigners` — en `'No designers provisioned yet'`, zh `'尚未添加设计师'`).
 
+**Board | My Jobs toggle (designer role only — spec 2026-08-26):** when the effective role is `designer` (or admin previewing as designer), render a two-option segmented control under the page header (same styling as the AdminShell mobile tab strip): `boardTab` — en `'Board'`, zh `'看板'` · `myJobsTab` — en `'My Jobs'`, zh `'我的任务'`. Board = the shared bars, unchanged. My Jobs = `MyJobsView`: fetches `getMyDesignJobs(profile.id)`, three filter chips (`myJobsTodo` en `'To-do'` zh `'待办'` · `myJobsReady` en `'Ready to install'` zh `'待安装'` · `myJobsPast` en `'Past'` zh `'已过往'`) with counts, defaulting to To-do; each job renders as a row card (reuse the bubble's content layout: title, client, POC, install + due dates via the static-English formatter, urgency swatch for To-do rows) → tap opens the job. Other roles never see the toggle. The live-channel refetch also refreshes `getMyDesignJobs` when the toggle is on My Jobs.
+
 - [ ] **Step 4: Nav tab**
 
 In `BottomNav.tsx` add `{ href: '/design-load', label: 'Design', Icon: PenTool }` (import `PenTool` from lucide) to `scheduler`, `sales`, `admin`, `coordinator`, `designer` arrays — NOT `installer`, NOT `production`. Keep the label `'Design'` (one word — six tabs must fit on a phone; the page header carries the full name).
 
-- [ ] **Step 5: Verify** — type-check + build; dev server: assign 2 designers jobs with mixed scored/unscored briefs → bars stack newest-top, grey unscored, hover bubble on desktop, tap bubble on mobile viewport sits above the nav, click-through opens the job, second browser window assigning a job updates the first without refresh.
+- [ ] **Step 5: Verify** — type-check + build; dev server: assign 2 designers jobs with mixed scored/unscored briefs → bars stack newest-top, grey unscored, hover bubble on desktop, tap bubble on mobile viewport sits above the nav, click-through opens the job, second browser window assigning a job updates the first without refresh. As preview-designer: Board | My Jobs toggle appears, chips bucket correctly (tick one job done → it moves To-do → Ready; set its install date to yesterday → Ready → Past); as admin/sales the toggle is absent.
 
 - [ ] **Step 6: Commit**
 
@@ -910,21 +1030,27 @@ type Summary = {
   urgencyCounts: Record<1 | 2 | 3 | 4 | 5, number>       // open design jobs by live urgency
   loadPerDesigner: Array<{ name: string; count: number }>
   accuracy: Array<{ jobTitle: string; estimatedDays: number; actualDays: number }>  // completed jobs
+  ratingAccuracy: Array<{ jobTitle: string; aiComplexity: number | null; ratedComplexity: number }>  // trusted ratings only
+  perDesigner: Array<{ name: string; avgDeviation: number; flaggedRecent: string }> // e.g. flaggedRecent "2 of last 10"
+  flagged: Array<{ jobId: string; jobTitle: string; designerName: string; rating: number; aiComplexity: number | null; daysTaken: number }>  // suspect + unresolved
   activity: { last30dCalls: number; haiku: number; sonnet: number }
 }
 ```
 
+Plus `PATCH /api/admin/design-scores` body `{ jobId: string; resolution: 'kept' | 'discarded' }` → `{ ok: true }` — admin-gated like the GET; sets `design_rating_resolution` on that job (Keep/Discard for the Flagged strip).
+
 - [ ] **Step 1: The API route**
 
-Admin gate exactly like `src/app/api/admin/health/route.ts` (read it — role check pattern). Service client: latest 200 `design_scores` joined with job titles (two queries — scores, then `jobs in (ids)` for titles). Summary: reuse `getDesignLoad()` + `computeUrgency` for urgencyCounts/loadPerDesigner; accuracy from completed design jobs (estimated = `proposed_due` of the job's last score vs assigned date; actual = assigned→`design_completed_at`); activity from counting `design_scores` in the last 30 days grouped by model.
+Admin gate exactly like `src/app/api/admin/health/route.ts` (read it — role check pattern). Service client: latest 200 `design_scores` joined with job titles (two queries — scores, then `jobs in (ids)` for titles). Summary: reuse `getDesignLoad()` + `computeUrgency` for urgencyCounts/loadPerDesigner; accuracy from completed design jobs (estimated = `proposed_due` of the job's last score vs assigned date; actual = assigned→`design_completed_at`); `ratingAccuracy` pairs `design_complexity` with `design_rated_complexity` on completed jobs whose rating is trusted (`design_rating_suspect = false` OR resolution `'kept'`); `flagged` = jobs with `design_rating_suspect = true` and `design_rating_resolution is null` (designer name = `design_completed_by` → one users lookup; `daysTaken` recomputed assigned→completed); `perDesigner` = per completing designer over their last 10 rated jobs: `avgDeviation` = mean |rating − (aiComplexity ?? implied-from-days)| via `impliedComplexityFromDays`, `flaggedRecent` = `"N of last 10"`; activity from counting `design_scores` in the last 30 days grouped by model. Same file exports the `PATCH` handler per the Interfaces entry (validate resolution value, admin gate, update the job row).
 
 - [ ] **Step 2: The tab (hardcoded English — no i18n)**
 
 AdminShell: extend `type Tab` union with `'ai-scores'`, add `{ id: 'ai-scores', label: 'AI Scores' }` to `TABS`, render `<AIScoresTab />`. The tab component fetches the route on mount (match how `HealthTab` fetches). Layout, Google-Forms-responses feel:
-- Top row of summary cards: five urgency count chips (colour swatches from `URGENCY_META`); load-per-designer mini bars (styled divs, width proportional — same technique as `WeekWorkloadChart`); accuracy list (`estimated Xd vs actual Yd` per job, green when |diff| ≤ 1 day, amber otherwise); activity line (`N calls last 30 days — H Haiku / S Sonnet`).
-- Detail feed: one card per score — job title, date, trigger pill, model pill, complexity badge, proposed due, reason line, amber `LOW CONFIDENCE` pill when low. Text filter input matching job title; read-only everywhere.
+- Top row of summary cards: five urgency count chips (colour swatches from `URGENCY_META`); load-per-designer mini bars (styled divs, width proportional — same technique as `WeekWorkloadChart`); accuracy list (`estimated Xd vs actual Yd` per job, green when |diff| ≤ 1 day, amber otherwise); rating-accuracy list (`AI 3 vs rated 4` per job, green when equal, amber when 1 off, red beyond); per-designer line (`{name} · avg deviation 0.8 · flagged 2 of last 10`); activity line (`N calls last 30 days — H Haiku / S Sonnet`).
+- **Flagged ratings strip** (only renders when `flagged.length > 0`, amber-bordered card above the feed): one row per flagged rating — `"{job} — AI said {n} · took {d} days · {designer} rated {r}"` with **Keep** / **Discard** buttons → `PATCH` with the resolution → row disappears (optimistic). Keep admits the rating to learning; Discard drops it; untouched rows stay excluded from learning either way.
+- Detail feed: one card per score — job title, date, trigger pill, model pill, complexity badge, proposed due, reason line, amber `LOW CONFIDENCE` pill when low. Text filter input matching job title; read-only apart from the Flagged strip.
 
-- [ ] **Step 3: Verify** — type-check; dev as admin: tab renders, feed lists the scores created during Tasks 7–10 testing, filter narrows, non-admin fetch of the route returns 403 (curl without admin session).
+- [ ] **Step 3: Verify** — type-check; dev as admin: tab renders, feed lists the scores created during Tasks 7–10 testing, filter narrows, the wildly-off rating from Task 8's verify appears in the Flagged strip, Keep and Discard both resolve it (and it stays gone on reload), non-admin fetch of the route returns 403 (curl without admin session).
 
 - [ ] **Step 4: Commit**
 
@@ -941,8 +1067,8 @@ git commit -m "feat: admin AI Scores tab - summary charts + scoring history feed
 
 - [ ] **Step 1: All standalone tests**
 
-Run: `npx tsx src/lib/utils/design-urgency.test.ts && npx tsx src/lib/utils/design-brief-rules.test.ts && npx tsx src/lib/utils/design-reminder.test.ts && npx tsx src/lib/ai/design-score.test.ts && npx tsx scripts/lib/frontmatter.test.ts && npx tsx scripts/lib/chunk.test.ts`
-Expected: every suite ✓, exit 0.
+Run: `npx tsx src/lib/utils/design-urgency.test.ts && npx tsx src/lib/utils/design-brief-rules.test.ts && npx tsx src/lib/utils/design-reminder.test.ts && npx tsx src/lib/utils/design-rating-trust.test.ts && npx tsx src/lib/ai/design-score.test.ts && npx tsx scripts/lib/frontmatter.test.ts && npx tsx scripts/lib/chunk.test.ts`
+Expected: every suite ✓, exit 0. The assistant-upgrade session added more standalone suites (`src/lib/ai/*.test.ts`, `src/lib/storage/*.test.ts`, `src/lib/telegram/*.test.ts`) — run any of those whose module this work touched.
 
 - [ ] **Step 2: Type-check + production build**
 
