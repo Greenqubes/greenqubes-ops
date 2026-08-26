@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getEffectiveRole } from '@/lib/utils/role-override'
 import { setJobDesigners } from '@/lib/supabase/queries/designers'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignAssigned } from '@/lib/telegram/templates'
@@ -30,7 +31,8 @@ export async function POST(
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(profile.role)) {
+  const effectiveRole = await getEffectiveRole(profile.role)
+  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
