@@ -40,3 +40,35 @@ export function attachmentNote(atts: readonly ChatAttachment[]): string {
   const items = atts.map(a => `${a.id} = "${a.name}" (${a.mime === PDF_MIME ? 'pdf' : 'image'})`)
   return `Attached files (reference by id in create_pending_job): ${items.join(', ')}`
 }
+
+// ── Project files (Phase 4) ─────────────────────────────────────────────────
+// Count is cheap; bytes are the physics. Project files ride on EVERY message
+// in the project as base64 (~4/3 inflation) under the API's 32 MB request
+// cap, so the per-project byte total mirrors the per-message total. The
+// request budget below is the raw-bytes ceiling for ONE request (project
+// files + all message attachments combined) with headroom for text, history
+// and tool definitions — the chat route degrades attachments past it to text
+// notes instead of letting the API reject the request.
+
+export const MAX_PROJECT_FILES   = 10
+export const MAX_PROJECT_BYTES   = 20 * 1024 * 1024
+export const REQUEST_FILE_BUDGET = 22 * 1024 * 1024
+
+/** A request may only reference the caller's own project objects. */
+export function isOwnProjectKey(key: string, userId: string, projectId: string): boolean {
+  return key.startsWith(`asst-projects/${userId}/${projectId}/`) && !key.includes('..')
+}
+
+/** null = accepted; 'count' = project already holds MAX_PROJECT_FILES;
+ *  'type'/'size' = per-file rule (validateAttachment); 'total' = would push
+ *  the project past MAX_PROJECT_BYTES. */
+export function validateProjectFile(
+  name: string, mime: string, size: number,
+  existingCount: number, existingBytes: number,
+): 'count' | 'type' | 'size' | 'total' | null {
+  if (existingCount >= MAX_PROJECT_FILES) return 'count'
+  const perFile = validateAttachment(name, mime, size)
+  if (perFile) return perFile
+  if (existingBytes + size > MAX_PROJECT_BYTES) return 'total'
+  return null
+}
