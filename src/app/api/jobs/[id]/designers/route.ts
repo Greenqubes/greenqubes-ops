@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
@@ -92,9 +92,13 @@ export async function POST(
     }
   }
 
-  // Fire-and-forget: a freshly assigned designer means there's now someone
-  // to score for, even if the brief text itself didn't just change.
-  if (added.length > 0) void scoreDesignJob(jobId, 'assign')
+  // Dispatched via after() (review fix, controller ruling): a bare
+  // `void scoreDesignJob(...)` can be frozen by the serverless runtime once
+  // this handler's response is sent, since nothing is left awaiting it.
+  // after() keeps it alive until the callback settles. A freshly assigned
+  // designer means there's now someone to score for, even if the brief text
+  // itself didn't just change.
+  if (added.length > 0) after(() => scoreDesignJob(jobId, 'assign'))
 
   return NextResponse.json({ ok: true, added })
 }

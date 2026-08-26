@@ -35,6 +35,32 @@ export interface PromptInput {
 
 export type ScoreTrigger = 'brief_change' | 'assign' | 'date_change' | 'nightly'
 
+// Design due dates are SG-business dates — same SGT-today convention as the
+// PATCH route's todaySGT() (src/app/api/jobs/[id]/route.ts). Duplicated
+// locally rather than imported: that file is a route handler, this is a
+// plain lib module.
+function sgtTodayISO(): string {
+  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+}
+
+const PROPOSED_DUE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+// A model-proposed due date is only trustworthy when it's well-formed, not
+// already in the past, and not after the install date (a design due date
+// after the job installs is nonsensical). Anything that fails is treated as
+// absent — the complexity/reason still write, only the due-date write is
+// skipped, so a malformed date never corrupts `jobs.design_due_date`.
+export function validateProposedDue(
+  proposedDue:  unknown,
+  todayISO:     string,
+  installDate:  string | null,
+): string | null {
+  if (typeof proposedDue !== 'string' || !PROPOSED_DUE_RE.test(proposedDue)) return null
+  if (proposedDue < todayISO) return null
+  if (installDate && proposedDue > installDate) return null
+  return proposedDue
+}
+
 // Kept ≤200 chars per the brief — a long historical brief shouldn't dominate the prompt.
 function excerpt(text: string): string {
   return text.length > 200 ? `${text.slice(0, 200)}…` : text
@@ -108,8 +134,14 @@ function mediaTypeFromName(name: string): MediaType | null {
   }
 }
 
-const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
-const MAX_READABLE_FILES   = 3
+const MAX_ATTACHMENT_BYTES       = 10 * 1024 * 1024
+const MAX_READABLE_FILES         = 3
+// 3 files at the 10MB per-file cap can add up to well past Anthropic's 32MB
+// request cap once base64-encoded (~4/3 overhead) alongside the rest of the
+// message. Cap the RAW (pre-base64) total actually attached at 20MB —
+// whichever file would push the running total over that line, and every
+// file after it, stays name-only in the prompt text instead.
+const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024
 
 function extractJSON(text: string): unknown {
   const first = text.indexOf('{')
@@ -157,13 +189,15 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
       .from('files')
       .select('id, r2_key, name')
       .eq('job_id', jobId)
-      .eq('kind', 'design_brief') as { data: FileRow[] | null; error: unknown }
+      .eq('kind', 'design_brief')
+      .order('ts') as { data: FileRow[] | null; error: unknown }
     const files = fileRows ?? []
 
     const attachmentNames = files.map(f => f.name ?? f.r2_key.split('/').pop() ?? f.r2_key)
 
     const contentBlocks: Anthropic.ContentBlockParam[] = []
-    let readableCount = 0
+    let readableCount      = 0
+    let totalAttachedBytes = 0
     for (const f of files) {
       if (readableCount >= MAX_READABLE_FILES) break
       const displayName = f.name ?? f.r2_key.split('/').pop() ?? f.r2_key
@@ -171,13 +205,17 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
       if (!mediaType) continue
 
       const b64 = await getObjectBase64(f.r2_key, MAX_ATTACHMENT_BYTES)
-      if (!b64) continue // missing, empty, or over the size cap — name-only via attachmentNames
+      if (!b64) continue // missing, empty, or over the per-file size cap — name-only via attachmentNames
+
+      const rawBytes = Buffer.from(b64, 'base64').length
+      if (totalAttachedBytes + rawBytes > MAX_TOTAL_ATTACHMENT_BYTES) break // over the aggregate budget — this and any remaining files stay name-only
 
       if (mediaType === 'application/pdf') {
         contentBlocks.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: b64 } })
       } else {
         contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } })
       }
+      totalAttachedBytes += rawBytes
       readableCount++
     }
 
@@ -204,8 +242,14 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
 
       const daysTaken = (new Date(hj.design_completed_at).getTime() - new Date(earliest).getTime()) / 86_400_000
       // Trust check (spec): a quarantined rating never teaches the model.
-      const trusted   = hj.design_rating_suspect === false || hj.design_rating_resolution === 'kept'
-      const complexity = trusted ? hj.design_rated_complexity : hj.design_complexity
+      // An unrated-but-not-suspect job (design_rated_complexity still null)
+      // falls back to the AI's own design_complexity instead of discarding
+      // the example outright — "trusted" only means "don't withhold the
+      // designer's number", not "withhold everything when there isn't one".
+      const trusted    = hj.design_rating_suspect === false || hj.design_rating_resolution === 'kept'
+      const complexity = trusted && hj.design_rated_complexity != null
+        ? hj.design_rated_complexity
+        : hj.design_complexity
 
       history.push({ brief: hj.design_brief ?? '', complexity, daysTaken })
     }
@@ -213,10 +257,11 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
     // ── Model call ───────────────────────────────────────────────────────
     const hasAttachments = contentBlocks.length > 0
     const model = pickModel(hasAttachments)
+    const todayISO = sgtTodayISO()
     const prompt = buildScorePrompt({
       briefText:       job.design_brief,
       installDate:     job.date ?? null,
-      todayISO:        new Date().toISOString().slice(0, 10),
+      todayISO,
       attachmentNames,
       history,
     })
@@ -269,7 +314,9 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
       console.error(`scoreDesignJob(${jobId}): model response missing a valid "complexity" field`, parsed)
       return
     }
-    const proposedDue = typeof parsed.proposed_due === 'string' ? parsed.proposed_due : null
+    // Malformed / past / post-install proposed_due is treated as absent —
+    // the score itself still writes, only the due-date write is skipped.
+    const proposedDue = validateProposedDue(parsed.proposed_due, todayISO, job.date ?? null)
     const reason       = typeof parsed.reason === 'string' ? parsed.reason : ''
     const confidence: 'ok' | 'low' = parsed.confidence === 'low' ? 'low' : 'ok'
 
@@ -285,7 +332,12 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
       jobUpdates.design_due_date = proposedDue
     }
 
-    await db.from('jobs').update(jobUpdates as never).eq('id', jobId)
+    // .throwOnError() is safe here — both calls are still inside the outer
+    // try/catch, so a write failure logs and leaves the job unscored rather
+    // than silently pretending it wrote. Update-then-insert, in order: a
+    // failed jobs update must not leave a design_scores history row behind
+    // for a score that never actually landed on the job.
+    await db.from('jobs').update(jobUpdates as never).eq('id', jobId).throwOnError()
 
     await db.from('design_scores').insert({
       job_id:       jobId,
@@ -295,7 +347,7 @@ export async function scoreDesignJob(jobId: string, trigger: ScoreTrigger): Prom
       proposed_due: proposedDue,
       reason,
       confidence,
-    } as never)
+    } as never).throwOnError()
   } catch (err) {
     console.error(`scoreDesignJob(${jobId}) failed:`, err)
   }

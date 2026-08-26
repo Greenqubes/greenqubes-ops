@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
@@ -94,19 +94,41 @@ export async function PATCH(
   // after a client-side brief-file upload, since that insert never touches
   // this route. Writes nothing — just re-triggers scoring — so designers
   // (who can upload attachments here but can't edit the brief/due-date
-  // fields below) are allowed through this one branch.
+  // fields below) are allowed through this one branch, subject to the two
+  // guards below (review fix, CRITICAL): a designer must actually be on the
+  // job, and a job scored in the last 10 minutes is skipped rather than
+  // re-billed — this branch has no diff to gate it, so without a cooldown
+  // it's an unmetered re-roll / cost lever.
   if (body.rescore === true) {
     if (!['sales', 'scheduler', 'coordinator', 'admin', 'designer'].includes(effectiveRole)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    const { data: exists } = await supabase
+    type RescoreJobRow = { id: string; design_scored_at: string | null }
+    const { data: rescoreJob } = await supabase
       .from('jobs')
-      .select('id')
+      .select('id, design_scored_at')
       .eq('id', jobId)
-      .maybeSingle()
-    if (!exists) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      .maybeSingle() as { data: RescoreJobRow | null; error: unknown }
+    if (!rescoreJob) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    void scoreDesignJob(jobId, 'brief_change')
+    if (effectiveRole === 'designer') {
+      const { data: assignedRow } = await supabase
+        .from('job_designers')
+        .select('user_id')
+        .eq('job_id', jobId)
+        .eq('user_id', profile.id)
+        .maybeSingle()
+      if (!assignedRow) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    if (rescoreJob.design_scored_at) {
+      const scoredMsAgo = Date.now() - new Date(rescoreJob.design_scored_at).getTime()
+      if (scoredMsAgo < 10 * 60_000) {
+        return NextResponse.json({ ok: true, skipped: 'cooldown' })
+      }
+    }
+
+    after(() => scoreDesignJob(jobId, 'brief_change'))
     return NextResponse.json({ ok: true })
   }
 
@@ -160,7 +182,7 @@ export async function PATCH(
   const briefChanged = body.design_brief !== undefined && body.design_brief !== job.design_brief
   const dateChanged   = body.date !== undefined && body.date !== job.date
   if (briefChanged || dateChanged) {
-    void scoreDesignJob(jobId, briefChanged ? 'brief_change' : 'date_change')
+    after(() => scoreDesignJob(jobId, briefChanged ? 'brief_change' : 'date_change'))
   }
 
   // ── Notify assigned designers of the shift (best-effort) ──────────────────

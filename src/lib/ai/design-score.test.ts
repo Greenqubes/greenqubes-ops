@@ -6,7 +6,7 @@
  * Exits 1 on any failure.
  */
 
-import { pickModel, buildScorePrompt, BASELINE_TABLE } from './design-score'
+import { pickModel, buildScorePrompt, BASELINE_TABLE, validateProposedDue } from './design-score'
 
 let failures = 0
 
@@ -54,6 +54,18 @@ check('prompt handles null history complexity', unratedPrompt.includes('past job
 
 // Output contract is spelled out for the model.
 check('prompt requests JSON contract fields', prompt.includes('"complexity"') && prompt.includes('"proposed_due"') && prompt.includes('"reason"') && prompt.includes('"confidence"'), true)
+
+// ── validateProposedDue (fix review item 4) ─────────────────────────────────
+
+check('valid date within window accepted', validateProposedDue('2026-08-25', '2026-08-18', '2026-09-01'), '2026-08-25')
+check('non-string rejected', validateProposedDue(42, '2026-08-18', '2026-09-01'), null)
+check('malformed date rejected', validateProposedDue('25 Aug 2026', '2026-08-18', '2026-09-01'), null)
+check('wrong-shape date rejected', validateProposedDue('2026-8-25', '2026-08-18', '2026-09-01'), null)
+check('date before today rejected', validateProposedDue('2026-08-01', '2026-08-18', '2026-09-01'), null)
+check('date equal to today accepted', validateProposedDue('2026-08-18', '2026-08-18', '2026-09-01'), '2026-08-18')
+check('date after install date rejected', validateProposedDue('2026-09-05', '2026-08-18', '2026-09-01'), null)
+check('date equal to install date accepted', validateProposedDue('2026-09-01', '2026-08-18', '2026-09-01'), '2026-09-01')
+check('null install date does not bound the upper end', validateProposedDue('2027-01-01', '2026-08-18', null), '2027-01-01')
 
 if (failures > 0) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll design-score checks passed')
