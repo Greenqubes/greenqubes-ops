@@ -51,6 +51,13 @@ export function DesignRatingSlider({ lang, busy = false, onConfirm, onCancel }: 
           value={value}
           disabled={busy}
           onChange={e => { setValue(Number(e.target.value)); setTouched(true) }}
+          // A press/drag or keypress that lands the thumb back on its
+          // already-current value (most likely the starting 3) fires no
+          // 'change' event, so onChange alone can never mark that rating as
+          // touched — these two catch the interaction itself instead of the
+          // value delta.
+          onPointerDown={() => setTouched(true)}
+          onKeyDown={() => setTouched(true)}
           className="w-full accent-brand-green disabled:opacity-50"
         />
         <div className="flex items-center justify-between text-[11px] text-muted mt-1">
