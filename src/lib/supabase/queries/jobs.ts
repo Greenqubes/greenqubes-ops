@@ -160,6 +160,9 @@ export type JobDetail = {
   approved_at:             string | null
   completed_at:            string | null
   completion_override:     boolean
+  design_brief:            string | null
+  design_due_date:         string | null
+  design_due_manual:       boolean
   created_at:              string
   updated_at:              string
   job_assignees: Array<{
@@ -211,7 +214,9 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
-      completed_at, completion_override, created_at, updated_at,
+      completed_at, completion_override,
+      design_brief, design_due_date, design_due_manual,
+      created_at, updated_at,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
       files ( id, bucket_id, kind, r2_key, name, uploader_id, ts, users!files_uploader_id_fkey ( name ) )

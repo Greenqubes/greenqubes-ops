@@ -15,6 +15,7 @@ import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
 import { AttachmentBuckets } from './AttachmentBuckets'
+import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { ChatSection } from './ChatSection'
@@ -27,6 +28,7 @@ import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
+import { briefRequiredError } from '@/lib/utils/design-brief-rules'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -157,6 +159,21 @@ export function JobDetailShell({
   const forceApplyRef    = useRef(false)
   const dirtyRef         = useRef(false)
 
+  // Design brief card (Task 6) — parent-owned state per the brief's props
+  // contract; briefError drives the red field state + phone tab jump below.
+  const [briefText,  setBriefText]  = useState(job.design_brief ?? '')
+  const [dueDate,    setDueDate]    = useState<string | null>(job.design_due_date ?? null)
+  const [dueManual,  setDueManual]  = useState(job.design_due_manual ?? false)
+  const [briefError, setBriefError] = useState(false)
+  const [jumpToDetails, setJumpToDetails] = useState(0)
+  const briefCardRef = useRef<HTMLDivElement>(null)
+
+  const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
+  const handleBriefText = (v: string) => {
+    setBriefText(v)
+    if (briefError && v.trim().length > 0) setBriefError(false)
+  }
+
   // Own writes echo back as realtime events; a short window swallows them so
   // the user never sees a banner for their own save.
   const bumpSuppression = () => { suppressUntilRef.current = Date.now() + 5000 }
@@ -240,6 +257,26 @@ export function JobDetailShell({
     bumpSuppression()
     setSaving(true)
     try {
+      // Design brief fields + due-date auto-shift (Task 6). This must run
+      // BEFORE saveValues() below — the route reads the job's CURRENT `date`
+      // and `design_due_date` from the database to compute the shift delta,
+      // and saveValues() is about to overwrite `date` with the new value.
+      // Telegram needs the server-only bot token, so this can't be a plain
+      // client-side jobs.update() the way the rest of this form saves.
+      if (isBriefDirty || values.date !== job.date) {
+        const designRes = await fetch(`/api/jobs/${job.id}`, {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            design_brief:      briefText || null,
+            design_due_date:   dueDate,
+            design_due_manual: dueManual,
+            ...(values.date !== job.date ? { date: values.date } : {}),
+          }),
+        })
+        if (!designRes.ok) throw new Error()
+      }
+
       const [, addedCoordinatorIds] = await Promise.all([
         saveValues(values), saveCoordinatorDiff(),
       ])
@@ -305,6 +342,20 @@ export function JobDetailShell({
   // Phase 1). Now scheduler/coordinator/admin saves are checked first;
   // coordinators can alert the schedulers, schedulers can save anyway.
   const onSubmit = async (values: FormValues) => {
+    const briefBlocked = briefRequiredError({
+      isNewJob:      false,
+      status,
+      designerCount: selectedDesignerIds.length,
+      briefText,
+    })
+    if (briefBlocked) {
+      setBriefError(true)
+      setJumpToDetails(n => n + 1)   // phone: the Details tab holds the card
+      showError(t(lang, 'designBriefRequired'))
+      requestAnimationFrame(() => briefCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      return
+    }
+
     const timeChanged =
       values.date        !== (job.date ?? '') ||
       values.time_start  !== (job.time_start?.slice(0, 5) ?? '') ||
@@ -558,7 +609,23 @@ export function JobDetailShell({
     return false
   }, [selectedDesignerIds, initialDesignerIds])
 
-  dirtyRef.current = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty
+  const isBriefDirty =
+    briefText  !== (job.design_brief ?? '') ||
+    dueDate    !== (job.design_due_date ?? null) ||
+    dueManual  !== (job.design_due_manual ?? false)
+
+  const isAnyDirty = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty || isBriefDirty
+  dirtyRef.current = isAnyDirty
+
+  // Leave guard (Task 6): native "leave page?" prompt on refresh/close while
+  // anything is unsaved. The in-app back arrow already goes through
+  // router.back() untouched — this only covers refresh/close, per spec.
+  useEffect(() => {
+    if (!isAnyDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isAnyDirty])
 
   // Live updates for this job. Hybrid rule ("clean syncs, dirty warns"):
   // section data (files, tasks, team) applies silently — it never collides
@@ -608,6 +675,10 @@ export function JobDetailShell({
     setSuggestedSubIds(job.job_assignees.filter(a => a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
     setSelectedCoordinatorIds(initialCoordinatorIds)
     setSelectedDesignerIds(initialDesignerIds)
+    setBriefText(job.design_brief ?? '')
+    setDueDate(job.design_due_date ?? null)
+    setDueManual(job.design_due_manual ?? false)
+    setBriefError(false)
     setStaleBanner(false)
   }, [job])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -745,6 +816,7 @@ export function JobDetailShell({
       <JobFormLayout
         lang={lang}
         initialTab={initialTab}
+        jumpToDetails={jumpToDetails}
         details={
           <div className="flex flex-col gap-4">
             <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
@@ -761,6 +833,23 @@ export function JobDetailShell({
                 installerView={isInstaller}
               />
             </CollapseCard>
+            {!isInstaller && (
+              <DesignBriefSection
+                ref={briefCardRef}
+                jobId={job.id}
+                lang={lang}
+                readOnly={readOnly}
+                canManage={canEditCore}
+                userId={userId}
+                briefText={briefText}
+                onBriefText={handleBriefText}
+                dueDate={dueDate}
+                dueManual={dueManual}
+                onDueDate={handleDueDate}
+                briefError={briefError}
+                files={job.files.filter(f => f.kind === 'design_brief')}
+              />
+            )}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
               <ProductionReadySection
                 bare
@@ -1029,7 +1118,7 @@ export function JobDetailShell({
                   <button
                     type="button"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={saving || (!isDirty && !isInstallerDirty && !isCoordDirty && !isDesignerDirty)}
+                    disabled={saving || (!isDirty && !isInstallerDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
                     className={cn(
                       'flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed',
                       status === 'scheduled' ? 'w-full' : 'flex-1',
@@ -1053,7 +1142,7 @@ export function JobDetailShell({
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty)}
+                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Bell size={14} />

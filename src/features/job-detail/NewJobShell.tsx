@@ -12,6 +12,7 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
+import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { Lock, ArrowLeft } from 'lucide-react'
@@ -46,6 +47,13 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
   const [selectedDesignerIds,   setSelectedDesignerIds]  = useState<string[]>([])
+  // Design brief card (Task 6) — pre-book is exempt from the required rule, so
+  // only the brief TEXT rides into the create payload; the due date has
+  // nothing to shift against yet (no AI score runs before a job exists).
+  const [briefText,             setBriefText]            = useState('')
+  const [dueDate,                setDueDate]             = useState<string | null>(null)
+  const [dueManual,              setDueManual]           = useState(false)
+  const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
   const [showPushedModal,       setShowPushedModal]      = useState(false)
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
@@ -112,6 +120,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           punctuality:             values.punctuality,
           production_instructions: values.production_instructions || null,
           notes:                   values.notes || null,
+          design_brief:            briefText || null,
           visibility:              ['role:sales', 'role:scheduler'],
         } as never)
         .select('id')
@@ -291,6 +300,21 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                 validateRequired
               />
             </CollapseCard>
+
+            <DesignBriefSection
+              jobId={null}
+              lang={lang}
+              readOnly={false}
+              canManage={canEditDesigners}
+              userId={userId}
+              briefText={briefText}
+              onBriefText={setBriefText}
+              dueDate={dueDate}
+              dueManual={dueManual}
+              onDueDate={handleDueDate}
+              briefError={false}
+              files={[]}
+            />
 
             {/* Production — instructions now, photos/DO after the job is saved */}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
