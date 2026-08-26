@@ -5,7 +5,9 @@ import { retrievePastChats, formatPastChats } from '@/lib/ai/retrieve'
 import { executeTool } from '@/lib/ai/tool-runner'
 import { TOOL_DEFINITIONS, TOOL_STATUS_KEYS, MAX_TOOL_ROUNDS } from '@/lib/ai/tool-schemas'
 import { logApiUsage } from '@/lib/supabase/queries/admin'
-import { isOwnScratchKey, validateAttachment, attachmentNote, MAX_PDF_BYTES } from '@/lib/ai/attachments'
+import { isOwnScratchKey, validateAttachment, attachmentNote, MAX_PDF_BYTES, REQUEST_FILE_BUDGET } from '@/lib/ai/attachments'
+import { getOwnProject, listProjectFiles } from '@/lib/supabase/queries/assistant-projects'
+import { projectSystemBlock, projectFilesLeadText } from '@/lib/ai/project-context'
 import type { ChatAttachment } from '@/lib/ai/attachments'
 import type { ToolContext } from '@/lib/ai/tool-runner'
 import { getObjectBase64 } from '@/lib/storage/r2'
@@ -108,6 +110,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as {
     messages: { role: 'user' | 'assistant'; content: string; attachments?: ChatAttachment[] }[]
+    projectId?: string
   }
   const { messages } = body
 
@@ -148,8 +151,14 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Automatic per-user memory (the KB lookup moved into the search_knowledge tool)
-  const pastChats    = await retrievePastChats(lastUserMsg)
+  // Project context (Phase 4) — RLS returns null for any project the caller
+  // does not own, so a forged id silently degrades to a normal chat.
+  const project      = body.projectId ? await getOwnProject(body.projectId) : null
+  const projectFiles = project ? await listProjectFiles([project.id]) : []
+
+  // Automatic per-user memory (the KB lookup moved into the search_knowledge
+  // tool). Inside a project, sibling chats match first.
+  const pastChats    = await retrievePastChats(lastUserMsg, project?.id)
   const contextBlock = formatPastChats(pastChats)
 
   // Tool-execution context: effective role (preview-as applies) gates
@@ -169,6 +178,25 @@ export async function POST(req: NextRequest) {
     `User: ${profile.name} (${profile.role})`,
   ]
   if (contextBlock) volatileParts.push(`\n${contextBlock}`)
+
+  // System blocks. SYSTEM_PREFIX is the shared frozen prefix (byte-stable).
+  // Project chats add a second CACHED block (instructions — stable per
+  // project); the volatile block then must NOT sit in system, because the
+  // project-file cache breakpoint in the messages would be invalidated by
+  // it — it rides at the end of the last user message instead. Non-project
+  // chats keep the pre-Phase-4 shape exactly (volatile as system block 2).
+  const systemBlocks: Anthropic.Messages.TextBlockParam[] = [
+    { type: 'text', text: SYSTEM_PREFIX, cache_control: { type: 'ephemeral' } },
+  ]
+  if (project) {
+    systemBlocks.push({
+      type: 'text',
+      text: projectSystemBlock(project.name, project.instructions),
+      cache_control: { type: 'ephemeral' },
+    })
+  } else {
+    systemBlocks.push({ type: 'text', text: volatileParts.join('\n') })
+  }
 
   const encoder  = new TextEncoder()
   const readable = new ReadableStream({
@@ -192,6 +220,13 @@ export async function POST(req: NextRequest) {
         // document blocks first, then the text with an id-note so the model
         // can reference files in create_pending_job. A scratch object that has
         // expired (30-day cleanup) degrades to a text note, never an error.
+        // Combined request budget: project files + every attachment in the
+        // history ride on each request. Attachments past the budget degrade
+        // to a text note (oldest first wins — deterministic, so the cached
+        // prefix stays byte-stable across turns) instead of letting the API
+        // reject the whole request. Non-project chats get the full budget.
+        let fileBudget = REQUEST_FILE_BUDGET - projectFiles.reduce((s, f) => s + f.size, 0)
+
         const convo: Anthropic.MessageParam[] = []
         for (const m of messages) {
           const atts = (m.attachments ?? []).filter(a => attachmentIndex.has(a.id))
@@ -201,6 +236,10 @@ export async function POST(req: NextRequest) {
           }
           const blocks: Anthropic.ContentBlockParam[] = []
           for (const a of atts) {
+            if (a.size > fileBudget) {
+              blocks.push({ type: 'text', text: `[Attachment "${a.name}" not included — file size limit for this conversation]` })
+              continue
+            }
             const data = await getObjectBase64(a.key, MAX_PDF_BYTES)
             if (!data) {
               blocks.push({ type: 'text', text: `[Attachment "${a.name}" is no longer available]` })
@@ -214,9 +253,63 @@ export async function POST(req: NextRequest) {
                 source: { type: 'base64', media_type: a.mime as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif', data },
               })
             }
+            fileBudget -= a.size
           }
           blocks.push({ type: 'text', text: `${m.content || '(see attached files)'}\n\n${attachmentNote(atts)}` })
           convo.push({ role: 'user', content: blocks })
+        }
+
+        if (project) {
+          // Project reference files ride at the very front of the FIRST user
+          // message with a cache breakpoint on the last block — together with
+          // the system breakpoints the whole project prefix (tools + system +
+          // files) is cached, so repeat turns re-read it at the cache rate
+          // instead of resending every file.
+          const projectBlocks: Anthropic.ContentBlockParam[] = []
+          const lead = projectFilesLeadText(projectFiles)
+          if (lead) projectBlocks.push({ type: 'text', text: lead })
+          for (const f of projectFiles) {
+            const data = await getObjectBase64(f.r2_key, MAX_PDF_BYTES)
+            if (!data) {
+              projectBlocks.push({ type: 'text', text: `[Project file "${f.name}" is no longer available]` })
+              continue
+            }
+            if (f.mime === 'application/pdf') {
+              projectBlocks.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } })
+            } else {
+              projectBlocks.push({
+                type: 'image',
+                source: { type: 'base64', media_type: f.mime as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif', data },
+              })
+            }
+          }
+          if (projectBlocks.length > 0) {
+            const last = projectBlocks[projectBlocks.length - 1] as { cache_control?: { type: 'ephemeral' } }
+            last.cache_control = { type: 'ephemeral' }
+            const firstIdx = convo.findIndex(m => m.role === 'user')
+            if (firstIdx !== -1) {
+              const orig = convo[firstIdx].content
+              const origBlocks: Anthropic.ContentBlockParam[] =
+                typeof orig === 'string'
+                  ? (orig ? [{ type: 'text', text: orig }] : [])
+                  : [...orig]
+              convo[firstIdx] = { role: 'user', content: [...projectBlocks, ...origBlocks] }
+            }
+          }
+
+          // Volatile context (date / user / past-chat recall) — appended to
+          // the LAST user message so the stable prefix above stays
+          // byte-identical across turns (in system it would break the cache).
+          const lastIdx = convo.map(m => m.role).lastIndexOf('user')
+          if (lastIdx !== -1) {
+            const orig = convo[lastIdx].content
+            const blocks: Anthropic.ContentBlockParam[] =
+              typeof orig === 'string'
+                ? (orig ? [{ type: 'text', text: orig }] : [])
+                : [...orig]
+            blocks.push({ type: 'text', text: `---\n${volatileParts.join('\n')}` })
+            convo[lastIdx] = { role: 'user', content: blocks }
+          }
         }
         const sources: { url: string; title: string }[] = []
         let tokensIn = 0, tokensOut = 0, cacheWrite = 0, cacheRead = 0, searches = 0
@@ -229,10 +322,7 @@ export async function POST(req: NextRequest) {
             model:      'claude-sonnet-5',
             max_tokens: 8192,
             thinking:   { type: 'adaptive' },
-            system: [
-              { type: 'text', text: SYSTEM_PREFIX, cache_control: { type: 'ephemeral' } },
-              { type: 'text', text: volatileParts.join('\n') },
-            ],
+            system: systemBlocks,
             messages: convo,
             tools:    ALL_TOOLS,
             ...(forceAnswer ? { tool_choice: { type: 'none' as const } } : {}),

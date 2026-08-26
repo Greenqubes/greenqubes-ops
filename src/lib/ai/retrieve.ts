@@ -10,17 +10,30 @@ export interface KbHit    { source_path: string; content: string; similarity: nu
 const args = (a: object) => a as never
 
 /** Automatic per-user memory: the caller's own past chats (RLS via
- *  SECURITY INVOKER match_asst_chats — migration 0030 isolation). */
-export async function retrievePastChats(query: string): Promise<PastChat[]> {
+ *  SECURITY INVOKER match_asst_chats — migration 0030 isolation).
+ *  Inside a project (Phase 4): sibling chats in the same project match
+ *  first, general per-user memory beneath. */
+export async function retrievePastChats(query: string, projectId?: string): Promise<PastChat[]> {
   let embedding: number[]
   try { embedding = await embed(query, 'query') } catch { return [] }
 
   const supabase = await createClient()
+  type Row = { id: string; topic: string | null; summary: string | null; msgs: unknown; similarity: number }
+  const rows: Row[] = []
+
+  if (projectId) {
+    const { data } = await supabase.rpc('match_asst_chats',
+      args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3, project_filter: projectId }))
+    rows.push(...((data ?? []) as Row[]))
+  }
+
   const { data } = await supabase.rpc('match_asst_chats',
     args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3 }))
+  for (const r of (data ?? []) as Row[]) {
+    if (!rows.some(x => x.id === r.id)) rows.push(r)
+  }
 
-  type Row = { topic: string | null; summary: string | null; msgs: unknown; similarity: number }
-  return ((data ?? []) as Row[])
+  return rows.slice(0, projectId ? 4 : 3)
     .map(r => ({ topic: r.topic, summary: pastChatSummary(r), similarity: r.similarity }))
     .filter(r => r.summary !== '')
 }
