@@ -11,16 +11,18 @@ import { DigestTab }     from '@/features/admin/DigestTab'
 import { HealthTab }     from '@/features/admin/HealthTab'
 import { CrashLogTab }  from '@/features/admin/CrashLogTab'
 import { BugReportsTab } from '@/features/admin/BugReportsTab'
+import { AIScoresTab }   from '@/features/admin/AIScoresTab'
 import type { LangCode, Role } from '@/lib/supabase/types'
 
-type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs'
+type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs' | 'ai-scores'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'users',   label: 'Users'   },
-  { id: 'digest',  label: 'Digest'  },
-  { id: 'health',  label: 'Health'  },
-  { id: 'crashes', label: 'Crashes' },
-  { id: 'bugs',    label: 'Bugs'    },
+  { id: 'users',     label: 'Users'    },
+  { id: 'digest',    label: 'Digest'   },
+  { id: 'health',    label: 'Health'   },
+  { id: 'crashes',   label: 'Crashes'  },
+  { id: 'bugs',      label: 'Bugs'     },
+  { id: 'ai-scores', label: 'AI Scores' },
 ]
 
 type Props = {
@@ -104,11 +106,12 @@ export function AdminShell({ userName, role, lang }: Props) {
 
         {/* Tab content */}
         <main className="flex-1 min-w-0">
-          {tab === 'users'   && <UsersTab />}
-          {tab === 'digest'  && <DigestTab />}
-          {tab === 'health'  && <HealthTab />}
-          {tab === 'crashes' && <CrashLogTab />}
-          {tab === 'bugs'    && <BugReportsTab />}
+          {tab === 'users'     && <UsersTab />}
+          {tab === 'digest'    && <DigestTab />}
+          {tab === 'health'    && <HealthTab />}
+          {tab === 'crashes'   && <CrashLogTab />}
+          {tab === 'bugs'      && <BugReportsTab />}
+          {tab === 'ai-scores' && <AIScoresTab />}
         </main>
       </div>
 
