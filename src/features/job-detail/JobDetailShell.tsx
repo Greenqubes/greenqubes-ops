@@ -167,6 +167,15 @@ export function JobDetailShell({
   const [briefError, setBriefError] = useState(false)
   const [jumpToDetails, setJumpToDetails] = useState(0)
   const briefCardRef = useRef<HTMLDivElement>(null)
+  // What isBriefDirty's due-date half diffs against. Normally mirrors
+  // job.design_due_date, but the server-side auto-shift can compute a
+  // due date different from whatever we sent — the moment the PATCH route
+  // tells us the actual persisted value, both dueDate AND this baseline move
+  // together, so the just-applied shift doesn't itself read as an unsaved
+  // edit (which would otherwise re-arm the leave guard and re-enable Save
+  // right after a successful save, and — worse — let a second save PATCH the
+  // stale pre-shift date back over the server's own shift).
+  const [dueDateBaseline, setDueDateBaseline] = useState<string | null>(job.design_due_date ?? null)
 
   const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
   const handleBriefText = (v: string) => {
@@ -253,28 +262,43 @@ export function JobDetailShell({
     return added
   }
 
+  // Design brief fields + due-date auto-shift (Task 6). Shared by performSave
+  // AND handlePushToSchedule — both write `date` and both must persist the
+  // brief. Callers must run this BEFORE any local jobs.update() of their own
+  // that also touches `date` — the route reads the job's CURRENT `date` and
+  // `design_due_date` from the database to compute the shift delta, so it has
+  // to see the pre-save row. Telegram needs the server-only bot token, so
+  // this can't be a plain client-side jobs.update() like the rest of this
+  // form's fields.
+  //
+  // Applies the response's design_due_date back into local state (and its
+  // dirty-diff baseline) — the auto-shift can compute a due date different
+  // from whatever we sent, and skipping this would (a) leave the shift
+  // invisible in the UI until the next full reload and (b) let a second save
+  // PATCH the stale pre-shift date straight back over the server's shift.
+  const saveDesignBriefFields = async (newDate: string): Promise<void> => {
+    const designRes = await fetch(`/api/jobs/${job.id}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        design_brief:      briefText || null,
+        design_due_date:   dueDate,
+        design_due_manual: dueManual,
+        ...(newDate !== job.date ? { date: newDate } : {}),
+      }),
+    })
+    if (!designRes.ok) throw new Error()
+    const { design_due_date } = await designRes.json() as { ok: boolean; design_due_date: string | null }
+    setDueDate(design_due_date)
+    setDueDateBaseline(design_due_date)
+  }
+
   const performSave = async (values: FormValues) => {
     bumpSuppression()
     setSaving(true)
     try {
-      // Design brief fields + due-date auto-shift (Task 6). This must run
-      // BEFORE saveValues() below — the route reads the job's CURRENT `date`
-      // and `design_due_date` from the database to compute the shift delta,
-      // and saveValues() is about to overwrite `date` with the new value.
-      // Telegram needs the server-only bot token, so this can't be a plain
-      // client-side jobs.update() the way the rest of this form saves.
       if (isBriefDirty || values.date !== job.date) {
-        const designRes = await fetch(`/api/jobs/${job.id}`, {
-          method:  'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            design_brief:      briefText || null,
-            design_due_date:   dueDate,
-            design_due_manual: dueManual,
-            ...(values.date !== job.date ? { date: values.date } : {}),
-          }),
-        })
-        if (!designRes.ok) throw new Error()
+        await saveDesignBriefFields(values.date)
       }
 
       const [, addedCoordinatorIds] = await Promise.all([
@@ -485,6 +509,12 @@ export function JobDetailShell({
     bumpSuppression()
     setSaving(true)
     try {
+      // Same design-brief persistence + auto-shift performSave gets — this
+      // path also writes `date` (below, via saveValues) and previously
+      // skipped both entirely (react-hook-form's isDirty knows nothing about
+      // briefText/dueDate/dueManual, which live outside the form).
+      const pushDate = getValues().date
+      if (isBriefDirty || pushDate !== job.date) await saveDesignBriefFields(pushDate)
       if (isDirty) await saveValues(getValues())
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
@@ -611,7 +641,7 @@ export function JobDetailShell({
 
   const isBriefDirty =
     briefText  !== (job.design_brief ?? '') ||
-    dueDate    !== (job.design_due_date ?? null) ||
+    dueDate    !== dueDateBaseline ||
     dueManual  !== (job.design_due_manual ?? false)
 
   const isAnyDirty = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty || isBriefDirty
@@ -677,6 +707,7 @@ export function JobDetailShell({
     setSelectedDesignerIds(initialDesignerIds)
     setBriefText(job.design_brief ?? '')
     setDueDate(job.design_due_date ?? null)
+    setDueDateBaseline(job.design_due_date ?? null)
     setDueManual(job.design_due_manual ?? false)
     setBriefError(false)
     setStaleBanner(false)

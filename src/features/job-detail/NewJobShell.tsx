@@ -47,9 +47,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
   const [selectedDesignerIds,   setSelectedDesignerIds]  = useState<string[]>([])
-  // Design brief card (Task 6) — pre-book is exempt from the required rule, so
-  // only the brief TEXT rides into the create payload; the due date has
-  // nothing to shift against yet (no AI score runs before a job exists).
+  // Design brief card (Task 6) — pre-book is exempt from the required rule.
+  // Brief text, and a picked due date (with dueManual, per handleDueDate
+  // below), all ride into the create payload; dueManual is only ever true
+  // once the user has actually touched the date field, so an untouched due
+  // date rides in as null/false exactly as if the fields were omitted.
   const [briefText,             setBriefText]            = useState('')
   const [dueDate,                setDueDate]             = useState<string | null>(null)
   const [dueManual,              setDueManual]           = useState(false)
@@ -121,6 +123,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           production_instructions: values.production_instructions || null,
           notes:                   values.notes || null,
           design_brief:            briefText || null,
+          design_due_date:         dueDate,
+          design_due_manual:       dueManual,
           visibility:              ['role:sales', 'role:scheduler'],
         } as never)
         .select('id')
