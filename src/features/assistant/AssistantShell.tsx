@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, ExternalLink, Sparkles,
-  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList,
+  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { MAX_FILES_PER_MESSAGE, MAX_MESSAGE_BYTES, validateAttachment } from '@/lib/ai/attachments'
@@ -17,6 +17,7 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
+import { ProjectPanel } from './ProjectPanel'
 import { statusLabelKey } from './statusLabels'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
@@ -89,6 +90,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const [projects,        setProjects]        = useState<ProjectWithFiles[]>([])
   const [projectsLoading, setProjectsLoading] = useState(true)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [panelProjectId,  setPanelProjectId]  = useState<string | null>(null)
 
   const [showScrollDown, setShowScrollDown] = useState(false)
 
@@ -121,8 +123,9 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       if (res.ok) {
         const list = await res.json() as ProjectWithFiles[]
         setProjects(list)
-        // The active project may have been deleted elsewhere
+        // The active/panel project may have been deleted elsewhere
         setActiveProjectId(prev => prev && !list.some(p => p.id === prev) ? null : prev)
+        setPanelProjectId(prev => prev && !list.some(p => p.id === prev) ? null : prev)
       }
     } finally {
       setProjectsLoading(false)
@@ -559,6 +562,9 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const firstName = userName.split(' ')[0] || userName
   const greeting  = t(lang, 'assistantGreeting').replace('{name}', firstName)
 
+  const activeProject = activeProjectId ? projects.find(p => p.id === activeProjectId) ?? null : null
+  const panelProject  = panelProjectId  ? projects.find(p => p.id === panelProjectId)  ?? null : null
+
   return (
     <div className="h-[100dvh] bg-bg flex flex-col">
 
@@ -632,7 +638,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         projectsLoading={projectsLoading}
         onProjectsChanged={fetchProjects}
         onNewChatInProject={startNewChatInProject}
-        onOpenProjectPanel={() => {}}
+        onOpenProjectPanel={setPanelProjectId}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />
@@ -734,6 +740,16 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
                 >
                   <Plus size={16} />
                 </button>
+                {activeProject && (
+                  <button
+                    onClick={() => setPanelProjectId(activeProject.id)}
+                    title={activeProject.name}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-terracotta/40 bg-terracotta/5 text-[11px] font-medium text-terracotta hover:border-terracotta transition-colors max-w-[140px]"
+                  >
+                    <Folder size={11} className="shrink-0" />
+                    <span className="truncate">{activeProject.name}</span>
+                  </button>
+                )}
                 <div className="flex-1" />
                 {micSupported && (
                   <button
@@ -786,6 +802,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         <BottomNav role={role} />
       </div>
       </div>
+
+      {/* Project settings overlay (z-[70] — above the phone drawer) */}
+      <ProjectPanel
+        project={panelProject}
+        onClose={() => setPanelProjectId(null)}
+        onChanged={fetchProjects}
+        lang={lang}
+      />
     </div>
   )
 }
