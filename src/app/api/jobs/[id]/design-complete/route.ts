@@ -36,10 +36,10 @@ export async function POST(
   const effectiveRole = await getEffectiveRole(profile.role)
   const svc = createServiceClient()
 
-  type JobRow = { id: string; design_complexity: number | null }
+  type JobRow = { id: string; design_complexity: number | null; design_completed_at: string | null }
   const { data: job } = await svc
     .from('jobs')
-    .select('id, design_complexity')
+    .select('id, design_complexity, design_completed_at')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -58,8 +58,23 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { data: joBucket } = await svc.from('attachment_buckets')
-    .select('id, name').eq('job_id', jobId).ilike('name', '%designer jo%').maybeSingle()
+  // Idempotent no-op, mirroring design-reopen's double-tap guard: a stale
+  // bell reminder (designer B, days later) or a stale scheduler override
+  // tapping done after design A already completed + rated it would otherwise
+  // overwrite the completion stamp AND rating — the ground truth Task 11's
+  // trust learning relies on. Checked before any write, on both paths below.
+  if (job.design_completed_at) return NextResponse.json({ ok: true })
+
+  // DESIGNER JO bucket lookup: match with the same /designer\s*jo/i regex the
+  // UI uses (AttachmentBuckets.tsx, JobDetailShell.tsx) instead of Postgres
+  // ilike, which can't express \s* — "DESIGNERJO" (no space) must match too.
+  // Oldest match wins so a second matching bucket (e.g. someone adds
+  // "Designer JO 2") can't brick this route with a multi-row error.
+  type BucketRow = { id: string; name: string; created_at: string }
+  const { data: jobBuckets } = await svc.from('attachment_buckets')
+    .select('id, name, created_at').eq('job_id', jobId)
+    .order('created_at', { ascending: true }) as { data: BucketRow[] | null; error: unknown }
+  const joBucket = (jobBuckets ?? []).find(b => /designer\s*jo/i.test(b.name)) ?? null
   let hasJoFile = false
   if (joBucket) {
     const { count } = await svc.from('files')

@@ -75,16 +75,23 @@ export async function GET(req: NextRequest) {
       designersByJob.set(row.job_id, list)
     }
 
-    // Each job's DESIGNER JO bucket — same match as
-    // src/app/api/jobs/[id]/design-complete/route.ts (`ilike '%designer jo%'`).
-    type BucketRow = { id: string; job_id: string }
+    // Each job's DESIGNER JO bucket — matched with the same /designer\s*jo/i
+    // regex the UI uses (AttachmentBuckets.tsx, JobDetailShell.tsx) and
+    // src/app/api/jobs/[id]/design-complete/route.ts, not Postgres ilike
+    // (which can't express \s* — "DESIGNERJO" with no space must match too).
+    // Rows come back oldest-first so a second matching bucket (e.g. "Designer
+    // JO 2") never displaces the original as the job's canonical one.
+    type BucketRow = { id: string; job_id: string; name: string; created_at: string }
     const { data: bucketRows } = await db
       .from('attachment_buckets')
-      .select('id, job_id')
+      .select('id, job_id, name, created_at')
       .in('job_id', jobIds)
-      .ilike('name', '%designer jo%') as { data: BucketRow[] | null; error: unknown }
+      .order('created_at', { ascending: true }) as { data: BucketRow[] | null; error: unknown }
     const bucketByJob = new Map<string, string>()
-    for (const row of bucketRows ?? []) bucketByJob.set(row.job_id, row.id)
+    for (const row of bucketRows ?? []) {
+      if (!/designer\s*jo/i.test(row.name)) continue
+      if (!bucketByJob.has(row.job_id)) bucketByJob.set(row.job_id, row.id)
+    }
     const bucketIds = [...bucketByJob.values()]
 
     // Earliest file ts per bucket = the JO-uploaded timestamp.

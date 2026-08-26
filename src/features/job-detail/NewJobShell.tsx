@@ -377,6 +377,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                   value={selectedDesignerIds}
                   onChange={setSelectedDesignerIds}
                   disabled={!canEditDesigners}
+                  placeholder={t(lang, 'designersAddPlaceholder')}
                 />
               </Field>
               <Field label="Notes">

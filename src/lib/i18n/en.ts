@@ -31,6 +31,7 @@ export const en = {
   tabDetails: 'Details',
   tabTeam: 'Team',
   designersLabel: 'Designers',
+  designersAddPlaceholder: '+ Add designer',
   tabFiles: 'Files',
   tabChat: 'Chat',
   jobDetails: 'Job details',

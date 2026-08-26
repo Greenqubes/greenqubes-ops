@@ -1070,6 +1070,7 @@ export function JobDetailShell({
                 value={selectedDesignerIds}
                 onChange={setSelectedDesignerIds}
                 disabled={readOnly || !canEditCore}
+                placeholder={t(lang, 'designersAddPlaceholder')}
               />
             </Field>
 
