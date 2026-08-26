@@ -1029,7 +1029,7 @@ export function JobDetailShell({
                   <button
                     type="button"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={saving || (!isDirty && !isInstallerDirty)}
+                    disabled={saving || (!isDirty && !isInstallerDirty && !isCoordDirty && !isDesignerDirty)}
                     className={cn(
                       'flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed',
                       status === 'scheduled' ? 'w-full' : 'flex-1',
@@ -1053,7 +1053,7 @@ export function JobDetailShell({
                 <button
                   type="button"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty)}
+                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Bell size={14} />
