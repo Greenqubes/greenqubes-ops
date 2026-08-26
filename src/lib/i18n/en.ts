@@ -219,6 +219,12 @@ export const en = {
   notificationsNone: 'All clear — no overdue jobs',
   overdueCount: 'overdue',
 
+  // ── Design daily reminders (Task 9) ─────────────────────────────────────────
+  designReminderQ: 'Is your design work on “{title}” finished?',
+  yesBtn: 'Yes',
+  noBtn: 'No',
+  designReminderNoJo: 'No Job Order PDF uploaded yet — open the job to finish up',
+
   // ── Auth ───────────────────────────────────────────────────────────────────
   loginTitle: 'Welcome back',
   loginSubtitle: 'Enter your email to receive a sign-in link',

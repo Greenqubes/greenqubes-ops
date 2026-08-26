@@ -181,6 +181,12 @@ export const zh: Partial<Translations> = {
   notificationsNone: '一切正常 — 无逾期工作',
   overdueCount: '逾期',
 
+  // ── Design daily reminders (Task 9) ─────────────────────────────────────────
+  designReminderQ: '“{title}”的设计工作完成了吗？',
+  yesBtn: '是',
+  noBtn: '否',
+  designReminderNoJo: '尚未上传 Job Order PDF——请打开项目完成上传',
+
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: '你好',
   installerMyJobs: '我的工作',

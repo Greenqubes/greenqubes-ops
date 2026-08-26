@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bell, X, Hourglass, ArrowRight, RotateCcw, Trash2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
+import { DesignRatingSlider } from '@/features/job-detail/DesignRatingSlider'
 import type { LangCode } from '@/lib/i18n'
 
 type InAppNotif = {
@@ -48,6 +51,18 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+// Reads a JSON { error } body off a failed response, if there is one — same
+// helper shape as JobDetailShell's errorCodeOf, used to turn a 409
+// no-jo-file into the designReminderNoJo toast instead of the generic one.
+async function errorCodeOf(res: Response): Promise<string | null> {
+  try {
+    const body = await res.json() as { error?: string }
+    return body.error ?? null
+  } catch {
+    return null
+  }
+}
+
 interface Props {
   lang: LangCode
 }
@@ -59,6 +74,17 @@ export function NotificationDrawer({ lang }: Props) {
   const [selectMode,  setSelectMode]  = useState(false)
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
+
+  // design_reminder Yes/No cards (Task 9) — which card's inline rating
+  // slider is expanded, a nonce bumped on every open so the slider gets a
+  // fresh `key` (and therefore fresh internal value/touched state) each time
+  // — a kept-mounted slider does not reset itself between opens.
+  const [openSliderId,     setOpenSliderId]     = useState<string | null>(null)
+  const [sliderNonce,      setSliderNonce]      = useState(0)
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
+
+  const router = useRouter()
+  const { success: showSuccess, error: showError } = useToast()
 
   // localStorage key for overdue alerts this user has marked read on this
   // device (job_id → job date; a reschedule to a new date re-alerts)
@@ -215,6 +241,189 @@ export function NotificationDrawer({ lang }: Props) {
     }
   }
 
+  // Mark a single notification read — used by design_reminder's Yes (on a
+  // successful complete) and No, distinct from handleMarkAllRead above.
+  async function markRead(id: string) {
+    try {
+      await fetch('/api/notifications', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids: [id] }),
+      })
+      setNotifs(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))
+    } catch { /* best-effort */ }
+  }
+
+  function handleReminderYes(id: string) {
+    setOpenSliderId(id)
+    setSliderNonce(x => x + 1) // fresh slider mount even when re-opening the same card
+  }
+
+  function handleReminderNo(id: string) {
+    void markRead(id)
+  }
+
+  // Confirm inside the expanded slider — POSTs the rating the same way the
+  // designer action bar does (JobDetailShell.handleDesignComplete). On
+  // 409 no-jo-file the slider stays open and the notification stays unread,
+  // mirroring that same handler's error path.
+  async function handleReminderConfirm(n: InAppNotif, rating: number) {
+    if (!n.job_id) return
+    setRatingSubmitting(true)
+    try {
+      const res = await fetch(`/api/jobs/${n.job_id}/design-complete`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ rating }),
+      })
+      if (!res.ok) {
+        if (res.status === 409 && await errorCodeOf(res) === 'no-jo-file') {
+          showError(t(lang, 'designReminderNoJo'))
+          return
+        }
+        throw new Error()
+      }
+      await markRead(n.id)
+      setOpenSliderId(null)
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setRatingSubmitting(false)
+    }
+  }
+
+  // Per-notification card renderer — branches by type. design_reminder gets
+  // the Yes/No + inline slider; design_due_shift is a plain title+body
+  // click-through; everything else (sent_back, design_assigned, …) falls
+  // through to the original generic {title}/{body} card — design_assigned
+  // rows (title "New design job assigned", body = project title) already
+  // render sensibly there, nothing special needed.
+  function renderNotifCard(n: InAppNotif) {
+    const checkbox = selectMode && (
+      <button
+        onClick={() => toggleSelect(n.id)}
+        className="mt-3 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+        style={{
+          borderColor:     selected.has(n.id) ? 'var(--terracotta)' : 'var(--line)',
+          backgroundColor: selected.has(n.id) ? 'var(--terracotta)' : 'var(--paper)',
+        }}
+      >
+        {selected.has(n.id) && <Check size={9} className="text-white" strokeWidth={3} />}
+      </button>
+    )
+
+    if (n.type === 'design_reminder') {
+      const sliderOpen = openSliderId === n.id
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <div
+            onClick={() => { if (n.job_id) { handleClose(); router.push(`/jobs/${n.job_id}`) } }}
+            className={cn(
+              'flex-1 p-3 rounded-xl border transition-colors cursor-pointer',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="flex items-start gap-2.5">
+              <div className="shrink-0 mt-0.5">
+                {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+                {n.read && <RotateCcw size={13} className="text-muted" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={cn('text-xs font-medium', n.read ? 'text-ink2' : 'text-ink')}>
+                  {t(lang, 'designReminderQ').replace('{title}', n.title)}
+                </p>
+                <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+              </div>
+            </div>
+
+            {sliderOpen ? (
+              <div onClick={e => e.stopPropagation()}>
+                <DesignRatingSlider
+                  key={`${n.id}-${sliderNonce}`}
+                  lang={lang}
+                  busy={ratingSubmitting}
+                  onCancel={() => setOpenSliderId(null)}
+                  onConfirm={rating => handleReminderConfirm(n, rating)}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-2.5" onClick={e => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => handleReminderYes(n.id)}
+                  className="flex-1 px-3 py-1.5 rounded-lg bg-brand-green text-white text-xs font-semibold hover:bg-brand-green/90 transition-colors"
+                >
+                  {t(lang, 'yesBtn')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReminderNo(n.id)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-bg transition-colors"
+                >
+                  {t(lang, 'noBtn')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    if (n.type === 'design_due_shift') {
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={handleClose}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div key={n.id} className="flex items-start gap-2">
+        {checkbox}
+        <Link
+          href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+          onClick={handleClose}
+          className={cn(
+            'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+            n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+          )}
+        >
+          <div className="shrink-0 mt-0.5">
+            {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+            {n.read && <RotateCcw size={13} className="text-muted" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+            {n.body && <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{n.body}</p>}
+            <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+          </div>
+          <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <>
       {/* ── Bell button ── */}
@@ -296,57 +505,7 @@ export function NotificationDrawer({ lang }: Props) {
                   <p className="text-[11px] text-muted uppercase tracking-widest px-1">
                     Updates
                   </p>
-                  {notifs.map(n => (
-                    <div key={n.id} className="flex items-start gap-2">
-                      {selectMode && (
-                        <button
-                          onClick={() => toggleSelect(n.id)}
-                          className="mt-3 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
-                          style={{
-                            borderColor:     selected.has(n.id) ? 'var(--terracotta)' : 'var(--line)',
-                            backgroundColor: selected.has(n.id) ? 'var(--terracotta)' : 'var(--paper)',
-                          }}
-                        >
-                          {selected.has(n.id) && <Check size={9} className="text-white" strokeWidth={3} />}
-                        </button>
-                      )}
-                      <Link
-                        href={n.job_id ? `/jobs/${n.job_id}` : '#'}
-                        onClick={handleClose}
-                        className={cn(
-                          'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
-                          n.read
-                            ? 'bg-paper border-line hover:brightness-95'
-                            : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
-                        )}
-                      >
-                        <div className="shrink-0 mt-0.5">
-                          {!n.read && (
-                            <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />
-                          )}
-                          {n.read && (
-                            <RotateCcw size={13} className="text-muted" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn(
-                            'text-xs font-medium truncate',
-                            n.read ? 'text-ink2' : 'text-ink',
-                          )}>
-                            {n.title}
-                          </p>
-                          {n.body && (
-                            <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{n.body}</p>
-                          )}
-                          <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
-                        </div>
-                        <ArrowRight
-                          size={12}
-                          className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors"
-                        />
-                      </Link>
-                    </div>
-                  ))}
+                  {notifs.map(renderNotifCard)}
                 </div>
               )}
 
