@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Plus, Trash2, X, Brain } from 'lucide-react'
+import { Plus, Trash2, X, Brain, Folder } from 'lucide-react'
 import { HistoryList } from './HistoryList'
 import { ProjectsSection } from './ProjectsSection'
 import { MemoryView } from './MemoryView'
@@ -27,6 +27,7 @@ interface Props {
   onProjectsChanged:  () => void
   onNewChatInProject: (id: string) => void
   onOpenProjectPanel: (id: string) => void
+  onChatMoved:        (chatId: string, projectId: string | null) => void
   /** Phone slide-in drawer (replaces the old /assistant/history route) */
   drawerOpen?:     boolean
   onDrawerClose?:  () => void
@@ -47,7 +48,7 @@ function SkeletonRows({ count = 6 }: { count?: number }) {
 export function HistorySidebar({
   activeChatId, onLoad, onNewChat, onDelete, refreshTrigger, optimisticChat,
   lang, projects, projectsLoading, onProjectsChanged, onNewChatInProject,
-  onOpenProjectPanel, drawerOpen = false, onDrawerClose,
+  onOpenProjectPanel, onChatMoved, drawerOpen = false, onDrawerClose,
 }: Props) {
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [chats,             setChats]             = useState<AsstChatRow[]>([])
@@ -79,8 +80,28 @@ export function HistorySidebar({
     [displayChats, projectIds],
   )
 
-  // Task 11 wires the move modal
-  function handleMoveRequest(_id: string) {}
+  const [moveChatId, setMoveChatId] = useState<string | null>(null)
+
+  function handleMoveRequest(id: string) {
+    setMoveChatId(id)
+  }
+
+  async function confirmMove(projectId: string | null) {
+    const chatId = moveChatId
+    if (!chatId) return
+    setMoveChatId(null)
+
+    // Optimistic re-home; revert by refetch on failure
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, project_id: projectId } : c))
+    onChatMoved(chatId, projectId)
+
+    const res = await fetch('/api/assistant/move', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: chatId, projectId }),
+    })
+    if (!res.ok) fetchChats()
+  }
 
   const fetchChats = useCallback(async () => {
     try {
@@ -428,6 +449,29 @@ export function HistorySidebar({
           >
             Delete
           </button>
+        </div>
+      </Modal>
+
+      {/* Move-to-project picker */}
+      <Modal isOpen={moveChatId !== null} onClose={() => setMoveChatId(null)}>
+        <p className="font-display text-base font-medium text-ink mb-3">{t(lang, 'moveToProject')}</p>
+        <div className="space-y-1 max-h-[50dvh] overflow-y-auto">
+          <button
+            onClick={() => confirmMove(null)}
+            className="w-full text-left px-3 py-2 rounded-xl border border-line text-sm text-ink hover:border-ink2 transition-colors"
+          >
+            {t(lang, 'noProject')}
+          </button>
+          {projects.map(p => (
+            <button
+              key={p.id}
+              onClick={() => confirmMove(p.id)}
+              className="w-full text-left px-3 py-2 rounded-xl border border-line text-sm text-ink hover:border-ink2 transition-colors flex items-center gap-2"
+            >
+              <Folder size={13} className="text-muted shrink-0" />
+              <span className="truncate">{p.name}</span>
+            </button>
+          ))}
         </div>
       </Modal>
 

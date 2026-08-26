@@ -639,6 +639,9 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         onProjectsChanged={fetchProjects}
         onNewChatInProject={startNewChatInProject}
         onOpenProjectPanel={setPanelProjectId}
+        onChatMoved={(chatId, projectId) => {
+          if (chatId === activeChatId) setActiveProjectId(projectId)
+        }}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />
