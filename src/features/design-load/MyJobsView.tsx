@@ -30,13 +30,19 @@ const CHIPS: { id: Bucket; key: 'myJobsTodo' | 'myJobsReady' | 'myJobsPast' }[] 
 ]
 
 interface Props {
-  jobs:     MyDesignJob[] | null
-  loading:  boolean
-  todayISO: string
-  lang:     LangCode
+  jobs:         MyDesignJob[] | null
+  loading:      boolean
+  todayISO:     string
+  lang:         LangCode
+  // The REAL board-wide max open-jobs-per-designer, computed once by
+  // DesignLoadShell alongside the bars (same value DesignerBar's segments
+  // use). Threading the same number through here — rather than each view
+  // computing its own — is what makes a given job's urgency level agree
+  // between the Board bubble and its My Jobs row.
+  maxOpenCount: number
 }
 
-export function MyJobsView({ jobs, loading, todayISO, lang }: Props) {
+export function MyJobsView({ jobs, loading, todayISO, lang, maxOpenCount }: Props) {
   const router = useRouter()
   const [bucket, setBucket] = useState<Bucket>('todo')
 
@@ -46,11 +52,13 @@ export function MyJobsView({ jobs, loading, todayISO, lang }: Props) {
     return grouped
   }, [jobs, todayISO])
 
-  // No cross-designer board context here (My Jobs is scoped to one
-  // designer), so this designer's own To-do count doubles as both openCount
-  // and maxOpenCount — the same congestion ratio the board uses to bump
-  // urgency +1 once 3+ jobs are open.
-  const openCount = buckets.todo.length
+  // This designer's own To-do count feeds computeUrgency's congestion ratio
+  // alongside the real board-wide maxOpenCount above. If the board data is
+  // somehow absent (maxOpenCount is 0 — no designers/jobs at all board-wide,
+  // which also means computeUrgency's own maxOpenCount>0 guard would no-op
+  // the bump anyway), fall back to 0 rather than self-referencing a count
+  // with no board context to compare against.
+  const openCount = maxOpenCount > 0 ? buckets.todo.length : 0
   const rows = buckets[bucket]
 
   if (loading && jobs === null) {
@@ -84,7 +92,7 @@ export function MyJobsView({ jobs, loading, todayISO, lang }: Props) {
           {rows.map(job => {
             const daysToDue = job.dueDate ? daysBetween(todayISO, job.dueDate) : null
             const level = computeUrgency({
-              complexity: job.complexity, daysToDue, openCount, maxOpenCount: openCount,
+              complexity: job.complexity, daysToDue, openCount, maxOpenCount,
             })
             return (
               <button

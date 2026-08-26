@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
@@ -63,15 +63,46 @@ interface DesignerBarProps {
 export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
   const router = useRouter()
   const [openJobId, setOpenJobId] = useState<string | null>(null)
+  // Tracks HOW the open bubble was opened. This matters because the
+  // tap-away backdrop is a full-viewport `fixed` element with an explicit
+  // z-index — it paints above the (un-indexed) segment buttons regardless
+  // of DOM placement, so if it were mounted for a hover-opened bubble too,
+  // the very next mousemove would hit-test onto the backdrop instead of the
+  // segment/wrapper, firing `mouseleave` on the wrapper and instantly
+  // closing the bubble it just opened. Only rendering the backdrop for
+  // tap-opened bubbles keeps hover-close and tap-away-close from fighting.
+  const [openViaTap, setOpenViaTap] = useState(false)
 
   const openSegment = segments.find(s => s.job.jobId === openJobId) ?? null
+
+  const closeBubble = () => {
+    setOpenJobId(null)
+    setOpenViaTap(false)
+  }
 
   // First tap opens the bubble; a second tap on the same segment (or a
   // desktop click, which lands after hover already opened it) navigates.
   const handleSegmentClick = (jobId: string) => {
     if (openJobId === jobId) router.push(`/jobs/${jobId}`)
-    else setOpenJobId(jobId)
+    else { setOpenJobId(jobId); setOpenViaTap(true) }
   }
+
+  const handleSegmentHover = (jobId: string) => {
+    setOpenJobId(jobId)
+    setOpenViaTap(false)
+  }
+
+  // A live refetch can drop the currently-open job out of `segments`
+  // entirely (design marked complete, reassigned elsewhere, etc). Without
+  // this, openJobId would keep pointing at a job that no longer exists —
+  // openSegment goes null (bubble disappears) but a tap-opened backdrop
+  // would stay mounted, silently eating the next tap anywhere on the page.
+  useEffect(() => {
+    if (openJobId && !segments.some(s => s.job.jobId === openJobId)) {
+      setOpenJobId(null)
+      setOpenViaTap(false)
+    }
+  }, [segments, openJobId])
 
   // Data arrives newest-first (assignedAt DESC). The stack is bottom-aligned
   // via flex-col-reverse so the name label sits directly under it — with
@@ -80,54 +111,62 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
   const stacked = [...segments].reverse()
 
   return (
-    <div
-      className="relative flex flex-col items-center shrink-0 w-14"
-      onMouseLeave={() => setOpenJobId(null)}
-    >
-      {/* Tap-away backdrop (mobile) — closes the bubble without navigating
-          through whatever sits underneath, including the bottom nav. */}
-      {openJobId && (
-        <div className="fixed inset-0 z-[59]" onClick={() => setOpenJobId(null)} />
+    <>
+      {/* Tap-away backdrop (mobile only — see openViaTap above for why
+          hover-opened bubbles never mount this) — closes the bubble
+          without navigating through whatever sits underneath, including
+          the bottom nav. Rendered as a SIBLING of the hover-tracked
+          wrapper below, not a descendant, so it doesn't itself change what
+          counts as "inside the wrapper" for mouseleave purposes; also
+          keeps it position:fixed and out of flex flow, so it doesn't
+          disturb the bars row layout. */}
+      {openJobId && openViaTap && (
+        <div className="fixed inset-0 z-[59]" onClick={closeBubble} />
       )}
 
-      {segments.length === 0 ? (
-        <div className="w-8 h-8 rounded border border-dashed border-line bg-muted/10" />
-      ) : (
-        <div className="flex flex-col-reverse gap-0.5 w-8">
-          {stacked.map(seg => (
+      <div
+        className="relative flex flex-col items-center shrink-0 w-14"
+        onMouseLeave={closeBubble}
+      >
+        {segments.length === 0 ? (
+          <div className="w-8 h-8 rounded border border-dashed border-line bg-muted/10" />
+        ) : (
+          <div className="flex flex-col-reverse gap-0.5 w-8">
+            {stacked.map(seg => (
+              <button
+                key={seg.job.jobId}
+                type="button"
+                onMouseEnter={() => handleSegmentHover(seg.job.jobId)}
+                onClick={() => handleSegmentClick(seg.job.jobId)}
+                className={cn('relative w-full rounded-[3px]', URGENCY_META[seg.level].barClass)}
+                style={{ height: seg.height }}
+                aria-label={seg.job.projectTitle || t(lang, 'untitledJob')}
+              >
+                {seg.job.confidence === 'low' && (
+                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white ring-1 ring-ink/30" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <p className="mt-1.5 text-[10px] font-medium text-ink2 text-center truncate w-full">
+          {designer.name}
+        </p>
+
+        {openSegment && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[60] w-56 rounded-card border border-line bg-paper shadow-lg p-3">
+            <JobCardContent job={openSegment.job} lang={lang} />
             <button
-              key={seg.job.jobId}
               type="button"
-              onMouseEnter={() => setOpenJobId(seg.job.jobId)}
-              onClick={() => handleSegmentClick(seg.job.jobId)}
-              className={cn('relative w-full rounded-[3px]', URGENCY_META[seg.level].barClass)}
-              style={{ height: seg.height }}
-              aria-label={seg.job.projectTitle || t(lang, 'untitledJob')}
+              onClick={() => router.push(`/jobs/${openSegment.job.jobId}`)}
+              className="mt-2 w-full py-1.5 rounded-md bg-brand-blue text-white text-xs font-semibold"
             >
-              {seg.job.confidence === 'low' && (
-                <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-white ring-1 ring-ink/30" />
-              )}
+              {t(lang, 'openJobBtn')}
             </button>
-          ))}
-        </div>
-      )}
-
-      <p className="mt-1.5 text-[10px] font-medium text-ink2 text-center truncate w-full">
-        {designer.name}
-      </p>
-
-      {openSegment && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[60] w-56 rounded-card border border-line bg-paper shadow-lg p-3">
-          <JobCardContent job={openSegment.job} lang={lang} />
-          <button
-            type="button"
-            onClick={() => router.push(`/jobs/${openSegment.job.jobId}`)}
-            className="mt-2 w-full py-1.5 rounded-md bg-brand-blue text-white text-xs font-semibold"
-          >
-            {t(lang, 'openJobBtn')}
-          </button>
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

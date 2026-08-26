@@ -137,7 +137,13 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
 
       <main className="pb-24">
         {isDesigner && tab === 'myJobs' ? (
-          <MyJobsView jobs={myJobs} loading={myJobsLoading} todayISO={todayISO} lang={lang} />
+          <MyJobsView
+            jobs={myJobs}
+            loading={myJobsLoading}
+            todayISO={todayISO}
+            lang={lang}
+            maxOpenCount={maxOpenCount}
+          />
         ) : data.designers.length === 0 ? (
           <p className="text-center text-sm text-muted py-12">{t(lang, 'noDesigners')}</p>
         ) : (
