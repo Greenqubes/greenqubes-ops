@@ -1,0 +1,417 @@
+<title>Greenqubes Cheat Sheets</title>
+<style>
+  :root {
+    --bg: #F4F1EC;
+    --card: #FFFFFF;
+    --line: #E8E2D7;
+    --ink: #1A1815;
+    --ink2: #5C564E;
+    --muted: #8B8478;
+    --accent: #5A801F;
+    --accent-soft: #EDF2E2;
+    --warn-soft: #F5EEDD;
+    --warn: #A9852F;
+    --sales: #6C747C;
+    --sched: #A9852F;
+    --coord: #5A801F;
+    --inst: #3E7F7B;
+    --design: #8B8478;
+    --prod: #5C564E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1F1C18; --card: #292520; --line: #3C362D;
+      --ink: #EDE7DB; --ink2: #BEB5A5; --muted: #8F8778;
+      --accent: #9BC45E; --accent-soft: #2E3323;
+      --warn-soft: #332C1C; --warn: #C9A34E;
+      --sales: #9AA4AE; --sched: #C9A34E; --coord: #9BC45E;
+      --inst: #6FB0AA; --design: #A79E90; --prod: #BEB5A5;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1F1C18; --card: #292520; --line: #3C362D;
+    --ink: #EDE7DB; --ink2: #BEB5A5; --muted: #8F8778;
+    --accent: #9BC45E; --accent-soft: #2E3323;
+    --warn-soft: #332C1C; --warn: #C9A34E;
+    --sales: #9AA4AE; --sched: #C9A34E; --coord: #9BC45E;
+    --inst: #6FB0AA; --design: #A79E90; --prod: #BEB5A5;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+    padding: 32px 16px 64px;
+  }
+  .intro { max-width: 800px; margin: 0 auto 28px; }
+  .intro h1 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: 500;
+    font-size: clamp(28px, 5vw, 40px); margin: 0 0 8px; text-wrap: balance;
+  }
+  .intro p { color: var(--ink2); margin: 0 0 16px; max-width: 46em; }
+  .idx { display: flex; flex-wrap: wrap; gap: 8px; }
+  .idx a {
+    text-decoration: none; font-size: 13px; font-weight: 600;
+    padding: 5px 14px; border-radius: 999px; border: 1px solid currentColor;
+  }
+
+  .sheet {
+    max-width: 800px; margin: 0 auto 28px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 28px 30px;
+  }
+  .sheet-head {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    border-bottom: 2px solid var(--rc, var(--accent));
+    padding-bottom: 14px; margin-bottom: 20px;
+  }
+  .sheet-head h2 {
+    font-family: Georgia, "Times New Roman", serif; font-weight: 500;
+    font-size: 30px; margin: 0; color: var(--rc, var(--ink));
+  }
+  .sheet-head .sub { color: var(--muted); font-size: 13.5px; }
+  .brand {
+    margin-left: auto; font-family: Georgia, serif; font-size: 12px;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted);
+  }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+  .sec h3 {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  .sec ul { margin: 0; padding: 0 0 0 18px; color: var(--ink2); }
+  .sec li { margin-bottom: 6px; }
+  .sec li b { color: var(--ink); font-weight: 600; }
+  .setup {
+    margin-top: 20px; background: var(--accent-soft);
+    border: 1px solid var(--accent); border-radius: 14px; padding: 16px 20px;
+  }
+  .setup h3 {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 8px;
+  }
+  .setup ol { margin: 0; padding-left: 20px; color: var(--ink2); }
+  .setup li { margin-bottom: 5px; }
+  .setup b { color: var(--ink); }
+  .help {
+    margin-top: 12px; font-size: 13px; color: var(--ink2);
+    background: var(--warn-soft); border: 1px solid var(--warn);
+    border-radius: 10px; padding: 10px 14px;
+  }
+  .help b { color: var(--ink); }
+
+  @media print {
+    :root, :root[data-theme="dark"] {
+      --bg: #FFFFFF; --card: #FFFFFF; --line: #D8D2C7;
+      --ink: #1A1815; --ink2: #44403A; --muted: #6E675C;
+      --accent: #5A801F; --accent-soft: #F0F4E6;
+      --warn-soft: #F7F1DF; --warn: #A9852F;
+      --sales: #5A626A; --sched: #8A6C24; --coord: #4A6A19;
+      --inst: #33665F; --design: #6E675C; --prod: #44403A;
+    }
+    body { padding: 0; background: #fff; }
+    .intro { display: none; }
+    .sheet {
+      border: none; border-radius: 0; max-width: none;
+      margin: 0; padding: 14mm 12mm;
+      page-break-after: always;
+    }
+    .sheet:last-of-type { page-break-after: auto; }
+  }
+</style>
+
+<div class="intro">
+  <h1>Greenqubes role cheat sheets</h1>
+  <p>One page per role — what you'll see, what you do, and how to get set up. Print the page you need, or the whole pack (each sheet prints on its own page).</p>
+  <div class="idx">
+    <a href="#sales" style="color:var(--sales)">Sales</a>
+    <a href="#scheduler" style="color:var(--sched)">Scheduler</a>
+    <a href="#coordinator" style="color:var(--coord)">Coordinator</a>
+    <a href="#installer" style="color:var(--inst)">Installer</a>
+    <a href="#designer" style="color:var(--design)">Designer</a>
+    <a href="#production" style="color:var(--prod)">Production</a>
+  </div>
+</div>
+
+<!-- SALES -->
+<section class="sheet" id="sales" style="--rc:var(--sales)">
+  <div class="sheet-head"><h2>Sales</h2><span class="sub">create it, push it, suggest who installs it</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li>The full <b>Schedule</b> (list, week, month) and the <b>FCFS board</b></li>
+        <li>Your own <b>Pending</b> jobs before they're pushed</li>
+        <li>All clients and contacts, with add-new built into the dropdowns</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li><b>Create jobs</b> — details, client, files in named buckets (Permit-to-Work, BCA, Designer JO), AI Suggest for writing</li>
+        <li><b>Push to Schedule</b> — the system checks installer double-bookings first</li>
+        <li><b>Suggest installers</b> (yellow) — scheduler or coordinator confirms</li>
+        <li><b>Duplicate</b> a similar past job instead of retyping it</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>An installer is <b>formally assigned</b> to your job</li>
+        <li>Your job's <b>chat</b> has unread messages</li>
+        <li>A job you're in charge of goes <b>overdue</b></li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>Yellow = your suggestion. <b>Green = actually assigned.</b></li>
+        <li>You're the job's <b>person-in-charge</b> unless someone changes it</li>
+        <li>Installers never see prices — chat accordingly</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>
+
+<!-- SCHEDULER -->
+<section class="sheet" id="scheduler" style="--rc:var(--sched)">
+  <div class="sheet-head"><h2>Scheduler</h2><span class="sub">the company schedule is yours</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li>Everything — every job, every status, every role's activity</li>
+        <li>The <b>FCFS board</b>: jobs ranked by push order, installer bars coloured by punctuality (blue = flexible, red = strict)</li>
+        <li><b>All</b> overdue alerts company-wide, not just your own jobs</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li><b>Formally assign installers</b> (green) — from the job form or the board's assignment panel; Save &amp; Notify fires the Telegrams</li>
+        <li><b>Resolve clashes</b> — the board flags double-bookings; you decide: reassign, shift the time, or save anyway</li>
+        <li><b>Confirm</b> sales' yellow suggestions and external-installer suggestions</li>
+        <li><b>Complete jobs</b> — and you're the only one who can complete without photos (use sparingly)</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>Sales pushes a job — <b>"New Job — Assign Installer"</b></li>
+        <li>A coordinator flags a <b>clash for review</b></li>
+        <li>Job <b>chats</b> have unread messages; any job goes <b>overdue</b></li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>First come, first served — the board's order <b>is</b> the fairness rule</li>
+        <li>An installer only learns about a job when <b>you</b> make it green</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>
+
+<!-- COORDINATOR -->
+<section class="sheet" id="coordinator" style="--rc:var(--coord)">
+  <div class="sheet-head"><h2>Coordinator</h2><span class="sub">scheduler powers, on your jobs</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li>The full <b>Schedule</b> and <b>FCFS board</b></li>
+        <li>The jobs you're attached to as coordinator (a job can have several coordinators)</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li><b>Formally assign installers</b> (green) on your jobs — same power as the scheduler</li>
+        <li><b>Confirm or clear</b> sales' yellow suggestions</li>
+        <li>Editing onto a clash? Choose <b>Alert Scheduler &amp; Save</b> or re-assign yourself</li>
+        <li>Keep the <b>job chat</b> moving between office and site</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>An installer is <b>assigned</b> on one of your jobs</li>
+        <li>Your jobs' <b>chats</b> have unread messages</li>
+        <li>One of your jobs goes <b>overdue</b></li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>Assigning fires the Telegrams — installer, sales, and fellow coordinators all get told automatically</li>
+        <li>When in doubt on a clash, alert the scheduler rather than forcing it</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>
+
+<!-- INSTALLER -->
+<section class="sheet" id="installer" style="--rc:var(--inst)">
+  <div class="sheet-head"><h2>Installer</h2><span class="sub">your jobs, your phone, nothing extra</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li><b>My Jobs</b> — Today, Up next, This week, Completed</li>
+        <li>Each job: location, time, the files you need, the task list, the chat</li>
+        <li>Only jobs <b>assigned to you</b> — and never any pricing</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li><b>Tick the task list</b> as you work — the office sees progress live</li>
+        <li><b>Chat</b> with the office — type, voice note, or camera</li>
+        <li><b>Upload completion photos</b> — the job cannot close without them</li>
+        <li>Sign the <b>DO</b>; add late photos to past jobs if you forgot on the day</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>A job is <b>assigned to you</b> — with date, time, location</li>
+        <li>Your job's <b>chat</b> has unread messages</li>
+        <li>An unfinished job of yours goes <b>overdue</b></li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>No Telegram ping, no job — if it's not in My Jobs, it's not yours yet</li>
+        <li>Photos <b>before</b> you leave site — it's the only way to close the job</li>
+        <li>You can switch the app to <b>中文</b> from your profile menu</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>
+
+<!-- DESIGNER -->
+<section class="sheet" id="designer" style="--rc:var(--design)">
+  <div class="sheet-head"><h2>Designer</h2><span class="sub">see everything, break nothing</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li>The full <b>Schedule</b> and <b>FCFS board</b></li>
+        <li>Every job's details and attached files — drawings, JOs, permits</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li><b>Job chat</b> — answer design questions, drop reference images</li>
+        <li>Everything else is view-only for you — there's no save button to press by accident</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>A job <b>chat</b> you're part of has unread messages</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>Design files live in the job's <b>Designer JO bucket</b> — sales uploads them there; check the job, not your email</li>
+        <li>The <b>AI assistant</b> can dig up past jobs and how-we-did-it notes</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>
+
+<!-- PRODUCTION -->
+<section class="sheet" id="production" style="--rc:var(--prod)">
+  <div class="sheet-head"><h2>Production</h2><span class="sub">your fields, kept current</span><span class="brand">Greenqubes</span></div>
+  <div class="cols">
+    <div class="sec">
+      <h3>What you'll see</h3>
+      <ul>
+        <li>The full <b>Schedule</b> and <b>FCFS board</b></li>
+        <li>Every job's details — with <b>your</b> production fields editable</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>What you do</h3>
+      <ul>
+        <li>Mark <b>Production ready</b> when fabrication is done</li>
+        <li>Mark <b>DO issued</b>; keep <b>production instructions</b> current</li>
+        <li>Upload <b>production photos</b> so the office and installers see what's coming</li>
+        <li>Use the <b>job chat</b> for anything that needs a human</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Telegram pings you when</h3>
+      <ul>
+        <li>A job <b>chat</b> you're part of has unread messages</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Remember</h3>
+      <ul>
+        <li>Everything outside your production fields is view-only for you — that's by design</li>
+        <li>"Production ready" is what tells scheduling the job can actually happen — keep it honest</li>
+      </ul>
+    </div>
+  </div>
+  <div class="setup">
+    <h3>Set up once — rollout day</h3>
+    <ol>
+      <li>Sign in at <b>greenqubes-ops.vercel.app</b> with the Google email you gave Nic</li>
+      <li>Tap your <b>profile picture</b> (top right) &#8594; <b>Connect Telegram</b> &#8594; press <b>START</b></li>
+      <li>Reopen the menu — it should say <b>Telegram connected</b></li>
+    </ol>
+    <div class="help"><b>Stuck?</b> "Account not set up" means your sign-in email doesn't match what Nic has — tell Nic. Anything else: use the Report Bug button, bottom of any page.</div>
+  </div>
+</section>

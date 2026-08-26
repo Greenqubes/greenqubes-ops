@@ -1,0 +1,435 @@
+<title>Greenqubes Rollout</title>
+<style>
+  :root {
+    --bg: #F4F1EC;
+    --card: #FFFFFF;
+    --line: #E8E2D7;
+    --ink: #1A1815;
+    --ink2: #5C564E;
+    --muted: #8B8478;
+    --accent: #5A801F;
+    --accent-soft: #EDF2E2;
+    --lime: #91C740;
+    --warn: #A9852F;
+    --warn-soft: #F5EEDD;
+    --bad: #C24E42;
+    --sales: #6C747C;
+    --sched: #A9852F;
+    --coord: #5A801F;
+    --inst: #3E7F7B;
+    --design: #8B8478;
+    --prod: #5C564E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1F1C18;
+      --card: #292520;
+      --line: #3C362D;
+      --ink: #EDE7DB;
+      --ink2: #BEB5A5;
+      --muted: #8F8778;
+      --accent: #9BC45E;
+      --accent-soft: #2E3323;
+      --lime: #91C740;
+      --warn: #C9A34E;
+      --warn-soft: #332C1C;
+      --bad: #D97B6F;
+      --sales: #9AA4AE;
+      --sched: #C9A34E;
+      --coord: #9BC45E;
+      --inst: #6FB0AA;
+      --design: #A79E90;
+      --prod: #BEB5A5;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1F1C18;
+    --card: #292520;
+    --line: #3C362D;
+    --ink: #EDE7DB;
+    --ink2: #BEB5A5;
+    --muted: #8F8778;
+    --accent: #9BC45E;
+    --accent-soft: #2E3323;
+    --lime: #91C740;
+    --warn: #C9A34E;
+    --warn-soft: #332C1C;
+    --bad: #D97B6F;
+    --sales: #9AA4AE;
+    --sched: #C9A34E;
+    --coord: #9BC45E;
+    --inst: #6FB0AA;
+    --design: #A79E90;
+    --prod: #BEB5A5;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .deck {
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .deck { scroll-behavior: smooth; }
+  }
+  .slide {
+    min-height: 100vh;
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 56px 24px 72px;
+    border-bottom: 1px solid var(--line);
+  }
+  .slide-inner { width: 100%; max-width: 880px; margin: 0 auto; }
+  .eyebrow {
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 18px;
+  }
+  .eyebrow .n { color: var(--accent); font-weight: 600; }
+  h1, h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 16px;
+  }
+  h1 { font-size: clamp(40px, 7vw, 68px); line-height: 1.05; }
+  h2 { font-size: clamp(28px, 4.5vw, 42px); line-height: 1.15; }
+  .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--ink2); max-width: 40em; margin: 0 0 28px; }
+  .wordmark {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--ink); margin-bottom: 40px;
+  }
+  .wordmark b { color: var(--accent); font-weight: 500; }
+
+  .cards { display: grid; gap: 14px; }
+  .cards.two { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+  .card p { margin: 0; color: var(--ink2); font-size: 14.5px; }
+  .card .tag {
+    display: inline-block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+
+  /* pain → fix rows */
+  .swap { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+  .swap + .swap { margin-top: 12px; }
+  .swap .old, .swap .new {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 18px; font-size: 14.5px;
+  }
+  .swap .old { color: var(--muted); }
+  .swap .new { border-left: 3px solid var(--accent); color: var(--ink); }
+  .swap .arr { color: var(--accent); font-size: 18px; }
+  @media (max-width: 620px) {
+    .swap { grid-template-columns: 1fr; }
+    .swap .arr { text-align: center; transform: rotate(90deg); }
+  }
+
+  /* job journey */
+  .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+  .step {
+    flex: 1 1 150px; min-width: 150px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; position: relative;
+  }
+  .step .who {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .step p { margin: 0; font-size: 13.5px; color: var(--ink2); }
+  .step .k { display: block; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+
+  /* roles table */
+  .roles { display: grid; gap: 10px; }
+  .role-row {
+    display: grid; grid-template-columns: 130px 1fr; gap: 14px; align-items: baseline;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 18px;
+  }
+  .role-row .pill {
+    justify-self: start;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 3px 12px; border-radius: 999px;
+    border: 1px solid currentColor;
+  }
+  .role-row p { margin: 0; font-size: 14.5px; color: var(--ink2); }
+  @media (max-width: 560px) { .role-row { grid-template-columns: 1fr; gap: 6px; } }
+
+  /* signup steps */
+  .bigsteps { display: grid; gap: 14px; counter-reset: bs; }
+  .bigstep {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px 22px 20px 66px; position: relative; counter-increment: bs;
+  }
+  .bigstep::before {
+    content: counter(bs);
+    position: absolute; left: 20px; top: 20px;
+    width: 30px; height: 30px; border-radius: 999px;
+    background: var(--accent); color: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+  }
+  .bigstep h3 { margin: 0 0 4px; font-size: 17px; }
+  .bigstep p { margin: 0; color: var(--ink2); font-size: 14.5px; }
+  .bigstep .path { color: var(--accent); font-weight: 600; }
+
+  .note {
+    margin-top: 20px; padding: 14px 18px;
+    background: var(--warn-soft); border: 1px solid var(--warn);
+    border-radius: 14px; font-size: 14px; color: var(--ink2);
+  }
+  .note b { color: var(--ink); }
+
+  ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ul.plain li {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 18px; font-size: 14.5px; color: var(--ink2);
+  }
+  ul.plain li b { color: var(--ink); }
+  .dot { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+  .counter {
+    position: fixed; right: 16px; bottom: 14px;
+    font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 999px; padding: 4px 12px;
+  }
+  .hint { position: fixed; left: 16px; bottom: 14px; font-size: 12px; color: var(--muted); }
+  @media (max-width: 620px) { .hint { display: none; } }
+</style>
+
+<div class="deck" id="deck" tabindex="0">
+
+  <!-- 1 · Title -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="wordmark">Green<b>qubes</b></div>
+      <h1>One system for every job</h1>
+      <p class="lede">From today, every job this company does — quoting to completion photos — lives in one place, on your phone. This is how it works and how you get set up in the next ten minutes.</p>
+    </div>
+  </section>
+
+  <!-- 2 · Why -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">02</span><span>Why we are doing this</span></div>
+      <h2>What changes</h2>
+      <div class="swap">
+        <div class="old">Schedules in group chats, on paper, in people's heads</div>
+        <div class="arr">&#8594;</div>
+        <div class="new">One live schedule everyone sees — it updates by itself, no refreshing, no asking around</div>
+      </div>
+      <div class="swap">
+        <div class="old">"Did anyone tell the installer?"</div>
+        <div class="arr">&#8594;</div>
+        <div class="new">Telegram pings you automatically the moment a job is yours</div>
+      </div>
+      <div class="swap">
+        <div class="old">Job photos lost in WhatsApp threads</div>
+        <div class="arr">&#8594;</div>
+        <div class="new">Photos, permits and documents attached to the job itself — a job can't be closed without completion photos</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · Journey -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">03</span><span>The big picture</span></div>
+      <h2>The journey of one job</h2>
+      <p class="lede">Six steps, four people, zero phone calls needed.</p>
+      <div class="flow">
+        <div class="step"><span class="who" style="color:var(--sales)">Sales</span><span class="k">Creates the job</span><p>Client, date, location, files. Can suggest an installer.</p></div>
+        <div class="step"><span class="who" style="color:var(--sales)">Sales</span><span class="k">Pushes to schedule</span><p>The system checks for double-bookings first.</p></div>
+        <div class="step"><span class="who" style="color:var(--sched)">Scheduler</span><span class="k">Assigns the installer</span><p>On the schedule or the FCFS board — first come, first served.</p></div>
+        <div class="step"><span class="who" style="color:var(--inst)">Installer</span><span class="k">Gets a Telegram ping</span><p>Job appears in My Jobs with everything they need.</p></div>
+        <div class="step"><span class="who" style="color:var(--inst)">Installer</span><span class="k">Does the work</span><p>Ticks the task list, chats with the office, uploads photos.</p></div>
+        <div class="step"><span class="who" style="color:var(--sched)">Scheduler</span><span class="k">Job completed</span><p>Completion photos in, DO signed, everyone can see it's done.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · Roles -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">04</span><span>Access</span></div>
+      <h2>Your role decides what you see</h2>
+      <p class="lede">Everyone gets an account with one of seven roles. The system shows each person exactly what their job needs — nothing more, nothing missing.</p>
+      <div class="roles">
+        <div class="role-row"><span class="pill" style="color:var(--sales)">Sales</span><p>Creates jobs, pushes them to the schedule, suggests installers, manages clients.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--sched)">Scheduler</span><p>Runs the company-wide schedule, assigns installers, resolves clashes.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--coord)">Coordinator</span><p>Same scheduling powers as the scheduler, working per job alongside sales.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--inst)">Installer</span><p>Sees only their own assigned jobs. Photos, task lists, chat, DO signing.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--design)">Designer</span><p>Views job details and joins the job chat — read-only on everything else.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--prod)">Production</span><p>Updates production status, DO issued, instructions and production photos.</p></div>
+        <div class="role-row"><span class="pill" style="color:var(--ink)">Admin</span><p>Nic — accounts, roles and system health.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · Office roles -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">05</span><span>In the office</span></div>
+      <h2>Sales, Scheduler, Coordinator</h2>
+      <div class="cards two">
+        <div class="card"><span class="tag" style="color:var(--sales)">Sales</span>
+          <h3>Create it, push it, suggest</h3>
+          <p>New job form with client dropdowns, file buckets (Permit-to-Work, BCA, Designer JO), and an AI Suggest button for writing. A yellow installer suggestion tells the scheduler who you'd pick — but only a scheduler or coordinator can confirm it.</p></div>
+        <div class="card"><span class="tag" style="color:var(--sched)">Scheduler</span>
+          <h3>The FCFS board</h3>
+          <p>Jobs ranked in the order they were pushed — first come, first served. Installer bars show punctuality: blue means a flexible window, red means strict on-time. Clashes light up before they become real problems.</p></div>
+        <div class="card"><span class="tag" style="color:var(--coord)">Coordinator</span>
+          <h3>Per-job control</h3>
+          <p>Coordinators are attached to specific jobs and can formally assign installers on them, keep the chat moving, and get the same alerts the office does.</p></div>
+        <div class="card"><span class="tag" style="color:var(--accent)">Everyone in office</span>
+          <h3>Live everywhere</h3>
+          <p>Schedule, board and job forms update in real time. If someone changes a job while you're editing it, the app warns you instead of losing your typing.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · Studio + field -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">06</span><span>Studio and site</span></div>
+      <h2>Designer, Production, Installer</h2>
+      <div class="cards two">
+        <div class="card"><span class="tag" style="color:var(--design)">Designer</span>
+          <h3>See everything, break nothing</h3>
+          <p>Full view of the job and its files, plus the job chat. No save buttons to press by accident.</p></div>
+        <div class="card"><span class="tag" style="color:var(--prod)">Production</span>
+          <h3>Your fields only</h3>
+          <p>Mark production ready, DO issued, keep production instructions and photos current. Everything else stays read-only.</p></div>
+        <div class="card"><span class="tag" style="color:var(--inst)">Installer</span>
+          <h3>My Jobs</h3>
+          <p>Today, up next, this week. Each job: location, time, task list to tick off, chat with voice notes, and the camera button for completion photos. No commercial figures — ever.</p></div>
+        <div class="card"><span class="tag" style="color:var(--inst)">Outside helpers</span>
+          <h3>No account needed</h3>
+          <p>External installers get a personal lifetime link — they accept or decline jobs, see details and tick tasks from that page. Sub-installers get a "supporting role" ping.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · Telegram -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">07</span><span>Notifications</span></div>
+      <h2>Telegram does the chasing</h2>
+      <p class="lede">Connect once (today), and the right messages find you. Nobody has to remember to tell anybody anything.</p>
+      <ul class="plain">
+        <li><span class="dot">&#9656;</span><b>Job assigned</b> — installers get pinged the moment a job is formally theirs, with date, time and location.</li>
+        <li><span class="dot">&#9656;</span><b>New job needs an installer</b> — schedulers get pinged when sales pushes a job.</li>
+        <li><span class="dot">&#9656;</span><b>Chat messages</b> — unread job-chat messages arrive as a tidy count, at most one ping a minute.</li>
+        <li><span class="dot">&#9656;</span><b>Overdue alerts</b> — twice a day, jobs past their date nudge exactly the people on that job.</li>
+        <li><span class="dot">&#9656;</span><b>Monday digest</b> — subscribers get a weekly summary of important company know-how, with a vote on what gets kept.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8 · Also in the box -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">08</span><span>Also in the box</span></div>
+      <h2>Small things you'll use daily</h2>
+      <div class="cards two">
+        <div class="card"><h3>AI assistant</h3><p>Ask it anything — supplier prices, how-to's, past decisions. It answers from company knowledge and only shows you what your role is allowed to see.</p></div>
+        <div class="card"><h3>Job chat with voice notes</h3><p>Every job has its own chat. Type, talk, or send photos — it stays with the job forever.</p></div>
+        <div class="card"><h3>English and 中文</h3><p>Switch language from your profile menu. Dates stay in English for everyone, so nobody misreads a schedule.</p></div>
+        <div class="card"><h3>Spotted a problem?</h3><p>The Report Bug button on every page sends it straight to Nic with a screenshot.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · Signup -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">09</span><span>Right now</span></div>
+      <h2>Get set up — three steps</h2>
+      <div class="bigsteps">
+        <div class="bigstep">
+          <h3>Sign in with Google</h3>
+          <p>Go to <span class="path">greenqubes-ops.vercel.app</span> and sign in with the Google email you gave Nic. Your name and role are already waiting for you.</p>
+        </div>
+        <div class="bigstep">
+          <h3>Connect Telegram</h3>
+          <p>Tap your <span class="path">profile picture</span> (top right) &#8594; <span class="path">Connect Telegram</span>. Telegram opens — press <span class="path">START</span>. The bot replies "your Telegram is now connected".</p>
+        </div>
+        <div class="bigstep">
+          <h3>Check your name</h3>
+          <p>Open the profile menu again — you should see your name, and "Telegram connected" with a tick. That's it. You're done.</p>
+        </div>
+      </div>
+      <div class="note"><b>Stuck?</b> If the app says your account isn't set up, your sign-in email doesn't match the one Nic has — put your hand up and we'll fix it on the spot.</div>
+    </div>
+  </section>
+
+  <!-- 10 · House rules -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow"><span class="n">10</span><span>House rules</span></div>
+      <h2>Three rules, then questions</h2>
+      <ul class="plain">
+        <li><span class="dot">1</span><b>The app is the truth.</b> If a job isn't on the schedule, it isn't scheduled. Check the app, not the group chat.</li>
+        <li><span class="dot">2</span><b>No photos, no completion.</b> A job only closes with completion photos attached. Only the scheduler can override that.</li>
+        <li><span class="dot">3</span><b>Yellow is a suggestion, green is real.</b> A yellow installer name is sales' suggestion; the job is only yours when it's green — and that's when Telegram tells you.</li>
+      </ul>
+      <p class="lede" style="margin-top:28px">Questions — now, or anytime: ask Nic.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 10</div>
+<div class="hint">Scroll or press &#8595; to move through slides</div>
+
+<script>
+  const deck = document.getElementById('deck');
+  const slides = Array.from(deck.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  deck.focus();
+
+  function currentIndex() {
+    const top = deck.scrollTop;
+    let best = 0, bestDist = Infinity;
+    slides.forEach((s, i) => {
+      const d = Math.abs(s.offsetTop - top);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+  }
+  deck.addEventListener('scroll', () => {
+    counter.textContent = (currentIndex() + 1) + ' / ' + slides.length;
+  }, { passive: true });
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowDown','PageDown',' '].includes(e.key)) {
+      e.preventDefault();
+      slides[Math.min(currentIndex() + 1, slides.length - 1)].scrollIntoView();
+    } else if (['ArrowUp','PageUp'].includes(e.key)) {
+      e.preventDefault();
+      slides[Math.max(currentIndex() - 1, 0)].scrollIntoView();
+    }
+  });
+</script>

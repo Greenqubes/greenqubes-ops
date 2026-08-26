@@ -65,8 +65,8 @@ export function MonthView({
                         isSelected
                           ? 'bg-white'
                           : job.punctuality === 'strict'
-                            ? 'bg-terracotta'
-                            : 'bg-brand-blue'
+                            ? 'bg-punct-strict'
+                            : 'bg-punct-flex'
                       )}
                     />
                   ))}

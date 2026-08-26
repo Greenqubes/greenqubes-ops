@@ -112,11 +112,11 @@ export function ExternalHomePage({ token }: Props) {
         {j.job.date_end && j.job.date_end !== j.job.date ? ` – ${fmtExtDate(j.job.date_end)}` : ''}
       </span>
       {j.job.punctuality === 'strict' ? (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-terracotta-soft text-terracotta">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-punct-strict-soft text-punct-strict">
           {j.job.time_start ? `Strict ${fmtExtTime(j.job.time_start)}` : 'Strict'}
         </span>
       ) : (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-brand-blue-soft text-brand-blue">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-punct-flex-soft text-punct-flex">
           Flexible window
         </span>
       )}

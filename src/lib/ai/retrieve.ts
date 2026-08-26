@@ -1,70 +1,65 @@
 import { embed } from './embed'
 import { createClient } from '@/lib/supabase/server'
+import { pastChatSummary } from './past-chat-summary'
 
-export interface RetrievedContext {
-  chunks:    { source_path: string; content: string; similarity: number }[]
-  pastChats: { topic: string | null; summary: string; similarity: number }[]
-}
+export interface PastChat { topic: string | null; summary: string; similarity: number }
+export interface KbHit    { source_path: string; content: string; similarity: number }
 
-export async function retrieveContext(query: string): Promise<RetrievedContext> {
+// Cast needed: Supabase rpc() generic inference doesn't handle number[] args well
+// in this SDK version — at runtime the values are correct.
+const args = (a: object) => a as never
+
+/** Automatic per-user memory: the caller's own past chats (RLS via
+ *  SECURITY INVOKER match_asst_chats — migration 0030 isolation).
+ *  Inside a project (Phase 4): sibling chats in the same project match
+ *  first, general per-user memory beneath. */
+export async function retrievePastChats(query: string, projectId?: string): Promise<PastChat[]> {
   let embedding: number[]
-  try {
-    embedding = await embed(query, 'query')
-  } catch {
-    return { chunks: [], pastChats: [] }
-  }
+  try { embedding = await embed(query, 'query') } catch { return [] }
 
   const supabase = await createClient()
+  type Row = { id: string; topic: string | null; summary: string | null; msgs: unknown; similarity: number }
+  const rows: Row[] = []
 
-  // Cast needed: Supabase rpc() generic inference doesn't handle number[] args well
-  // in this SDK version — at runtime the values are correct.
-  const args = (a: object) => a as never
-  const [kbRes, chatRes] = await Promise.all([
-    supabase.rpc('match_kb_chunks',  args({ query_embedding: embedding, match_threshold: 0.35, match_count: 5 })),
-    supabase.rpc('match_asst_chats', args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3 })),
-  ])
+  if (projectId) {
+    const { data } = await supabase.rpc('match_asst_chats',
+      args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3, project_filter: projectId }))
+    rows.push(...((data ?? []) as Row[]))
+  }
 
-  type KbRow   = { source_path: string; content: string; similarity: number }
-  type ChatRow = { topic: string | null; msgs: unknown; similarity: number }
+  const { data } = await supabase.rpc('match_asst_chats',
+    args({ query_embedding: embedding, match_threshold: 0.5, match_count: 3 }))
+  for (const r of (data ?? []) as Row[]) {
+    if (!rows.some(x => x.id === r.id)) rows.push(r)
+  }
 
-  const chunks = ((kbRes.data ?? []) as KbRow[]).map(r => ({
-    source_path: r.source_path,
-    content:     r.content,
-    similarity:  r.similarity,
-  }))
-
-  const pastChats = ((chatRes.data ?? []) as ChatRow[]).map(r => {
-    const msgs = Array.isArray(r.msgs) ? (r.msgs as { role: string; content: string }[]) : []
-    const first = msgs.find(m => m.role === 'user')?.content ?? ''
-    return {
-      topic:     r.topic,
-      summary:   first.slice(0, 200),
-      similarity: r.similarity,
-    }
-  })
-
-  return { chunks, pastChats }
+  return rows.slice(0, projectId ? 4 : 3)
+    .map(r => ({ topic: r.topic, summary: pastChatSummary(r), similarity: r.similarity }))
+    .filter(r => r.summary !== '')
 }
 
-export function formatContext(ctx: RetrievedContext): string {
-  if (ctx.chunks.length === 0 && ctx.pastChats.length === 0) return ''
+/** KB vector search — now a tool the model calls (repeatably) rather than a
+ *  pre-baked one-shot. Visibility filtering via RLS on kb_chunks. */
+export async function searchKnowledge(query: string): Promise<KbHit[]> {
+  let embedding: number[]
+  try { embedding = await embed(query, 'query') } catch { return [] }
 
-  const parts: string[] = []
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('match_kb_chunks',
+    args({ query_embedding: embedding, match_threshold: 0.35, match_count: 5 }))
 
-  if (ctx.chunks.length > 0) {
-    parts.push('--- Knowledge base ---')
-    ctx.chunks.forEach((c, i) => {
-      parts.push(`[KB${i + 1}] ${c.source_path}\n${c.content}`)
-    })
-  }
+  type Row = { source_path: string; content: string; similarity: number }
+  return ((data ?? []) as Row[]).map(r => ({
+    source_path: r.source_path, content: r.content, similarity: r.similarity,
+  }))
+}
 
-  if (ctx.pastChats.length > 0) {
-    parts.push('--- Relevant past conversations ---')
-    ctx.pastChats.forEach((c, i) => {
-      const label = c.topic ? `Topic: ${c.topic}` : `Chat ${i + 1}`
-      parts.push(`[${label}]\n${c.summary}`)
-    })
-  }
-
+export function formatPastChats(chats: PastChat[]): string {
+  if (chats.length === 0) return ''
+  const parts = ['--- Relevant past conversations (this user only) ---']
+  chats.forEach((c, i) => {
+    const label = c.topic ? `Topic: ${c.topic}` : `Chat ${i + 1}`
+    parts.push(`[${label}]\n${c.summary}`)
+  })
   return parts.join('\n\n')
 }

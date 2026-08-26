@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Pin, MoreVertical, Check, Pencil } from 'lucide-react'
+import { Pin, MoreVertical, Check, Pencil, FolderInput } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
 
@@ -13,6 +13,7 @@ interface Props {
   onPin:           (id: string, pinned: boolean) => void
   onDelete:        (id: string) => void
   onRename:        (id: string, currentTopic: string) => void
+  onMove?:         (id: string) => void
   mobile?:         boolean
   isSelecting?:    boolean
   selectedIds?:    Set<string>
@@ -42,7 +43,7 @@ const GROUP_LABELS: Record<Group, string> = {
 
 const GROUP_ORDER: Group[] = ['pinned', 'today', 'week', 'earlier']
 
-export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRename, mobile, isSelecting, selectedIds, onToggleSelect }: Props) {
+export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRename, onMove, mobile, isSelecting, selectedIds, onToggleSelect }: Props) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -77,6 +78,11 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRe
     onRename(id, topic)
   }
 
+  function handleMoveClick(id: string) {
+    setOpenMenuId(null)
+    onMove?.(id)
+  }
+
   return (
     <div className="flex flex-col gap-1">
       {GROUP_ORDER.map(group => {
@@ -101,6 +107,7 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRe
                 onPin={() => handlePin(chat)}
                 onDeleteClick={() => handleDeleteClick(chat.id)}
                 onRenameClick={() => handleRenameClick(chat.id, chat.topic ?? '')}
+                onMoveClick={onMove ? () => handleMoveClick(chat.id) : undefined}
                 onToggleSelect={() => onToggleSelect?.(chat.id)}
               />
             ))}
@@ -113,7 +120,7 @@ export function HistoryList({ chats, activeChatId, onLoad, onPin, onDelete, onRe
 
 // ── ChatRow ──────────────────────────────────────────────────────────────────
 
-interface RowProps {
+export interface RowProps {
   chat:            AsstChatRow
   isActive:        boolean
   isMenuOpen:      boolean
@@ -125,13 +132,14 @@ interface RowProps {
   onPin:           () => void
   onDeleteClick:   () => void
   onRenameClick:   () => void
+  onMoveClick?:    () => void
   onToggleSelect:  () => void
 }
 
-function ChatRow({
+export function ChatRow({
   chat, isActive, isMenuOpen, mobile,
   isSelecting, isSelected,
-  onLoad, onToggleMenu, onPin, onDeleteClick, onRenameClick, onToggleSelect,
+  onLoad, onToggleMenu, onPin, onDeleteClick, onRenameClick, onMoveClick, onToggleSelect,
 }: RowProps) {
   const topic = chat.topic ?? 'Untitled conversation'
 
@@ -162,7 +170,7 @@ function ChatRow({
 
         <div className={cn('flex flex-col gap-0.5 min-w-0 flex-1', !isSelecting && (!mobile ? 'pr-10' : 'pr-8'))}>
           <span className="text-sm font-medium text-ink line-clamp-2 leading-tight">
-            {chat.pinned && !isSelecting && <span className="mr-1 text-amber text-[11px]">📌</span>}
+            {chat.pinned && !isSelecting && <Pin size={11} className="inline mr-1 -mt-0.5 text-amber" fill="currentColor" />}
             {topic}
           </span>
         </div>
@@ -219,6 +227,15 @@ function ChatRow({
             <Pencil size={13} className="text-muted" />
             Rename
           </button>
+          {onMoveClick && (
+            <button
+              onClick={e => { e.stopPropagation(); onMoveClick() }}
+              className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-bg transition-colors flex items-center gap-2"
+            >
+              <FolderInput size={13} className="text-muted" />
+              Move to project…
+            </button>
+          )}
           <button
             onClick={e => { e.stopPropagation(); onDeleteClick() }}
             className="w-full text-left px-3 py-2 text-sm text-terracotta hover:bg-bg transition-colors"

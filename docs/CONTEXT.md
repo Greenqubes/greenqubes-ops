@@ -2,7 +2,7 @@
 
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts: rich cards, per-device Mark as read, team-scoped; Session 19 pre-alpha passed clean, Session 20 skipped — next: Session 21 alpha testing with the scheduler)_
+_Last updated: 2026-08-26 (feat-assistant-4 — assistant upgrade **COMPLETE: all four phases live on production**. Phase 4 shipped same day as built: per-user Projects (folders + shared instructions + reference files 10×/20 MB as a cached prompt prefix + linked memory + Move-to-project), migration 0047 applied before the code. Health-tab usage window filter (30d/7d/Today) rode along. Deferred production security checks all PASSED 2026-08-26; false-confession guard added to the assistant prompt. Memory stays strictly per-user.)_
 
 ---
 
@@ -21,7 +21,11 @@ Team size: ~10 (sales + scheduler + installers). Three languages: English, Simpl
 
 ## Status
 
-Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. App is live on production. Pre-alpha testing passed clean 2026-08-17. Next milestone: Session 21 alpha testing (Nic + scheduler).
+Migration from the original React prototype to a feature-folder Next.js app with Supabase backend is complete. **The webapp is LAUNCHED — v1.0.0, declared by Nic 2026-08-18** (all necessary testing done; the planned alpha/beta/launch rounds were closed without being run). The webapp continues as the **desktop/office tool**.
+
+**Next milestone: the mobile app** — a native Android + iPhone app (React Native + Expo, one codebase in `mobile/`, same Supabase/R2/Vercel backend), built in 3 stages, Android first via direct .apk; iPhone gated on the directors' Apple Developer greenlight; Telegram bots retire only when Stage 3 + iPhone rollout are both live. Spec: `docs/superpowers/specs/2026-08-18-mobile-app-design.md`. Admin screens + FCFS board stay desktop-only; external installers keep their web links.
+
+**Second approved track: the assistant upgrade** (spec approved 2026-08-24) — four phases on the webapp. **Phase 1 shipped 2026-08-25** (Sonnet 5 + adaptive thinking + Claude-grade UI/UX). **Phase 2 shipped 2026-08-25** (agentic tool loop cap 8; six read-only live-data tools through the user-scoped client so RLS filters every lookup — schedule/jobs/job detail/workload/clashes, financials never included; agentic KB search replaces the pre-baked one-shot; per-user memory: Haiku summary + only-meaningful gate on `asst_chats.summary` (migration 0046), embedding = topic+summary, Memory manager view to edit/forget — see plan.md). **Phase 3 shipped 2026-08-25** (chat attachments on the Assistant page — images + PDF only, the formats the model can read; HEIC/Office rejected with clean errors, Office support logged as future items — uploading to an R2 scratch prefix that a daily 30-day cleanup cron sweeps; `create_pending_job` — the ONE allowed action, role-gated to sales/scheduler/coordinator/admin, confirm-in-chat first, pending status only, attachments R2-copied into model-chosen buckets, link chip in chat; plus Move-file-between-buckets on the job form; no migration). **Phase 4 shipped 2026-08-26** (Projects — per-user folders grouping assistant chats, each project carrying shared instructions + reference files (10 files / 20 MB, images+PDF) injected as a cached prompt prefix into every chat inside it, project-scoped memory recall (sibling chats first), Move-to-project; migration 0047 applied before the code deployed; deleting a project keeps its chats). **The four-phase upgrade is COMPLETE and live on production.** The deferred security checks were run on production 2026-08-26 and ALL PASSED: a real installer login finds nothing on jobs it isn't assigned to; two accounts are fully isolated (chats, memory and projects); unsupported chat files are rejected cleanly. A false-confession guard was added the same day: past-turn tool lookups aren't persisted in chat history, so the assistant is instructed never to speculate about whether an earlier answer was verified — it re-checks instead. **Standing privacy rule (Nic 2026-08-24): assistant memory never crosses users — the digest vote → vault promotion is the only bridge from one person's chat to company knowledge.** Spec: `docs/superpowers/specs/2026-08-24-assistant-upgrade-design.md`.
 
 ---
 
@@ -33,7 +37,7 @@ Migration from the original React prototype to a feature-folder Next.js app with
 | Database / auth / realtime | **Supabase** | Postgres + magic-link auth + websockets + pgvector all in one. RLS enforces access control at DB layer. |
 | File storage | **Cloudflare R2** | S3-compatible, **zero egress fees** — critical for installers downloading photos on mobile data |
 | Image processing | **Cloudflare Images** | Auto-resize phone photos (8MB → thumbnails). $5/mo flat for 100k images. |
-| AI assistant | **Anthropic Claude (Sonnet 4.6)** | Pay-per-use API. Web search tool enabled. |
+| AI assistant | **Anthropic Claude (Sonnet 5)** | Pay-per-use API. Adaptive thinking + web search + prompt caching (since Phase 1, 2026-08-25). Haiku 4.5 for tagger/titles/suggest. |
 | Embeddings | **Voyage AI** | Anthropic's recommended embedding partner. Pairs cleanly with Claude. Single AI ecosystem rather than mixing vendors. ~$0.05–$0.12/M tokens. |
 | Notifications | **Telegram Bot API** | Team already uses Telegram. Free. |
 | Knowledge base | **Obsidian vault** | Markdown ownership, no vendor lock-in. Synced to Supabase nightly. |
@@ -85,6 +89,8 @@ Plus: i18n in EN/ZH/BN, AI smart textarea (suggest from attachments / improve te
 
 ## Design tokens (preserve these — they are the brand)
 
+> **Rebranded 2026-08-18 to the company logo palette** (Nic's call — logo lime `#91C740` + slate `#6C747C` are the anchor colors). Token NAMES were kept for compatibility (`--terracotta` etc. appear throughout the code), only the VALUES changed. Red (`--bad`) and all neutrals unchanged.
+
 ```css
 --bg: #F4F1EC;        /* warm bone */
 --paper: #FFFFFF;
@@ -92,11 +98,16 @@ Plus: i18n in EN/ZH/BN, AI smart textarea (suggest from attachments / improve te
 --ink2: #5C564E;
 --muted: #8B8478;
 --line: #E8E2D7;
---terracotta: #B5523D;  /* primary accent */
---green: #3F7D5C;       /* installer / success */
---blue: #3D6FB5;        /* secondary / info */
---amber: #C8893D;       /* warning */
+--terracotta: #5A801F;  /* primary accent — brand moss green (logo lime darkened for white-text contrast) */
+--lime: #91C740;        /* TRUE logo green — small non-text highlights only (live dots, favicon) */
+--green: #3E7F7B;       /* installer / success — teal (NOT green: company green stays unique, Nic 2026-08-18) */
+--blue: #6C747C;        /* secondary / info — logo slate */
+--amber: #A9852F;       /* warning — sand gold */
+--punct-strict: #D14545; /* SCHEDULING SIGNAL — strict on-time. Fixed company indicator, never rebrand */
+--punct-flex: #3D6FB5;   /* SCHEDULING SIGNAL — flexible window. Fixed company indicator, never rebrand */
 ```
+
+**Punctuality red/blue are signal colors, not brand colors** (Nic, 2026-08-18): strict = red, flexible = blue is a company scheduling convention. They live in their own `--punct-*` tokens precisely so a future palette change can't touch them.
 
 **Fonts:** Fraunces (display, weights 400–600, optical sizing) + IBM Plex Sans (body, 400–600). Bengali fallback: Noto Sans Bengali. Chinese fallback: Noto Sans SC.
 
@@ -167,21 +178,20 @@ What goes here:
 ### Conversation memory (born in Supabase)
 
 Every assistant chat is auto-saved with metadata:
-- `topic`, `entities[]`, `tags[]`, `importance` (1–5), `visibility[]`
+- `topic`, `entities[]`, `tags[]`, `importance` (1–5), `visibility[]`, and since Phase 2 (2026-08-25) a `summary` (2–3 sentences) + a `meaningful` gate
 - Generated by a classifier Claude prompt running at conversation end
 
-Stored in `asst_chats` with embedding. Same pgvector retrieval as `kb_chunks`.
+Stored in `asst_chats`. **Only meaningful chats get a summary + embedding** (input = topic + summary); trivial chats save with both NULL so they never surface in recall or the Memory view. Retrieval is **strictly per-user** (RLS, migration 0030) — the Memory manager in the assistant sidebar lets each user edit (re-embeds) or forget their own memories.
 
-### Combined retrieval
+### Retrieval (since Phase 2, 2026-08-25)
 
-When user asks the assistant something:
-1. Embed the question
-2. Query both `kb_chunks` AND `asst_chats` filtered by user permissions, top-K by similarity
-3. Merge, dedupe, pass to Claude as context
-4. Claude generates answer
-5. Save the new conversation back through the auto-tagger
+When a user asks the assistant something:
+1. The user's own past-chat memory is retrieved automatically (embed question → `match_asst_chats`, summaries preferred, old rows fall back to first-message truncation) and passed as context
+2. The model itself decides the rest through its tools: `search_knowledge` (pgvector over `kb_chunks`, visibility-filtered by RLS, repeatable with rephrased queries) plus the live-data tools (schedule, jobs, job detail, team workload, clash check) — every tool runs on the user-scoped client so RLS filters what the asker may see
+3. Claude answers, looping through tools as needed (cap 8 rounds)
+4. The conversation saves back through the auto-tagger (summary + meaningful gate + digest importance)
 
-The combined index = the company's institutional brain, growing organically as conversations happen and curated by the Monday digest.
+The KB + per-user memories = the company's institutional brain, growing organically as conversations happen and curated by the Monday digest.
 
 ---
 
@@ -199,6 +209,8 @@ Every Monday at 9 AM SGT, a Vercel cron (`/api/cron/monday-digest`) runs:
 **D-Promote secret command:** typing `D-Promote` anywhere in an assistant conversation forces `importance = 5` and immediately sends the conversation to all digest subscribers outside the Monday schedule. The word is stripped from the Telegram summary so recipients don't see it.
 
 The loop: organic conversations → flagged on Monday (or immediately via D-Promote) → human majority approves → curated Obsidian note → syncs back into the searchable index → answers smarter next time.
+
+**Promoted notes land in `Table of Content/Digest/`** in greenqubes-kb (the vault was reorganised under `Table of Content/`, 2026-08-18) — the original root `digest/` folder is retired. **Vercel lesson (2026-08-18): never fire-and-forget async work in an API route** — Vercel freezes the function once the response returns, killing unfinished promises; the vault write and D-Promote send are awaited for this reason.
 
 This is the system's main learning mechanism. **Auto-promotion is forbidden** — the human-in-the-loop majority vote is the safety mechanism against the AI mis-classifying something as broadly shareable.
 
@@ -290,10 +302,8 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 
 - [x] **Session 19** — Pre-Alpha testing (Myself) — PASSED clean 2026-08-17 [Nic]; no issues found, version stays V.0.0.0.1
 - [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-17: clean pass left nothing to fix; green light to alpha
-- [ ] **Session 21** — Alpha testing (Me + Scheduler); iterate V.0.0.X.0 until green light
-- [ ] **Session 22** — Beta testing (Me + Scheduler + Sales); iterate V.0.X.0.0 until green light
-- [ ] **Session 23** — Launch; production cutover → V.1.0.0.0
-- [ ] **Session 24** — Post-launch features (to be defined)
+- [x] **Sessions 21–23** — Alpha / Beta / Launch — CLOSED 2026-08-18 [Nic]: webapp declared launched **v1.0.0**, all necessary testing done; current production deployment is the launched product (no prod-tier promotion or custom domain wired — future infra tasks if ever wanted)
+- [ ] **Mobile app build** — the new roadmap (replaces "Session 24 post-launch features"): Stage 1 communication core → Stage 2 installer field work + offline → Stage 3 office on the go + AI; spec at `docs/superpowers/specs/2026-08-18-mobile-app-design.md`, awaiting Nic's spec review → implementation plan → build sessions
 
 ---
 

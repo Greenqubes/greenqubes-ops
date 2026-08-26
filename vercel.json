@@ -11,6 +11,10 @@
     {
       "path": "/api/notifications/overdue",
       "schedule": "0 1,10 * * *"
+    },
+    {
+      "path": "/api/cron/asst-scratch-cleanup",
+      "schedule": "0 19 * * *"
     }
   ]
 }

@@ -52,12 +52,14 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   const db = createServiceClient()
   const telegramUserId = String(cq.from.id)
 
-  const { data: voterRow } = await db
+  const { data: voterRow, error: voterErr } = await db
     .from('users')
     .select('id, name')
     .eq('telegram_chat_id', telegramUserId)
-    .single()
+    .is('deleted_at', null)
+    .maybeSingle()
 
+  if (voterErr) console.error('[digest webhook] voter lookup failed:', voterErr.message)
   if (!voterRow) {
     await answerDigestCallbackQuery(cq.id, 'Your account is not registered in the system.')
     return
@@ -101,6 +103,7 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
     .from('users')
     .select('id', { count: 'exact', head: true })
     .eq('digest_subscriber', true)
+    .is('deleted_at', null)
     .not('telegram_chat_id', 'is', null)
 
   const total = totalVoters ?? 1
@@ -132,17 +135,22 @@ async function handleDigestVote(cq: CallbackQuery, data: string) {
   }
 
   if (promoted) {
-    // Auto-commit to vault in the background — don't block the webhook response
-    autoPromoteToVault(chatId).then(({ path }) => {
+    // Must be awaited: Vercel freezes the function once the response is sent,
+    // killing fire-and-forget work — the vault write was dying mid-flight.
+    // The button spinner is already dismissed (answerCallbackQuery above), so
+    // the extra seconds here cost nothing visible.
+    try {
+      const { path } = await autoPromoteToVault(chatId)
       console.log(`[digest webhook] vault note committed: ${path}`)
-    }).catch(err => {
+    } catch (err) {
       console.error('[digest webhook] auto-promote failed:', (err as Error).message)
-    })
+    }
 
     const { data: subscribers } = await db
       .from('users')
       .select('telegram_chat_id')
       .eq('digest_subscriber', true)
+      .is('deleted_at', null)
       .not('telegram_chat_id', 'is', null)
 
     for (const s of subscribers ?? []) {

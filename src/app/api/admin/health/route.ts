@@ -1,4 +1,4 @@
-import { NextResponse }                           from 'next/server'
+import { NextRequest, NextResponse }              from 'next/server'
 import { createClient }                           from '@/lib/supabase/server'
 import { createServiceClient }                    from '@/lib/supabase/service'
 import { getUsageSummary, getUnusualActivity,
@@ -66,9 +66,24 @@ async function checkLastOverdueCron(): Promise<HealthCheck> {
   }
 }
 
-export async function GET() {
+type UsageWindow = '30d' | '7d' | 'today'
+
+// "Today" = since midnight Singapore time (UTC+8, no DST), not last-24-hours.
+function windowSince(window: UsageWindow): string {
+  if (window === 'today') {
+    const sgt = new Date(Date.now() + 8 * 3_600_000)
+    return new Date(Date.UTC(sgt.getUTCFullYear(), sgt.getUTCMonth(), sgt.getUTCDate()) - 8 * 3_600_000).toISOString()
+  }
+  const days = window === '7d' ? 7 : 30
+  return new Date(Date.now() - days * 86_400_000).toISOString()
+}
+
+export async function GET(req: NextRequest) {
   const ok = await guardAdmin()
   if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const raw    = req.nextUrl.searchParams.get('window')
+  const window: UsageWindow = raw === '7d' || raw === 'today' ? raw : '30d'
 
   const [checks, usage, unusual] = await Promise.all([
     Promise.all([
@@ -79,7 +94,7 @@ export async function GET() {
       checkLastSync(),
       checkLastOverdueCron(),
     ]),
-    getUsageSummary(30),
+    getUsageSummary(windowSince(window)),
     getUnusualActivity(7),
   ])
 

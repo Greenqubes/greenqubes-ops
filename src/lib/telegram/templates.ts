@@ -99,7 +99,9 @@ export function tplSubInstallerAssigned(p: {
 }
 
 // Sent to the sales POC + coordinators when a coordinator/scheduler formally
-// assigns the installer(s) they had been suggested.
+// assigns the installer(s) they had been suggested. The header reflects what
+// happened to the team (Nic, 2026-08-19): fresh assignment / modified team /
+// last installer removed.
 export function tplInstallerAssigned(p: {
   projectTitle:   string | null
   jobClient:      string
@@ -109,10 +111,15 @@ export function tplInstallerAssigned(p: {
   location:       string
   installerNames: string[]
   jobUrl:         string
+  kind?:          'assigned' | 'changed' | 'removed'
 }): string {
   const names = p.installerNames.length > 0 ? p.installerNames.join(', ') : '(none)'
+  const header =
+    p.kind === 'removed' ? `❌ <b>Installer Removed</b>\n`
+    : p.kind === 'changed' ? `❗ <b>Installer Changed</b>\n`
+    : `✅ <b>Installer Assigned</b>\n`
   return (
-    `✅ <b>Installer Assigned</b>\n` +
+    header +
     (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
     `Client: ${p.jobClient}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +

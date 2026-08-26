@@ -31,7 +31,10 @@ export async function commitVaultFile(
     throw new Error('GITHUB_VAULT_REPO or GITHUB_VAULT_TOKEN not set')
   }
 
-  const url = `https://api.github.com/repos/${VAULT_REPO}/contents/${filePath}`
+  // Encode each segment separately — folder names may contain spaces
+  // (e.g. "Table of Content/Digest") but the slashes must survive.
+  const encodedPath = filePath.split('/').map(encodeURIComponent).join('/')
+  const url = `https://api.github.com/repos/${VAULT_REPO}/contents/${encodedPath}`
 
   const res = await fetch(url, {
     method: 'PUT',

@@ -2,15 +2,36 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on production; Session 19 pre-alpha passed clean, green light for alpha)_
+_Last updated: 2026-08-26 (feat-assistant-4 — assistant upgrade Phase 4 (Projects) SHIPPED to production; migration 0047 applied before the code. **The four-phase assistant upgrade is COMPLETE.** Deferred security checks all passed on production same day; false-confession guard added to the assistant prompt)_
 
 ---
 
 ## Pending — Next Session
 
-### Alpha testing prep (Session 21)
+### Assistant upgrade (from 2026-08-24, chore-assistant — spec approved)
 
-- [ ] **Set up the scheduler's account for alpha** — they sign in via Google once, then Admin → Users: provision them and paste in their Telegram chat ID (message the bot once to get it). Tick the digest subscriber box if they should get the Monday digest.
+- [x] **[Nic] Phase 1 build session — SHIPPED 2026-08-25** — Sonnet 5 + thinking, Claude-grade sidebar/composer/mobile drawer, smooth streaming, Stop button, web sources; built, smoke-tested by you on the preview (incl. your phone feedback round) and merged to main same day. No migration was needed. Plan: [superpowers/plans/2026-08-24-assistant-upgrade-phase1.md](superpowers/plans/2026-08-24-assistant-upgrade-phase1.md).
+- [x] **[Nic] Phase 2 build session — SHIPPED 2026-08-25** — live schedule/job/team lookups (always under the asker's own permissions), the assistant searches the knowledge base itself, real memory with the Memory view. You ran `npx supabase db push` (migration 0046) BEFORE the code deployed; preview smoke test passed and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase2.md](superpowers/plans/2026-08-25-assistant-upgrade-phase2.md).
+- [x] **[Nic] Phase 3 build session — SHIPPED 2026-08-25** — chat attachments (photos + PDF) → quick confirm → pending job with auto-filed buckets + a tappable job chip, Move-to-bucket on the job form, and the 30-day scratch cleanup built in the same session (your pick). No migration was needed. Smoke-tested by you on the preview (phone) and merged to main same day. Plan: [superpowers/plans/2026-08-25-assistant-upgrade-phase3.md](superpowers/plans/2026-08-25-assistant-upgrade-phase3.md).
+- [x] **[Nic] Phase 4 build session — SHIPPED 2026-08-26 (the last one — upgrade COMPLETE)** — Projects: folders in the sidebar/drawer, per-project instructions + reference files (10 files / 20 MB) the assistant knows in every chat inside the project, linked memory, Move-to-project. Migration 0047 was applied BEFORE the code deployed (Claude ran `npx supabase db push` at your request — you were away from the PC). Your caps decision: 10 files / 20 MB (100 MB isn't possible — the AI service caps one request at 32 MB and re-reads every project file on every message). Health-tab usage window filter (30 days / 7 days / Today) shipped in the same session. Smoke-tested by you on the preview (phone) and merged to main same day. Plan: [superpowers/plans/2026-08-26-assistant-upgrade-phase4.md](superpowers/plans/2026-08-26-assistant-upgrade-phase4.md).
+- [x] **[Nic] Phase 3 smoke test 4 — unsupported file rejection, on PC** — PASSED 2026-08-26: the red "Only images … and PDF files can be attached" message shows and nothing uploads.
+- [x] **[Nic] Deferred Phase 2 security checks — ALL PASSED on production 2026-08-26**: (1) real installer login asked about an unassigned job → the assistant found nothing and said so (the assigned job's details were correct); (2) two accounts — no chats, memories or projects crossed between accounts. Side-catch during the installer test: the assistant wrongly "confessed" to not having verified an earlier (correct) answer — root cause: its past lookups aren't kept in the conversation history, so it speculated. Fixed same day with a standing-instruction line (never speculate about past checks; just re-check) — shipped dev→main.
+
+### Mobile app (from 2026-08-18, chore-mobile — the new roadmap)
+
+- [ ] **Review the mobile app spec** — read [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md) and give the go-ahead (or changes). Nothing gets built until you approve it; the implementation plan is written right after.
+- [ ] **Ask the directors for the Apple Developer greenlight** — US$99/year, one company account, covers the whole team; installing is free for everyone. Without it the iPhone half of the team stays on the webapp and **Telegram cannot be retired**. If they say yes: request a **D-U-N-S number** for GreenQubes first (free, takes days–weeks — the longest lead-time item in the project), then enroll in the Apple Developer Program **as an organization**, set to auto-renew. A lapsed subscription stops iPhone notifications and new installs (installed apps keep working; nothing is lost permanently).
+- [ ] **Create a free Expo account when the build starts** — Expo is the build service that produces the .apk and handles updates. Free tier; needs an email. Claude will tell you exactly when it's needed.
+- [ ] **(Optional, anytime) Google Play account — US$25 once** — only if you ever want store auto-updates instead of sending .apk links. Skippable for a 10-person team.
+
+### Team onboarding (was "alpha testing prep" — Sessions 21–23 closed, webapp launched v1.0.0)
+
+_The whole-company rollout pack is ready (built 2026-08-18). Follow the runbook: [rollout/rollout-runbook.md](rollout/rollout-runbook.md) — deck + printable role cheat sheets are linked at the top of it._
+
+- [ ] **Collect everyone's exact Google email** — one group-chat message (template in the runbook). Copy-pasted, not typed: an email typo = "account not set up" on the day.
+- [ ] **Fill the roster + pre-provision everyone** — Admin → Users → Provision (email + name + role), tick digest where wanted. No one needs to have signed in first.
+- [ ] **Rollout meeting** — present the deck, everyone signs in with Google + taps **Connect Telegram** (self-service now — no more chat-ID pasting); digest subscribers also press START on @Greenqubes_digest_bot once. Fallbacks for every failure mode are in the runbook.
+- [ ] **After: verify every user row has a Telegram chat ID** (Admin → Users) and chase gaps while it's fresh.
 
 ### Backup — fixed 2026-08-12, two follow-ups
 
@@ -23,11 +44,20 @@ _Last updated: 2026-08-17 (ux-notifications — overdue bell alerts upgraded on 
 - [ ] **The R2 backup is a mirror, not history** — `rclone sync` makes the local copy match the bucket exactly, so a file deleted in R2 disappears from the local copy on the next run. It protects against Cloudflare being unavailable, not against someone deleting a file. If you want to recover deleted files, that needs dated snapshots or R2 object versioning — a separate decision.
 
 
+### Future planning notes (from 2026-08-25, Phase 3 session)
+
+- [ ] **Assistant chat: filing-only Office attachments** — let the chat paperclip accept Word/Excel/PPTX files that the AI cannot read but CAN still file into the job's buckets when it creates a pending job (today the chat accepts only images + PDF, because those are the only formats the AI service can read; the job form itself accepts everything, unchanged). Small build — say the word.
+- [ ] **Assistant chat: read Office files** — convert Word/Excel/PPTX to readable text before handing them to the AI, so it can answer questions about them like it does for PDFs. Bigger build and needs a new software dependency (stack is locked, so this needs your explicit OK first). Workaround today: export the file as PDF and attach that.
+
+### Future planning notes (from 2026-08-18, rollout session)
+
+- [ ] **Instant promotion to the assistant's brain** — when a digest vote promotes a note to the vault, also feed it into the assistant's knowledge base immediately (embed + upsert at promotion time). Today the assistant only learns it after the server's 2:30 AM sync. Small build — needs a session. (Nic requested 2026-08-18.)
+
 ### Future planning notes (from 2026-07-22, Phase 3 session)
 
 - [x] **[Nic] Schedule tab: list view scrolling UX** — DONE 2026-08-05, live on production. Windowed week↔month strip, jump calendar, Today button, Monday-start weeks, chips removed. Smoke test passed desktop + mobile ([schedule-list-ux-smoke-test.md](schedule-list-ux-smoke-test.md)). See [ux/ux-schedule-20260805-1-note.md](ux/ux-schedule-20260805-1-note.md).
-- [ ] **Port to mobile apps — Android (.apk) + iOS (.ipa)** — requested by company directors. Big piece of work; needs its own planning session (approach, app store accounts, how it shares code with the web app).
-- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Plan alongside the mobile port since the approach likely overlaps.
+- [x] **[Nic] Port to mobile apps — Android (.apk) + iOS (.ipa) — PLANNING DONE 2026-08-18.** Full design session held: React Native + Expo, one codebase, same backend, 3 build stages, Android-first, iPhone gated on the Apple Developer greenlight. Spec: [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md). Build sessions follow once you approve the spec (see "Mobile app" section at the top).
+- [ ] **Desktop apps — Windows (.exe) + macOS (.dmg)** — once live, package the system as installable desktop apps if possible. Explicitly deferred in the 2026-08-18 mobile spec — separate decision after the mobile app ships.
 - [x] **[Nic] Full security + integrity audit — code/access-control portion DONE 2026-08-13.** Full-app review of access control (RLS), auth, all API routes, exposed secrets, file storage, webhooks/crons and injection surfaces. Found **4 real holes and fixed all of them live on production** — headline: any logged-in user could make themselves admin. Full write-up in [security-audit-20260813.md](security-audit-20260813.md); session note [fix/fix-auth-20260813-1-note.md](fix/fix-auth-20260813-1-note.md).
 - [ ] **Security audit — remaining piece: service-outage resilience** — the code/access-control audit is done (above). Still not exercised: what actually happens if each service (Vercel / Supabase / R2 / Telegram) goes down mid-operations, and the recovery drill for each. Worth a dedicated session before go-live. (Backup/recovery itself was covered in the 2026-08-12 infra sessions.)
 
@@ -47,7 +77,7 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **[Nic] Finish Phase 1 smoke test — sections 3–5** — PASSED 2026-06-24. Found + fixed 4 things: New Job screen wasn't running the clash check on push; clash modal now clears when you shift the time + button reworded to "Push to Schedule"; chat photo attachments showed "Unknown" sender (fixed); installer My Jobs cards weren't showing the project title (fixed). See [fix/fix-jobs-20260624-1-note.md](fix/fix-jobs-20260624-1-note.md).
 - [x] **[DEFERRED to Phase 3] Clash check when editing an already-scheduled job** — moving a scheduled job's time/installer onto another scheduled job currently shows NO clash warning (the check only fires when first pushing a pending job to the schedule). This is the FCFS board's job (Phase 3) — leave it for now.
 - [x] **[Nic] Clean-cut switchover (strategy reminder)** — executed 2026-08-03; see the regression test → switchover item below.
-- [ ] **(Optional, for testing) See push notifications yourself** — paste your Telegram chat ID into scheduler Wei Qing's row (Admin → Users). Currently only Benny Teo (scheduler, TG set) receives the "New Job — Assign Installer" message. **Remove before go-live.**
+- [x] **[Nic] (Optional, for testing) See push notifications yourself** — resolved by 2026-08-18: a data check during the digest debugging confirmed **no other user row carries a Telegram chat ID anymore** (only your own account has one), so there's nothing to remove before go-live. Going forward everyone links their own via the Connect Telegram button.
 - [x] **[Nic] Run `npx supabase db push` for migration 0037** — applied 2026-07-22. Installer visibility now ignores suggestions; coordinator + production can save job changes.
 - [x] **[Nic] Workflow V2 — Phase 2 (job form role permissions + installer assignment)** — implemented + smoke test PASSED 2026-07-22. All 6 sections green. See [feat/feat-jobs-20260722-1-note.md](feat/feat-jobs-20260722-1-note.md) and the tick-through checklist at [workflow-v2-phase2-smoke-test.md](workflow-v2-phase2-smoke-test.md).
 - [x] **[Nic] Decision — FCFS tab for installers** — dropped 2026-07-22. Installers only need their own jobs; FCFS is a scheduler/coordinator planning tool. Still shown to all other roles.
@@ -139,6 +169,120 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-26, feat-assistant-4 — Assistant Upgrade Phase 4 SHIPPED, Upgrade COMPLETE)
+
+- [x] **[Nic] Phase 4 live on production — the whole assistant upgrade is done** — the assistant now has Projects: folders that group your chats, each with its own instructions and reference files the assistant automatically knows in every chat inside it, and chats in the same project remember each other. Move any chat in or out from its ⋮ menu; deleting a project keeps its chats.
+- [x] **[Nic] Decision — project file limits: 10 files / 20 MB per project** — you asked about 100 MB; not possible: the AI re-reads every project file on every message, and one request to the AI service is capped at 32 MB (plus page/reading limits). For big document libraries the knowledge base (vault) is the right home — the assistant searches it instead of re-reading it.
+- [x] **[Nic] Migration 0047 applied by Claude at your request** — you were away from the PC; dry-run first, applied, verified up to date. Code pushed only after.
+- [x] **[Nic] Health tab: API usage filter live** — 30 days / 7 days / Today buttons on the usage tracker (Today counts from midnight Singapore time).
+- [x] **[Nic] Deferred security checks — all three passed on production** (see the ticked items at the top).
+- [x] **[Nic] "False confession" fixed same day** — during the installer test the assistant apologised for supposedly not verifying an answer that was actually correct (it can't see its own past lookups in a continued chat, so it guessed). A standing-instruction line now tells it to simply re-check instead of speculating — your call: "false confession erodes trust". Live on production.
+- [x] **[Nic] Preview smoke passed (phone) → merged dev → main twice** — Phase 4, then the confession guard.
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant-3 — Assistant Upgrade Phase 3 SHIPPED)
+
+- [x] **[Nic] Phase 3 live on production** — the assistant now takes photo and PDF attachments in chat, reads them, and can turn them into a filled-out pending job: it shows you a summary, waits for your yes, creates the job with the files sorted into the right buckets, and drops a tappable chip that opens the job. Third phase merged to main in a single day.
+- [x] **[Nic] Decision — 30-day scratch cleanup built now, not deferred** — old chat attachments are swept from Cloudflare automatically every night at 3 AM; the deferred checklist item is closed.
+- [x] **[Nic] Move file between buckets live** — hover any file on the job form → folder icon → pick the destination bucket; works for URL links too. Wrong AI (or manual) filings need no re-upload.
+- [x] **[Nic] Smoke test passed on the preview (phone)** — attach + ask, create-job confirm flow with correct buckets, move-to-bucket, and the regression pass all green. On Android the picker filters unsupported files out by itself; the reject-message check moved to a PC item (pending above).
+- [x] **[Nic] Question answered — Word/Excel/PPTX in chat** — the AI service can only read images and PDFs, so the chat paperclip accepts only those (the job form itself accepts every file type, unchanged). Workaround: export as PDF. Two future items logged above: filing-only Office attachments (small) and Office-file reading (needs a new dependency — your OK required).
+- [x] **[Nic] Decision — installer refusal test (smoke test 3) folded into the deferred production checks** — runs together with the real-installer-login and two-account tests after all phases ship.
+- [x] **[Nic] Merged dev → main** — Phase 3 live on production same day.
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant-2 — Assistant Upgrade Phase 2 SHIPPED)
+
+- [x] **[Nic] Phase 2 live on production** — the assistant now looks up the real schedule, jobs, team availability and clashes when you ask ("who's free Friday?"), searches the knowledge base itself (retrying with different wording), and remembers meaningful conversations properly. Merged to main the same day Phase 1 shipped.
+- [x] **[Nic] Ran `npx supabase db push` for migration 0046** — the memory-summary column, applied BEFORE the code went out (no crash window — the feat-files lesson followed).
+- [x] **[Nic] Privacy built in as designed** — every lookup runs under the asking person's own permissions (an installer's assistant cannot see jobs they aren't assigned to), money figures are never available to the assistant at all, and memories never cross accounts.
+- [x] **[Nic] Memory view live** — the Memory button (sidebar and phone drawer) shows everything the assistant remembers about you; you can correct a memory or make it forget one. Throwaway chats ("hello") stay out of memory automatically.
+- [x] **[Nic] Decision — two security checks deferred to production** — the real-installer-login test and the two-account isolation test will be run on production once ALL phases are complete (tracked as a pending item above).
+- [x] **[Nic] Preview smoke test passed → merged dev → main** — schedule/workload/clash questions, job lookup, knowledge-base search, Memory view, and the Phase 1 regression pass all green.
+- Note: this folder's installed packages were still on the old Anthropic SDK (the Phase 1 session ran in a parallel window; `npm install` had never run here) — fixed during the session, no code impact.
+
+---
+
+## Done This Session ✓ (2026-08-25, feat-assistant — Assistant Upgrade Phase 1 SHIPPED)
+
+- [x] **[Nic] Phase 1 live on production** — the assistant now runs on Sonnet 5, thinks before answering, gives much longer answers, shows "Thinking…"/"Searching the web…" status lines, has a Stop button, and shows web source chips under answers. Repeat messages in a chat are cheaper thanks to prompt caching.
+- [x] **[Nic] New look verified by you** — smoother streaming (no more choppy scroll-fighting), two-row composer with mic dictation (browser feature — appears in Chrome/Safari, quietly absent in Firefox), no model picker; desktop sidebar with New chat on top; phone gets the app-like chat screen with the slide-in drawer.
+- [x] **[Nic] Your phone feedback folded in same day** — hamburger moved to the LEFT (matches the drawer side), assistant icon + title removed from the top bar, Home icon added on the right (goes to Schedule; installers to My Jobs). Bottom nav staying visible under the drawer accepted as-is (your call).
+- [x] **[Nic] API usage question answered** — it lives at Admin → Health → "API Usage Tracker" (30-day totals per service, not per-message rows). The amber "cost estimate drift" warning you spotted was a stale sanity check that can't work now that costs mix models, cache discounts and search fees — removed for the Anthropic card only; the real check (comparing against the Anthropic billing dashboard) stays.
+- [x] **[Nic] Phase 3 scratch-file question answered** — chat attachments will live in a per-person scratch area in Cloudflare (`asst-chat/…`), never in job files, whether or not a job gets created; the deferred scratch-cleanup checklist item covers the leftover files. Offer on the table: build a simple 30-day auto-cleanup during the Phase 3 session instead of deferring.
+- [x] **[Nic] AI importance tagger** — skipped, no changes (your call at session start).
+- [x] **[Nic] Smoke test passed → merged dev → main** — live on production same day.
+
+---
+
+## Done This Session ✓ (2026-08-24, chore-assistant — Assistant Upgrade Design Spec)
+
+- [x] **[Nic] Full assistant upgrade designed and approved** — four phases: smarter brain + Claude-grade look and feel, live-data lookups + memory, attachments → pending job, Projects. Spec committed and pushed to dev; no code written yet.
+- [x] **[Nic] Decisions made this session** — model: **Sonnet 5** (same price tier as today, currently cheaper on intro pricing); phased build (Option 1); **privacy rule: assistant memory never crosses users** — the digest vote → vault stays the only bridge; job creation is the **only** action the assistant may take, saved as pending with a **quick confirm in chat** first; **Move to…** on bucket files so wrong filings need no re-upload; Projects at full depth (folders + shared files + instructions + linked memory); composer mic = free browser dictation; **no model picker** in the UI; mobile gets the app-like drawer layout (3-line button top-right); **only meaningful chats** enter memory, with a Memory view to edit/remove; **incognito mode skipped** (your call after discussion).
+- [x] **Vault submodule bookmark updated** — the repo now records the vault at its 18 Aug state (the digest promotions); the `M vault` git noise is gone.
+
+---
+
+## Done This Session ✓ (2026-08-24, feat-schedule — Revert Completed Jobs + Bulk Actions + Card Team Lines)
+
+- [x] **[Nic] Decision — who can revert a completed job** — every role except installer (your call, incl. designer/production), and no Telegram message fires on a revert (quiet undo).
+- [x] **[Nic] Revert to Scheduled live** — button + confirm popup in the completed job's bottom bar; the job goes back to the schedule, unlocks on the spot, and keeps its original FCFS queue position instead of dropping to the back.
+- [x] **[Nic] Bulk buttons on the selection bars** — Completed tab: Revert N; Schedule tab: Complete N (green) — both scheduler-only with the same inline confirm step as Delete.
+- [x] **[Nic] Team lines on list cards** — schedule/pending/completed cards now show `Installer:` bottom-left and a left-aligned `Sales:`/`Coordinator:` box bottom-right, with NIL when empty (your mockup); installer screens deliberately unchanged.
+- [x] **[Nic] Bell overdue cards show Sales + Coordinator** — under the address, NIL when empty.
+- [x] **[Nic] Telegram header matches what happened** — assigning to an empty job says ✅ Installer Assigned; modifying an existing team says ❗ Installer Changed; removing the last installer says ❌ Installer Removed (your screenshots drove this).
+- [x] **[Nic] Verified everything on the dev preview, merged dev → main** — all live on production same day.
+
+---
+
+## Done This Session ✓ (2026-08-19, fix-files — Attachment Delete Fix)
+
+- [x] **[Nic] "Deleted attachments come back" root-caused and fixed** — your Cloudflare theory was half right: the app never deleted anything from Cloudflare, but the reason files reappeared was the database silently refusing the delete (no delete permission rule was ever written for the files table, and the app never checked). Deletes now go through the server, which checks who's asking, deletes the Cloudflare copy first, then the database row.
+- [x] **[Nic] Decision — who can delete attachments** — matches the screen as it already was: every office role (sales, scheduler, coordinator, designer, production, admin) on non-completed jobs; installers never; completed jobs locked for everyone.
+- [x] **[Nic] Bucket delete no longer leaks files into job chat** — deleting a bucket used to quietly unhook its files (which then showed up in the job chat) and strand their Cloudflare copies; it now truly deletes the files with the bucket.
+- [x] **[Nic] Real error messages on failed deletes** — a failed delete now shows a red error instead of the file pretending to vanish; successful deletes show a green confirmation.
+- [x] **[Nic] Verified on preview, merged dev → main** — fix live on production (confirmed the new delete route is serving).
+- [x] **[Nic] Stale-tab leak caught right after the merge and cleaned up** — you deleted the DESIGNER JO bucket from a tab still running the old code (an open tab keeps the old version until refreshed), which leaked its two PDFs into the job chat one last time. Both leaked files were fully removed with a one-off script you approved (Cloudflare copy + database row); verified zero leaked attachments remain on any job. Lesson: after a production deploy, refresh open tabs before testing.
+- Note: files deleted from the app also disappear from the server-PC archive at the next 02:00 sync — the archive is a mirror, not history (existing checklist item covers the snapshot decision).
+
+---
+
+## Done This Session ✓ (2026-08-18, feat-rollout — Rollout Pack + Connect Telegram + Digest Fixes)
+
+- [x] **[Nic] Rollout materials approved + built** — 10-slide deck, 6 printable role cheat sheets, and your step-by-step runbook (all in `docs/rollout/` and published as private artifact pages; links at the top of the runbook). Your decisions: deck + cheat sheets format, English only, collect emails before the meeting (Option A).
+- [x] **[Nic] Connect Telegram self-link chosen and live on production** — everyone links their own Telegram with two taps (profile picture → Connect Telegram → START); no chat-ID pasting, no database migration, no new Vercel settings. You verified the button on the preview.
+- [x] **[Nic] Digest mis-route caught and fixed** — your test exposed that the Admin → Digest tab still sent via the ops bot (leftover from before the digest bot existed). Now routes via @Greenqubes_digest_bot; you verified the send arrives from the right bot.
+- [x] **[Nic] Digest voting fixed** — "your account is not registered" was your deleted old account sharing your Telegram ID; deleted accounts are now ignored everywhere in the digest (votes, majority count, broadcasts, D-Promote) and the ghost row's Telegram ID + digest tick were cleared from the data (your call).
+- [x] **[Nic] Vanishing vault notes root-caused and fixed** — Vercel kills background work once a response is sent, so the vault write was dying mid-flight. Now awaited; you verified live: vote at 20:24:09 → note on GitHub at 20:24:17 (8 seconds).
+- [x] **[Nic] Promoted notes follow your reorganised vault** — they now land in `Table of Content/Digest/` (your call), matching where you moved the May note. Your stranded "Plywood" promotion was rescued there, then all three test notes deleted at your request before the 2:30 AM sync could teach them to the assistant.
+- [x] **[Nic] D-Promote smirk reply added** — the assistant answers any message containing `D-Promote` with "I see what you did there 😏" instead of a normal AI reply (your request; no API cost).
+- [x] **[Nic] Four dev → main merges, each verified by you on production.**
+- Your Obsidian already auto-pulls every 11 minutes + on startup (Git plugin) — promoted notes appear in Obsidian within minutes, no setup needed.
+
+---
+
+## Done This Session ✓ (2026-08-18, chore-mobile — Webapp Launched v1.0.0 + Mobile App Design)
+
+- [x] **[Nic] Webapp declared LAUNCHED at v1.0.0** — your call: all necessary testing already done, so the planned alpha/beta/launch rounds (Sessions 21–23) are closed without being run. The current production site is the launched product; the webapp continues as the desktop/office tool.
+- [x] **[Nic] Mobile app fully designed and specced** — Android + iPhone app, one codebase, same data as the webapp, built in 3 stages with per-job chat as the make-or-break feature. Your decisions recorded: Android first (free .apk installs), iPhone waits for the directors' Apple Developer greenlight, Telegram retires only when both halves of the team have the app, chat stays per-job only, email sign-in link added as the second login method (webapp + app).
+- [x] **[Nic] Scope decisions** — app v1 covers everything except the admin screens and FCFS board (desktop-only); external installers keep their web links; chat extras (read receipts, replies, reactions) deliberately deferred.
+- [x] **Spec committed** — [superpowers/specs/2026-08-18-mobile-app-design.md](superpowers/specs/2026-08-18-mobile-app-design.md); your read-through is the next step before any code.
+
+---
+
+## Done This Session ✓ (2026-08-18, visual-design — Logo Palette Rebrand + Clickable Logo)
+
+- [x] **[Nic] Top-bar logo made clickable** — tapping the GreenQubes logo anywhere in the app now goes to the Schedule page; installers get sent to their My Jobs page instead. Verified on preview, merged to main.
+- [x] **[Nic] Decision — rebrand scope: accents only** — backgrounds, text and borders stay; the five accent colors moved to the logo palette (lime `#91C740` + slate `#6C747C` anchors, plus teal/sand from the palette strip).
+- [x] **[Nic] Decision — buttons use a darker lime with white text** — the true logo lime stays for small highlights only (chat live dot, browser-tab icon), since white text on bright lime is unreadable.
+- [x] **[Nic] Decision — installer/success color is teal, not a second green** — the company green stays the only green in the app.
+- [x] **[Nic] Caught on preview: punctuality colors must not rebrand** — strict = red / flexible = blue is a company scheduling signal. Now locked in dedicated `--punct-*` tokens that no future palette change can touch; rule recorded in CONTEXT.md.
+- [x] **[Nic] Verified both rounds on preview + merged to main** — rebrand live on production same day.
 
 ---
 

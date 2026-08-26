@@ -48,6 +48,19 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
     .filter(Boolean)
     .join(', ')
 
+  // Sales / Coordinator / Installer lines (Nic, 2026-08-19). Only when the
+  // feeding query loaded team fields — installer views pass InstallerJob rows
+  // without them (and keep the compact first-names meta row instead).
+  const hasTeamInfo = job.sales_name !== undefined || job.job_coordinators !== undefined
+  const coordinatorNames = (job.job_coordinators ?? [])
+    .map(c => c.users?.name)
+    .filter(Boolean)
+    .join(', ')
+  const assignedFullNames = job.job_assignees
+    .map(a => a.users?.name)
+    .filter(Boolean)
+    .join(', ')
+
   // No time set = whole-day floater — say so instead of leaving a blank
   // (matches the FCFS board's "All day" bars).
   const timeRange = [fmtTime(job.time_start), fmtTime(job.time_end)]
@@ -97,7 +110,7 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
               {/* Punctuality bar */}
               <div className={cn(
                 'w-1.5 shrink-0 rounded-full self-stretch',
-                job.punctuality === 'strict' ? 'bg-[#D14545]' : 'bg-brand-blue'
+                job.punctuality === 'strict' ? 'bg-punct-strict' : 'bg-punct-flex'
               )} />
 
               <div className="flex-1 min-w-0">
@@ -138,7 +151,7 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                     <span className="truncate max-w-[150px]">{job.location}</span>
                   </span>
 
-                  {installerNames && (
+                  {!hasTeamInfo && installerNames && (
                     <span className="flex items-center gap-1 text-[11px] text-muted">
                       <Users size={11} />
                       {installerNames}
@@ -157,6 +170,25 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                     <Pill variant={job.status} />
                   )}
                 </div>
+
+                {/* Team row — installers bottom-left; Sales / Coordinator box
+                    sits right but its text stays left-aligned so both labels
+                    start at the same edge */}
+                {hasTeamInfo && (
+                  <div className="flex justify-between items-end gap-3 mt-1.5">
+                    <p className="text-[11px] text-muted leading-tight truncate min-w-0">
+                      Installer: {assignedFullNames || 'NIL'}
+                    </p>
+                    <div className="text-left space-y-0.5 min-w-0 shrink-0 max-w-[55%]">
+                      <p className="text-[11px] text-muted leading-tight truncate">
+                        Sales: {job.sales_name || 'NIL'}
+                      </p>
+                      <p className="text-[11px] text-muted leading-tight truncate">
+                        Coordinator: {coordinatorNames || 'NIL'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
