@@ -20,6 +20,7 @@ import { HistorySidebar } from './HistorySidebar'
 import { statusLabelKey } from './statusLabels'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
+import type { ProjectWithFiles } from '@/lib/supabase/queries/assistant-projects'
 
 export interface Message {
   id:        string
@@ -84,6 +85,11 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const [micSupported,   setMicSupported]   = useState(false)
   const [pendingAtts,    setPendingAtts]    = useState<PendingAtt[]>([])
 
+  // Projects (Phase 4)
+  const [projects,        setProjects]        = useState<ProjectWithFiles[]>([])
+  const [projectsLoading, setProjectsLoading] = useState(true)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+
   const [showScrollDown, setShowScrollDown] = useState(false)
 
   const bottomRef           = useRef<HTMLDivElement>(null)
@@ -98,6 +104,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const abortRef             = useRef<AbortController | null>(null)
   const recognitionRef       = useRef<SpeechRecognitionLike | null>(null)
   const fileInputRef         = useRef<HTMLInputElement>(null)
+  const activeProjectIdRef   = useRef<string | null>(null)
 
   const { error: showAttachError } = useToast()
 
@@ -105,6 +112,24 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const chatIdParam  = searchParams.get('chat')
 
   useEffect(() => { setMicSupported(getSpeechRecognition() !== null) }, [])
+
+  useEffect(() => { activeProjectIdRef.current = activeProjectId }, [activeProjectId])
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const res = await fetch('/api/assistant/projects')
+      if (res.ok) {
+        const list = await res.json() as ProjectWithFiles[]
+        setProjects(list)
+        // The active project may have been deleted elsewhere
+        setActiveProjectId(prev => prev && !list.some(p => p.id === prev) ? null : prev)
+      }
+    } finally {
+      setProjectsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchProjects() }, [fetchProjects])
 
   // Pick up any conversation started in the floating chat panel
   useEffect(() => {
@@ -152,7 +177,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         method:    'POST',
         headers:   { 'Content-Type': 'application/json' },
         keepalive: true,
-        body:      JSON.stringify({ messages: payload, existingId }),
+        body:      JSON.stringify({ messages: payload, existingId, projectId: activeProjectIdRef.current }),
       })
     } catch {
       // best-effort; don't surface to user
@@ -183,7 +208,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       tags:       null,
       importance: null,
       pinned:     false,
-      project_id: null,
+      project_id: activeProjectIdRef.current,
       ts:         new Date().toISOString(),
     }
   }
@@ -212,6 +237,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     stickToBottomRef.current = true
     setMessages(msgs)
     setActiveChatId(chat.id)
+    setActiveProjectId(chat.project_id ?? null)
     setInput('')
     setDrawerOpen(false)
   }
@@ -225,8 +251,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
+    setActiveProjectId(null)
     setDrawerOpen(false)
     inputRef.current?.focus()
+  }
+
+  function startNewChatInProject(projectId: string) {
+    startNewChat()
+    setActiveProjectId(projectId)
   }
 
   function handleSidebarDelete(id: string) {
@@ -322,7 +354,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         tags:       null,
         importance: null,
         pinned:     false,
-        project_id: null,
+        project_id: activeProjectId,
         ts:         new Date().toISOString(),
       })
     }
@@ -384,7 +416,10 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       const res = await fetch('/api/assistant/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ messages: history }),
+        body:    JSON.stringify({
+          messages: history,
+          ...(activeProjectId ? { projectId: activeProjectId } : {}),
+        }),
         signal: controller.signal,
       })
 
@@ -593,6 +628,11 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         refreshTrigger={sidebarKey}
         optimisticChat={optimisticChat}
         lang={lang}
+        projects={projects}
+        projectsLoading={projectsLoading}
+        onProjectsChanged={fetchProjects}
+        onNewChatInProject={startNewChatInProject}
+        onOpenProjectPanel={() => {}}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />
