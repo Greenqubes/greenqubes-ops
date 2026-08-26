@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { tagConversation } from '@/lib/ai/tagger'
 import { saveChat, updateChat } from '@/lib/supabase/queries/assistant'
+import { getOwnProject } from '@/lib/supabase/queries/assistant-projects'
 import { summariseChatForDigest } from '@/lib/digest/run'
 import { sendDigestTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplDigestItem } from '@/lib/telegram/templates'
@@ -21,13 +22,22 @@ export async function POST(req: NextRequest) {
     .maybeSingle() as { data: Profile | null; error: unknown }
   if (!profile) return new Response('Not provisioned', { status: 403 })
 
-  const { messages, existingId } = await req.json() as {
+  const { messages, existingId, projectId } = await req.json() as {
     messages:   { role: string; content: string }[]
     existingId?: string
+    projectId?:  string | null
   }
 
   if (messages.length < 2) {
     return Response.json({ ok: true, skipped: true })
+  }
+
+  // Project filing (Phase 4): a foreign or stale project id degrades to
+  // no-project rather than failing the save. undefined = leave as-is on
+  // update (the floating panel never sends the field).
+  let projectIdChecked = projectId
+  if (typeof projectIdChecked === 'string' && !(await getOwnProject(projectIdChecked))) {
+    projectIdChecked = null
   }
 
   const forcePromote = messages.some(m => m.content.includes('D-Promote'))
@@ -38,10 +48,10 @@ export async function POST(req: NextRequest) {
 
   let id: string | null
   if (existingId) {
-    id = await updateChat(existingId, profile.id, messages, tag)
-    if (!id) id = await saveChat(profile.id, messages, tag)  // fallback if row was deleted or not owned
+    id = await updateChat(existingId, profile.id, messages, tag, projectIdChecked)
+    if (!id) id = await saveChat(profile.id, messages, tag, projectIdChecked ?? null)  // fallback if row was deleted or not owned
   } else {
-    id = await saveChat(profile.id, messages, tag)
+    id = await saveChat(profile.id, messages, tag, projectIdChecked ?? null)
   }
 
   if (forcePromote && id) {
