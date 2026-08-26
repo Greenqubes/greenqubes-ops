@@ -5,6 +5,7 @@ import { getEffectiveRole } from '@/lib/utils/role-override'
 import { setJobDesigners } from '@/lib/supabase/queries/designers'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignAssigned } from '@/lib/telegram/templates'
+import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -91,7 +92,9 @@ export async function POST(
     }
   }
 
-  // scoring hook (Task 7)
+  // Fire-and-forget: a freshly assigned designer means there's now someone
+  // to score for, even if the brief text itself didn't just change.
+  if (added.length > 0) void scoreDesignJob(jobId, 'assign')
 
   return NextResponse.json({ ok: true, added })
 }

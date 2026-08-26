@@ -5,6 +5,7 @@ import { getEffectiveRole } from '@/lib/utils/role-override'
 import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignDueShift, formatDate } from '@/lib/telegram/templates'
+import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -80,21 +81,43 @@ export async function PATCH(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
 
   const body = await req.json().catch(() => ({})) as {
     date?:               string
     design_brief?:       string | null
     design_due_date?:    string | null
     design_due_manual?:  boolean
+    rescore?:            boolean
   }
 
-  type JobRow = { date: string; design_due_date: string | null; project_title: string | null }
+  // Lightweight rescore-only request (Task 7): fired by DesignBriefSection
+  // after a client-side brief-file upload, since that insert never touches
+  // this route. Writes nothing — just re-triggers scoring — so designers
+  // (who can upload attachments here but can't edit the brief/due-date
+  // fields below) are allowed through this one branch.
+  if (body.rescore === true) {
+    if (!['sales', 'scheduler', 'coordinator', 'admin', 'designer'].includes(effectiveRole)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    const { data: exists } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('id', jobId)
+      .maybeSingle()
+    if (!exists) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    void scoreDesignJob(jobId, 'brief_change')
+    return NextResponse.json({ ok: true })
+  }
+
+  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  type JobRow = { date: string; design_due_date: string | null; project_title: string | null; design_brief: string | null }
   const { data: job } = await supabase
     .from('jobs')
-    .select('date, design_due_date, project_title')
+    .select('date, design_due_date, project_title, design_brief')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -129,6 +152,15 @@ export async function PATCH(
 
   if (Object.keys(updates).length > 0) {
     await supabase.from('jobs').update(updates as never).eq('id', jobId).throwOnError()
+  }
+
+  // ── AI scoring trigger (Task 7) — fire only when content that actually
+  // feeds the model changed; resubmitting identical values must not re-score.
+  // Brief-change wins over date-change when both moved in the same save.
+  const briefChanged = body.design_brief !== undefined && body.design_brief !== job.design_brief
+  const dateChanged   = body.date !== undefined && body.date !== job.date
+  if (briefChanged || dateChanged) {
+    void scoreDesignJob(jobId, briefChanged ? 'brief_change' : 'date_change')
   }
 
   // ── Notify assigned designers of the shift (best-effort) ──────────────────

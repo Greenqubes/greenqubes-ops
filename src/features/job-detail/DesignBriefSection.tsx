@@ -84,6 +84,14 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
         }
         router.refresh()
         showSuccess(t(lang, 'savedSuccessfully'))
+        // Fire-and-forget rescore — this insert is client-side (no server
+        // route sees it), so the AI scoring engine (Task 7) never learns
+        // about the new attachment unless we tell it here.
+        void fetch(`/api/jobs/${jobId}`, {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ rescore: true }),
+        })
       } catch {
         showError(t(lang, 'saveError'))
       } finally {
