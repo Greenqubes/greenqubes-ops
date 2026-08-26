@@ -163,6 +163,10 @@ export type JobDetail = {
   design_brief:            string | null
   design_due_date:         string | null
   design_due_manual:       boolean
+  // Design-completed flow (Task 8) — the shell needs only the timestamp to
+  // gate the completion pill / scheduler tick / reopen button; the rating
+  // fields belong to Task 11's Flagged strip, not here.
+  design_completed_at:     string | null
   created_at:              string
   updated_at:              string
   job_assignees: Array<{
@@ -215,7 +219,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override,
-      design_brief, design_due_date, design_due_manual,
+      design_brief, design_due_date, design_due_manual, design_completed_at,
       created_at, updated_at,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
