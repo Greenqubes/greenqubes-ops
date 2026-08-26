@@ -91,13 +91,16 @@ interface Props {
   salesPocOptions:        SelectOption[]
   initialCoordinatorIds?: string[]
   coordinatorOptions?:    Array<{ id: string; label: string }>
+  initialDesignerIds?:    string[]
+  designerOptions?:       Array<{ id: string; label: string }>
   backHref?:              string
   initialTab?:            'chat'
 }
 
 export function JobDetailShell({
   job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
-  initialCoordinatorIds = [], coordinatorOptions = [], backHref = '/schedule', initialTab,
+  initialCoordinatorIds = [], coordinatorOptions = [],
+  initialDesignerIds = [], designerOptions = [], backHref = '/schedule', initialTab,
 }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router   = useRouter()
@@ -146,6 +149,7 @@ export function JobDetailShell({
   const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
   const [suggestedSubIds,         setSuggestedSubIds]        = useState<string[]>(initialSubSuggestedIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
+  const [selectedDesignerIds,    setSelectedDesignerIds]    = useState<string[]>(initialDesignerIds)
   const [staleBanner,       setStaleBanner]       = useState(false)
   const [bucketsRefreshKey, setBucketsRefreshKey] = useState(0)
   const [tasksRefreshKey,   setTasksRefreshKey]   = useState(0)
@@ -259,6 +263,21 @@ export function JobDetailShell({
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ installer_ids: selectedSubIds }),
+        })
+        if (!res.ok) throw new Error()
+      }
+
+      // Design-team assignment (sales / scheduler / coordinator / admin).
+      // Unlike coordinators, this has a dedicated route — it diffs against
+      // job_designers itself and notifies newly added designers (bell +
+      // Telegram), so no separate notify call is needed here. Gated on
+      // canEditCore too: the route 403s for roles that can't edit the list
+      // (designer / production), and their selection never changes anyway.
+      if (canEditCore && isDesignerDirty) {
+        const res = await fetch(`/api/jobs/${job.id}/designers`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ userIds: selectedDesignerIds }),
         })
         if (!res.ok) throw new Error()
       }
@@ -531,7 +550,15 @@ export function JobDetailShell({
     return false
   }, [selectedCoordinatorIds, initialCoordinatorIds])
 
-  dirtyRef.current = isDirty || isInstallerDirty || isSubDirty || isCoordDirty
+  const isDesignerDirty = useMemo(() => {
+    const a = new Set(selectedDesignerIds)
+    const b = new Set(initialDesignerIds)
+    if (a.size !== b.size) return true
+    for (const id of a) if (!b.has(id)) return true
+    return false
+  }, [selectedDesignerIds, initialDesignerIds])
+
+  dirtyRef.current = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty
 
   // Live updates for this job. Hybrid rule ("clean syncs, dirty warns"):
   // section data (files, tasks, team) applies silently — it never collides
@@ -580,6 +607,7 @@ export function JobDetailShell({
     setSelectedSubIds(job.job_assignees.filter(a => !a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
     setSuggestedSubIds(job.job_assignees.filter(a => a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
     setSelectedCoordinatorIds(initialCoordinatorIds)
+    setSelectedDesignerIds(initialDesignerIds)
     setStaleBanner(false)
   }, [job])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -801,6 +829,16 @@ export function JobDetailShell({
                 options={coordinatorOptions}
                 value={selectedCoordinatorIds}
                 onChange={setSelectedCoordinatorIds}
+                disabled={readOnly || !canEditCore}
+              />
+            </Field>
+
+            {/* Designers */}
+            <Field label={t(lang, 'designersLabel')}>
+              <MultiUserSelect
+                options={designerOptions}
+                value={selectedDesignerIds}
+                onChange={setSelectedDesignerIds}
                 disabled={readOnly || !canEditCore}
               />
             </Field>

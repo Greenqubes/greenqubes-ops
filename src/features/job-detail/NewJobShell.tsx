@@ -36,14 +36,16 @@ interface Props {
   allInstallers:       InstallerUser[]
   role:                Role
   coordinatorOptions?: Array<{ id: string; label: string }>
+  designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
+  const [selectedDesignerIds,   setSelectedDesignerIds]  = useState<string[]>([])
   const [showPushedModal,       setShowPushedModal]      = useState(false)
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
@@ -53,6 +55,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   // Sales pick installers as tentative suggestions (yellow); scheduler/coordinator/
   // admin creating a job assign them formally (green).
   const suggestMode = role === 'sales'
+
+  // Designers picker: editable for sales/scheduler/coordinator/admin,
+  // read-only chips for designer/production — matches the edit form's
+  // canEditCore gate on the Team card (JobDetailShell).
+  const canEditDesigners = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
 
   const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -140,6 +147,15 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         await fetch(`/api/jobs/${job.id}/notify-assigned`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ installerIds: [], coordinatorIds: selectedCoordIds }),
+        })
+      }
+
+      // Attach selected designers — the route itself notifies each one
+      // (bell + Telegram), same as the edit form's save handler.
+      if (selectedDesignerIds.length > 0) {
+        await fetch(`/api/jobs/${job.id}/designers`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: selectedDesignerIds }),
         })
       }
 
@@ -325,6 +341,14 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                   options={coordinatorOptions}
                   value={selectedCoordIds}
                   onChange={setSelectedCoordIds}
+                />
+              </Field>
+              <Field label={t(lang, 'designersLabel')}>
+                <MultiUserSelect
+                  options={designerOptions}
+                  value={selectedDesignerIds}
+                  onChange={setSelectedDesignerIds}
+                  disabled={!canEditDesigners}
                 />
               </Field>
               <Field label="Notes">

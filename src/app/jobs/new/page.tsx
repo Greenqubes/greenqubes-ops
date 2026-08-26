@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
+import { getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -30,7 +31,7 @@ export default async function NewJobPage() {
   // Person-in-Charge and Sub POC/Coordinators both offer every office role
   // (Nic, 2026-07-22) — the old sales/scheduler/admin filter hid newly
   // provisioned coordinators/designers/production. Same rule as /jobs/[id].
-  const [officeUsers, { data: installerRows }] = await Promise.all([
+  const [officeUsers, { data: installerRows }, designerUsers] = await Promise.all([
     getAllProvisionedUsers(),
     supabase
       .from('users')
@@ -38,11 +39,13 @@ export default async function NewJobPage() {
       .eq('role', 'installer')
       .is('deleted_at', null)
       .order('name'),
+    getDesignerUsers(),
   ])
 
   const salesPocOptions: SelectOption[] = officeUsers
   const allInstallers = (installerRows ?? []) as unknown as InstallerUser[]
   const coordinatorOptions = officeUsers
+  const designerOptions = designerUsers.map(u => ({ id: u.id, label: u.name }))
 
   return (
     <NewJobShell
@@ -53,6 +56,7 @@ export default async function NewJobPage() {
       allInstallers={allInstallers}
       role={role}
       coordinatorOptions={coordinatorOptions}
+      designerOptions={designerOptions}
     />
   )
 }

@@ -30,6 +30,7 @@ export const en = {
   editJob: 'Edit job',
   tabDetails: 'Details',
   tabTeam: 'Team',
+  designersLabel: 'Designers',
   tabFiles: 'Files',
   tabChat: 'Chat',
   jobDetails: 'Job details',

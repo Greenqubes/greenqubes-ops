@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getJobById, getInstallerUsers, getJobMessages } from '@/lib/supabase/queries/jobs'
 import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
+import { getJobDesigners, getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -32,12 +33,14 @@ export default async function JobDetailPage({
 
   const role = await getEffectiveRole(profile.role)
 
-  const [job, installers, messages, coordinators, officeUsers] = await Promise.all([
+  const [job, installers, messages, coordinators, officeUsers, designers, designerUsers] = await Promise.all([
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     getJobMessages(id),
     getJobCoordinators(id),
     getAllProvisionedUsers(),
+    getJobDesigners(id),
+    getDesignerUsers(),
   ])
 
   if (!job) notFound()
@@ -59,6 +62,8 @@ export default async function JobDetailPage({
       salesPocOptions={salesPocOptions}
       initialCoordinatorIds={coordinators.map(c => c.id)}
       coordinatorOptions={officeUsers}
+      initialDesignerIds={designers.map(d => d.id)}
+      designerOptions={designerUsers.map(u => ({ id: u.id, label: u.name }))}
       backHref={backHref}
       initialTab={sp.tab === 'chat' ? 'chat' : undefined}
     />
