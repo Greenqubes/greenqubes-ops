@@ -71,6 +71,22 @@ export function tplJobAssigned(p: {
   )
 }
 
+// Sent to a newly-added DESIGNER when they're assigned to a job's design work.
+export function tplDesignAssigned(p: {
+  projectTitle: string
+  client:       string
+  date:         string
+  jobUrl:       string
+}): string {
+  return (
+    `🎨 <b>New Design Job Assigned</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.date)}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
 // Wording per Nic (Phase 4 smoke test): make clear they support the main team.
 export function tplSubInstallerAssigned(p: {
