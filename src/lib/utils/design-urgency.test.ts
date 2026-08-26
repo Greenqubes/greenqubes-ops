@@ -28,6 +28,7 @@ check('relaxed job stays at base',   computeUrgency({ complexity: 2, daysToDue: 
 check('due tomorrow bumps +2',       computeUrgency({ complexity: 3, daysToDue: 1, openCount: 1, maxOpenCount: 4 }), 5)
 check('due in 3 days bumps +1',      computeUrgency({ complexity: 3, daysToDue: 3, openCount: 1, maxOpenCount: 4 }), 4)
 check('far-off due relaxes -1',      computeUrgency({ complexity: 3, daysToDue: 12, openCount: 1, maxOpenCount: 4 }), 2)
+check('boundary at 10 days',         computeUrgency({ complexity: 3, daysToDue: 10, openCount: 1, maxOpenCount: 4 }), 2)
 // load: busiest designer (>=75% of max, >=3 open) +1
 check('overloaded designer bumps +1', computeUrgency({ complexity: 2, daysToDue: 8, openCount: 3, maxOpenCount: 4 }), 3)
 // clamping
