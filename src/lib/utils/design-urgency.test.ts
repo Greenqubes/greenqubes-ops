@@ -4,7 +4,7 @@
  * Exits 1 on any failure.
  */
 
-import { computeUrgency, segmentHeightPx, daysBetween } from './design-urgency'
+import { computeUrgency, segmentHeightPx, daysBetween, addDaysISO } from './design-urgency'
 
 let failures = 0
 
@@ -44,6 +44,8 @@ check('height unscored',      segmentHeightPx(null), 32)
 // day maths (date-only, no TZ drift)
 check('daysBetween', daysBetween('2026-08-18', '2026-08-21'), 3)
 check('daysBetween negative when past', daysBetween('2026-08-18', '2026-08-16'), -2)
+// due-date auto-shift (Nic's own example)
+check('addDaysISO', addDaysISO('2026-09-15', -8), '2026-09-07')
 
 if (failures) {
   console.error(`\n${failures} test(s) FAILED`)

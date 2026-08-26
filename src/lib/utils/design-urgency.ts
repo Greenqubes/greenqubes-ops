@@ -10,6 +10,15 @@ export function daysBetween(fromISO: string, toISO: string): number {
   return Math.round((to - from) / 86_400_000)
 }
 
+// Shifts a date-only ISO string by `days` (may be negative). Used by the
+// design-due-date auto-shift: when a job's install date moves, the due date
+// moves by the same signed delta.
+export function addDaysISO(iso: string, days: number): string {
+  const d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)))
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 export function computeUrgency(input: {
   complexity:   number | null
   daysToDue:    number | null

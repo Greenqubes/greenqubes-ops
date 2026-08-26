@@ -1,6 +1,6 @@
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
+export function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${d} ${months[m - 1]} ${y}`
@@ -83,6 +83,23 @@ export function tplDesignAssigned(p: {
     `<b>Project:</b> ${p.projectTitle}\n` +
     `<b>Client:</b> ${p.client}\n` +
     `<b>Install date:</b> ${formatDate(p.date)}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to each assigned designer when a job's install date change shifts its
+// design due date. Telegram-only when the new due date lands EARLIER (the
+// caller decides that — this template just renders the move).
+export function tplDesignDueShift(p: {
+  projectTitle: string
+  oldDue:       string
+  newDue:       string
+  jobUrl:       string
+}): string {
+  return (
+    `⏰ <b>Design Due Date Moved</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `${formatDate(p.oldDue)} → ${formatDate(p.newDue)}\n\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
