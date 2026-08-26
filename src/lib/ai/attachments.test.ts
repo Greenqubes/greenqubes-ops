@@ -6,7 +6,9 @@
 
 import {
   MAX_FILES_PER_MESSAGE, MAX_IMAGE_BYTES, MAX_PDF_BYTES, MAX_MESSAGE_BYTES,
+  MAX_PROJECT_FILES, MAX_PROJECT_BYTES, REQUEST_FILE_BUDGET,
   validateAttachment, isOwnScratchKey, attachmentNote,
+  isOwnProjectKey, validateProjectFile,
 } from './attachments'
 
 let failures = 0
@@ -53,6 +55,29 @@ const note = attachmentNote([
 check('note lists ids',   note.includes('a1') && note.includes('a2'), true)
 check('note lists names', note.includes('permit.pdf') && note.includes('site.jpg'), true)
 check('note labels types', note.includes('(pdf)') && note.includes('(image)'), true)
+
+// 6. Project file rules (Phase 4) — count is cheap, bytes are the physics:
+// files ride on every message, so the total is bounded by the API request cap
+check('10 files per project', MAX_PROJECT_FILES, 10)
+check('20 MB per project', MAX_PROJECT_BYTES, 20 * 1024 * 1024)
+check('22 MB request budget', REQUEST_FILE_BUDGET, 22 * 1024 * 1024)
+
+// 7. Project-key ownership guard
+check('own project key ok',       isOwnProjectKey('asst-projects/u1/p1/a.pdf', 'u1', 'p1'), true)
+check('other user key rejected',  isOwnProjectKey('asst-projects/u2/p1/a.pdf', 'u1', 'p1'), false)
+check('other project rejected',   isOwnProjectKey('asst-projects/u1/p2/a.pdf', 'u1', 'p1'), false)
+check('scratch key not a project key', isOwnProjectKey('asst-chat/u1/a.pdf', 'u1', 'p1'), false)
+check('dotdot rejected',          isOwnProjectKey('asst-projects/u1/p1/../../x', 'u1', 'p1'), false)
+check('prefix-project trick blocked', isOwnProjectKey('asst-projects/u1/p12/a.pdf', 'u1', 'p1'), false)
+
+// 8. Project file validation (count → per-file type/size → running total)
+check('project file ok',        validateProjectFile('a.pdf', 'application/pdf', 1000, 0, 0), null)
+check('project count cap',      validateProjectFile('a.pdf', 'application/pdf', 1000, 10, 0), 'count')
+check('9 existing still ok',    validateProjectFile('a.pdf', 'application/pdf', 1000, 9, 0), null)
+check('project type rejected',  validateProjectFile('a.docx', 'application/msword', 1000, 0, 0), 'type')
+check('project per-file size',  validateProjectFile('a.jpg', 'image/jpeg', 6 * 1024 * 1024, 0, 0), 'size')
+check('project total cap',      validateProjectFile('a.pdf', 'application/pdf', 6 * 1024 * 1024, 1, 15 * 1024 * 1024), 'total')
+check('project total at cap ok', validateProjectFile('a.pdf', 'application/pdf', 5 * 1024 * 1024, 1, 15 * 1024 * 1024), null)
 
 if (failures > 0) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll attachment checks passed')

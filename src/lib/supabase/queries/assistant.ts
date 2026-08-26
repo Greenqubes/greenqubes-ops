@@ -11,6 +11,7 @@ export interface AsstChatRow {
   tags:       string[] | null
   importance: number | null
   pinned:     boolean
+  project_id: string | null
   ts:         string
 }
 
@@ -18,7 +19,7 @@ export async function getRecentChats(limit = 20): Promise<AsstChatRow[]> {
   const supabase = await createClient()
   const { data } = await supabase
     .from('asst_chats')
-    .select('id, topic, msgs, tags, importance, pinned, ts')
+    .select('id, topic, msgs, tags, importance, pinned, project_id, ts')
     .order('pinned', { ascending: false })
     .order('ts',     { ascending: false })
     .limit(limit)
@@ -49,6 +50,9 @@ export async function updateChat(
   userId: string,
   msgs:   { role: string; content: string }[],
   tag:    ChatTag,
+  // undefined = leave project_id untouched (callers that predate projects,
+  // e.g. the floating panel); null = explicitly file under no project.
+  projectId?: string | null,
 ): Promise<string | null> {
   const supabase = createServiceClient()
 
@@ -87,6 +91,7 @@ export async function updateChat(
       tags:       tag.tags,
       importance: tag.importance,
       summary,
+      ...(projectId !== undefined ? { project_id: projectId } : {}),
       ts:         new Date().toISOString(),
     } as never)
     .eq('id', id)
@@ -100,6 +105,7 @@ export async function saveChat(
   userId:  string,
   msgs:    { role: string; content: string }[],
   tag:     ChatTag,
+  projectId?: string | null,
 ): Promise<string | null> {
   const supabase = createServiceClient()
 
@@ -127,6 +133,7 @@ export async function saveChat(
       importance: tag.importance,
       visibility: tag.visibility,
       summary,
+      project_id: projectId ?? null,
     })
     .select('id')
     .single()

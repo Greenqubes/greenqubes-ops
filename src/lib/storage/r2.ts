@@ -153,6 +153,28 @@ export async function listObjects(prefix: string): Promise<{ key: string; lastMo
   return out
 }
 
+// ── Assistant project files (Phase 4) ───────────────────────────────────────
+// Project objects live under asst-projects/{userId}/{projectId}/ — tracked in
+// asst_project_files rows, never `files` rows. The 30-day scratch-cleanup cron
+// only sweeps asst-chat/, so project files are permanent until removed.
+
+export async function getProjectUploadUrl(
+  userId: string,
+  projectId: string,
+  filename: string,
+  contentType: string,
+): Promise<{ url: string; key: string }> {
+  const ext = filename.includes('.') ? filename.split('.').pop() : undefined
+  const key = `asst-projects/${userId}/${projectId}/${randomUUID()}${ext ? `.${ext}` : ''}`
+  const url = await getSignedUrl(
+    r2,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: 300 },
+  )
+  void logApiUsage({ service: 'r2', endpoint: 'put', estimated_cost: 0 })
+  return { url, key }
+}
+
 export async function getBugScreenshotUploadUrl(
   filename: string,
   contentType: string,

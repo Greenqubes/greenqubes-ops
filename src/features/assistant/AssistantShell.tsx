@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, ExternalLink, Sparkles,
-  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList,
+  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { MAX_FILES_PER_MESSAGE, MAX_MESSAGE_BYTES, validateAttachment } from '@/lib/ai/attachments'
@@ -17,9 +17,11 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { CompanyBar } from '@/components/CompanyBar'
 import { HistorySidebar } from './HistorySidebar'
+import { ProjectPanel } from './ProjectPanel'
 import { statusLabelKey } from './statusLabels'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
+import type { ProjectWithFiles } from '@/lib/supabase/queries/assistant-projects'
 
 export interface Message {
   id:        string
@@ -84,6 +86,12 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const [micSupported,   setMicSupported]   = useState(false)
   const [pendingAtts,    setPendingAtts]    = useState<PendingAtt[]>([])
 
+  // Projects (Phase 4)
+  const [projects,        setProjects]        = useState<ProjectWithFiles[]>([])
+  const [projectsLoading, setProjectsLoading] = useState(true)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [panelProjectId,  setPanelProjectId]  = useState<string | null>(null)
+
   const [showScrollDown, setShowScrollDown] = useState(false)
 
   const bottomRef           = useRef<HTMLDivElement>(null)
@@ -98,6 +106,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const abortRef             = useRef<AbortController | null>(null)
   const recognitionRef       = useRef<SpeechRecognitionLike | null>(null)
   const fileInputRef         = useRef<HTMLInputElement>(null)
+  const activeProjectIdRef   = useRef<string | null>(null)
 
   const { error: showAttachError } = useToast()
 
@@ -105,6 +114,25 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const chatIdParam  = searchParams.get('chat')
 
   useEffect(() => { setMicSupported(getSpeechRecognition() !== null) }, [])
+
+  useEffect(() => { activeProjectIdRef.current = activeProjectId }, [activeProjectId])
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const res = await fetch('/api/assistant/projects')
+      if (res.ok) {
+        const list = await res.json() as ProjectWithFiles[]
+        setProjects(list)
+        // The active/panel project may have been deleted elsewhere
+        setActiveProjectId(prev => prev && !list.some(p => p.id === prev) ? null : prev)
+        setPanelProjectId(prev => prev && !list.some(p => p.id === prev) ? null : prev)
+      }
+    } finally {
+      setProjectsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchProjects() }, [fetchProjects])
 
   // Pick up any conversation started in the floating chat panel
   useEffect(() => {
@@ -152,7 +180,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         method:    'POST',
         headers:   { 'Content-Type': 'application/json' },
         keepalive: true,
-        body:      JSON.stringify({ messages: payload, existingId }),
+        body:      JSON.stringify({ messages: payload, existingId, projectId: activeProjectIdRef.current }),
       })
     } catch {
       // best-effort; don't surface to user
@@ -183,6 +211,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       tags:       null,
       importance: null,
       pinned:     false,
+      project_id: activeProjectIdRef.current,
       ts:         new Date().toISOString(),
     }
   }
@@ -211,6 +240,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     stickToBottomRef.current = true
     setMessages(msgs)
     setActiveChatId(chat.id)
+    setActiveProjectId(chat.project_id ?? null)
     setInput('')
     setDrawerOpen(false)
   }
@@ -224,8 +254,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
     setMessages([])
     setInput('')
     setActiveChatId(undefined)
+    setActiveProjectId(null)
     setDrawerOpen(false)
     inputRef.current?.focus()
+  }
+
+  function startNewChatInProject(projectId: string) {
+    startNewChat()
+    setActiveProjectId(projectId)
   }
 
   function handleSidebarDelete(id: string) {
@@ -321,6 +357,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         tags:       null,
         importance: null,
         pinned:     false,
+        project_id: activeProjectId,
         ts:         new Date().toISOString(),
       })
     }
@@ -382,7 +419,10 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       const res = await fetch('/api/assistant/chat', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ messages: history }),
+        body:    JSON.stringify({
+          messages: history,
+          ...(activeProjectId ? { projectId: activeProjectId } : {}),
+        }),
         signal: controller.signal,
       })
 
@@ -522,6 +562,9 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
   const firstName = userName.split(' ')[0] || userName
   const greeting  = t(lang, 'assistantGreeting').replace('{name}', firstName)
 
+  const activeProject = activeProjectId ? projects.find(p => p.id === activeProjectId) ?? null : null
+  const panelProject  = panelProjectId  ? projects.find(p => p.id === panelProjectId)  ?? null : null
+
   return (
     <div className="h-[100dvh] bg-bg flex flex-col">
 
@@ -591,6 +634,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         refreshTrigger={sidebarKey}
         optimisticChat={optimisticChat}
         lang={lang}
+        projects={projects}
+        projectsLoading={projectsLoading}
+        onProjectsChanged={fetchProjects}
+        onNewChatInProject={startNewChatInProject}
+        onOpenProjectPanel={setPanelProjectId}
+        onChatMoved={(chatId, projectId) => {
+          if (chatId === activeChatId) setActiveProjectId(projectId)
+        }}
         drawerOpen={drawerOpen}
         onDrawerClose={() => setDrawerOpen(false)}
       />
@@ -692,6 +743,16 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
                 >
                   <Plus size={16} />
                 </button>
+                {activeProject && (
+                  <button
+                    onClick={() => setPanelProjectId(activeProject.id)}
+                    title={activeProject.name}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-terracotta/40 bg-terracotta/5 text-[11px] font-medium text-terracotta hover:border-terracotta transition-colors max-w-[140px]"
+                  >
+                    <Folder size={11} className="shrink-0" />
+                    <span className="truncate">{activeProject.name}</span>
+                  </button>
+                )}
                 <div className="flex-1" />
                 {micSupported && (
                   <button
@@ -744,6 +805,14 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         <BottomNav role={role} />
       </div>
       </div>
+
+      {/* Project settings overlay (z-[70] — above the phone drawer) */}
+      <ProjectPanel
+        project={panelProject}
+        onClose={() => setPanelProjectId(null)}
+        onChanged={fetchProjects}
+        lang={lang}
+      />
     </div>
   )
 }

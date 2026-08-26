@@ -212,14 +212,13 @@ export type UnusualEvent = {
   location?:   string
 }
 
-export async function getUsageSummary(days = 30): Promise<UsageSummary[]> {
-  const db    = createServiceClient()
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+export async function getUsageSummary(sinceIso: string): Promise<UsageSummary[]> {
+  const db = createServiceClient()
 
   const { data, error } = await db
     .from('api_usage_logs')
     .select('service, tokens_in, tokens_out, estimated_cost')
-    .gte('ts', since)
+    .gte('ts', sinceIso)
   if (error) throw error
 
   const map = new Map<string, UsageSummary>()

@@ -2,14 +2,16 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Plus, Trash2, X, Brain } from 'lucide-react'
+import { Plus, Trash2, X, Brain, Folder } from 'lucide-react'
 import { HistoryList } from './HistoryList'
+import { ProjectsSection } from './ProjectsSection'
 import { MemoryView } from './MemoryView'
 import { Modal } from '@/components/Modal'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
 import type { AsstChatRow } from '@/lib/supabase/queries/assistant'
+import type { ProjectWithFiles } from '@/lib/supabase/queries/assistant-projects'
 
 interface Props {
   activeChatId?:   string
@@ -19,6 +21,13 @@ interface Props {
   refreshTrigger?: number
   optimisticChat?: AsstChatRow | null
   lang:            LangCode
+  /** Projects (Phase 4) — state lives in AssistantShell */
+  projects:           ProjectWithFiles[]
+  projectsLoading:    boolean
+  onProjectsChanged:  () => void
+  onNewChatInProject: (id: string) => void
+  onOpenProjectPanel: (id: string) => void
+  onChatMoved:        (chatId: string, projectId: string | null) => void
   /** Phone slide-in drawer (replaces the old /assistant/history route) */
   drawerOpen?:     boolean
   onDrawerClose?:  () => void
@@ -38,7 +47,8 @@ function SkeletonRows({ count = 6 }: { count?: number }) {
 
 export function HistorySidebar({
   activeChatId, onLoad, onNewChat, onDelete, refreshTrigger, optimisticChat,
-  lang, drawerOpen = false, onDrawerClose,
+  lang, projects, projectsLoading, onProjectsChanged, onNewChatInProject,
+  onOpenProjectPanel, onChatMoved, drawerOpen = false, onDrawerClose,
 }: Props) {
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [chats,             setChats]             = useState<AsstChatRow[]>([])
@@ -61,6 +71,37 @@ export function HistorySidebar({
     }
     return [optimisticChat, ...chats]
   }, [chats, optimisticChat])
+
+  // Project chats live in their folders — the main Chats list excludes them
+  // (a chat pointing at a deleted/unknown project falls back to the main list).
+  const projectIds = useMemo(() => new Set(projects.map(p => p.id)), [projects])
+  const mainChats  = useMemo(
+    () => displayChats.filter(c => !c.project_id || !projectIds.has(c.project_id)),
+    [displayChats, projectIds],
+  )
+
+  const [moveChatId, setMoveChatId] = useState<string | null>(null)
+
+  function handleMoveRequest(id: string) {
+    setMoveChatId(id)
+  }
+
+  async function confirmMove(projectId: string | null) {
+    const chatId = moveChatId
+    if (!chatId) return
+    setMoveChatId(null)
+
+    // Optimistic re-home; revert by refetch on failure
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, project_id: projectId } : c))
+    onChatMoved(chatId, projectId)
+
+    const res = await fetch('/api/assistant/move', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: chatId, projectId }),
+    })
+    if (!res.ok) fetchChats()
+  }
 
   const fetchChats = useCallback(async () => {
     try {
@@ -209,40 +250,58 @@ export function HistorySidebar({
           {memoryButton}
         </div>
 
-        {/* Header */}
-        <div className="shrink-0 px-4 pt-2 pb-1 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Chats</p>
-          {isSelecting ? (
-            <button
-              onClick={exitSelectMode}
-              className="text-[11px] font-medium text-ink2 hover:text-ink transition-colors"
-            >
-              Cancel
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsSelecting(true)}
-              className="text-[11px] font-medium text-ink2 hover:text-ink transition-colors"
-            >
-              Select
-            </button>
-          )}
-        </div>
-
-        {/* List */}
+        {/* Projects + chats — one scroll area so long folder lists scroll too */}
         <div className={cn('flex-1 overflow-y-auto px-1 py-1', (!isSelecting || selectedCount === 0) && 'pb-[80px]')}>
+          {!projectsLoading || projects.length > 0 ? (
+            <ProjectsSection
+              projects={projects}
+              chats={displayChats}
+              activeChatId={activeChatId}
+              lang={lang}
+              onLoad={onLoad}
+              onOpenPanel={onOpenProjectPanel}
+              onNewChatInProject={onNewChatInProject}
+              onChanged={onProjectsChanged}
+              onPin={handlePin}
+              onDelete={setPendingDeleteId}
+              onRename={handleRename}
+              onMove={handleMoveRequest}
+            />
+          ) : null}
+
+          {/* Header */}
+          <div className="px-3 pt-2 pb-1 flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">Chats</p>
+            {isSelecting ? (
+              <button
+                onClick={exitSelectMode}
+                className="text-[11px] font-medium text-ink2 hover:text-ink transition-colors"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsSelecting(true)}
+                className="text-[11px] font-medium text-ink2 hover:text-ink transition-colors"
+              >
+                Select
+              </button>
+            )}
+          </div>
+
           {loading && !optimisticChat ? (
             <SkeletonRows />
-          ) : displayChats.length === 0 ? (
+          ) : mainChats.length === 0 ? (
             <p className="px-3 py-4 text-xs text-muted text-center">No conversations yet</p>
           ) : (
             <HistoryList
-              chats={displayChats}
+              chats={mainChats}
               activeChatId={activeChatId}
               onLoad={onLoad}
               onPin={handlePin}
               onDelete={setPendingDeleteId}
               onRename={handleRename}
+              onMove={projects.length > 0 ? handleMoveRequest : undefined}
               isSelecting={isSelecting}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
@@ -306,21 +365,40 @@ export function HistorySidebar({
             {memoryButton}
           </div>
 
-          {/* Chats */}
-          <p className="shrink-0 px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted">Chats</p>
+          {/* Projects + chats */}
           <div className="flex-1 overflow-y-auto px-1 py-1">
+            {!projectsLoading || projects.length > 0 ? (
+              <ProjectsSection
+                projects={projects}
+                chats={displayChats}
+                activeChatId={activeChatId}
+                lang={lang}
+                onLoad={onLoad}
+                onOpenPanel={id => { onOpenProjectPanel(id); onDrawerClose?.() }}
+                onNewChatInProject={onNewChatInProject}
+                onChanged={onProjectsChanged}
+                onPin={handlePin}
+                onDelete={setPendingDeleteId}
+                onRename={handleRename}
+                onMove={handleMoveRequest}
+                mobile
+              />
+            ) : null}
+
+            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted">Chats</p>
             {loading && !optimisticChat ? (
               <SkeletonRows />
-            ) : displayChats.length === 0 ? (
+            ) : mainChats.length === 0 ? (
               <p className="px-3 py-4 text-xs text-muted text-center">No conversations yet</p>
             ) : (
               <HistoryList
-                chats={displayChats}
+                chats={mainChats}
                 activeChatId={activeChatId}
                 onLoad={onLoad}
                 onPin={handlePin}
                 onDelete={setPendingDeleteId}
                 onRename={handleRename}
+                onMove={projects.length > 0 ? handleMoveRequest : undefined}
                 mobile
               />
             )}
@@ -371,6 +449,29 @@ export function HistorySidebar({
           >
             Delete
           </button>
+        </div>
+      </Modal>
+
+      {/* Move-to-project picker */}
+      <Modal isOpen={moveChatId !== null} onClose={() => setMoveChatId(null)}>
+        <p className="font-display text-base font-medium text-ink mb-3">{t(lang, 'moveToProject')}</p>
+        <div className="space-y-1 max-h-[50dvh] overflow-y-auto">
+          <button
+            onClick={() => confirmMove(null)}
+            className="w-full text-left px-3 py-2 rounded-xl border border-line text-sm text-ink hover:border-ink2 transition-colors"
+          >
+            {t(lang, 'noProject')}
+          </button>
+          {projects.map(p => (
+            <button
+              key={p.id}
+              onClick={() => confirmMove(p.id)}
+              className="w-full text-left px-3 py-2 rounded-xl border border-line text-sm text-ink hover:border-ink2 transition-colors flex items-center gap-2"
+            >
+              <Folder size={13} className="text-muted shrink-0" />
+              <span className="truncate">{p.name}</span>
+            </button>
+          ))}
         </div>
       </Modal>
 

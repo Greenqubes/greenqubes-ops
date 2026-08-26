@@ -169,6 +169,7 @@ export interface Database {
           pinned:     boolean
           visibility: string[]
           summary:    string | null
+          project_id: string | null
           ts:         string
           updated_at: string
         }
@@ -184,6 +185,7 @@ export interface Database {
           pinned?:     boolean
           visibility:  string[]
           summary?:    string | null
+          project_id?: string | null
           ts?:         string
           updated_at?: string
         }
@@ -199,8 +201,68 @@ export interface Database {
           pinned?:     boolean
           visibility?: string[]
           summary?:    string | null
+          project_id?: string | null
           ts?:         string
           updated_at?: string
+        }
+        Relationships: []
+      }
+
+      asst_projects: {
+        Row: {
+          id:           string
+          user_id:      string
+          name:         string
+          instructions: string | null
+          created_at:   string
+          updated_at:   string
+        }
+        Insert: {
+          id?:           string
+          user_id:       string
+          name:          string
+          instructions?: string | null
+          created_at?:   string
+          updated_at?:   string
+        }
+        Update: {
+          id?:           string
+          user_id?:      string
+          name?:         string
+          instructions?: string | null
+          created_at?:   string
+          updated_at?:   string
+        }
+        Relationships: []
+      }
+
+      asst_project_files: {
+        Row: {
+          id:         string
+          project_id: string
+          name:       string
+          r2_key:     string
+          mime:       string
+          size:       number
+          created_at: string
+        }
+        Insert: {
+          id?:         string
+          project_id:  string
+          name:        string
+          r2_key:      string
+          mime:        string
+          size:        number
+          created_at?: string
+        }
+        Update: {
+          id?:         string
+          project_id?: string
+          name?:       string
+          r2_key?:     string
+          mime?:       string
+          size?:       number
+          created_at?: string
         }
         Relationships: []
       }
@@ -448,7 +510,7 @@ export interface Database {
         Returns: { id: string; source_path: string; content: string; tags: string[] | null; similarity: number }[]
       }
       match_asst_chats: {
-        Args: { query_embedding: number[]; match_threshold?: number; match_count?: number }
+        Args: { query_embedding: number[]; match_threshold?: number; match_count?: number; project_filter?: string | null }
         Returns: { id: string; topic: string | null; summary: string | null; msgs: Json; tags: string[] | null; importance: number | null; similarity: number }[]
       }
     }
