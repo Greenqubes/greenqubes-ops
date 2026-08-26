@@ -183,6 +183,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
       tags:       null,
       importance: null,
       pinned:     false,
+      project_id: null,
       ts:         new Date().toISOString(),
     }
   }
@@ -321,6 +322,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         tags:       null,
         importance: null,
         pinned:     false,
+        project_id: null,
         ts:         new Date().toISOString(),
       })
     }
