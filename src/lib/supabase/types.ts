@@ -6,7 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
-export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification'
+export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification' | 'design_brief'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
 export type Punctuality = 'strict' | 'flexible'
@@ -65,21 +65,45 @@ export interface Database {
           scheduled_at:            string | null
           r2_folder:               string | null
           completion_override:     boolean
+          design_brief:            string | null
+          design_due_date:         string | null
+          design_due_manual:       boolean
+          design_complexity:       number | null
+          design_confidence:       'ok' | 'low' | null
+          design_score_reason:     string | null
+          design_scored_at:        string | null
+          design_completed_at:     string | null
+          design_completed_by:     string | null
+          design_rated_complexity: number | null
+          design_rating_suspect:   boolean
+          design_rating_resolution: 'kept' | 'discarded' | null
           visibility:              string[]
           created_at:              string
           updated_at:              string
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder'
+          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
         > & {
-          id?:            string
-          created_at?:    string
-          updated_at?:    string
-          scheduled_at?:  string | null
-          project_title?: string | null
-          date_end?:      string | null
-          r2_folder?:     string | null
+          id?:                     string
+          created_at?:             string
+          updated_at?:             string
+          scheduled_at?:           string | null
+          project_title?:          string | null
+          date_end?:               string | null
+          r2_folder?:              string | null
+          design_brief?:           string | null
+          design_due_date?:        string | null
+          design_due_manual?:      boolean
+          design_complexity?:      number | null
+          design_confidence?:      'ok' | 'low' | null
+          design_score_reason?:    string | null
+          design_scored_at?:       string | null
+          design_completed_at?:    string | null
+          design_completed_by?:    string | null
+          design_rated_complexity?: number | null
+          design_rating_suspect?:  boolean
+          design_rating_resolution?: 'kept' | 'discarded' | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []
@@ -115,6 +139,13 @@ export interface Database {
         Relationships: []
       }
 
+      job_designers: {
+        Row:    { job_id: string; user_id: string; assigned_at: string }
+        Insert: { job_id: string; user_id: string; assigned_at?: string }
+        Update: { job_id?: string; user_id?: string; assigned_at?: string }
+        Relationships: []
+      }
+
       files: {
         Row: {
           id:          string
@@ -134,6 +165,21 @@ export interface Database {
           name?: string | null
         }
         Update: Partial<Database['public']['Tables']['files']['Insert']>
+        Relationships: []
+      }
+
+      design_scores: {
+        Row: {
+          id: string; job_id: string; trigger_kind: string; model: string
+          complexity: number; proposed_due: string | null; reason: string
+          confidence: 'ok' | 'low'; created_at: string
+        }
+        Insert: {
+          id?: string; job_id: string; trigger_kind: string; model: string
+          complexity: number; proposed_due?: string | null; reason: string
+          confidence: 'ok' | 'low'; created_at?: string
+        }
+        Update: Record<string, never>
         Relationships: []
       }
 
