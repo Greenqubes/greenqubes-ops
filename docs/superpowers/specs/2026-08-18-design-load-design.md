@@ -1,7 +1,7 @@
 # Design Load — Designer Traffic Workflow (V2.5)
 
-**Date:** 2026-08-18
-**Status:** Approved in-chat by Nic, pending final spec review
+**Date:** 2026-08-18 (addendum 2026-08-27 — see final section)
+**Status:** Approved in-chat by Nic; build complete through final review; addendum approved 2026-08-27
 **Source:** Nic's "Workflow V2.5 Designers" PDF diagram + brainstorming session 2026-08-18
 
 ---
@@ -335,6 +335,59 @@ which is English-only.
    2026-08-26); completion ratings refine it. Unscored jobs show grey.
 5. Type-check + production build green before every push; merges are Nic's
    call only after preview sign-off.
+
+## Addendum (Nic, 2026-08-27 — approved before the smoke test)
+
+**Owner decisions confirmed:**
+- Clearing a due date counts as manual forever — the AI never re-proposes for
+  that job (as built).
+- Pre-booking exemption covers ONLY the brief text. The installer clash check
+  runs on every push to schedule, including pre-books with suggested
+  installers — never skipped (as built; smoke-test item added).
+
+**1. Same-save due-date conflict → confirm prompt.** When one save both
+changes the install date AND carries a due date the user typed this session,
+the app asks before saving: keep your typed date, or let it shift with the
+install date (show both dates). Keep → the save carries `keepManualDue: true`
+and the PATCH skips the auto-shift for that save. Decline / dismiss → the
+automatic shift wins (current behaviour). Only that one save is affected;
+later install-date moves shift as normal.
+
+**2. Coordinator gains sales-level job access (Nic's explicit role
+confirmation).** Coordinators can create jobs and push to schedule, and get
+the sales action bars on pending jobs (Save / Push to Schedule / Delete /
+Duplicate), while keeping their existing scheduler-level powers on scheduled
+jobs. On the New Job form the Person-in-Charge dropdown defaults to the
+creator and stays changeable (coordinators explicitly may hand PIC to a
+salesperson). Nav: coordinators gain the Pending tab. RLS: jobs INSERT +
+pending→scheduled transition extended to coordinator; files SELECT + INSERT
+extended to coordinator (sales parity — closes the empty-Files-tab gap).
+
+**3. "Created by" on the job.** New `jobs.created_by` (plain uuid, no FK —
+the 0035 lesson), stamped at creation by a BEFORE INSERT trigger reading the
+caller's `users` row via `auth.uid()` (0038/0042 pattern); service-client
+create paths (duplicate, assistant job-create) set it explicitly. Shown on
+the edit form's Details card as a muted "Created by {name}" line (name via a
+follow-up users query — never an embed). Pre-existing jobs show nothing.
+The PIC dropdown is unaffected — creator and PIC are independent.
+
+**4. Production reads files.** files SELECT extended to production (read
+everything on jobs, same as other office roles); production's existing
+write abilities (production photos / instructions) verified to still work
+under the current INSERT policies and extended only if genuinely missing.
+Production keeps: production-field edits + job chat; still no Design Load
+tab.
+
+Migration **0050** carries all schema/RLS changes above (additive only, on
+the shared DB).
+
+Addendum smoke-test items: same-save conflict prompt (keep vs decline) ·
+coordinator creates a job, sets PIC to a salesperson, pushes to schedule ·
+coordinator + production Files tab shows files · "Created by" line on a new
+job (old jobs blank) · pre-book with a double-booked suggested installer →
+clash modal appears.
+
+---
 
 Smoke-test checklist to cover: pre-book push with designer + no brief
 (allowed) · edit-save on scheduled job with designer + empty brief (blocked)

@@ -1087,3 +1087,54 @@ git add -A && git commit -m "chore: verification fixes - tests, type-check, buil
 - [ ] **Step 5: Hand to Nic — preview smoke test**
 
 Ask Nic to push `feat-designer-load-flow` (never push unasked) so Vercel builds the branch preview, then run the smoke checklist from the spec (`docs/superpowers/specs/2026-08-18-design-load-design.md`, "Build order & testing") — including a **real designer login** (preview-as exercises neither RLS nor real role checks). Merging anywhere is Nic's call only.
+
+---
+
+# Addendum tasks (Nic, 2026-08-27) — spec authority: the spec's "Addendum" section
+
+### Task 13: Migration 0050 + types (created_by, coordinator/production RLS)
+
+**Files:**
+- Create: `supabase/migrations/0050_addendum_access.sql`
+- Modify: `src/lib/supabase/types.ts` (jobs Row/Insert/Update gain `created_by`)
+- Modify: `src/app/api/jobs/[id]/duplicate/route.ts` + `src/lib/supabase/queries/assistant-create-job.ts` (service-client creates set `created_by` explicitly)
+
+**Interfaces:**
+- Produces: `jobs.created_by uuid` (plain uuid, NO users FK — 0035 lesson) + BEFORE INSERT trigger stamping it from `auth.uid()`→users.id when null (0038/0042 pattern; service-role inserts fall to null unless set explicitly). RLS: `files: select by role` recreated as a strict superset adding `coordinator` + `production` (0049 pattern — document supersets in comments); files INSERT extended to coordinator; jobs INSERT + the pending→scheduled transition (0036 pattern) extended to coordinator. Verify production's existing photo-upload path against current INSERT policies FIRST (read 0019/0048/0002 + the upload flow) — extend production INSERT only if genuinely missing, and say what you found.
+- All changes additive-only (shared prod DB). Controller applies the migration.
+
+Steps: write SQL → types → explicit created_by in the two service-client create paths → `npm run type-check` → commit.
+
+### Task 14: Same-save due-date conflict prompt
+
+**Files:**
+- Modify: `src/app/api/jobs/[id]/route.ts` (PATCH accepts `keepManualDue?: boolean` — when true AND the body carries `design_due_date`, skip the auto-shift block for this save; everything else unchanged)
+- Modify: `src/features/job-detail/JobDetailShell.tsx` (conflict detection + confirm modal)
+- Modify: `src/lib/i18n/en.ts`, `zh.ts`
+
+**Interfaces:**
+- Consumes: `daysBetween`/`addDaysISO` (client-importable pure fns) to compute the shifted preview for the modal.
+- Behavior (spec addendum §1, binding): trigger ONLY when this save changes `date` AND the user manually edited the due date since load (track a `dueEditedThisSession` flag set in the due-date change handler; a manual date loaded from the DB does NOT trigger). Modal shows both dates (static-English format): keep typed → save with `keepManualDue: true`; decline/dismiss → normal save, shift wins. Applies to BOTH performSave and handlePushToSchedule paths (the shared `saveDesignBriefFields` helper is the single choke point — thread the flag through it).
+
+Steps: route flag → detection + modal (reuse the shell's Modal pattern, z-[60]+) → i18n (en+zh) → type-check → commit.
+
+### Task 15: Coordinator sales-level access + Created by display
+
+**Files:**
+- Modify: `src/components/BottomNav.tsx` (coordinator gains Pending tab)
+- Modify: `src/app/pending/page.tsx` + `src/app/jobs/new/page.tsx` (coordinator allowed where sales is)
+- Modify: `src/features/job-detail/NewJobShell.tsx` (coordinator gets the sales create flow; PIC dropdown defaults to creator, changeable — verify it already is for sales and extend the role gate only)
+- Modify: `src/features/job-detail/JobDetailShell.tsx` (coordinator gets sales action bars on PENDING jobs — Save/Push to Schedule/Delete/Duplicate; scheduled-job behaviour unchanged; Created by line on the Details card)
+- Modify: `src/app/jobs/[id]/page.tsx` (fetch creator name via follow-up users query — never embed users on jobs)
+- Modify: route gates that block coordinator from the sales flows they now need: read `src/app/api/jobs/[id]/submit/route.ts` + the job delete path + any create-flow route and extend role lists sales→sales+coordinator (effective-role convention)
+- Modify: `src/lib/i18n/en.ts`, `zh.ts` (`createdByLabel` — en 'Created by', zh '创建者')
+
+**Interfaces:**
+- Consumes: migration 0050 (RLS + created_by) — Task 13 must land first; controller applies 0050 before this task is verified.
+- Scope guard: coordinator's EXISTING scheduler-level powers on scheduled jobs unchanged; designer/production untouched; sales untouched.
+
+Steps: read the sales gates first (grep role checks in the files above) → extend → Created by line (muted text under the status/header area of Details; hidden when null) → type-check + build → commit (2 logical commits fine).
+
+### Task 16: Addendum verification pass
+
+Run every standalone `*.test.ts` (all must exit 0) + `npm run type-check` + `npm run build`; grep for leftover `keepManualDue` TODOs; confirm clean tree (vault line expected, never committed); file-size report for files this addendum grew. Fix only what the battery surfaces (mechanical fixes; feature-level problems → BLOCKED). Commit fixes if any.
