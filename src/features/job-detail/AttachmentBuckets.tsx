@@ -327,7 +327,7 @@ function BucketCard({
           onBlur={() => { if (name !== bucket.name) onRename(name) }}
           disabled={readOnly || protectedBucket}
           title={protectedTitle}
-          className="flex-1 bg-transparent text-[11px] font-semibold tracking-widest uppercase text-ink2 outline-none disabled:cursor-default"
+          className="flex-1 bg-transparent text-[13px] font-semibold tracking-wide uppercase text-ink2 outline-none disabled:cursor-default"
         />
         {!readOnly && (
           <div className="flex items-center gap-1 shrink-0">
@@ -482,22 +482,22 @@ function FileRow({ file, readOnly, onDelete, onMove, onImageClick, getDownloadUr
 
       {!isUrl && !imgFile && (
         <button type="button" onClick={handleClick} disabled={dlLoading}
-          className="text-muted hover:text-ink transition-colors shrink-0">
-          <Download size={13} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-bg transition-colors shrink-0">
+          <Download size={14} />
         </button>
       )}
 
       {!readOnly && (
         <button type="button" onClick={onMove} title="Move to…"
-          className="text-muted opacity-0 group-hover:opacity-100 hover:text-ink transition-all shrink-0">
-          <FolderInput size={12} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted opacity-0 group-hover:opacity-100 hover:text-ink hover:bg-bg transition-all shrink-0">
+          <FolderInput size={14} />
         </button>
       )}
 
       {!readOnly && (
         <button type="button" onClick={onDelete}
-          className="text-muted opacity-0 group-hover:opacity-100 hover:text-terracotta transition-all shrink-0">
-          <Trash2 size={12} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted opacity-0 group-hover:opacity-100 hover:text-terracotta hover:bg-terracotta/5 transition-all shrink-0">
+          <Trash2 size={14} />
         </button>
       )}
     </div>
