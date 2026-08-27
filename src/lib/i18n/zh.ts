@@ -193,6 +193,14 @@ export const zh: Partial<Translations> = {
   noBtn: '否',
   designReminderNoJo: '尚未上传 Job Order PDF——请打开项目完成上传',
 
+  // ── Notification drawer upgrades (R2-T2) ────────────────────────────────────
+  notifAssignedBy:  '指派人：{name}',
+  notifClientLine:  '客户：{client}',
+  notifInstallLine: '安装日期：{date}',
+  notifDuePrefix:   '截止日期：',
+  notifClearAll:    '全部清除',
+  notifClearOne:    '清除通知',
+
   // ── Installer dashboard ────────────────────────────────────────────────────
   installerHi: '你好',
   installerMyJobs: '我的工作',

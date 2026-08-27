@@ -233,6 +233,14 @@ export const en = {
   noBtn: 'No',
   designReminderNoJo: 'No Job Order PDF uploaded yet — open the job to finish up',
 
+  // ── Notification drawer upgrades (R2-T2) ────────────────────────────────────
+  notifAssignedBy:  'Assigned by: {name}',
+  notifClientLine:  'Client: {client}',
+  notifInstallLine: 'Install date: {date}',
+  notifDuePrefix:   'Due date:',
+  notifClearAll:    'Clear all',
+  notifClearOne:    'Clear notification',
+
   // ── Auth ───────────────────────────────────────────────────────────────────
   loginTitle: 'Welcome back',
   loginSubtitle: 'Enter your email to receive a sign-in link',
