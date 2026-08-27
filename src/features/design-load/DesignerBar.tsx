@@ -35,7 +35,18 @@ export type Segment = { job: DesignLoadJob; level: UrgencyLevel; height: number 
 // which is what actually guarantees the old "clipped by the sticky header"
 // bug can't recur — not just z-index winning a paint order race.
 const BUBBLE_WIDTH = 224   // px — must match the `w-56` className below
-const GAP = 8               // px — space between the bar/segment and the bubble
+// GAP is 0 on purpose (review fix, R2-T1): the bar sits centered inside a
+// wider flex-1 column (see the `max-w-8` bar vs. the column's own box below),
+// so the bar's own edge (anchor.left/right) is never past the column
+// wrapper's edge. Flush-positioning the bubble against that same anchor edge
+// means the physical screen strip from "inside the wrapper" to "inside the
+// bubble" is continuous with zero uncovered pixels — no gap for the pointer
+// to stray into and hit-test onto a neighbour/the row's own gap space, which
+// is what fires the wrapper's onMouseLeave and unmounts the bubble mid-glide
+// on squeezed columns (narrow phones / many designers). Do not reintroduce a
+// nonzero GAP without re-solving that dead-zone problem. Visual separation
+// comes from the bubble's border/shadow, not air.
+const GAP = 0
 const EDGE_MARGIN = 8       // px — never render flush against a viewport edge
 const HEADER_SAFE_TOP = 56  // px — taller than CompanyBar's own ~44px sticky height
 const BOTTOM_SAFE = 88      // px — taller than BottomNav's ~64-80px (incl. safe-area)
@@ -52,7 +63,10 @@ export function computeBubblePosition(anchor: DOMRect, viewportW: number, viewpo
   // Hard clamp regardless of which branch fired above — guarantees the
   // bubble can never overflow either horizontal edge even if the fitsRight
   // guess and the actual rendered width disagree (e.g. a viewport narrower
-  // than BUBBLE_WIDTH + 2*EDGE_MARGIN).
+  // than BUBBLE_WIDTH + 2*EDGE_MARGIN). Note this clamp can, in extreme
+  // edge-of-viewport cases, pull `left` away from being perfectly flush with
+  // the anchor — an accepted trade-off (viewport-overflow safety outranks
+  // the hover strip there) that the review did not flag.
   left = Math.max(EDGE_MARGIN, Math.min(left, viewportW - BUBBLE_WIDTH - EDGE_MARGIN))
 
   // top is clamped into [HEADER_SAFE_TOP, hi] where hi is never below
@@ -232,6 +246,14 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
           <div
             className="fixed z-[60] w-56 rounded-card border border-line bg-paper shadow-lg p-3 overflow-y-auto"
             style={{ left: bubblePos.left, top: bubblePos.top, maxHeight: bubblePos.maxHeight }}
+            // Belt-and-braces (review fix, R2-T1): GAP=0 above makes the
+            // wrapper→bubble strip continuous in theory, but re-affirm the
+            // open job here in case any sub-pixel/rounding mismatch between
+            // getBoundingClientRect and actual layout let the wrapper's
+            // onMouseLeave slip through as the pointer crosses onto the
+            // bubble. Harmless no-op re-set when nothing slipped; harmless
+            // on touch (taps don't fire mouseenter).
+            onMouseEnter={() => setOpenJobId(openSegment.job.jobId)}
           >
             <JobCardContent job={openSegment.job} lang={lang} />
             <button
