@@ -72,34 +72,43 @@ export function tplJobAssigned(p: {
 }
 
 // Sent to a newly-added DESIGNER when they're assigned to a job's design work.
+// `assignedBy` is the display name (fallback email) of whoever made the
+// assignment — any role can assign (R2-T2, Nic smoke-test edit 4).
 export function tplDesignAssigned(p: {
   projectTitle: string
   client:       string
   date:         string
+  assignedBy:   string
   jobUrl:       string
 }): string {
   return (
     `🎨 <b>New Design Job Assigned</b>\n` +
     `<b>Project:</b> ${p.projectTitle}\n` +
     `<b>Client:</b> ${p.client}\n` +
-    `<b>Install date:</b> ${formatDate(p.date)}\n\n` +
+    `<b>Install date:</b> ${formatDate(p.date)}\n` +
+    `<b>Assigned by:</b> ${p.assignedBy}\n\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
 
 // Sent to each assigned designer when a job's install date change shifts its
 // design due date. Telegram-only when the new due date lands EARLIER (the
-// caller decides that — this template just renders the move).
+// caller decides that — this template just renders the move). Client +
+// install date added for parity with the upgraded bell card (R2-T2 edit 4).
 export function tplDesignDueShift(p: {
   projectTitle: string
   oldDue:       string
   newDue:       string
+  client:       string
+  installDate:  string
   jobUrl:       string
 }): string {
   return (
     `⏰ <b>Design Due Date Moved</b>\n` +
     `<b>Project:</b> ${p.projectTitle}\n` +
-    `${formatDate(p.oldDue)} → ${formatDate(p.newDue)}\n\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.installDate)}\n` +
+    `<b>Due date:</b> ${formatDate(p.oldDue)} → ${formatDate(p.newDue)}\n\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }

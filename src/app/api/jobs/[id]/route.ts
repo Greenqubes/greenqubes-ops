@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplDesignDueShift, formatDate } from '@/lib/telegram/templates'
+import { tplDesignDueShift } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
 
@@ -156,10 +156,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  type JobRow = { date: string; design_due_date: string | null; project_title: string | null; design_brief: string | null }
+  type JobRow = { date: string; design_due_date: string | null; project_title: string | null; design_brief: string | null; client: string }
   const { data: job } = await supabase
     .from('jobs')
-    .select('date, design_due_date, project_title, design_brief')
+    .select('date, design_due_date, project_title, design_brief, client')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -172,7 +172,7 @@ export async function PATCH(
   if ('design_due_date' in body)    updates.design_due_date    = body.design_due_date ?? null
   if ('design_due_manual' in body)  updates.design_due_manual  = !!body.design_due_manual
 
-  let notify: { oldDue: string; newDue: string; movedEarlier: boolean } | null = null
+  let notify: { oldDue: string; newDue: string; movedEarlier: boolean; installDate: string } | null = null
 
   if (body.date && body.date !== job.date) {
     updates.date = body.date
@@ -196,7 +196,7 @@ export async function PATCH(
       const today    = todaySGT()
       const newDue   = shifted < today ? today : shifted
       updates.design_due_date = newDue
-      notify = { oldDue: job.design_due_date, newDue, movedEarlier: delta < 0 }
+      notify = { oldDue: job.design_due_date, newDue, movedEarlier: delta < 0, installDate: body.date }
     }
   }
 
@@ -226,7 +226,18 @@ export async function PATCH(
 
       const rows = designers ?? []
       const title = job.project_title ?? 'Untitled job'
-      const bodyLine = `${formatDate(notify.oldDue)} → ${formatDate(notify.newDue)}`
+      // JSON body (R2-T2 edit 4): carries client + install date alongside the
+      // due-date move so the drawer can render "Due date: old → new" plus
+      // Client/Install date. Pre-upgrade rows had a plain "old → new" body
+      // string — NotificationDrawer's parser falls back to that rendering
+      // when JSON.parse fails, so older rows still render sensibly.
+      const bodyJson = JSON.stringify({
+        projectTitle: title,
+        oldDue:       notify.oldDue,
+        newDue:       notify.newDue,
+        client:       job.client,
+        installDate:  notify.installDate,
+      })
 
       if (rows.length > 0) {
         await svc.from('notifications').insert(rows.map(d => ({
@@ -234,7 +245,7 @@ export async function PATCH(
           type:    'design_due_shift',
           job_id:  jobId,
           title,
-          body:    bodyLine,
+          body:    bodyJson,
         })) as never)
       }
 
@@ -244,6 +255,8 @@ export async function PATCH(
           projectTitle: title,
           oldDue:       notify.oldDue,
           newDue:       notify.newDue,
+          client:       job.client,
+          installDate:  notify.installDate,
           jobUrl:       `${APP_URL}/jobs/${jobId}`,
         })
         await Promise.all(

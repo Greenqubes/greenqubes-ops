@@ -24,13 +24,17 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  type ProfileRow = { id: string; role: Role }
+  type ProfileRow = { id: string; role: Role; name: string; email: string | null }
   const { data: profile } = await supabase
     .from('users')
-    .select('id, role')
+    .select('id, role, name, email')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Who's assigning — any role can (R2-T2 edit 4): display name, fall back
+  // to email, so the assigned designer sees a real person, not a role.
+  const assignerName = profile.name?.trim() || profile.email || 'Someone'
 
   const effectiveRole = await getEffectiveRole(profile.role)
   if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
@@ -63,13 +67,28 @@ export async function POST(
         .in('id', added)
         .is('deleted_at', null) as { data: DesignerContact[] | null; error: unknown }
 
-      // Bell notifications for every newly-added designer.
+      // Bell notifications for every newly-added designer. Body carries a
+      // JSON blob (projectTitle/assignedBy/client/installDate) so the drawer
+      // can render the assigner + client + install date (R2-T2 edit 4);
+      // pre-upgrade rows had a plain-text body, and NotificationDrawer's
+      // parser falls back to the old single-line rendering when JSON.parse
+      // fails, so older rows still render sensibly.
+      const projectTitleFallback = job?.project_title ?? 'Untitled job'
+      const assignedBody = job
+        ? JSON.stringify({
+            projectTitle: projectTitleFallback,
+            assignedBy:   assignerName,
+            client:       job.client,
+            installDate:  job.date,
+          })
+        : projectTitleFallback
+
       await svc.from('notifications').insert(added.map(uid => ({
         user_id: uid,
         type:    'design_assigned',
         job_id:  jobId,
         title:   'New design job assigned',
-        body:    job?.project_title ?? 'Untitled job',
+        body:    assignedBody,
       })) as never)
 
       // Telegram — only designers with a chat id.
@@ -79,6 +98,7 @@ export async function POST(
           projectTitle: job.project_title ?? 'Untitled job',
           client:       job.client,
           date:         job.date,
+          assignedBy:   assignerName,
           jobUrl,
         })
         await Promise.all(
