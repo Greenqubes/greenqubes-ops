@@ -43,6 +43,7 @@ const TABS: Record<Role, Tab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   designer: [
