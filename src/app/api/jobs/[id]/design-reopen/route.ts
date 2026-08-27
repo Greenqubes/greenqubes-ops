@@ -4,10 +4,15 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { Role } from '@/lib/supabase/types'
 
-// Undo an accidental (or premature) design completion. Scheduler/admin only —
-// mirrors revert-complete's gate + shape (Task 8 brief: read that route first
-// and mirror it). The job reappears in the Design Load board because that
-// view derives its open set from design_completed_at is null.
+// Undo an accidental (or premature) design completion. Scheduler/admin
+// override path mirrors revert-complete's gate + shape (Task 8 brief).
+// Smoke feedback edit 6 (Nic, 2026-08-27): an ASSIGNED designer of this job
+// may also reopen (last-minute artwork changes) — same job_designers
+// membership check as design-complete's isAssignedDesigner. The job
+// reappears in the Design Load board because that view derives its open set
+// from design_completed_at is null. Rating-clear behaviour below is
+// unchanged either way: reopen always clears the rating; re-completing
+// re-rates fresh.
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -27,11 +32,21 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const role = await getEffectiveRole(profile.role)
-  if (!['scheduler', 'admin'].includes(role)) {
+  const service = createServiceClient()
+
+  const isOverride = ['scheduler', 'admin'].includes(role)
+  type DesignerRow = { assigned_at: string }
+  const { data: ownAssignment } = await service
+    .from('job_designers')
+    .select('assigned_at')
+    .eq('job_id', jobId)
+    .eq('user_id', profile.id)
+    .maybeSingle() as { data: DesignerRow | null; error: unknown }
+  const isAssignedDesigner = !!ownAssignment
+
+  if (!isOverride && !isAssignedDesigner) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  const service = createServiceClient()
 
   type JobRow = { id: string; design_completed_at: string | null }
   const { data: job } = await service
