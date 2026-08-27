@@ -18,8 +18,11 @@ interface MonthViewProps {
 export function MonthView({
   monthCells, jobsByDate, selectedDate, today, lang, onSelectDate, onDrillDown,
 }: MonthViewProps) {
+  // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
+  // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
+  // InstallerShell, both lg-gate BottomNav the same way.
   return (
-    <div className="px-4 pb-24">
+    <div className="px-4 pb-8 lg:pb-24">
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {DAY_HEADERS.map((h, i) => (

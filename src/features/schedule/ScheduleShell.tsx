@@ -355,9 +355,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
         />
       )}
 
-      {/* Bulk delete bar — sits above BottomNav */}
+      {/* Bulk delete bar — sits above BottomNav at lg (still fixed there,
+          unchanged); below lg the nav drawer replaces BottomNav (R2-T5 / F1)
+          so this bar can sit flush with the viewport bottom instead. */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
+        <div className="fixed bottom-0 lg:bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
           {confirmBulk ? (
             <>
               <p className="text-sm font-medium text-ink">

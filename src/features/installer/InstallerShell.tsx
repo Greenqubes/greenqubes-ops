@@ -269,8 +269,10 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
       </div>
 
       {/* ── Views ── */}
+      {/* pb-24 was mobile clearance for the fixed BottomNav; that's gone
+          below lg now (nav drawer instead — R2-T5 / F1). */}
       {viewMode === 'list' && (
-        <div className="px-4 space-y-3 pb-24">
+        <div className="px-4 space-y-3 pb-8 lg:pb-24">
           {visibleJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
               <Briefcase size={32} className="text-muted" strokeWidth={1.5} />

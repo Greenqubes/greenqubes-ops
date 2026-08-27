@@ -189,8 +189,10 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
         </div>
       </div>
 
-      {/* Board */}
-      <main className="pb-24">
+      {/* Board — pb-24 was mobile clearance for the fixed BottomNav; that's
+          gone below lg now (nav drawer instead — R2-T5 / F1), so mobile only
+          needs a modest breathing-room pb. lg: keeps the original value. */}
+      <main className="pb-8 lg:pb-24">
         {loading ? (
           <p className="text-center text-sm text-muted py-12">{t(lang, 'loading')}</p>
         ) : jobs.length === 0 ? (

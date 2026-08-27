@@ -251,7 +251,12 @@ export function FloatingChatPanel({ lang }: Props) {
         <div className={cn(
           'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
           'w-[min(340px,calc(100vw-2rem))]',
-          'bottom-[180px]',      // panel bottom clears bubble at 120px (120 + 48 + 12 = 180)
+          // Panel bottom clears the bubble below it: bubble's own bottom +
+          // its 48px height + a 12px gap. Below lg the bubble sits lower
+          // (no BottomNav to clear any more — R2-T5 / F1), so the panel
+          // follows it down: 64 + 48 + 12 = 124 there; lg keeps the
+          // original 120 + 48 + 12 = 180 since the bubble stays put there.
+          'bottom-[124px] lg:bottom-[180px]',
           'max-h-[min(520px,calc(100vh-160px))]',
         )}>
           {/* Header */}
@@ -355,7 +360,12 @@ export function FloatingChatPanel({ lang }: Props) {
       <button
         onClick={() => (isOpen ? handleClose() : setIsOpen(true))}
         className={cn(
-          'fixed right-4 bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg',
+          // bottom-[120px] was clearance for the fixed BottomNav (~64-80px)
+          // plus margin; that bar is gone below lg now (nav drawer instead
+          // — R2-T5 / F1), so mobile drops by the same ~56px BugReportButton
+          // does, keeping the two FABs' relative spacing identical. lg
+          // keeps the original value (BottomNav still fixed there).
+          'fixed right-4 bottom-[64px] lg:bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg',
           'flex items-center justify-center transition-all duration-200',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'

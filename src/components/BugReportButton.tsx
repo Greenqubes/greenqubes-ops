@@ -229,7 +229,12 @@ export function BugReportButton() {
         className={cn(
           'fixed right-4 z-[59] w-10 h-10 rounded-full shadow-lg',
           'flex items-center justify-center transition-all duration-200',
-          'bottom-[176px]',
+          // bottom-[176px] was stacked above the chat bubble, which was
+          // itself clearing the fixed BottomNav. That bar is gone below lg
+          // now (nav drawer instead — R2-T5 / F1), so this drops by the
+          // same ~56px as the bubble (120→64), preserving the original
+          // 56px gap between the two FABs. lg keeps the original value.
+          'bottom-[120px] lg:bottom-[176px]',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
             : 'bg-ink text-paper hover:bg-terracotta',
