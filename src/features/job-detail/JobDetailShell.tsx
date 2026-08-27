@@ -131,11 +131,25 @@ export function JobDetailShell({
     .filter(a => a.is_suggestion && a.is_sub_installer)
     .map(a => a.user_id)
 
-  // Sales suggest installers; coordinator / scheduler / admin formally assign them.
-  const isSales   = role === 'sales'
-  const canAssign = (['scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
+  // Sales suggest installers; only scheduler/admin formally assign them.
+  // Smoke feedback edit 8 (Nic explicit, 2026-08-27): coordinator LOSES
+  // formal installer assignment — reverses part of Workflow V2 Phase 2
+  // (coordinator used to sit in this set alongside scheduler). Every use of
+  // `canAssign` in this file is installer/sub-installer specific (formal
+  // assign write, grid state, sub bucket) — narrowing it here is enough to
+  // demote coordinator to suggest-only everywhere it's read below.
+  const isSales       = role === 'sales'
+  const isCoordinator = role === 'coordinator'
+  const canAssign      = role === 'scheduler'
   // Who may edit the core / team fields (title, dates, POC, coordinators, notes).
   const canEditCore = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
+  // Edit 6: assigned designers may reopen a completed design themselves —
+  // membership mirrors the design-reopen route's own job_designers check.
+  // initialDesignerIds (not the possibly-edited selectedDesignerIds) is the
+  // source of truth here: a plain designer can't edit that list anyway.
+  const isAssignedDesigner = initialDesignerIds.includes(userId)
+  // Edit 9: production's attachment buckets go view-only (below).
+  const isProduction = role === 'production'
 
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
@@ -449,7 +463,15 @@ export function JobDetailShell({
   // Phase 1). Now scheduler/coordinator/admin saves are checked first;
   // coordinators can alert the schedulers, schedulers can save anyway.
   const onSubmit = async (values: FormValues) => {
-    const briefBlocked = briefRequiredError({
+    // Smoke feedback edit 1 (Nic, 2026-08-27): scheduler bypasses the brief-
+    // required rule entirely — the habit nudge is aimed at sales/coordinator,
+    // who stay forced. `role` is already the effective role (getEffectiveRole
+    // never returns 'admin' — admin previewing as scheduler is covered too;
+    // admin with no override defaults to 'scheduler' as well).
+    // Push-to-schedule (below) never needs the same guard: it only runs while
+    // `status` is still 'pending', and briefRequiredError already exempts any
+    // non-'scheduled' status — so it's a no-op there for every role already.
+    const briefBlocked = role !== 'scheduler' && briefRequiredError({
       isNewJob:      false,
       status,
       designerCount: selectedDesignerIds.length,
@@ -476,6 +498,14 @@ export function JobDetailShell({
       values.time_end    !== (job.time_end?.slice(0, 5) ?? '') ||
       values.punctuality !== job.punctuality
 
+    // canAssign is scheduler-only since edit 8 — this pre-flight (and the
+    // EditClashModal it can open) is now scheduler-only too, since a
+    // coordinator's save can no longer touch the formal installer list
+    // (isInstallerDirty is always false for them) or trigger the
+    // assign-installers route this check calls (also scheduler/admin-gated
+    // now). Their EditClashModal branch ("Alert Scheduler & Save" /
+    // "Re-assign") is effectively unreachable from here as a result — see
+    // the same note on AssignmentPanel's handleSave (FCFS board).
     const needsCheck =
       status === 'scheduled' && canAssign && selectedInstallerIds.length > 0 &&
       (isInstallerDirty || timeChanged)
@@ -732,9 +762,13 @@ export function JobDetailShell({
       for (const [oldId, newId] of Object.entries(replacements)) {
         if (newId === 'keep') continue
         await supabase.from('job_assignees').delete().eq('job_id', job.id).eq('user_id', oldId)
+        // Edit 8: coordinator substitutes as a suggestion too, same as sales
+        // — /api/jobs/[id]/clashes (above) doesn't filter is_suggestion, so
+        // this same substitute flow already ran for sales' suggested picks
+        // pre-edit-8; coordinator now gets the identical suggest-only write.
         await supabase.from('job_assignees').insert({
           job_id: job.id, user_id: newId,
-          is_suggestion: isSales, suggested_by: isSales ? userId : null,
+          is_suggestion: isSales || isCoordinator, suggested_by: (isSales || isCoordinator) ? userId : null,
         } as never)
       }
       if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
@@ -923,6 +957,11 @@ export function JobDetailShell({
     setSelectedInstallerIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   const salesCanSuggest = isSales && !readOnly && status !== 'scheduled'
+  // Coordinator suggests at ANY job status (edit 8) — unlike sales, whose
+  // suggest window closes once a job is scheduled, coordinator stays active
+  // on scheduled jobs (Addendum §2's "Save & notify" bar), just downgraded
+  // from formally assigning to suggesting only.
+  const coordinatorCanSuggest = isCoordinator && !readOnly
 
   const installerStateOf = (id: string): InstallerCardState => {
     if (canAssign) {
@@ -936,18 +975,19 @@ export function JobDetailShell({
   }
 
   const installerOnToggle =
-    canAssign && !readOnly ? toggleFormal :
-    salesCanSuggest        ? toggleSuggestion :
+    canAssign && !readOnly                        ? toggleFormal :
+    (salesCanSuggest || coordinatorCanSuggest)     ? toggleSuggestion :
     undefined
 
-  // Sales cannot un-assign a formally assigned installer — only their own suggestions.
-  const installerDisabledOf = isSales ? (id: string) => initialAssigneeIds.includes(id) : undefined
+  // Sales/coordinator cannot un-assign a formally assigned installer — only
+  // their own suggestions (edit 8 extends this lock to coordinator).
+  const installerDisabledOf = (isSales || isCoordinator) ? (id: string) => initialAssigneeIds.includes(id) : undefined
 
   const installerNoteOf = (id: string): string | null => {
     if (canAssign) {
-      return (initialSuggestedIds.includes(id) && !selectedInstallerIds.includes(id)) ? 'Sales suggested' : null
+      return (initialSuggestedIds.includes(id) && !selectedInstallerIds.includes(id)) ? 'Suggested' : null
     }
-    if (isSales) return suggestedInstallerIds.includes(id) ? 'You suggested' : null
+    if (isSales || isCoordinator) return suggestedInstallerIds.includes(id) ? 'You suggested' : null
     return null
   }
 
@@ -967,18 +1007,18 @@ export function JobDetailShell({
   }
 
   const subOnToggle =
-    canAssign && !readOnly ? toggleSubFormal :
-    salesCanSuggest        ? toggleSubSuggestion :
+    canAssign && !readOnly                    ? toggleSubFormal :
+    (salesCanSuggest || coordinatorCanSuggest) ? toggleSubSuggestion :
     undefined
 
-  // Sales cannot un-assign a confirmed sub — only their own suggestions.
-  const subDisabledOf = isSales ? (id: string) => initialSubAssignedIds.includes(id) : undefined
+  // Sales/coordinator cannot un-assign a confirmed sub — only their own suggestions.
+  const subDisabledOf = (isSales || isCoordinator) ? (id: string) => initialSubAssignedIds.includes(id) : undefined
 
   const subNoteOf = (id: string): string | null => {
     if (canAssign) {
-      return (initialSubSuggestedIds.includes(id) && !selectedSubIds.includes(id)) ? 'Sales suggested' : null
+      return (initialSubSuggestedIds.includes(id) && !selectedSubIds.includes(id)) ? 'Suggested' : null
     }
-    if (isSales) return suggestedSubIds.includes(id) ? 'You suggested' : null
+    if (isSales || isCoordinator) return suggestedSubIds.includes(id) ? 'You suggested' : null
     return null
   }
 
@@ -987,13 +1027,13 @@ export function JobDetailShell({
   const mainEngagedIds = new Set(
     canAssign
       ? [...selectedInstallerIds, ...initialSuggestedIds]
-      : [...initialAssigneeIds, ...(isSales ? suggestedInstallerIds : initialSuggestedIds)],
+      : [...initialAssigneeIds, ...((isSales || isCoordinator) ? suggestedInstallerIds : initialSuggestedIds)],
   )
   const subPool = installers.filter(i => !mainEngagedIds.has(i.id))
 
   const subCount = canAssign
     ? new Set([...selectedSubIds, ...initialSubSuggestedIds]).size
-    : isSales
+    : (isSales || isCoordinator)
       ? new Set([...initialSubAssignedIds, ...suggestedSubIds]).size
       : initialSubAssignedIds.length
 
@@ -1004,7 +1044,7 @@ export function JobDetailShell({
   const clearSubs = () => {
     if (canAssign) {
       setSelectedSubIds([])
-    } else if (salesCanSuggest) {
+    } else if (salesCanSuggest || coordinatorCanSuggest) {
       for (const id of [...suggestedSubIds]) void toggleSubSuggestion(id)
     }
   }
@@ -1223,7 +1263,7 @@ export function JobDetailShell({
               noteOf={subNoteOf}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
-              canEdit={(canAssign && !readOnly) || salesCanSuggest}
+              canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}
             />
           )}
 
@@ -1251,15 +1291,18 @@ export function JobDetailShell({
             <CollapseCard title={t(lang, 'attachments')} storageKey="gq-jobcard-attachments">
               {/* Designers get FULL Files access here — uploads, URL links,
                   add bucket — identical to sales (Task 8, 2026-08-26). No
-                  designer-specific readOnly flag: `completed` (job status)
-                  and `isInstaller` are the only two gates. The Designer JO
-                  bucket's own rename/delete controls are protected for
+                  designer-specific readOnly flag: `completed` (job status),
+                  `isInstaller`, and (edit 9, 2026-08-27) `isProduction` are
+                  the gates — production is view/download-only here; their
+                  separate ProductionReadySection (production photos etc.)
+                  stays fully editable, untouched by this flag. The Designer
+                  JO bucket's own rename/delete controls are protected for
                   every role inside AttachmentBuckets itself. */}
               <AttachmentBuckets
                 jobId={job.id}
                 userId={userId}
                 lang={lang}
-                readOnly={readOnly || isInstaller}
+                readOnly={readOnly || isInstaller || isProduction}
                 refreshKey={bucketsRefreshKey}
                 onBucketsChange={setBuckets}
               />
@@ -1392,8 +1435,25 @@ export function JobDetailShell({
                   </div>
                   {!designSliderOpen && (
                     designCompletedAt ? (
-                      <div className="w-full flex items-center justify-center gap-1.5 px-4 py-3 rounded-[10px] bg-brand-green-soft text-brand-green text-sm font-semibold">
-                        {t(lang, 'designCompletedDone')}
+                      <div className="flex gap-2">
+                        <div className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 rounded-[10px] bg-brand-green-soft text-brand-green text-sm font-semibold">
+                          {t(lang, 'designCompletedDone')}
+                        </div>
+                        {/* Edit 6 (Nic, 2026-08-27): the ASSIGNED designer may
+                            also reopen (last-minute artwork changes) — mirrors
+                            scheduler/admin's reopen button above, same modal +
+                            handler. Reopen always clears the rating; re-
+                            completing re-rates fresh (unchanged). */}
+                        {isAssignedDesigner && (
+                          <button
+                            type="button"
+                            onClick={() => setShowDesignReopenModal(true)}
+                            className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-[10px] border border-line bg-paper text-sm font-medium text-ink2 hover:bg-bg transition-colors"
+                          >
+                            <RotateCcw size={14} />
+                            {t(lang, 'designReopenBtn')}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -1416,8 +1476,13 @@ export function JobDetailShell({
                 // Addendum §2: coordinator gets the sales pending bar (Save
                 // Changes / Push to Schedule) on pending/awaiting_approval
                 // jobs only — status !== 'scheduled' above hands scheduled
-                // jobs to the else-branch below, keeping coordinator's
-                // existing scheduler-level "Save & notify" bar unchanged.
+                // jobs to the else-branch below. That branch's label is now
+                // canAssign-driven ("Save & notify" vs "Save Changes"), and
+                // canAssign is scheduler-only since edit 8 — so a coordinator
+                // on a SCHEDULED job now sees "Save Changes" there too (no
+                // installer-assignment semantics implied), even though the
+                // rest of that bar (core fields, coordinators, designers)
+                // still saves normally for them.
                 <div className="flex gap-2">
                   <button
                     type="button"
