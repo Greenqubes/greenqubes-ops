@@ -788,10 +788,13 @@ export function JobDetailShell({
   }
 
   const isInstaller        = role === 'installer'
-  // Coordinator does not get delete (scheduler-only). NOTE: sales' delete
-  // likely silently no-ops today (no jobs DELETE RLS policy for sales —
-  // the DELETE call returns ok with zero rows affected rather than an error).
-  const showDelete         = (role === 'sales' && status === 'pending') || role === 'scheduler'
+  // Coordinator gains sales-level delete on pending jobs only (Addendum §2) —
+  // scheduled-job behaviour for coordinator is unchanged (still no delete;
+  // that's scheduler-only). NOTE: sales' delete likely silently no-ops today
+  // (no jobs DELETE RLS policy for sales — the DELETE call returns ok with
+  // zero rows affected rather than an error). Coordinator inherits that same
+  // pre-existing gap by parity; not fixed here (out of scope, RLS-level).
+  const showDelete         = (['sales', 'coordinator'].includes(role) && status === 'pending') || role === 'scheduler'
   const showMarkComplete   = role === 'scheduler' && status === 'scheduled'
   const originalSalesPocId = job.sales_poc_id ?? ''
 

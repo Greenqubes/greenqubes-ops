@@ -54,7 +54,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState<'delete' | 'revert' | 'complete' | false>(false)
 
-  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending')
+  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending') || (role === 'coordinator' && pageMode === 'pending')
   // Undo accidental completions straight from the Completed list, and mark
   // jobs complete in bulk from the Schedule list (Nic, 2026-08-19).
   const canBulkRevert   = role === 'scheduler' && pageMode === 'completed'

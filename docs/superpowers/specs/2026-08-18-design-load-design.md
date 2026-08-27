@@ -355,14 +355,13 @@ later install-date moves shift as normal.
 
 **2. Coordinator gains sales-level job access (Nic's explicit role
 confirmation).** Coordinators can create jobs and push to schedule, and get
-the sales action bars on pending jobs (Save / Push to Schedule / Duplicate —
-Delete stays scheduler-only, Nic 2026-08-27), while keeping their existing
-scheduler-level powers on scheduled jobs. On the New Job form the
-Person-in-Charge dropdown defaults to the creator and stays changeable
-(coordinators explicitly may hand PIC to a salesperson). Nav: coordinators
-gain the Pending tab. RLS: jobs INSERT + pending→scheduled transition extended
-to coordinator; files SELECT + INSERT extended to coordinator (sales parity —
-closes the empty-Files-tab gap).
+the sales action bars on pending jobs (Save / Push to Schedule / Delete /
+Duplicate — coordinator mirrors sales fully incl. single + bulk delete; Nic final 2026-08-27), while keeping their existing scheduler-level powers on scheduled
+jobs. On the New Job form the Person-in-Charge dropdown defaults to the
+creator and stays changeable (coordinators explicitly may hand PIC to a
+salesperson). Nav: coordinators gain the Pending tab. RLS: jobs INSERT +
+pending→scheduled transition extended to coordinator; files SELECT + INSERT
+extended to coordinator (sales parity — closes the empty-Files-tab gap).
 
 **3. "Created by" on the job.** New `jobs.created_by` (plain uuid, no FK —
 the 0035 lesson), stamped at creation by a BEFORE INSERT trigger reading the
