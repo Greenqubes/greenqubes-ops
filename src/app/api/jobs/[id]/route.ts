@@ -34,8 +34,7 @@ export async function DELETE(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  // Addendum §2: coordinator gains sales-level delete on pending jobs.
-  if (!['sales', 'scheduler', 'coordinator'].includes(effectiveRole)) {
+  if (!['sales', 'scheduler'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -47,7 +46,7 @@ export async function DELETE(
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if ((effectiveRole === 'sales' || effectiveRole === 'coordinator') && job.status !== 'pending') {
+  if (effectiveRole === 'sales' && job.status !== 'pending') {
     return NextResponse.json({ error: 'Only pending jobs can be deleted' }, { status: 409 })
   }
 
