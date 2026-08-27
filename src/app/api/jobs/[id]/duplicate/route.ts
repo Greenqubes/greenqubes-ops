@@ -77,6 +77,7 @@ export async function POST(
       // defaults (null / false) — never copied. Designers (job_designers)
       // are never copied either; nothing here touches that table.
       sales_poc_id:            profile.id,
+      created_by:              profile.id,
       visibility:              ['role:sales', 'role:scheduler'],
     } as never)
     .select('id, r2_folder')

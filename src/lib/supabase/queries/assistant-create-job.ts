@@ -35,6 +35,7 @@ export async function createPendingJobFromChat(
     .insert({
       status:                  'pending',
       sales_poc_id:            userId,
+      created_by:              userId,
       project_title:           input.project_title,
       date:                    input.date,
       date_end:                input.date_end,

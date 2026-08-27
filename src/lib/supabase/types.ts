@@ -54,6 +54,7 @@ export interface Database {
           client_poc_name:         string | null
           client_poc_phone:        string | null
           sales_poc_id:            string | null
+          created_by:              string | null
           production_ready:        boolean
           do_issued:               boolean
           punctuality:             Punctuality
@@ -83,11 +84,12 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
+          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
         > & {
           id?:                     string
           created_at?:             string
           updated_at?:             string
+          created_by?:             string | null
           scheduled_at?:           string | null
           project_title?:          string | null
           date_end?:               string | null
