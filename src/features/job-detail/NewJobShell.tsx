@@ -12,6 +12,7 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
+import { DesignerGrid } from './DesignerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
@@ -373,15 +374,6 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                   onChange={setSelectedCoordIds}
                 />
               </Field>
-              <Field label={t(lang, 'designersLabel')}>
-                <MultiUserSelect
-                  options={designerOptions}
-                  value={selectedDesignerIds}
-                  onChange={setSelectedDesignerIds}
-                  disabled={!canEditDesigners}
-                  placeholder={t(lang, 'designersAddPlaceholder')}
-                />
-              </Field>
               <Field label="Notes">
                 <SuggestField
                   value={watch('notes')}
@@ -399,7 +391,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
             {/* Installers — same sub-section framing as the edit page */}
             <div className="border-t border-line px-4 pt-3 pb-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-3">Installers</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Installers</p>
               {allInstallers.length === 0 ? (
                 <p className="text-sm text-muted">No installers found.</p>
               ) : (
@@ -410,6 +402,26 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                   )}
                   noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
+                />
+              )}
+            </div>
+
+            {/* Designers — card presentation matching the installer grid
+                above (edit 3, smoke feedback 2026-08-27). Same data/save
+                wiring: selectedDesignerIds is POSTed to designers-assign
+                after job creation (see saveJob below). Read-only for
+                anyone who can't edit designers (designer/production). */}
+            <div className="border-t border-line px-4 pt-3 pb-4">
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">{t(lang, 'designersLabel')}</p>
+              {designerOptions.length === 0 ? (
+                <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
+              ) : (
+                <DesignerGrid
+                  designers={designerOptions}
+                  selectedIds={selectedDesignerIds}
+                  onToggle={canEditDesigners ? id => setSelectedDesignerIds(prev =>
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+                  ) : undefined}
                 />
               )}
             </div>

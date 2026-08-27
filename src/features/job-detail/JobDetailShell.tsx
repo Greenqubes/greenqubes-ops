@@ -22,6 +22,7 @@ import { CollapseCard } from './CollapseCard'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
+import { DesignerGrid } from './DesignerGrid'
 import { SubInstallerBucket } from './SubInstallerBucket'
 import { TaskListSection } from './TaskListSection'
 import { ExternalPOCBucket } from './ExternalPOCBucket'
@@ -1204,17 +1205,6 @@ export function JobDetailShell({
               />
             </Field>
 
-            {/* Designers */}
-            <Field label={t(lang, 'designersLabel')}>
-              <MultiUserSelect
-                options={designerOptions}
-                value={selectedDesignerIds}
-                onChange={setSelectedDesignerIds}
-                disabled={readOnly || !canEditCore}
-                placeholder={t(lang, 'designersAddPlaceholder')}
-              />
-            </Field>
-
             {/* Notes */}
             <Field label={t(lang, 'notes')}>
               {isInstaller ? (
@@ -1242,7 +1232,7 @@ export function JobDetailShell({
 
           {/* Installers sub-section */}
           <div className="border-t border-line px-4 pt-3 pb-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-3">Installers</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Installers</p>
             {isInstaller ? (
               /* installer sees only the confirmed (formal) assignees, read-only */
               <InstallerGrid
@@ -1256,6 +1246,26 @@ export function JobDetailShell({
                 onToggle={installerOnToggle}
                 disabledOf={installerDisabledOf}
                 noteOf={installerNoteOf}
+              />
+            )}
+          </div>
+
+          {/* Designers sub-section — card presentation matching the installer
+              grid above (edit 3, smoke feedback 2026-08-27). Same data/save
+              wiring as before: selectedDesignerIds, POSTed on save, attached
+              post-create. Read-only (no onToggle) for anyone who can't edit
+              core fields — designer/production/installer. */}
+          <div className="border-t border-line px-4 pt-3 pb-4">
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">{t(lang, 'designersLabel')}</p>
+            {designerOptions.length === 0 ? (
+              <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
+            ) : (
+              <DesignerGrid
+                designers={designerOptions}
+                selectedIds={selectedDesignerIds}
+                onToggle={(readOnly || !canEditCore) ? undefined : id => setSelectedDesignerIds(prev =>
+                  prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+                )}
               />
             )}
           </div>
