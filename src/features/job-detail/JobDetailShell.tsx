@@ -30,6 +30,7 @@ import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
+import { daysBetween, addDaysISO, todaySGT } from '@/lib/utils/design-urgency'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage, AttachmentBucket } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -140,6 +141,10 @@ export function JobDetailShell({
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
   const pendingValuesRef = useRef<FormValues | null>(null)
+  // Due-date-conflict decision made BEFORE the installer clash check (below)
+  // ran — carried alongside pendingValuesRef so resumeSaveAfterClash can
+  // still apply it once the clash is resolved (Task 14 addendum §1).
+  const pendingKeepManualDueRef = useRef(false)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
@@ -191,10 +196,63 @@ export function JobDetailShell({
   const [showDesignReopenModal,   setShowDesignReopenModal]   = useState(false)
   const [designReopening,         setDesignReopening]         = useState(false)
 
-  const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
+  // Same-save due-date conflict (Task 14 addendum §1). dueEditedThisSession
+  // tracks whether the user typed a due date THIS session — vs it merely
+  // being loaded from the DB, which must never trigger the prompt. A ref
+  // (not state) because it drives a plain condition check, not a render.
+  // Reset inside saveDesignBriefFields on a successful save — the single
+  // choke point both performSave and handlePushToSchedule funnel through —
+  // so the decision is "consumed" for both paths without duplicating the
+  // reset.
+  const dueEditedThisSessionRef = useRef(false)
+  const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true); dueEditedThisSessionRef.current = true }
   const handleBriefText = (v: string) => {
     setBriefText(v)
     if (briefError && v.trim().length > 0) setBriefError(false)
+  }
+
+  // Static-English date display for the conflict modal — never
+  // toLocaleDateString (the /schedule hydration saga; CLAUDE.md hard rule
+  // on date labels always being English). Mirrors DesignerBar's fmtDate /
+  // NotificationDrawer's fmtOverdueDate.
+  const DUE_CONFLICT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const fmtConflictDate = (iso: string): string => {
+    const [y, m, d] = iso.split('-')
+    return `${+d} ${DUE_CONFLICT_MONTHS[+m - 1]} ${y}`
+  }
+
+  // Resolves the keepManualDue flag a save should use. Resolves immediately
+  // with false (no modal) unless the trigger condition holds: a due date
+  // typed this session AND this save also changes the install date. Keep →
+  // true (server skips the auto-shift and keeps the typed date); decline or
+  // dismiss (backdrop/X) → false, the safe default — automatic shift wins.
+  const [dueConflictPrompt, setDueConflictPrompt] = useState<{ typed: string; shifted: string } | null>(null)
+  const dueConflictResolveRef = useRef<((keep: boolean) => void) | null>(null)
+  const resolveDueConflict = (newDate: string): Promise<boolean> => {
+    if (!dueEditedThisSessionRef.current || dueDate == null || newDate === job.date || dueDateBaseline == null) {
+      return Promise.resolve(false)
+    }
+    // Base the preview on dueDateBaseline (mirrors the DB's current
+    // design_due_date), NOT the just-typed `dueDate` — on decline, the
+    // route's shift block (byte-identical, above) computes from its own
+    // fresh `job.design_due_date` read and overwrites whatever due date the
+    // body carried, so shifting from `dueDate` here would preview a number
+    // the server would never actually produce. When there's no baseline
+    // due date at all, the route's shift block never runs either way
+    // (`if (job.design_due_date && ...)`), so keep vs. shift are the same
+    // save — the guard above skips the prompt rather than show a false choice.
+    const shiftedRaw = addDaysISO(dueDateBaseline, daysBetween(job.date, newDate))
+    const today      = todaySGT()
+    const shifted    = shiftedRaw < today ? today : shiftedRaw
+    return new Promise<boolean>(resolve => {
+      dueConflictResolveRef.current = resolve
+      setDueConflictPrompt({ typed: dueDate, shifted })
+    })
+  }
+  const settleDueConflict = (keep: boolean) => {
+    dueConflictResolveRef.current?.(keep)
+    dueConflictResolveRef.current = null
+    setDueConflictPrompt(null)
   }
 
   // Own writes echo back as realtime events; a short window swallows them so
@@ -290,7 +348,10 @@ export function JobDetailShell({
   // from whatever we sent, and skipping this would (a) leave the shift
   // invisible in the UI until the next full reload and (b) let a second save
   // PATCH the stale pre-shift date straight back over the server's shift.
-  const saveDesignBriefFields = async (newDate: string): Promise<void> => {
+  const saveDesignBriefFields = async (
+    newDate: string,
+    opts: { keepManualDue?: boolean } = {},
+  ): Promise<void> => {
     const designRes = await fetch(`/api/jobs/${job.id}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -299,20 +360,24 @@ export function JobDetailShell({
         design_due_date:   dueDate,
         design_due_manual: dueManual,
         ...(newDate !== job.date ? { date: newDate } : {}),
+        ...(opts.keepManualDue ? { keepManualDue: true } : {}),
       }),
     })
     if (!designRes.ok) throw new Error()
     const { design_due_date } = await designRes.json() as { ok: boolean; design_due_date: string | null }
     setDueDate(design_due_date)
     setDueDateBaseline(design_due_date)
+    // The due-conflict decision (if any) is consumed on a successful save —
+    // a later save with no further due-date edits must not re-prompt.
+    dueEditedThisSessionRef.current = false
   }
 
-  const performSave = async (values: FormValues) => {
+  const performSave = async (values: FormValues, keepManualDue = false) => {
     bumpSuppression()
     setSaving(true)
     try {
       if (isBriefDirty || values.date !== job.date) {
-        await saveDesignBriefFields(values.date)
+        await saveDesignBriefFields(values.date, { keepManualDue })
       }
 
       const [, addedCoordinatorIds] = await Promise.all([
@@ -394,6 +459,13 @@ export function JobDetailShell({
       return
     }
 
+    // Same-save due-date conflict (Task 14 addendum §1) — detected before
+    // ANY save path runs (including the installer clash check below), so
+    // whichever branch eventually calls performSave already has the
+    // decision. Resolves instantly with false when the trigger condition
+    // isn't met — no modal, no behaviour change.
+    const keepManualDue = await resolveDueConflict(values.date)
+
     const timeChanged =
       values.date        !== (job.date ?? '') ||
       values.time_start  !== (job.time_start?.slice(0, 5) ?? '') ||
@@ -422,6 +494,7 @@ export function JobDetailShell({
           const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
           if (data.hasClash) {
             pendingValuesRef.current = values
+            pendingKeepManualDueRef.current = keepManualDue
             setEditClashes(data.clashes)
             setSaving(false)
             return
@@ -434,14 +507,16 @@ export function JobDetailShell({
       setSaving(false)
     }
 
-    await performSave(values)
+    await performSave(values, keepManualDue)
   }
 
   const resumeSaveAfterClash = async (alertSchedulers: boolean) => {
-    const values = pendingValuesRef.current
+    const values         = pendingValuesRef.current
+    const keepManualDue  = pendingKeepManualDueRef.current
     const names  = [...new Set((editClashes ?? []).map(c => c.installerName).filter(Boolean))]
     setEditClashes(null)
     pendingValuesRef.current = null
+    pendingKeepManualDueRef.current = false
     if (!values) return
     if (alertSchedulers) {
       // Best-effort — the save must not fail because a Telegram send did.
@@ -451,7 +526,7 @@ export function JobDetailShell({
         body:    JSON.stringify({ clashNames: names }),
       }).catch(() => {})
     }
-    await performSave(values)
+    await performSave(values, keepManualDue)
   }
 
   const handleStatusChange = async (newStatus: JobStatus, newDate?: string) => {
@@ -608,6 +683,11 @@ export function JobDetailShell({
   }
 
   const handlePushToSchedule = async () => {
+    // Same due-date-conflict detection as onSubmit, before touching saving
+    // state — this path shares saveDesignBriefFields (Task 14 addendum §1).
+    const pushDate       = getValues().date
+    const keepManualDue  = await resolveDueConflict(pushDate)
+
     bumpSuppression()
     setSaving(true)
     try {
@@ -615,8 +695,7 @@ export function JobDetailShell({
       // path also writes `date` (below, via saveValues) and previously
       // skipped both entirely (react-hook-form's isDirty knows nothing about
       // briefText/dueDate/dueManual, which live outside the form).
-      const pushDate = getValues().date
-      if (isBriefDirty || pushDate !== job.date) await saveDesignBriefFields(pushDate)
+      if (isBriefDirty || pushDate !== job.date) await saveDesignBriefFields(pushDate, { keepManualDue })
       if (isDirty) await saveValues(getValues())
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
@@ -1475,7 +1554,29 @@ export function JobDetailShell({
         </div>
       </Modal>
 
-
+      {/* Same-save due-date conflict (Task 14 addendum §1). Dismiss (X /
+          backdrop) resolves via Modal's onClose — routed to "use shifted",
+          the safe default per Nic ("if no, automatic wins"). */}
+      <Modal isOpen={!!dueConflictPrompt} onClose={() => settleDueConflict(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'dueConflictTitle')}
+          </h2>
+          <p className="text-sm text-muted">
+            {dueConflictPrompt && t(lang, 'dueConflictBody')
+              .replace('{typed}', fmtConflictDate(dueConflictPrompt.typed))
+              .replace('{shifted}', fmtConflictDate(dueConflictPrompt.shifted))}
+          </p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => settleDueConflict(false)}>
+              {t(lang, 'dueConflictShift')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={() => settleDueConflict(true)}>
+              {t(lang, 'dueConflictKeep')}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
 
     </div>
   )

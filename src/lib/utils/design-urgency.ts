@@ -19,6 +19,14 @@ export function addDaysISO(iso: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+// Same "today" clamp the PATCH route's auto-shift uses server-side (SGT,
+// UTC+8) — kept as its own copy here (not imported by the route) so this
+// file stays pure/client-safe. Used to preview the clamped shifted date in
+// the client-side same-save due-date conflict prompt (Task 14 addendum §1).
+export function todaySGT(): string {
+  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+}
+
 export function computeUrgency(input: {
   complexity:   number | null
   daysToDue:    number | null

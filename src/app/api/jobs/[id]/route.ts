@@ -88,6 +88,7 @@ export async function PATCH(
     design_due_date?:    string | null
     design_due_manual?:  boolean
     rescore?:            boolean
+    keepManualDue?:      boolean
   }
 
   // Lightweight rescore-only request (Task 7): fired by DesignBriefSection
@@ -162,7 +163,15 @@ export async function PATCH(
     // of design_due_manual. Clamped at today (SGT) — never shifted into the
     // past. The AI itself never re-proposes over a manual date; this is a
     // separate, purely mechanical move.
-    if (job.design_due_date) {
+    //
+    // Addendum §1 (Nic, 2026-08-27): when this save also carries a due date
+    // the user typed THIS session, the client asks first and — on "keep" —
+    // sends keepManualDue: true alongside its own design_due_date. Skip the
+    // shift entirely then: the body's due date already lands via the
+    // whitelist above, and `notify` staying null (no shift happened) also
+    // correctly skips the designer-notification block below.
+    const skipShiftForManualKeep = body.keepManualDue === true && 'design_due_date' in body
+    if (job.design_due_date && !skipShiftForManualKeep) {
       const delta   = daysBetween(job.date, body.date)
       const shifted = addDaysISO(job.design_due_date, delta)
       const today    = todaySGT()

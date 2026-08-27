@@ -43,6 +43,12 @@ export const en = {
   designDueAiSuggested: 'AI suggested',
   whiteboardSoon: 'Whiteboard — coming soon',
 
+  // ── Same-save due-date conflict (Task 14 addendum §1) ─────────────────────
+  dueConflictTitle: 'Install date moved',
+  dueConflictBody: 'Keep your typed due date ({typed}), or let it shift to {shifted}?',
+  dueConflictKeep: 'Keep my date',
+  dueConflictShift: 'Use shifted date',
+
   // ── Design completed flow (Task 8) ────────────────────────────────────────
   designCompletedBtn: 'Design completed',
   designCompletedNeedsJo: 'Upload the Job Order PDF first',
