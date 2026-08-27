@@ -420,7 +420,7 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
               disabled={saving || !dirty}
               className="flex-1 px-4 py-2.5 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40"
             >
-              {saving ? t(lang, 'loading') : canEdit ? t(lang, 'fcfsSaveNotify') : 'Save suggestions'}
+              {saving ? t(lang, 'loading') : canEdit ? t(lang, 'fcfsSaveNotify') : t(lang, 'fcfsSaveSuggestions')}
             </button>
           </div>
         )}

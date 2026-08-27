@@ -460,8 +460,12 @@ export function JobDetailShell({
 
   // Editing an already-scheduled job used to run NO clash check — moving its
   // time or installer onto another booking saved silently (deferred from
-  // Phase 1). Now scheduler/coordinator/admin saves are checked first;
-  // coordinators can alert the schedulers, schedulers can save anyway.
+  // Phase 1). Scheduler saves are checked for both an installer change and a
+  // time change; coordinator (edit 8: suggest-only, can no longer touch the
+  // formal installer list) is still checked when THEY move the job's time —
+  // that can double-book the already-assigned installers regardless of who
+  // assigned them. Coordinator can alert the schedulers via the modal;
+  // scheduler can save anyway.
   const onSubmit = async (values: FormValues) => {
     // Smoke feedback edit 1 (Nic, 2026-08-27): scheduler bypasses the brief-
     // required rule entirely — the habit nudge is aimed at sales/coordinator,
@@ -498,17 +502,22 @@ export function JobDetailShell({
       values.time_end    !== (job.time_end?.slice(0, 5) ?? '') ||
       values.punctuality !== job.punctuality
 
-    // canAssign is scheduler-only since edit 8 — this pre-flight (and the
-    // EditClashModal it can open) is now scheduler-only too, since a
-    // coordinator's save can no longer touch the formal installer list
-    // (isInstallerDirty is always false for them) or trigger the
-    // assign-installers route this check calls (also scheduler/admin-gated
-    // now). Their EditClashModal branch ("Alert Scheduler & Save" /
-    // "Re-assign") is effectively unreachable from here as a result — see
-    // the same note on AssignmentPanel's handleSave (FCFS board).
+    // canAssign is scheduler-only since edit 8, so the installer-dirty half
+    // of this check is scheduler-only too (a coordinator's save can never
+    // dirty the formal installer list — their grid interactions write
+    // suggestions instead). But the TIME-change half is NOT assignment-
+    // gated: coordinator can still edit date/time on a scheduled job
+    // (canEditCore), and moving the time can double-book installers who are
+    // already formally assigned, regardless of who assigned them or who's
+    // saving now. So coordinator still gets the checkOnly pre-flight (and
+    // EditClashModal's "Alert Scheduler & Save" / "Re-assign" branch is
+    // reachable for them again) on a time change; assign-installers' route
+    // gate keeps the checkOnly branch readable for coordinator while the
+    // write branch (below, in performSave) stays scheduler/admin-only —
+    // see that route for the exact ordering.
     const needsCheck =
-      status === 'scheduled' && canAssign && selectedInstallerIds.length > 0 &&
-      (isInstallerDirty || timeChanged)
+      status === 'scheduled' && selectedInstallerIds.length > 0 &&
+      ((canAssign && isInstallerDirty) || ((canAssign || isCoordinator) && timeChanged))
 
     if (needsCheck) {
       setSaving(true)

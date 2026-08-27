@@ -244,6 +244,7 @@ export const zh: Partial<Translations> = {
   fcfsHasClash: '当天有冲突',
   fcfsNoInstallers: '此工作尚无安装人员',
   fcfsSaveNotify: '保存并通知',
+  fcfsSaveSuggestions: '保存推荐',
   fcfsClashDrawerTitle: '冲突列表',
   fcfsNoClashes: '没有未解决的冲突',
   fcfsHardClashTitle: '严重冲突 — 必须解决',

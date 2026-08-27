@@ -361,6 +361,7 @@ export const en = {
   fcfsHasClash: 'Has clash today',
   fcfsNoInstallers: 'No installers on this job yet',
   fcfsSaveNotify: 'Save & Notify',
+  fcfsSaveSuggestions: 'Save suggestions',
   fcfsClashDrawerTitle: 'Clashes',
   fcfsNoClashes: 'No unresolved clashes',
   fcfsHardClashTitle: 'Hard clash — must resolve',
