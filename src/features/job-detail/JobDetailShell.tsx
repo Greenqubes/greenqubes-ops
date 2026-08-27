@@ -1466,7 +1466,7 @@ export function JobDetailShell({
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); pendingValuesRef.current = null }}
+        onClose={() => { setEditClashes(null); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
       />
       {clashData && (
         <ClashResolutionModal

@@ -35,10 +35,6 @@ export async function DELETE(
 
   const effectiveRole = await getEffectiveRole(profile.role)
   // Addendum §2: coordinator gains sales-level delete on pending jobs.
-  // NOTE: sales' delete likely silently no-ops today — no jobs DELETE RLS
-  // policy for sales, so the delete below returns ok with zero rows
-  // affected rather than an error. Coordinator inherits that same
-  // pre-existing gap by parity; not fixed here (RLS-level, out of scope).
   if (!['sales', 'scheduler', 'coordinator'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -55,7 +51,25 @@ export async function DELETE(
     return NextResponse.json({ error: 'Only pending jobs can be deleted' }, { status: 409 })
   }
 
-  await supabase.from('jobs').delete().eq('id', jobId).throwOnError()
+  // Authorization is enforced entirely by the role + pending-only gates above:
+  // the only jobs DELETE RLS policy (0019) covers scheduler/admin, so sales
+  // and coordinator have no row-level policy to rely on. Deleting via the
+  // session client would silently filter to 0 rows for them and still report
+  // success, so the delete runs on the service client instead, and the
+  // result is checked to confirm a row was actually removed.
+  const svc = createServiceClient()
+  const { data: deletedRows, error: deleteError } = await svc
+    .from('jobs')
+    .delete()
+    .eq('id', jobId)
+    .select('id')
+
+  if (deleteError) {
+    return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
+  }
+  if (!deletedRows || deletedRows.length === 0) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   return NextResponse.json({ ok: true })
 }
