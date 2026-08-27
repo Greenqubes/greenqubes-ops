@@ -97,6 +97,9 @@ interface Props {
   coordinatorOptions?:    Array<{ id: string; label: string }>
   initialDesignerIds?:    string[]
   designerOptions?:       Array<{ id: string; label: string }>
+  // Addendum §3 — creator's display name, fetched by the page via a
+  // follow-up users query. Null for every pre-existing job.
+  createdByName?:         string | null
   backHref?:              string
   initialTab?:            'chat'
 }
@@ -104,7 +107,8 @@ interface Props {
 export function JobDetailShell({
   job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
-  initialDesignerIds = [], designerOptions = [], backHref = '/schedule', initialTab,
+  initialDesignerIds = [], designerOptions = [], createdByName = null,
+  backHref = '/schedule', initialTab,
 }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router   = useRouter()
@@ -1046,6 +1050,9 @@ export function JobDetailShell({
         details={
           <div className="flex flex-col gap-4">
             <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+              {createdByName && (
+                <p className="text-xs text-muted mb-3">{t(lang, 'createdByLabel')} {createdByName}</p>
+              )}
               <CoreSection
                 bare
                 register={register}

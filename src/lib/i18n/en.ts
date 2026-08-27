@@ -28,6 +28,7 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
+  createdByLabel: 'Created by',
   tabDetails: 'Details',
   tabTeam: 'Team',
   designersLabel: 'Designers',

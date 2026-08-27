@@ -14,6 +14,7 @@ export const zh: Partial<Translations> = {
   stripShowMonth: '显示整月',
   stripShowWeek: '显示单周',
   tabDetails: '详情',
+  createdByLabel: '创建者',
   tabTeam: '团队',
   designersLabel: '设计师',
   designersAddPlaceholder: '+ 添加设计师',

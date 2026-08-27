@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getJobById, getInstallerUsers, getJobMessages } from '@/lib/supabase/queries/jobs'
+import { getJobById, getInstallerUsers, getJobMessages, getCreatorName } from '@/lib/supabase/queries/jobs'
 import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getJobDesigners, getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
@@ -45,6 +45,10 @@ export default async function JobDetailPage({
 
   if (!job) notFound()
 
+  // "Created by" line (Addendum §3) — follow-up query by job.created_by,
+  // never an embed. Null for every pre-existing job.
+  const createdByName = await getCreatorName(job.created_by)
+
   // Person-in-Charge and Sub POC/Coordinators both offer every office role
   // (Nic, 2026-07-22). The old sales-only filter here hid newly provisioned
   // schedulers/coordinators/designers/production from Person-in-Charge.
@@ -64,6 +68,7 @@ export default async function JobDetailPage({
       coordinatorOptions={officeUsers}
       initialDesignerIds={designers.map(d => d.id)}
       designerOptions={designerUsers.map(u => ({ id: u.id, label: u.name }))}
+      createdByName={createdByName}
       backHref={backHref}
       initialTab={sp.tab === 'chat' ? 'chat' : undefined}
     />
