@@ -49,7 +49,14 @@ const BUBBLE_WIDTH = 224   // px — must match the `w-56` className below
 const GAP = 0
 const EDGE_MARGIN = 8       // px — never render flush against a viewport edge
 const HEADER_SAFE_TOP = 56  // px — taller than CompanyBar's own ~44px sticky height
-const BOTTOM_SAFE = 88      // px — taller than BottomNav's ~64-80px (incl. safe-area)
+// BottomNav only renders at lg and up since R2-T5 / F1 (a nav drawer
+// replaces it below lg) — must match the `lg:hidden`/`hidden lg:block` split
+// used everywhere else for that swap (Tailwind's default `lg` = 1024px,
+// unmodified in tailwind.config.ts) so this clamp keeps agreeing with what's
+// actually fixed to the screen at the viewport width it's computed for.
+const LG_BREAKPOINT = 1024
+const BOTTOM_SAFE_DESKTOP = 88 // px — taller than BottomNav's ~64-80px (incl. safe-area), still fixed at ≥lg
+const BOTTOM_SAFE_MOBILE = 24  // px — below lg there's no fixed BottomNav any more, just a comfortable edge margin
 const MIN_BUBBLE_HEIGHT = 160 // px — floor so the top-clamp still leaves room to read it
 const MIN_VISIBLE_HEIGHT = 80 // px — hard floor even on a very short viewport (overflow-y:auto covers the rest)
 
@@ -58,6 +65,7 @@ export type BubblePos = { left: number; top: number; maxHeight: number }
 // Pure + exported so the clamping guarantee is easy to verify by reading (or
 // unit-testing) in isolation from React/DOM timing.
 export function computeBubblePosition(anchor: DOMRect, viewportW: number, viewportH: number): BubblePos {
+  const BOTTOM_SAFE = viewportW < LG_BREAKPOINT ? BOTTOM_SAFE_MOBILE : BOTTOM_SAFE_DESKTOP
   const fitsRight = anchor.right + GAP + BUBBLE_WIDTH + EDGE_MARGIN <= viewportW
   let left = fitsRight ? anchor.right + GAP : anchor.left - GAP - BUBBLE_WIDTH
   // Hard clamp regardless of which branch fired above — guarantees the
