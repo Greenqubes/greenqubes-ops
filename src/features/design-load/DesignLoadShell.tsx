@@ -148,7 +148,34 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
           <p className="text-center text-sm text-muted py-12">{t(lang, 'noDesigners')}</p>
         ) : (
           <>
-            <div className="flex items-end gap-4 overflow-x-auto px-4 pt-6 pb-4">
+            {/* Legend — moved above the board now that the board itself is a
+                tall, bottom-anchored "skyline" area; a legend pinned below a
+                min-height area that's mostly empty air (few/short bars) would
+                float disconnected from the header instead of reading as a key
+                for what's below it. */}
+            <div className="flex items-center gap-3 flex-wrap px-4 py-2.5 border-b border-line">
+              {([0, 1, 2, 3, 4, 5] as const).map(level => (
+                <span key={level} className="flex items-center gap-1.5 text-[11px] text-ink2">
+                  <span className={cn('inline-block w-4 h-3.5 rounded-[3px]', URGENCY_META[level].barClass)} />
+                  {t(lang, `urgency${level}`)}
+                </span>
+              ))}
+            </div>
+
+            {/* Board area — stable min-height (viewport minus the sticky
+                CompanyBar ~44px, this page's title/tab header ~56-90px, the
+                legend ~48px, this row's own py-6/py-4 padding, and the fixed
+                BottomNav ~64-80px incl. safe-area — ~300px of chrome total,
+                floored at 260px so short viewports never collapse the board
+                to nothing) so the bars read as a real skyline growing off a
+                stable baseline rather than a box that hugs its own content.
+                Columns are an even flex row (no horizontal scroll — squeeze
+                narrower as designers are added) bottom-aligned via
+                items-end, which — combined with each DesignerBar column
+                ending in its (fixed-height) name label — is what pins every
+                column's baseline to the same line while the bars above it
+                grow upward by however tall their stacked segments are. */}
+            <div className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-300px))]">
               {data.designers.map(designer => (
                 <DesignerBar
                   key={designer.id}
@@ -156,16 +183,6 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
                   segments={segmentsByDesigner.get(designer.id) ?? []}
                   lang={lang}
                 />
-              ))}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-3 flex-wrap px-4 py-2 border-t border-line mt-2">
-              {([0, 1, 2, 3, 4, 5] as const).map(level => (
-                <span key={level} className="flex items-center gap-1.5 text-[11px] text-ink2">
-                  <span className={cn('inline-block w-4 h-3.5 rounded-[3px]', URGENCY_META[level].barClass)} />
-                  {t(lang, `urgency${level}`)}
-                </span>
               ))}
             </div>
           </>

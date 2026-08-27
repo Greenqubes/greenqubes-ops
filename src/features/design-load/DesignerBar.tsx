@@ -24,6 +24,52 @@ export function fmtDate(iso: string | null): string {
 
 export type Segment = { job: DesignLoadJob; level: UrgencyLevel; height: number }
 
+// --- Bubble geometry -------------------------------------------------------
+// The bubble is `position: fixed` (viewport coordinates), computed from the
+// hovered/tapped segment button's own getBoundingClientRect() — a *measured*
+// placement, not an index/designer-count heuristic — so it's correct
+// regardless of how narrow the columns get. `position: fixed` also means no
+// ancestor's `overflow` can ever clip it (fixed escapes the normal
+// containing-block/clipping chain up to the viewport unless an ancestor sets
+// a transform/filter/will-change, none of which the board's containers do),
+// which is what actually guarantees the old "clipped by the sticky header"
+// bug can't recur — not just z-index winning a paint order race.
+const BUBBLE_WIDTH = 224   // px — must match the `w-56` className below
+const GAP = 8               // px — space between the bar/segment and the bubble
+const EDGE_MARGIN = 8       // px — never render flush against a viewport edge
+const HEADER_SAFE_TOP = 56  // px — taller than CompanyBar's own ~44px sticky height
+const BOTTOM_SAFE = 88      // px — taller than BottomNav's ~64-80px (incl. safe-area)
+const MIN_BUBBLE_HEIGHT = 160 // px — floor so the top-clamp still leaves room to read it
+const MIN_VISIBLE_HEIGHT = 80 // px — hard floor even on a very short viewport (overflow-y:auto covers the rest)
+
+export type BubblePos = { left: number; top: number; maxHeight: number }
+
+// Pure + exported so the clamping guarantee is easy to verify by reading (or
+// unit-testing) in isolation from React/DOM timing.
+export function computeBubblePosition(anchor: DOMRect, viewportW: number, viewportH: number): BubblePos {
+  const fitsRight = anchor.right + GAP + BUBBLE_WIDTH + EDGE_MARGIN <= viewportW
+  let left = fitsRight ? anchor.right + GAP : anchor.left - GAP - BUBBLE_WIDTH
+  // Hard clamp regardless of which branch fired above — guarantees the
+  // bubble can never overflow either horizontal edge even if the fitsRight
+  // guess and the actual rendered width disagree (e.g. a viewport narrower
+  // than BUBBLE_WIDTH + 2*EDGE_MARGIN).
+  left = Math.max(EDGE_MARGIN, Math.min(left, viewportW - BUBBLE_WIDTH - EDGE_MARGIN))
+
+  // top is clamped into [HEADER_SAFE_TOP, hi] where hi is never below
+  // HEADER_SAFE_TOP (Math.max floor) — so top >= HEADER_SAFE_TOP always
+  // holds, by construction, which is the guarantee against ever rendering
+  // above/under the sticky header again.
+  const hi = Math.max(HEADER_SAFE_TOP, viewportH - BOTTOM_SAFE - MIN_BUBBLE_HEIGHT)
+  const top = Math.min(Math.max(anchor.top, HEADER_SAFE_TOP), hi)
+
+  // maxHeight caps whatever the browser renders so top + maxHeight never
+  // pushes past the bottom-safe line either — with a hard visible floor for
+  // the degenerate short-viewport case (content overflow-y:auto beyond it).
+  const maxHeight = Math.max(MIN_VISIBLE_HEIGHT, viewportH - BOTTOM_SAFE - top)
+
+  return { left, top, maxHeight }
+}
+
 // Shared content layout for both the board bubble and the My Jobs row cards
 // (spec: "row card reuses the bubble's content layout"). `job` accepts the
 // wider MyDesignJob shape too — structural typing, no cast needed.
@@ -72,24 +118,35 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
   // closing the bubble it just opened. Only rendering the backdrop for
   // tap-opened bubbles keeps hover-close and tap-away-close from fighting.
   const [openViaTap, setOpenViaTap] = useState(false)
+  // Computed fresh at open time from the triggering segment button's own
+  // getBoundingClientRect() — see computeBubblePosition above for the
+  // clamping guarantee. null whenever no bubble is open.
+  const [bubblePos, setBubblePos] = useState<BubblePos | null>(null)
 
   const openSegment = segments.find(s => s.job.jobId === openJobId) ?? null
 
   const closeBubble = () => {
     setOpenJobId(null)
     setOpenViaTap(false)
+    setBubblePos(null)
   }
+
+  const positionFor = (e: React.MouseEvent<HTMLButtonElement>) =>
+    computeBubblePosition(e.currentTarget.getBoundingClientRect(), window.innerWidth, window.innerHeight)
 
   // First tap opens the bubble; a second tap on the same segment (or a
   // desktop click, which lands after hover already opened it) navigates.
-  const handleSegmentClick = (jobId: string) => {
-    if (openJobId === jobId) router.push(`/jobs/${jobId}`)
-    else { setOpenJobId(jobId); setOpenViaTap(true) }
+  const handleSegmentClick = (jobId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (openJobId === jobId) { router.push(`/jobs/${jobId}`); return }
+    setOpenJobId(jobId)
+    setOpenViaTap(true)
+    setBubblePos(positionFor(e))
   }
 
-  const handleSegmentHover = (jobId: string) => {
+  const handleSegmentHover = (jobId: string, e: React.MouseEvent<HTMLButtonElement>) => {
     setOpenJobId(jobId)
     setOpenViaTap(false)
+    setBubblePos(positionFor(e))
   }
 
   // A live refetch can drop the currently-open job out of `segments`
@@ -101,6 +158,7 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
     if (openJobId && !segments.some(s => s.job.jobId === openJobId)) {
       setOpenJobId(null)
       setOpenViaTap(false)
+      setBubblePos(null)
     }
   }, [segments, openJobId])
 
@@ -125,19 +183,27 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
       )}
 
       <div
-        className="relative flex flex-col items-center shrink-0 w-14"
+        // flex-1 + min-w-0: columns share the board's full width evenly and
+        // squeeze as more designers are added (no horizontal scroll). No
+        // longer `relative` — the bubble below is `position: fixed` (viewport
+        // coordinates), not anchored to this column.
+        className="flex flex-col items-center flex-1 min-w-0"
         onMouseLeave={closeBubble}
       >
         {segments.length === 0 ? (
-          <div className="w-8 h-8 rounded border border-dashed border-line bg-muted/10" />
+          <div className="w-full max-w-8 aspect-square rounded border border-dashed border-line bg-muted/10" />
         ) : (
-          <div className="flex flex-col-reverse gap-0.5 w-8">
+          // w-full (capped at 32px) instead of a fixed w-8: on a wide column
+          // the bar sits at its normal ~32px cap; on a narrow column (many
+          // designers / phone) it shrinks with the column. Segment HEIGHTS
+          // (inline style below) never change — only this width does.
+          <div className="flex flex-col-reverse gap-0.5 w-full max-w-8">
             {stacked.map(seg => (
               <button
                 key={seg.job.jobId}
                 type="button"
-                onMouseEnter={() => handleSegmentHover(seg.job.jobId)}
-                onClick={() => handleSegmentClick(seg.job.jobId)}
+                onMouseEnter={e => handleSegmentHover(seg.job.jobId, e)}
+                onClick={e => handleSegmentClick(seg.job.jobId, e)}
                 className={cn('relative w-full rounded-[3px]', URGENCY_META[seg.level].barClass)}
                 style={{ height: seg.height }}
                 aria-label={seg.job.projectTitle || t(lang, 'untitledJob')}
@@ -154,8 +220,19 @@ export function DesignerBar({ designer, segments, lang }: DesignerBarProps) {
           {designer.name}
         </p>
 
-        {openSegment && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[60] w-56 rounded-card border border-line bg-paper shadow-lg p-3">
+        {openSegment && bubblePos && (
+          // Rendered as a DOM descendant of the onMouseLeave wrapper above
+          // (not a portal) on purpose: even though `fixed` positioning paints
+          // it over a neighbouring column, hover/mouseleave hit-testing
+          // follows DOM ancestry, so moving the pointer from the bar into
+          // the bubble does NOT fire mouseleave on this wrapper and close it
+          // early — "Open job" stays reachable. See computeBubblePosition
+          // above for why top/left/maxHeight can never escape the viewport
+          // or render behind the sticky header / bottom nav.
+          <div
+            className="fixed z-[60] w-56 rounded-card border border-line bg-paper shadow-lg p-3 overflow-y-auto"
+            style={{ left: bubblePos.left, top: bubblePos.top, maxHeight: bubblePos.maxHeight }}
+          >
             <JobCardContent job={openSegment.job} lang={lang} />
             <button
               type="button"
