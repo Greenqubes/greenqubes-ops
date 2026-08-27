@@ -107,7 +107,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
 
   return (
     <div className="min-h-screen bg-bg">
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role={role} />
 
       <div className="bg-paper border-b border-line px-4 pt-3 pb-2">
         <h1 className="font-display text-[15px] font-semibold text-ink">
@@ -135,7 +135,11 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
         )}
       </div>
 
-      <main className="pb-24">
+      {/* pb-24 was mobile clearance for the fixed BottomNav; that's gone
+          below lg now (nav drawer instead — R2-T5 / F1), so mobile only
+          needs a modest breathing-room pb. lg: keeps the original value
+          since BottomNav still renders there unchanged. */}
+      <main className="pb-8 lg:pb-24">
         {isDesigner && tab === 'myJobs' ? (
           <MyJobsView
             jobs={myJobs}
@@ -164,18 +168,24 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
 
             {/* Board area — stable min-height (viewport minus the sticky
                 CompanyBar ~44px, this page's title/tab header ~56-90px, the
-                legend ~48px, this row's own py-6/py-4 padding, and the fixed
-                BottomNav ~64-80px incl. safe-area — ~300px of chrome total,
-                floored at 260px so short viewports never collapse the board
-                to nothing) so the bars read as a real skyline growing off a
-                stable baseline rather than a box that hugs its own content.
-                Columns are an even flex row (no horizontal scroll — squeeze
-                narrower as designers are added) bottom-aligned via
+                legend ~48px, this row's own py-6/py-4 padding, and — at lg
+                and up only — the fixed BottomNav ~64-80px incl. safe-area:
+                ~300px of chrome total there, floored at 260px so short
+                viewports never collapse the board to nothing) so the bars
+                read as a real skyline growing off a stable baseline rather
+                than a box that hugs its own content. Below lg the BottomNav
+                is gone (nav drawer instead — R2-T5 / F1), so the chrome
+                budget drops to ~220px (300 minus BottomNav's own height) —
+                without this split the board would sit ~64-80px shorter than
+                the actual mobile viewport, leaving unused blank space below
+                the skyline instead of the bars anchoring to the true bottom
+                edge. Columns are an even flex row (no horizontal scroll —
+                squeeze narrower as designers are added) bottom-aligned via
                 items-end, which — combined with each DesignerBar column
                 ending in its (fixed-height) name label — is what pins every
                 column's baseline to the same line while the bars above it
                 grow upward by however tall their stacked segments are. */}
-            <div className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-300px))]">
+            <div className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-220px))] lg:min-h-[max(260px,calc(100vh-300px))]">
               {data.designers.map(designer => (
                 <DesignerBar
                   key={designer.id}
@@ -189,7 +199,10 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
         )}
       </main>
 
-      <BottomNav role={role} />
+      {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
+      <div className="hidden lg:block">
+        <BottomNav role={role} />
+      </div>
     </div>
   )
 }

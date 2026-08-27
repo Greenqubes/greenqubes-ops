@@ -197,7 +197,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   return (
     <div className="min-h-screen bg-bg">
 
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role={role ?? 'sales'} />
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
@@ -435,7 +435,10 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
         </div>
       )}
 
-      <BottomNav role={role ?? 'sales'} />
+      {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
+      <div className="hidden lg:block">
+        <BottomNav role={role ?? 'sales'} />
+      </div>
     </div>
   )
 }

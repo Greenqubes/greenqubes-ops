@@ -121,7 +121,7 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
 
   return (
     <div className="min-h-screen bg-bg">
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role={role} />
 
       {/* Toolbar */}
       <div className="bg-paper border-b border-line px-4 pt-3 pb-2 flex flex-col gap-2">
@@ -242,7 +242,10 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
         onDismiss={c => setDismissed(prev => new Set([...prev, clashKey(c)]))}
       />
 
-      <BottomNav role={role} />
+      {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
+      <div className="hidden lg:block">
+        <BottomNav role={role} />
+      </div>
     </div>
   )
 }

@@ -156,7 +156,7 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
     <div className="min-h-screen bg-bg">
 
       {/* ── Company bar ── */}
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role="installer" />
 
       {/* ── Eyebrow ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
@@ -310,7 +310,10 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
         />
       )}
 
-      <BottomNav role="installer" />
+      {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
+      <div className="hidden lg:block">
+        <BottomNav role="installer" />
+      </div>
     </div>
   )
 }
