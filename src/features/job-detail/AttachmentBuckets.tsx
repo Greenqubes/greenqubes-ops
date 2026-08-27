@@ -489,14 +489,14 @@ function FileRow({ file, readOnly, onDelete, onMove, onImageClick, getDownloadUr
 
       {!readOnly && (
         <button type="button" onClick={onMove} title="Move to…"
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted opacity-0 group-hover:opacity-100 hover:text-ink hover:bg-bg transition-all shrink-0">
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted md:opacity-0 md:group-hover:opacity-100 hover:text-ink hover:bg-bg transition-all shrink-0">
           <FolderInput size={14} />
         </button>
       )}
 
       {!readOnly && (
         <button type="button" onClick={onDelete}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted opacity-0 group-hover:opacity-100 hover:text-terracotta hover:bg-terracotta/5 transition-all shrink-0">
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted md:opacity-0 md:group-hover:opacity-100 hover:text-terracotta hover:bg-terracotta/5 transition-all shrink-0">
           <Trash2 size={14} />
         </button>
       )}
