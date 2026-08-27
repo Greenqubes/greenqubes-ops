@@ -88,7 +88,7 @@ function parseDueShiftBody(raw: string | null): DueShiftBody | null {
   if (!raw) return null
   try {
     const v = JSON.parse(raw) as Partial<DueShiftBody> | null
-    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.newDue === 'string' && typeof v.client === 'string') {
+    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.newDue === 'string' && typeof v.client === 'string' && typeof v.installDate === 'string') {
       return v as DueShiftBody
     }
   } catch { /* pre-upgrade plain-text row */ }
@@ -251,11 +251,20 @@ export function NotificationDrawer({ lang }: Props) {
   }
 
   // Updates "Clear All" (R2-T2 edit 4) — hard-deletes every one of the
-  // caller's own notification rows (unlike the Overdue clear above, these
-  // are real rows; RLS scopes the omitted-ids DELETE to the caller).
+  // caller's own notification rows EXCEPT design_reminder (unlike the
+  // Overdue clear above, these are real rows; RLS scopes the omitted-ids
+  // DELETE to the caller). design_reminder rows are excluded — code review
+  // fix (post-R2-T2): their lifecycle is Yes/No only, and deleting one would
+  // erase the created_at the cron's 3-day snooze reads, causing daily
+  // re-nudges. Answered reminders are already hidden by visibleNotifs, so
+  // this changes nothing visible. The route (route.ts) also enforces this
+  // exclusion server-side; this local filter just keeps optimistic state in
+  // sync with what the server will actually do, so a pending reminder never
+  // flashes away and reappears.
   async function handleClearAllUpdates() {
-    if (notifs.length === 0) return
-    setNotifs([])
+    const hasDeletable = notifs.some(n => n.type !== 'design_reminder')
+    if (!hasDeletable) return
+    setNotifs(prev => prev.filter(n => n.type === 'design_reminder'))
     try {
       await fetch('/api/notifications', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
     } catch { /* best-effort */ }
@@ -362,7 +371,17 @@ export function NotificationDrawer({ lang }: Props) {
   // tap (edit 4 bullet 1) — design_reminder is the one exception, since its
   // read state is governed entirely by Yes/No (edit 7), not by a body tap.
   function renderNotifCard(n: InAppNotif) {
-    const checkbox = selectMode && (
+    // design_reminder rows must be unreachable by every delete path — code
+    // review fix (post-R2-T2): their lifecycle is Yes/No only (edit 7's
+    // CRITICAL mechanic — a read reminder's row survives so its created_at
+    // keeps driving the cron's 3-day snooze). Neither the bulk-select
+    // checkbox nor the per-card X render for this type, so a reminder's id
+    // can never enter `selected` or reach deleteOne — the DELETE route
+    // (route.ts) also excludes type='design_reminder' server-side as a
+    // second, independent guarantee.
+    const isReminder = n.type === 'design_reminder'
+
+    const checkbox = selectMode && !isReminder && (
       <button
         onClick={() => toggleSelect(n.id)}
         className="mt-3 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
@@ -375,9 +394,10 @@ export function NotificationDrawer({ lang }: Props) {
       </button>
     )
 
-    // Per-card 'X' (edit 4 bullet 3) — hidden while bulk-selecting, since
-    // that flow already has its own Delete action in the footer.
-    const clearBtn = !selectMode && (
+    // Per-card 'X' (edit 4 bullet 3) — hidden while bulk-selecting (that
+    // flow already has its own Delete action in the footer) and hidden for
+    // design_reminder (see isReminder note above).
+    const clearBtn = !selectMode && !isReminder && (
       <button
         type="button"
         onClick={() => void deleteOne(n.id)}
