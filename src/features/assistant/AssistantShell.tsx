@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, ExternalLink, Sparkles,
-  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
+  ChevronDown, History, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { MAX_FILES_PER_MESSAGE, MAX_MESSAGE_BYTES, validateAttachment } from '@/lib/ai/attachments'
@@ -605,19 +605,22 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         )}
       </div>
 
-      {/* ── Phone: slim app-like top bar — chat-history hamburger left (its
+      {/* ── Phone: slim app-like top bar — chat-history trigger left (its
           own drawer, unrelated to site nav), site nav drawer + home right.
           This shell hides CompanyBar below md for chat real estate, so the
           R2-T5 / F1 nav drawer trigger lives here instead — NavDrawer is
           self-contained (renders its own trigger + backdrop + panel), so it
-          just drops in as a second icon beside Home. ── */}
+          just drops in as a second icon beside Home. The two triggers use
+          distinct glyphs (History vs. NavDrawer's own Menu) — Menu now
+          means "site nav" everywhere else in the app, so reusing it here
+          for a different drawer read as two identical hamburgers. ── */}
       <div className="md:hidden shrink-0 border-b border-line bg-paper px-2.5 py-2 flex items-center justify-between">
         <button
           onClick={() => setDrawerOpen(true)}
           className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          aria-label="Menu"
+          aria-label="Chat history"
         >
-          <Menu size={18} />
+          <History size={18} />
         </button>
         <div className="flex items-center gap-1">
           <NavDrawer role={role} lang={lang} />
