@@ -18,8 +18,13 @@ import type { Role } from '@/lib/supabase/types'
 // amber tick = sales suggestion (Confirm / Remove), dashed = added not saved.
 // Save & Notify reuses the Phase 2 assign-installers route (clears suggestions,
 // replaces the formal set, Telegrams new installers + sales POC/coordinators).
+//
+// Smoke feedback edit 8 (Nic explicit, 2026-08-27; ANSWERED line): coordinator
+// is suggest-only here too — they can add/suggest and remove a suggestion,
+// but cannot Confirm a suggestion or formally assign. Only scheduler/admin
+// keep the full Confirm/Remove-formal/Save & Notify (assign-installers) path.
 
-const EDIT_ROLES: Role[] = ['scheduler', 'coordinator', 'admin']
+const EDIT_ROLES: Role[] = ['scheduler', 'admin']
 
 // Always-English date, per the hard rule on date labels.
 const fmtDate = (iso: string) =>
@@ -41,7 +46,11 @@ interface AssignmentPanelProps {
 }
 
 export function AssignmentPanel({ job, clashes, installers, role, lang, onClose, onSaved }: AssignmentPanelProps) {
-  const canEdit = EDIT_ROLES.includes(role)
+  const canEdit      = EDIT_ROLES.includes(role)
+  const isCoordinator = role === 'coordinator'
+  // Coordinator can add/suggest + drop their own or others' suggestions, but
+  // never Confirm a suggestion or formally assign — that stays canEdit-only.
+  const canSuggest = canEdit || isCoordinator
 
   const [removedFormal,  setRemovedFormal]  = useState<Set<string>>(new Set())
   const [confirmedSugg,  setConfirmedSugg]  = useState<Set<string>>(new Set())
@@ -107,7 +116,43 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
     }
   }
 
+  // Coordinator save path (edit 8, ANSWERED line): suggest-only — posts each
+  // add/remove individually to suggest-installer, mirroring JobDetailShell's
+  // toggleSuggestionFor. No clash preflight: a suggestion doesn't lock the
+  // schedule, same as sales' suggest path elsewhere never clash-checking.
+  const doSaveSuggestions = async () => {
+    setSaving(true)
+    setError(false)
+    try {
+      await Promise.all([
+        ...added.map(id => fetch(`/api/jobs/${job.id}/suggest-installer`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ user_id: id, action: 'add' }),
+        }).then(res => { if (!res.ok) throw new Error() })),
+        ...[...removedSugg].map(id => fetch(`/api/jobs/${job.id}/suggest-installer`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ user_id: id, action: 'remove' }),
+        }).then(res => { if (!res.ok) throw new Error() })),
+      ])
+      onSaved()
+      onClose()
+    } catch {
+      setError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSave = async () => {
+    // Coordinator never formally assigns — skip the assign-installers-backed
+    // clash preflight (that route is scheduler/admin only now) and save
+    // suggestions directly.
+    if (!canEdit && isCoordinator) {
+      await doSaveSuggestions()
+      return
+    }
     setSaving(true)
     setError(false)
     try {
@@ -187,7 +232,7 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
               {t(lang, 'installers')}
             </p>
-            {canEdit && addable.length > 0 && (
+            {canSuggest && addable.length > 0 && (
               <button
                 onClick={() => setAddOpen(o => !o)}
                 className="flex items-center gap-1 text-[11px] font-semibold text-brand-blue"
@@ -286,9 +331,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                       ? t(lang, 'fcfsAddedNotSaved')
                       : `${t(lang, 'fcfsSuggestedBy')} ${a.suggested_by_name ?? '—'} · ${t(lang, 'fcfsUnconfirmed')}`}
                   </p>
-                  {canEdit && (
+                  {canSuggest && (
                     <div className="mt-2 flex gap-2">
-                      {!confirmed && (
+                      {/* Confirm formally assigns — scheduler/admin only.
+                          Coordinator (edit 8) can still drop a suggestion,
+                          just never promote one. */}
+                      {!confirmed && canEdit && (
                         <button
                           onClick={() => setConfirmedSugg(prev => new Set([...prev, a.user_id]))}
                           className="text-[11px] font-semibold text-white bg-brand-green rounded-md px-2.5 py-1"
@@ -356,8 +404,10 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
           {error && <p className="text-xs text-bad mt-3">{t(lang, 'saveError')}</p>}
         </div>
 
-        {/* Actions */}
-        {canEdit && (
+        {/* Actions — canSuggest covers both: scheduler/admin's full Save &
+            Notify (formal assign), and coordinator's suggestion-only save
+            (handleSave dispatches to doSaveSuggestions for them). */}
+        {canSuggest && (
           <div className="flex gap-2 px-5 py-3 border-t border-line shrink-0 pb-[max(env(safe-area-inset-bottom),12px)]">
             <button
               onClick={onClose}
@@ -370,7 +420,7 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
               disabled={saving || !dirty}
               className="flex-1 px-4 py-2.5 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40"
             >
-              {saving ? t(lang, 'loading') : t(lang, 'fcfsSaveNotify')}
+              {saving ? t(lang, 'loading') : canEdit ? t(lang, 'fcfsSaveNotify') : 'Save suggestions'}
             </button>
           </div>
         )}

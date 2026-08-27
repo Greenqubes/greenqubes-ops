@@ -62,9 +62,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Sales pick installers as tentative suggestions (yellow); scheduler/coordinator/
-  // admin creating a job assign them formally (green).
-  const suggestMode = role === 'sales'
+  // Sales AND coordinator pick installers as tentative suggestions (yellow);
+  // only scheduler/admin creating a job assign them formally (green). Smoke
+  // feedback edit 8 (Nic explicit, 2026-08-27): coordinator loses formal
+  // installer assignment everywhere, including here at job creation.
+  const suggestMode = role === 'sales' || role === 'coordinator'
 
   // Designers picker: editable for sales/scheduler/coordinator/admin,
   // read-only chips for designer/production — matches the edit form's

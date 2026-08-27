@@ -10,10 +10,14 @@ import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
-// Coordinator / scheduler / admin formally assign installers. This clears any
-// sales suggestions for the job, sets the formal assignee list, and notifies:
+// Scheduler / admin formally assign installers. This clears any sales/
+// coordinator suggestions for the job, sets the formal assignee list, and
+// notifies:
 //   • newly-added installers  → "Job Assigned"
 //   • sales POC + coordinators → "Installer Assigned"
+// Smoke feedback edit 8 (Nic explicit, 2026-08-27): coordinator no longer
+// formally assigns — removed from the gate below. Coordinator now suggests
+// via /suggest-installer, same as sales.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -34,7 +38,7 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+  if (!['scheduler', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
