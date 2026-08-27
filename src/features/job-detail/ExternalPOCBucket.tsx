@@ -268,7 +268,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
   return (
     <div className="border-t border-line px-4 pt-3 pb-4">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted flex items-center gap-1.5">
+        <p className="text-[13px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1.5">
           <Globe size={12} />
           {t(lang, 'extBucketTitle')}
         </p>
@@ -288,7 +288,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
       {/* Existing contacts */}
       {loaded && active.length > 0 && (
         <>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted/70 mb-1.5">
+          <p className="text-[13px] font-semibold uppercase tracking-wide text-muted/70 mb-1.5">
             {t(lang, 'extBucketPrevUsed')}
           </p>
           <div className="space-y-1.5 mb-2.5">
@@ -392,7 +392,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
 
       {showAdd && (
         <div className="rounded-xl border border-dashed border-line bg-bg p-3 space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+          <p className="text-[13px] font-semibold uppercase tracking-wide text-muted">
             {t(lang, 'extBucketAddNew')}
           </p>
           <div className="flex gap-2">

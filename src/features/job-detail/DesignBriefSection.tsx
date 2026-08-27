@@ -147,7 +147,7 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
 
             {/* 2. Attachments */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-2">
                 {t(lang, 'attachments')}
               </p>
               {jobId === null ? (

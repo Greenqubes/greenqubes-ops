@@ -24,7 +24,7 @@ export function CollapseCard({
         'px-4 py-3 border-b border-line flex items-center justify-between',
         !open && 'lg:border-b-0',
       )}>
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+        <span className="text-[13px] font-semibold uppercase tracking-wide text-muted">
           {title}
         </span>
         {collapsible && (

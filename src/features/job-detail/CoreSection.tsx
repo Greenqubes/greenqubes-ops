@@ -208,7 +208,7 @@ export function CoreSection({
               />
             )}
           </Field>
-          <Field label="Day">
+          <Field label={t(lang, 'day')}>
             <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-amber-600 text-center">
               {dayLabel}
             </div>
@@ -216,7 +216,7 @@ export function CoreSection({
         </div>
 
         {/* Company */}
-        <Field label="Company" error={errors.client?.message}>
+        <Field label={t(lang, 'company')} error={errors.client?.message}>
           {installerView ? roBox(watch('client')) : (
             <SearchableSelect
               value={watch('client')}

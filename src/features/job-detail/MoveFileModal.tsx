@@ -53,7 +53,7 @@ export function MoveFileModal({ file, buckets, lang, onClose, onMoved }: Props) 
               type="button"
               disabled={busy}
               onClick={() => move(b.id)}
-              className="w-full text-left px-3 py-2 rounded-lg border border-line text-[11px] font-semibold tracking-widest uppercase text-ink2 hover:border-terracotta hover:text-terracotta transition-colors disabled:opacity-50"
+              className="w-full text-left px-3 py-2 rounded-lg border border-line text-[13px] font-semibold tracking-wide uppercase text-ink2 hover:border-terracotta hover:text-terracotta transition-colors disabled:opacity-50"
             >
               {b.name}
             </button>

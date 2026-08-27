@@ -114,7 +114,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
 
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-2">{label}</p>
+      <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-2">{label}</p>
       {files.length > 0 && (
         <ul className="divide-y divide-line mb-2">
           {files.map(file => {
