@@ -30,6 +30,43 @@ function uid() {
   return Math.random().toString(36).slice(2)
 }
 
+// Gap kept between the dragged bubble and the panel it opens, matching the
+// 12px gap baked into the default (never-dragged) anchor below.
+const PANEL_GAP = 12
+// Screen-edge margin the anchored panel is kept clear of.
+const PANEL_MARGIN = 8
+
+// Where to open the panel when the bubble has been dragged off its default
+// spot. Vertically: opens above the bubble if the bubble's centre sits in
+// the lower half of the viewport, below it otherwise. Horizontally: aligns
+// to whichever side of the bubble has more room (so the panel grows into
+// open space rather than off-screen), then clamps the resulting corner
+// fully inside the viewport using the same box-size formulas as the
+// default CSS (`min(340px, 100vw - 2rem)` wide, `min(520px, 100vh - 160px)`
+// tall) so it can never spill past an edge even when neither side has much
+// room.
+function computeBubbleAnchor(bubbleRect: DOMRect): { top: number; left: number } {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const panelWidth  = Math.min(340, vw - 32)
+  const panelHeight = Math.min(520, vh - 160)
+
+  const bubbleCenterY = bubbleRect.top + bubbleRect.height / 2
+  const openAbove     = bubbleCenterY > vh / 2
+
+  const leftSpace  = bubbleRect.left
+  const rightSpace = vw - bubbleRect.right
+  const alignToLeftEdge = rightSpace >= leftSpace // more room to the right → grow rightward from the bubble's left edge
+
+  const rawTop  = openAbove ? bubbleRect.top - PANEL_GAP - panelHeight : bubbleRect.bottom + PANEL_GAP
+  const rawLeft = alignToLeftEdge ? bubbleRect.left : bubbleRect.right - panelWidth
+
+  return {
+    top:  Math.min(Math.max(rawTop,  PANEL_MARGIN), vh - panelHeight - PANEL_MARGIN),
+    left: Math.min(Math.max(rawLeft, PANEL_MARGIN), vw - panelWidth  - PANEL_MARGIN),
+  }
+}
+
 export function FloatingChatPanel({ lang }: Props) {
   const pathname    = usePathname()
   const router      = useRouter()
@@ -52,10 +89,29 @@ export function FloatingChatPanel({ lang }: Props) {
   const stickToBottomRef = useRef(true)
   const abortRef         = useRef<AbortController | null>(null)
   const bubbleRef        = useRef<HTMLButtonElement>(null)
-  const { style: dragStyle, handlers: dragHandlers, isDragging } = useDraggableFab({
+  const { style: dragStyle, handlers: dragHandlers, isDragging, position: bubblePosition } = useDraggableFab({
     id: 'chat',
     elementRef: bubbleRef,
   })
+
+  // Anchor the panel to the bubble's live spot, but only when the bubble
+  // actually has a custom (dragged) position — a bubble still sitting at
+  // its CSS default needs no override, so non-draggers see byte-identical
+  // output. Recomputed only on the isOpen false→true transition (not
+  // tracked live while open): closing, re-dragging the bubble, then
+  // reopening re-anchors to the new spot, but the panel won't follow the
+  // bubble around while it's already open.
+  const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null)
+  useEffect(() => {
+    if (!isOpen) return
+    if (!bubblePosition || !bubbleRef.current) {
+      setAnchorStyle(null)
+      return
+    }
+    const anchor = computeBubbleAnchor(bubbleRef.current.getBoundingClientRect())
+    setAnchorStyle({ left: anchor.left, top: anchor.top, right: 'auto', bottom: 'auto' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   // Follow the stream only while the reader is at the bottom
   useEffect(() => {
@@ -253,26 +309,31 @@ export function FloatingChatPanel({ lang }: Props) {
   return (
     <>
       {/* ── Floating panel ──
-          R2-T7: the bubble below is now draggable, but this panel
-          deliberately does NOT follow it — it keeps opening from its
-          original fixed anchor (per spec: "expanded panels keep their
-          existing positioning — only the collapsed buttons move"). The
-          panel was never actually anchored to the bubble's DOM position to
-          begin with (both are independently `fixed`, just tuned to line up
-          via matching offsets), so there's nothing to re-anchor; a dragged
-          bubble simply opens a panel that stays put at this default spot. */}
+          R2-T7: when the bubble has never been dragged (no custom position
+          stored), this panel renders exactly as before — the classes below
+          are untouched and `anchorStyle` is null, so there is zero visual
+          change for anyone who never drags the bubble. Once the bubble has
+          a custom position, `anchorStyle` (computed in the isOpen effect
+          above, via computeBubbleAnchor) overrides these classes with an
+          explicit left/top next to the bubble's live spot instead — see
+          that function for the above/below + left/right rule and its
+          viewport clamping. */}
       {isOpen && (
-        <div className={cn(
-          'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
-          'w-[min(340px,calc(100vw-2rem))]',
-          // Panel bottom clears the bubble below it: bubble's own bottom +
-          // its 48px height + a 12px gap. Below lg the bubble sits lower
-          // (no BottomNav to clear any more — R2-T5 / F1), so the panel
-          // follows it down: 64 + 48 + 12 = 124 there; lg keeps the
-          // original 120 + 48 + 12 = 180 since the bubble stays put there.
-          'bottom-[124px] lg:bottom-[180px]',
-          'max-h-[min(520px,calc(100vh-160px))]',
-        )}>
+        <div
+          style={anchorStyle ?? undefined}
+          className={cn(
+            'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
+            'w-[min(340px,calc(100vw-2rem))]',
+            // Panel bottom clears the bubble below it: bubble's own bottom +
+            // its 48px height + a 12px gap. Below lg the bubble sits lower
+            // (no BottomNav to clear any more — R2-T5 / F1), so the panel
+            // follows it down: 64 + 48 + 12 = 124 there; lg keeps the
+            // original 120 + 48 + 12 = 180 since the bubble stays put there.
+            // (Default-position case only — anchorStyle overrides these
+            // once the bubble has been dragged, see comment above.)
+            'bottom-[124px] lg:bottom-[180px]',
+            'max-h-[min(520px,calc(100vh-160px))]',
+          )}>
           {/* Header */}
           <div className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b border-line">
             <div className="w-7 h-7 rounded-full bg-terracotta flex items-center justify-center">

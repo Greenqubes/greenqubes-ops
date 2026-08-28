@@ -58,6 +58,11 @@ interface UseDraggableFabResult<T extends HTMLElement> {
   }
   /** True only once the threshold has been crossed (a real drag, not a tap). */
   isDragging: boolean
+  /** The button's current custom position, or `null` if it's still sitting
+   *  at the caller's default CSS spot (nothing stored, never dragged). Lets
+   *  a caller anchor other UI it opens (e.g. a panel) to where the button
+   *  actually is, only once it has actually moved. */
+  position: FabPosition | null
 }
 
 const DEFAULT_THRESHOLD = 6
@@ -232,5 +237,6 @@ export function useDraggableFab<T extends HTMLElement = HTMLButtonElement>({
     style,
     handlers: { onPointerDown, onClickCapture },
     isDragging,
+    position,
   }
 }
