@@ -1137,6 +1137,11 @@ export function JobDetailShell({
                 onDueDate={handleDueDate}
                 briefError={briefError}
                 files={job.files.filter(f => f.kind === 'design_brief')}
+                designerOptions={designerOptions}
+                selectedDesignerIds={selectedDesignerIds}
+                onToggleDesigner={id => setSelectedDesignerIds(prev =>
+                  prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+                )}
               />
             )}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
@@ -1256,25 +1261,25 @@ export function JobDetailShell({
             )}
           </div>
 
-          {/* Designers sub-section — card presentation matching the installer
-              grid above (edit 3, smoke feedback 2026-08-27). Same data/save
-              wiring as before: selectedDesignerIds, POSTed on save, attached
-              post-create. Read-only (no onToggle) for anyone who can't edit
-              core fields — designer/production/installer. */}
-          <div className="border-t border-line px-4 pt-3 pb-4">
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">{t(lang, 'designersLabel')}</p>
-            {designerOptions.length === 0 ? (
-              <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
-            ) : (
-              <DesignerGrid
-                designers={designerOptions}
-                selectedIds={selectedDesignerIds}
-                onToggle={(readOnly || !canEditCore) ? undefined : id => setSelectedDesignerIds(prev =>
-                  prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
-                )}
-              />
-            )}
-          </div>
+          {/* Designers grid moved into the Design Brief card, Details tab, for
+              every role that can reach that card (edit 14, smoke feedback
+              2026-08-28) — see DesignBriefSection. selectedDesignerIds/
+              setSelectedDesignerIds still live here; the brief card just
+              hosts DesignerGrid via props now. installer NEVER sees the
+              brief card at all (`{!isInstaller && <DesignBriefSection/>}`
+              a few screens up, unrelated to this edit) — they used to see
+              this same grid read-only right here in the Team tab, so that
+              one carve-out stays put to avoid regressing their view. */}
+          {isInstaller && (
+            <div className="border-t border-line px-4 pt-3 pb-4">
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">{t(lang, 'designersLabel')}</p>
+              {designerOptions.length === 0 ? (
+                <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
+              ) : (
+                <DesignerGrid designers={designerOptions} selectedIds={selectedDesignerIds} />
+              )}
+            </div>
+          )}
 
           {/* Sub-installer bucket (Phase 4) — same pool, separate bucket */}
           {!isInstaller && (

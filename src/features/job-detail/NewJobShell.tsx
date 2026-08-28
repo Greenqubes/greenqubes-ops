@@ -12,7 +12,6 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
-import { DesignerGrid } from './DesignerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
@@ -321,6 +320,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               onDueDate={handleDueDate}
               briefError={false}
               files={[]}
+              designerOptions={designerOptions}
+              selectedDesignerIds={selectedDesignerIds}
+              onToggleDesigner={id => setSelectedDesignerIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+              )}
             />
 
             {/* Production — instructions now, photos/DO after the job is saved */}
@@ -406,25 +410,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               )}
             </div>
 
-            {/* Designers — card presentation matching the installer grid
-                above (edit 3, smoke feedback 2026-08-27). Same data/save
-                wiring: selectedDesignerIds is POSTed to designers-assign
-                after job creation (see saveJob below). Read-only for
-                anyone who can't edit designers (designer/production). */}
-            <div className="border-t border-line px-4 pt-3 pb-4">
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">{t(lang, 'designersLabel')}</p>
-              {designerOptions.length === 0 ? (
-                <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
-              ) : (
-                <DesignerGrid
-                  designers={designerOptions}
-                  selectedIds={selectedDesignerIds}
-                  onToggle={canEditDesigners ? id => setSelectedDesignerIds(prev =>
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
-                  ) : undefined}
-                />
-              )}
-            </div>
+            {/* Designers grid moved into the Design Brief card, Details tab
+                (edit 14, smoke feedback 2026-08-28) — see DesignBriefSection
+                below. selectedDesignerIds/setSelectedDesignerIds still live
+                here; it still rides into the post-create designers-assign
+                call in saveJob above, unchanged. */}
           </CollapseCard>
         }
         files={

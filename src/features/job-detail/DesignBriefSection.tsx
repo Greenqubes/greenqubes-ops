@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { Btn } from '@/components/Btn'
 import { CollapseCard } from './CollapseCard'
+import { useCardCollapse } from './useCardCollapse'
+import { DesignerGrid, type DesignerOption } from './DesignerGrid'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
-import { Paperclip, Trash2, Lock, PenTool, Sparkles } from 'lucide-react'
+import { Paperclip, Trash2, Lock, PenTool, Sparkles, ChevronDown } from 'lucide-react'
 import type { LangCode } from '@/lib/i18n'
 import type { JobFile } from '@/lib/supabase/queries/jobs'
 
@@ -37,11 +39,24 @@ export interface DesignBriefSectionProps {
   onDueDate:   (v: string | null) => void
   briefError:  boolean
   files:       JobFile[]
+  // Edit 14 (smoke feedback, 2026-08-28): the Designers grid relocates here
+  // from the Team tab. State stays owned by the shells (JobDetailShell /
+  // NewJobShell) — this card only hosts DesignerGrid via props, same as the
+  // brief text/due-date fields above pass through onBriefText/onDueDate.
+  // Gating reuses `readOnly`/`canManage` (textLocked below) — identical to
+  // the `(readOnly || !canEditCore)` / `canEditDesigners` checks the Team
+  // tab used to apply to this same grid.
+  designerOptions:     DesignerOption[]
+  selectedDesignerIds: string[]
+  onToggleDesigner:    (id: string) => void
 }
 
 export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionProps>(
   function DesignBriefSection(
-    { jobId, lang, readOnly, canManage, userId, briefText, onBriefText, dueDate, dueManual, onDueDate, briefError, files },
+    {
+      jobId, lang, readOnly, canManage, userId, briefText, onBriefText, dueDate, dueManual, onDueDate, briefError, files,
+      designerOptions, selectedDesignerIds, onToggleDesigner,
+    },
     ref,
   ) {
     const router = useRouter()
@@ -52,6 +67,10 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
 
     const textLocked = readOnly || !canManage
     const dueLocked  = readOnly || !canManage
+    // Designers subsection collapse — per-device memory via the same
+    // useCardCollapse hook the outer CollapseCard uses (trivially reusable,
+    // just a new storageKey), default open.
+    const { open: designersOpen, toggle: toggleDesigners } = useCardCollapse('gq-jobcard-designbrief-designers')
 
     const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const selected = Array.from(e.target.files ?? [])
@@ -207,6 +226,37 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
                   </span>
                 )}
               </div>
+            </div>
+
+            {/* 3.5 Designers — collapsible subsection, relocated from the Team
+                tab (edit 14, smoke feedback 2026-08-28). Same DesignerGrid
+                component, same selectedDesignerIds state (owned by the
+                shell); onToggle reuses textLocked, identical to the Team
+                tab's old `(readOnly || !canEditCore)` / `canEditDesigners`
+                gate. */}
+            <div className="border-t border-line pt-4">
+              <button
+                type="button"
+                onClick={toggleDesigners}
+                aria-expanded={designersOpen}
+                className="w-full flex items-center justify-between mb-3"
+              >
+                <span className="text-[13px] font-semibold uppercase tracking-wide text-muted">
+                  {t(lang, 'designersLabel')}
+                </span>
+                <ChevronDown size={14} className={cn('text-muted transition-transform', !designersOpen && '-rotate-90')} />
+              </button>
+              {designersOpen && (
+                designerOptions.length === 0 ? (
+                  <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
+                ) : (
+                  <DesignerGrid
+                    designers={designerOptions}
+                    selectedIds={selectedDesignerIds}
+                    onToggle={textLocked ? undefined : onToggleDesigner}
+                  />
+                )
+              )}
             </div>
 
             {/* 4. Whiteboard placeholder */}
