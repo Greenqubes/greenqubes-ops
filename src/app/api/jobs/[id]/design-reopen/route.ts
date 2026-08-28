@@ -13,6 +13,11 @@ import type { Role } from '@/lib/supabase/types'
 // from design_completed_at is null. Rating-clear behaviour below is
 // unchanged either way: reopen always clears the rating; re-completing
 // re-rates fresh.
+// Smoke feedback edit 13 (Nic, 2026-08-28): sales/coordinator join the
+// override allow-list alongside scheduler/admin — same mechanics as
+// design-complete's override path. A non-assigned designer (role designer,
+// no job_designers row) is still NOT in isOverride and still falls through
+// to the 403 below.
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -34,7 +39,7 @@ export async function POST(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  const isOverride = ['scheduler', 'admin'].includes(role)
+  const isOverride = ['scheduler', 'admin', 'sales', 'coordinator'].includes(role)
   type DesignerRow = { assigned_at: string }
   const { data: ownAssignment } = await service
     .from('job_designers')

@@ -10,9 +10,12 @@ import type { Role } from '@/lib/supabase/types'
 //    + user) MUST send a 1-5 rating — it feeds ratingSuspect (trust check)
 //    against the AI's own brief-time complexity guess and the actual time
 //    taken, both stored for Task 11's Flagged strip.
-//  - Override path: scheduler/admin who is NOT an assigned designer (an
-//    assigned designer can't also be scheduler/admin — one role per user, no
-//    special case needed) ticks it with no rating — never fake data.
+//  - Override path: scheduler/admin/sales/coordinator who is NOT an assigned
+//    designer (an assigned designer can't also hold one of these roles — one
+//    role per user, no special case needed) ticks it with no rating — never
+//    fake data. Smoke feedback edit 13 (Nic, 2026-08-28): sales/coordinator
+//    complete on the designer's behalf after client confirmation (e.g. sales
+//    uploads the confirmed JO) — same override mechanics as scheduler/admin.
 // Both paths 409 unless the job's DESIGNER JO bucket already has >=1 file —
 // the tick and the Task 9 3-day reminder both key off that bucket's contents.
 export async function POST(
@@ -52,7 +55,7 @@ export async function POST(
     .eq('user_id', profile.id)
     .maybeSingle() as { data: DesignerRow | null; error: unknown }
   const isAssignedDesigner = !!ownAssignment
-  const isOverride = ['scheduler', 'admin'].includes(effectiveRole)
+  const isOverride = ['scheduler', 'admin', 'sales', 'coordinator'].includes(effectiveRole)
 
   if (!isOverride && !isAssignedDesigner) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

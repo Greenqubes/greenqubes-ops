@@ -847,7 +847,13 @@ export function JobDetailShell({
   // state and the server's 409 always agree.
   const joBucket = buckets.find(b => /designer\s*jo/i.test(b.name))
   const hasJoFile = !!joBucket && joBucket.files.length > 0
-  const canOverrideDesign = role === 'scheduler'   // effective role — covers admin (getEffectiveRole never returns 'admin' itself)
+  // Smoke feedback edit 13 (Nic, 2026-08-28): sales/coordinator join the
+  // override allow-list — they complete on the designer's behalf after
+  // client confirmation (e.g. sales uploads the confirmed JO). No rating is
+  // ever written on this path (route-enforced); buttons below sit in the
+  // shared top action row, rendered for every non-installer role, so no
+  // extra placement wiring is needed beyond this flag.
+  const canOverrideDesign = (['scheduler', 'sales', 'coordinator'] as Role[]).includes(role)   // effective role — covers admin (getEffectiveRole never returns 'admin' itself)
 
   const isInstallerDirty = useMemo(() => {
     const a = new Set(selectedInstallerIds)
