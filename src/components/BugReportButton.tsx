@@ -5,6 +5,7 @@ import { usePathname }             from 'next/navigation'
 import { Bug, X, Loader2, Upload } from 'lucide-react'
 import { cn }                      from '@/lib/utils/cn'
 import { useToast }                from '@/components/Toast'
+import { useDraggableFab }         from '@/lib/utils/useDraggableFab'
 
 type Priority = 'low' | 'medium' | 'high' | 'urgent'
 
@@ -38,6 +39,11 @@ export function BugReportButton() {
   const [screenshot, setScreenshot] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const { style: dragStyle, handlers: dragHandlers, isDragging } = useDraggableFab({
+    id: 'bug',
+    elementRef: triggerRef,
+  })
 
   // Hide on login and assistant pages (same exclusion as AI bubble)
   if (pathname === '/login' || pathname === '/assistant') return null
@@ -223,18 +229,30 @@ export function BugReportButton() {
         </div>
       )}
 
-      {/* ── Floating trigger button — sits above AI bubble ── */}
+      {/* ── Floating trigger button — sits above AI bubble ──
+          Draggable (R2-T7): position is restored from localStorage after
+          mount and only overrides these defaults once the user has actually
+          dragged it, so this comment block still describes the as-shipped
+          resting spot. */}
       <button
+        ref={triggerRef}
         onClick={() => setIsOpen(v => !v)}
+        onPointerDown={dragHandlers.onPointerDown}
+        onClickCapture={dragHandlers.onClickCapture}
+        style={dragStyle}
         className={cn(
-          'fixed right-4 z-[59] w-10 h-10 rounded-full shadow-lg',
+          'fixed right-4 z-[59] w-10 h-10 rounded-full shadow-lg select-none',
           'flex items-center justify-center transition-all duration-200',
           // bottom-[176px] was stacked above the chat bubble, which was
           // itself clearing the fixed BottomNav. That bar is gone below lg
           // now (nav drawer instead — R2-T5 / F1), so this drops by the
           // same ~56px as the bubble (120→64), preserving the original
           // 56px gap between the two FABs. lg keeps the original value.
+          // These bottom-[...] / right-4 classes are the DEFAULT position
+          // only — dragStyle's inline left/top/right:auto/bottom:auto win
+          // once a stored or in-progress drag position exists.
           'bottom-[120px] lg:bottom-[176px]',
+          isDragging && 'cursor-grabbing',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
             : 'bg-ink text-paper hover:bg-terracotta',

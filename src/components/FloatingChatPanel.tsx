@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Bot, X, Send, Loader2, RotateCcw, User, ExternalLink, Sparkles, Maximize2, Square, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useDraggableFab } from '@/lib/utils/useDraggableFab'
 import { t } from '@/lib/i18n'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
 import { statusLabelKey } from '@/features/assistant/statusLabels'
@@ -50,6 +51,11 @@ export function FloatingChatPanel({ lang }: Props) {
   const inputRef         = useRef<HTMLTextAreaElement>(null)
   const stickToBottomRef = useRef(true)
   const abortRef         = useRef<AbortController | null>(null)
+  const bubbleRef        = useRef<HTMLButtonElement>(null)
+  const { style: dragStyle, handlers: dragHandlers, isDragging } = useDraggableFab({
+    id: 'chat',
+    elementRef: bubbleRef,
+  })
 
   // Follow the stream only while the reader is at the bottom
   useEffect(() => {
@@ -246,7 +252,15 @@ export function FloatingChatPanel({ lang }: Props) {
 
   return (
     <>
-      {/* ── Floating panel ── */}
+      {/* ── Floating panel ──
+          R2-T7: the bubble below is now draggable, but this panel
+          deliberately does NOT follow it — it keeps opening from its
+          original fixed anchor (per spec: "expanded panels keep their
+          existing positioning — only the collapsed buttons move"). The
+          panel was never actually anchored to the bubble's DOM position to
+          begin with (both are independently `fixed`, just tuned to line up
+          via matching offsets), so there's nothing to re-anchor; a dragged
+          bubble simply opens a panel that stays put at this default spot. */}
       {isOpen && (
         <div className={cn(
           'fixed right-4 z-[70] flex flex-col rounded-2xl border border-line bg-paper shadow-xl',
@@ -356,17 +370,25 @@ export function FloatingChatPanel({ lang }: Props) {
         </div>
       )}
 
-      {/* ── Bubble trigger ── */}
+      {/* ── Bubble trigger ──
+          Draggable (R2-T7): defaults below are the resting spot until the
+          user drags it; dragStyle's inline left/top override those defaults
+          once a stored or in-progress drag position exists. */}
       <button
+        ref={bubbleRef}
         onClick={() => (isOpen ? handleClose() : setIsOpen(true))}
+        onPointerDown={dragHandlers.onPointerDown}
+        onClickCapture={dragHandlers.onClickCapture}
+        style={dragStyle}
         className={cn(
           // bottom-[120px] was clearance for the fixed BottomNav (~64-80px)
           // plus margin; that bar is gone below lg now (nav drawer instead
           // — R2-T5 / F1), so mobile drops by the same ~56px BugReportButton
           // does, keeping the two FABs' relative spacing identical. lg
           // keeps the original value (BottomNav still fixed there).
-          'fixed right-4 bottom-[64px] lg:bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg',
+          'fixed right-4 bottom-[64px] lg:bottom-[120px] z-[60] w-12 h-12 rounded-full shadow-lg select-none',
           'flex items-center justify-center transition-all duration-200',
+          isDragging && 'cursor-grabbing',
           isOpen
             ? 'bg-ink text-paper hover:bg-ink/90'
             : 'bg-terracotta text-white hover:bg-terracotta/90',
