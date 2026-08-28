@@ -233,21 +233,28 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
                 component, same selectedDesignerIds state (owned by the
                 shell); onToggle reuses textLocked, identical to the Team
                 tab's old `(readOnly || !canEditCore)` / `canEditDesigners`
-                gate. */}
+                gate. Collapse is PC-only, mirroring CollapseCard.tsx /
+                TaskListSection.tsx exactly: the toggle button is
+                `hidden lg:flex` (no toggle affordance on mobile) and the
+                body always renders, folding only via `lg:hidden` — so phone
+                users always see the grid regardless of the stored
+                preference; only lg+ can collapse it. */}
             <div className="border-t border-line pt-4">
-              <button
-                type="button"
-                onClick={toggleDesigners}
-                aria-expanded={designersOpen}
-                className="w-full flex items-center justify-between mb-3"
-              >
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-[13px] font-semibold uppercase tracking-wide text-muted">
                   {t(lang, 'designersLabel')}
                 </span>
-                <ChevronDown size={14} className={cn('text-muted transition-transform', !designersOpen && '-rotate-90')} />
-              </button>
-              {designersOpen && (
-                designerOptions.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={toggleDesigners}
+                  aria-expanded={designersOpen}
+                  className="hidden lg:flex items-center justify-center w-6 h-6 rounded text-muted hover:text-ink transition-colors"
+                >
+                  <ChevronDown size={14} className={cn('transition-transform', !designersOpen && '-rotate-90')} />
+                </button>
+              </div>
+              <div className={cn(!designersOpen && 'lg:hidden')}>
+                {designerOptions.length === 0 ? (
                   <p className="text-sm text-muted">{t(lang, 'noDesigners')}</p>
                 ) : (
                   <DesignerGrid
@@ -255,8 +262,8 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
                     selectedIds={selectedDesignerIds}
                     onToggle={textLocked ? undefined : onToggleDesigner}
                   />
-                )
-              )}
+                )}
+              </div>
             </div>
 
             {/* 4. Whiteboard placeholder */}
