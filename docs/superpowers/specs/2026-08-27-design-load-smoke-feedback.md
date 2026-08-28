@@ -40,3 +40,5 @@ Nic testing. NO changes until he says done.
 
 FUTURE (own session, Nic labeled "future ui/ux change" — NOT in this fix round unless he says otherwise):
 F1. Mobile-only nav restructure, all roles: bottom nav (too small) → LEFT DRAWER with hamburger icon; GreenQubes logo centered in the top bar; user profile moves from top-right into the drawer (bottom area, opens its usual menu when tapped); bell takes the top-right spot where the profile was. Desktop unchanged.
+
+12. (2026-08-28, re-test) The assistant + bug floating buttons block the right-most designer's bar on the board (screenshot: Yu Fei hidden behind them). Make ALL root-level floating action buttons DRAGGABLE — user drags them anywhere on screen (touch + mouse), position remembered per device (localStorage), tap still opens as usual (movement threshold separates drag from tap), buttons clamped inside the viewport on load/resize. Defaults stay at today's spots.
