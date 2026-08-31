@@ -48,3 +48,4 @@ F1. Mobile-only nav restructure, all roles: bottom nav (too small) → LEFT DRAW
 
 R2 RE-TEST NOTES (2026-08-28):
 - B3: Telegram not firing on install-date change (bell card did show?). PENDING CLARIFICATION: Telegram is earlier-moves-only by design — if Nic moved the date LATER, expected; if EARLIER, real bug. Nic may also opt for Telegram on every shift (one-line rule change).
+  - B3 UPDATE: CONFIRMED BUG — Nic moved the install date both later AND earlier; no Telegram either way. Investigate: (a) did the job hold a design_due_date at the time (no due date → no shift → no notification at all)? (b) assigned designers' telegram_chat_id present? (c) the movedEarlier Telegram branch in jobs/[id]/route.ts PATCH — the notification block is try/catch-swallowed; add logging + verify tplDesignDueShift/sendTelegram wiring; (d) confirm the bell card appeared (Nic to answer) to localize. Fix in next batch.
