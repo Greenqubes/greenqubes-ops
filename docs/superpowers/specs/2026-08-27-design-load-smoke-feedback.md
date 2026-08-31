@@ -45,3 +45,6 @@ F1. Mobile-only nav restructure, all roles: bottom nav (too small) → LEFT DRAW
 
 13. (2026-08-28) "Design completed" tick + "Reopen design" extended to SALES and COORDINATOR (they complete on the designer's behalf after client confirmation — e.g. sales uploads the confirmed JO). Both use the OVERRIDE path: no rating slider (ratings remain designer-only — no fake learning data). Same JO-file gate + already-completed guard as everyone else. Route allow-lists + action-bar buttons updated accordingly.
 14. (2026-08-28) Move the Designers selection grid INTO the Design Brief card — below the Design due date field, as a COLLAPSIBLE subsection (default state sensible; collapsed memory optional). Removed from the Team tab. Same state/save wiring (selectedDesignerIds); both shells. Whiteboard placeholder stays at the card bottom.
+
+R2 RE-TEST NOTES (2026-08-28):
+- B3: Telegram not firing on install-date change (bell card did show?). PENDING CLARIFICATION: Telegram is earlier-moves-only by design — if Nic moved the date LATER, expected; if EARLIER, real bug. Nic may also opt for Telegram on every shift (one-line rule change).
