@@ -2,11 +2,21 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-26 (feat-assistant-4 — assistant upgrade Phase 4 (Projects) SHIPPED to production; migration 0047 applied before the code. **The four-phase assistant upgrade is COMPLETE.** Deferred security checks all passed on production same day; false-confession guard added to the assistant prompt)_
+_Last updated: 2026-08-28 (feat-design — Design Load (designer workflow V2.5) BUILT on `feat-designer-load-flow`, not merged. Your round-2 re-test cleared 13 of 14 edits. **Next session: B3 Telegram fix + two small edits, then your merge call.** Seven small decisions pending below.)_
 
 ---
 
 ## Pending — Next Session
+
+### Design Load — designer workflow (from 2026-08-18 → 2026-08-28, feat-design)
+
+- [ ] **Next session: three queued fixes** — **B3** Telegram on due-date shifts (the bell card works; the Telegram message doesn't send — and per your call it should fire on **every** shift, earlier or later), **edit 15** floating buttons snap to the nearest screen edge when released, **edit 16** the "Design completed" modal reads "This marks the design work as done — no design rating is recorded." Then you re-test B3 only.
+- [ ] **Merge decision** — after B3 passes: `feat-designer-load-flow` → `dev` → `main`, your call (clean-cut, like Workflow V2). **First production morning after merge:** Admin → Health should show the `design_daily_cron` run (08:30 SGT) — the reminder cron couldn't be exercised on the preview (Vercel's login protection blocks it), so this is the first real run.
+- [ ] **Seven small decisions (none blocking):** may sales and coordinators delete *each other's* installer suggestions (currently yes)? · should coordinators keep confirming **external** installer contacts, or become suggest-only there too? · want a non-destructive bulk "mark as read" back (Clear All now deletes)? · show *who* moved the date on due-shift cards? · give the job-form pages the new mobile top bar (hamburger)? · hide "Reopen design" on jobs whose *installation* is already completed? · check the drawer on an iPad in portrait if the team uses tablets.
+- [ ] **Test-data cleanup** — the Test DL* / Test1 jobs, the reminder cards Claude planted, and Test DL A's JO file whose upload time was backdated 4 days for the reminder test.
+- [ ] **Standing rule — replacing a departed designer (or anyone):** create a NEW Google account for the replacement (old address as alias/forward), provision fresh, reassign their open jobs while the old bar is still on Design Load, THEN remove the old account. Never rename the old account's email over — it hands the replacement the old person's private assistant chats, history attribution and Telegram link.
+- [x] **[Nic] CRON_SECRET confirmed set in Vercel** (2026-08-27) — the new daily cron deliberately refuses to run without it.
+- [x] **[Nic] Post-migration policy sanity query run** (2026-08-27) — the NULL on the "jobs: sales and scheduler can insert" row was expected (insert rules live in a different column); the files/jobs rules carried the new roles.
 
 ### Assistant upgrade (from 2026-08-24, chore-assistant — spec approved)
 
@@ -171,6 +181,14 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-08-18 → 2026-08-28, feat-design — Design Load built + two feedback rounds)
+
+- [x] **[Nic] Design brainstormed from your V2.5 diagram and spec approved (2026-08-18)** — designers assigned per job, Design brief card (text + attachments, required after pre-booking), AI complexity scoring learning from real jobs (no survey — your team's ratings at completion replace it), Design Load board, Board | My Jobs for designers, 3-day Yes/No reminders, admin AI Scores tab. Whiteboard parked for its own session.
+- [x] **[Nic] Build authorised subagent-driven (2026-08-26)** — 16 tasks, every one implemented by a fresh worker and gated by a reviewer, plus two whole-branch reviews; the reviews caught ~15 real bugs before you ever saw the preview. Migrations 0048/0049/0050 were applied by Claude at your request (you were remote).
+- [x] **[Nic] Smoke test round 1 cleared (2026-08-27)** — 11 edits logged from your feedback and built the same day; you re-tested incrementally as each group was pushed.
+- [x] **[Nic] Round-2 re-test cleared 13 of 14 (2026-08-28)** — edits 12–16 added along the way (draggable buttons, sales/coordinator complete + reopen, designers grid into the brief card, edge-snap, modal copy); only B3 (Telegram on due-date shift) remains, queued for next session.
+- [x] **[Nic] Decisions made** — coordinators suggest-only for installers everywhere (incl. FCFS) and sales-level on jobs incl. delete; designers can reopen; production reads files, buckets view-only; scheduler bypasses the brief rule; due dates follow install-date moves (keep-or-shift prompt when both change); no mid-flight score correction — designer completion ratings + trust check instead; Telegram fires on every due-date shift (pending fix); mobile nav becomes a hamburger drawer.
 
 ## Done This Session ✓ (2026-08-26, feat-assistant-4 — Assistant Upgrade Phase 4 SHIPPED, Upgrade COMPLETE)
 
