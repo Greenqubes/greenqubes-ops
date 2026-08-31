@@ -3,7 +3,7 @@
 > Read this first on every Claude Code session. Holds the key decisions and aesthetic direction so we don't relitigate them.
 
 _Last updated: 2026-08-26 (feat-assistant-4 — assistant upgrade **COMPLETE: all four phases live on production**. Phase 4 shipped same day as built: per-user Projects (folders + shared instructions + reference files 10×/20 MB as a cached prompt prefix + linked memory + Move-to-project), migration 0047 applied before the code. Health-tab usage window filter (30d/7d/Today) rode along. Deferred production security checks all PASSED 2026-08-26; false-confession guard added to the assistant prompt. Memory stays strictly per-user.)_
-
+_Last updated: 2026-08-28 (feat-design — **Design Load (designer workflow V2.5) built on `feat-designer-load-flow`, NOT merged**: designer assignment + Design brief card + AI complexity scoring + auto-shifting due dates + Design Load board + rating slider with trust check + 3-day reminders + admin AI Scores tab; plus Nic's feedback-round changes (coordinator suggest-only for installers, sales-level coordinator access, created_by, production file access, mobile hamburger drawer, draggable floating buttons, notification upgrades). Migrations 0048/0049/0050 applied. Next: B3 Telegram fix + edits 15/16, then Nic's merge. The role lines below note the branch-only changes.)_
 ---
 
 ## What this is
@@ -54,10 +54,10 @@ Migration from the original React prototype to a feature-folder Next.js app with
 
 - **Sales** — creates jobs and pushes them to the schedule. *Suggests* installers (yellow) but cannot formally assign. Sees all jobs and clients.
 - **Scheduler** — manages the company-wide schedule, *formally assigns* installers (green), override powers (e.g. complete a job without photos).
-- **Coordinator** — same job-form rights as scheduler, including formal installer assignment. Multiple coordinators per job via `job_coordinators`.
+- **Coordinator** — same job-form rights as scheduler, including formal installer assignment. Multiple coordinators per job via `job_coordinators`. _(On `feat-designer-load-flow`, not yet on production — Nic 2026-08-27: coordinators become **suggest-only for installers everywhere** like sales (only the scheduler formally assigns), gain **sales-level job access** (create, push to schedule, delete, duplicate, set the Person-in-Charge at creation), and can complete/reopen designs.)_
 - **Installer** — sees only jobs they are **formally assigned** to (a suggestion must never surface). Uploads completion photos, signs DOs, posts chat + voice notes. **Cannot see commercial info.**
-- **Designer** — view-only on the job form (no Save bar); chat only.
-- **Production** — edits only its own fields: "Production ready", "DO issued", production instructions and production photos. Everything else view-only.
+- **Designer** — view-only on the job form (no Save bar); chat only. _(On `feat-designer-load-flow`: full Files-tab access, "Design completed" tick with a required 1–5 rating, Reopen design, Design Load tab with Board | My Jobs.)_
+- **Production** — edits only its own fields: "Production ready", "DO issued", production instructions and production photos. Everything else view-only. _(On `feat-designer-load-flow`: can read files — their photo uploads had been silently broken by RLS since V2, fixed by migration 0050; attachment buckets stay view-only.)_
 - **Admin** — full access; hard-gated to `ai@greenqubes.com`. Can "preview as" any of the other roles.
 
 Role is bound to the user's authenticated Supabase session, not a UI toggle. Row-level security policies in the DB enforce this — there is no path where the client can lie about their role and get sensitive data.
@@ -304,6 +304,7 @@ All sessions up to and including 18.3 are complete. Full detail in `docs/plan.md
 - [x] **Session 20** — Pre-Alpha feedback + hotfix — skipped 2026-08-17: clean pass left nothing to fix; green light to alpha
 - [x] **Sessions 21–23** — Alpha / Beta / Launch — CLOSED 2026-08-18 [Nic]: webapp declared launched **v1.0.0**, all necessary testing done; current production deployment is the launched product (no prod-tier promotion or custom domain wired — future infra tasks if ever wanted)
 - [ ] **Mobile app build** — the new roadmap (replaces "Session 24 post-launch features"): Stage 1 communication core → Stage 2 installer field work + offline → Stage 3 office on the go + AI; spec at `docs/superpowers/specs/2026-08-18-mobile-app-design.md`, awaiting Nic's spec review → implementation plan → build sessions
+- [ ] **Design Load — designer workflow V2.5** — BUILT + reviewed on `feat-designer-load-flow` (2026-08-26 → 28); migrations 0048/0049/0050 applied; Nic's round-2 re-test cleared 13/14. Pending: B3 Telegram-on-due-shift fix + edits 15/16 → Nic merges `feat-designer-load-flow` → `dev` → `main`. Spec `docs/superpowers/specs/2026-08-18-design-load-design.md` (+ Addendum); feedback log `2026-08-27-design-load-smoke-feedback.md`. Parked: live whiteboard in the brief card.
 
 ---
 
