@@ -92,9 +92,9 @@ export function tplDesignAssigned(p: {
 }
 
 // Sent to each assigned designer when a job's install date change shifts its
-// design due date. Telegram-only when the new due date lands EARLIER (the
-// caller decides that — this template just renders the move). Client +
-// install date added for parity with the upgraded bell card (R2-T2 edit 4).
+// design due date — on EVERY shift, earlier or later (Nic 2026-08-31; was
+// earlier-only). This template just renders the move. Client + install date
+// added for parity with the upgraded bell card (R2-T2 edit 4).
 export function tplDesignDueShift(p: {
   projectTitle: string
   oldDue:       string

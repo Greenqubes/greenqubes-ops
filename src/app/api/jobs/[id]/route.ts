@@ -172,7 +172,7 @@ export async function PATCH(
   if ('design_due_date' in body)    updates.design_due_date    = body.design_due_date ?? null
   if ('design_due_manual' in body)  updates.design_due_manual  = !!body.design_due_manual
 
-  let notify: { oldDue: string; newDue: string; movedEarlier: boolean; installDate: string } | null = null
+  let notify: { oldDue: string; newDue: string; installDate: string } | null = null
 
   if (body.date && body.date !== job.date) {
     updates.date = body.date
@@ -196,7 +196,7 @@ export async function PATCH(
       const today    = todaySGT()
       const newDue   = shifted < today ? today : shifted
       updates.design_due_date = newDue
-      notify = { oldDue: job.design_due_date, newDue, movedEarlier: delta < 0, installDate: body.date }
+      notify = { oldDue: job.design_due_date, newDue, installDate: body.date }
     }
   }
 
@@ -249,8 +249,15 @@ export async function PATCH(
         })) as never)
       }
 
-      // Telegram only when the date moved earlier — a later due date is not urgent.
-      if (notify.movedEarlier) {
+      // Telegram on EVERY shift, earlier or later (Nic 2026-08-31 — was
+      // earlier-only, which read as "Telegram didn't send" on a later move).
+      // Only designers who have linked Telegram can receive one; the warn
+      // line is the tell when a job's designers have no chat id (B3: the
+      // test designer accounts had none, so there was nobody to send to).
+      const targets = rows.filter(d => d.users?.telegram_chat_id)
+      if (targets.length === 0) {
+        console.warn('[jobs/patch] due-shift: no assigned designer has a Telegram chat id', { jobId, designers: rows.length })
+      } else {
         const msg = tplDesignDueShift({
           projectTitle: title,
           oldDue:       notify.oldDue,
@@ -259,14 +266,13 @@ export async function PATCH(
           installDate:  notify.installDate,
           jobUrl:       `${APP_URL}/jobs/${jobId}`,
         })
-        await Promise.all(
-          rows
-            .filter(d => d.users?.telegram_chat_id)
-            .map(d => sendTelegram(d.users!.telegram_chat_id!, msg)),
-        )
+        await Promise.all(targets.map(d => sendTelegram(d.users!.telegram_chat_id!, msg)))
       }
-    } catch {
-      // swallow notification errors — the date/shift already saved
+    } catch (err) {
+      // Never block the save on a notification failure — the date/shift is
+      // already committed — but say why in Vercel → Logs instead of
+      // swallowing it silently.
+      console.error('[jobs/patch] due-shift notify failed', err)
     }
   }
 

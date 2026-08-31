@@ -94,8 +94,8 @@ No other field edits, no financials.
   If the shifted date would land before today, it clamps to today (urgency
   maxes out). Every auto-shift sends the assigned designers a bell
   notification ("Design due date moved: 15 Sep → 7 Sep — install date
-  changed"), plus Telegram when the date moved *earlier* (bad news must
-  arrive). The manual flag survives the shift — the AI still never re-proposes
+  changed"), plus Telegram on **every** shift, earlier or later (Nic 2026-08-31 —
+  originally earlier-only). The manual flag survives the shift — the AI still never re-proposes
   over a manual date.
 - Reserved slot for the future **Whiteboard** button.
 
@@ -314,7 +314,7 @@ Bugs). **English only — no zh strings** (single reader: Nic). Read-only.
 |---|---|---|
 | Designer assigned | Bell + Telegram | the assigned designer |
 | 3-day unticked reminder | Bell (Yes/No + slider) | each assigned designer |
-| Due date auto-shifted | Bell (+ Telegram if moved earlier) | each assigned designer |
+| Due date auto-shifted | Bell + Telegram on every shift, earlier or later (Nic 2026-08-31 — was earlier-only) | each assigned designer |
 
 New i18n strings in **en + zh** (Bengali frozen) — except the AI Scores tab,
 which is English-only.
