@@ -2,11 +2,15 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-28 (feat-design — Design Load (designer workflow V2.5) BUILT on `feat-designer-load-flow`, not merged. Your round-2 re-test cleared 13 of 14 edits. **Next session: B3 Telegram fix + two small edits, then your merge call.** Seven small decisions pending below.)_
+_Last updated: 2026-08-31 (fix-auth — **Google first-login bounce fixed, live on production**; the app's gatekeeper (middleware) found to have never run and switched on; Vercel preview bypass set up. Design Load (`feat-designer-load-flow`) still NOT merged — **next session: B3 Telegram fix + two small edits, then your merge call.** Seven small Design Load decisions still pending below.)_
 
 ---
 
 ## Pending — Next Session
+
+### Auth (from 2026-08-31, fix-auth)
+
+- [ ] **If anyone is ever bounced to `/login?error=auth` again** — the reason is now written to Vercel → Logs as a `[auth/callback] …` line; copy it to Claude. Expected to be rare now (the stale-cookie cause is fixed and the gatekeeper keeps sessions fresh).
 
 ### Design Load — designer workflow (from 2026-08-18 → 2026-08-28, feat-design)
 
@@ -179,6 +183,18 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-08-31, fix-auth — Google First-Login Bounce Fixed + Gatekeeper Switched On)
+
+- [x] **[Nic] First Google login no longer bounces** — your report (first sign-in → `/login?error=auth`, second works) was traced to a leftover "stale" login cookie: while the sign-in was being completed, the app tried to refresh that dead cookie in the background, and the clean-up from that failure threw away the one-time login code. Live on production (dev → preview → main same day).
+- [x] **[Nic] Found underneath: the app's gatekeeper had never run** — the file sat in the wrong folder, so Next.js ignored it on every deployment since day one. Pages checked the login themselves, so nobody noticed — but it's the only place a refreshed session can be saved, which is how cookies went stale in the first place. It now runs (unknown pages bounce to login, stale cookies are cleared on the first redirect); crons, Telegram webhooks, external installer links and the mockups were verified untouched on production.
+- [x] **[Nic] Login page finally shows the error message** — "Something went wrong…" / "This account has been removed…" instead of a silent bounce.
+- [x] **[Nic] Preview checklist passed on the dev preview → merged to main** — all five points checked by you; production probed afterwards.
+- [x] **[Nic] Vercel Protection Bypass for Automation set up (your pick: dashboard only, no app button)** — secret generated in Vercel → Settings → Deployment Protection and stored in `.env.local` on this PC (git-ignored). Claude can now probe previews directly instead of handing you a checklist. Revoke it from the same screen if it ever leaks.
+- [x] **[Nic] AI importance tagger** — skipped, no changes (your call at session start).
+- Note: the Design Load branch inherits today's fix automatically when it lands on `dev` (one shared file, `en.ts`, may need a one-line merge nudge). Its own preview keeps the old login bounce until then.
 
 ---
 
