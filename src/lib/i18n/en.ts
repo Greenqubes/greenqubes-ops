@@ -205,6 +205,7 @@ export const en = {
   checkEmail: 'Check your email',
   checkEmailDetail: 'A sign-in link is on its way. You can close this tab.',
   authError: 'Something went wrong. Try again or contact your administrator.',
+  authAccountRemoved: 'This account has been removed. Contact your administrator.',
   signOut: 'Sign out',
   notProvisioned: 'Your account isn\'t set up yet. Contact your administrator.',
 
