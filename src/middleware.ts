@@ -1,7 +1,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { classifyPath } from '@/lib/auth/middleware-scope'
+
+// This file MUST live in src/ — with the app under src/, Next.js ignores a middleware.ts
+// at the repo root. It sat at the root (and silently never ran) until 2026-08-31.
 
 export async function middleware(request: NextRequest) {
+  const scope = classifyPath(request.nextUrl.pathname)
+  if (scope === 'skip') return NextResponse.next()
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -23,45 +30,40 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Refreshes the auth token. Required by @supabase/ssr — do not remove or
-  // move below the redirect checks, as it must run before getUser().
+  // Refreshes the auth token — or clears a dead session. Required by @supabase/ssr
+  // (server components cannot write cookies, so this is the only place a refreshed
+  // token gets saved). Must run before any redirect decision.
   const { data: { user } } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
-  const isAuthRoute = pathname === '/login' || pathname.startsWith('/auth/')
-  const isWebhookRoute = pathname.startsWith('/api/telegram/') || pathname.startsWith('/api/cron/')
-  // External installer links — public by design; the unguessable token is the
-  // identity and /api/ext validates it (404 unknown / 410 deleted).
-  const isExternalRoute = pathname.startsWith('/ext/') || pathname.startsWith('/api/ext/')
-
-  // Unauthenticated users can only access auth routes
-  if (!user && !isAuthRoute && !isWebhookRoute && !isExternalRoute) {
+  // A redirect is a NEW response object: copy the cookies Supabase just set or cleared
+  // onto it, otherwise a refreshed (or cleared) session never reaches the browser.
+  function redirectTo(pathname: string, params?: Record<string, string>) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    url.pathname = pathname
+    url.search = ''
+    for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value)
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
+    return response
   }
+
+  // Signed-in users don't need the login page
+  if (scope === 'login') {
+    return user ? redirectTo('/') : supabaseResponse
+  }
+
+  // Everything else needs a signed-in user
+  if (!user) return redirectTo('/login')
 
   // Soft-deleted users are signed out
-  if (user && !isAuthRoute) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('deleted_at')
-      .eq('auth_id', user.id)
-      .maybeSingle()
-    if (profile?.deleted_at) {
-      await supabase.auth.signOut()
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      url.searchParams.set('error', 'account_removed')
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // Authenticated users don't need to see the login page
-  if (user && pathname === '/login') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+  const { data: profile } = await supabase
+    .from('users')
+    .select('deleted_at')
+    .eq('auth_id', user.id)
+    .maybeSingle()
+  if (profile?.deleted_at) {
+    await supabase.auth.signOut()
+    return redirectTo('/login', { error: 'account_removed' })
   }
 
   return supabaseResponse
@@ -69,6 +71,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|presentation\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|presentation\.html|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
