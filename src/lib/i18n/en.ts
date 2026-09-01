@@ -240,6 +240,8 @@ export const en = {
   notifClientLine:  'Client: {client}',
   notifInstallLine: 'Install date: {date}',
   notifDuePrefix:   'Due date:',
+  notifDueUnchanged: '(unchanged)',
+  notifDueNotSet:    'not set',
   notifClearAll:    'Clear all',
   notifClearOne:    'Clear notification',
 

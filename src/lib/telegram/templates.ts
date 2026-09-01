@@ -113,6 +113,28 @@ export function tplDesignDueShift(p: {
   )
 }
 
+// Sent to each assigned designer when a job's install date moves WITHOUT the
+// design due date following it — the office kept its typed due date in the
+// "Install date moved" prompt, or the job had no due date to shift. Edit 17
+// (Nic, 2026-09-01): designers must still hear that the install date moved.
+export function tplDesignInstallShift(p: {
+  projectTitle:   string
+  client:         string
+  oldInstallDate: string
+  installDate:    string
+  dueDate:        string | null
+  jobUrl:         string
+}): string {
+  return (
+    `📅 <b>Install Date Moved</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}\n` +
+    `<b>Due date:</b> ${p.dueDate ? `${formatDate(p.dueDate)} (unchanged)` : 'not set'}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
 // Wording per Nic (Phase 4 smoke test): make clear they support the main team.
 export function tplSubInstallerAssigned(p: {

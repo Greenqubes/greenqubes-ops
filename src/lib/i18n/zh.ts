@@ -209,6 +209,8 @@ export const zh: Partial<Translations> = {
   notifClientLine:  '客户：{client}',
   notifInstallLine: '安装日期：{date}',
   notifDuePrefix:   '截止日期：',
+  notifDueUnchanged: '（未变）',
+  notifDueNotSet:    '未设定',
   notifClearAll:    '全部清除',
   notifClearOne:    '清除通知',
 

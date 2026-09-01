@@ -315,6 +315,7 @@ Bugs). **English only — no zh strings** (single reader: Nic). Read-only.
 | Designer assigned | Bell + Telegram | the assigned designer |
 | 3-day unticked reminder | Bell (Yes/No + slider) | each assigned designer |
 | Due date auto-shifted | Bell + Telegram on every shift, earlier or later (Nic 2026-08-31 — was earlier-only) | each assigned designer |
+| Install date moved, due date kept or none | Bell + Telegram "Install date moved: old → new" with the due date shown as unchanged / not set (edit 17, Nic 2026-09-01) | each assigned designer |
 
 New i18n strings in **en + zh** (Bengali frozen) — except the AI Scores tab,
 which is English-only.

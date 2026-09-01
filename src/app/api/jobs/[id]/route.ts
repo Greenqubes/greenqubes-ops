@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplDesignDueShift } from '@/lib/telegram/templates'
+import { tplDesignDueShift, tplDesignInstallShift } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
 
@@ -172,7 +172,14 @@ export async function PATCH(
   if ('design_due_date' in body)    updates.design_due_date    = body.design_due_date ?? null
   if ('design_due_manual' in body)  updates.design_due_manual  = !!body.design_due_manual
 
-  let notify: { oldDue: string; newDue: string; installDate: string } | null = null
+  // What the assigned designers get told about this save, if anything:
+  // - due_shift:     the install date moved and the due date followed it
+  // - install_shift: the install date moved but the due date did NOT follow —
+  //                  kept via the prompt, or there was none to shift (edit 17,
+  //                  Nic 2026-09-01: designers still hear about the move)
+  type DueShiftNotify     = { kind: 'due_shift'; oldDue: string; newDue: string; installDate: string }
+  type InstallShiftNotify = { kind: 'install_shift'; oldInstallDate: string; installDate: string; dueDate: string | null }
+  let notify: DueShiftNotify | InstallShiftNotify | null = null
 
   if (body.date && body.date !== job.date) {
     updates.date = body.date
@@ -196,7 +203,13 @@ export async function PATCH(
       const today    = todaySGT()
       const newDue   = shifted < today ? today : shifted
       updates.design_due_date = newDue
-      notify = { oldDue: job.design_due_date, newDue, installDate: body.date }
+      notify = { kind: 'due_shift', oldDue: job.design_due_date, newDue, installDate: body.date }
+    } else {
+      // The due date after this save: the kept/typed one from the body if it
+      // was sent (it landed via the whitelist above), else whatever the job
+      // already had (null when there's none).
+      const dueAfterSave = ('design_due_date' in updates ? updates.design_due_date : job.design_due_date) as string | null
+      notify = { kind: 'install_shift', oldInstallDate: job.date, installDate: body.date, dueDate: dueAfterSave }
     }
   }
 
@@ -224,48 +237,45 @@ export async function PATCH(
         .select('user_id, users(telegram_chat_id)')
         .eq('job_id', jobId) as { data: DesignerContact[] | null; error: unknown }
 
-      const rows = designers ?? []
-      const title = job.project_title ?? 'Untitled job'
+      const rows   = designers ?? []
+      const title  = job.project_title ?? 'Untitled job'
+      const jobUrl = `${APP_URL}/jobs/${jobId}`
+      const n = notify // const copy so the narrowing survives the closures below
+
       // JSON body (R2-T2 edit 4): carries client + install date alongside the
-      // due-date move so the drawer can render "Due date: old → new" plus
-      // Client/Install date. Pre-upgrade rows had a plain "old → new" body
-      // string — NotificationDrawer's parser falls back to that rendering
-      // when JSON.parse fails, so older rows still render sensibly.
-      const bodyJson = JSON.stringify({
-        projectTitle: title,
-        oldDue:       notify.oldDue,
-        newDue:       notify.newDue,
-        client:       job.client,
-        installDate:  notify.installDate,
-      })
+      // move so the drawer can render "Due date: old → new" (or, for an
+      // install-only move, "Install date: old → new" + the unchanged due
+      // date) plus Client/Install date. Pre-upgrade rows had a plain
+      // "old → new" body string — NotificationDrawer's parser falls back to
+      // that rendering when JSON.parse fails, so older rows still render.
+      const notifType = n.kind === 'due_shift' ? 'design_due_shift' : 'design_install_shift'
+      const bodyJson  = n.kind === 'due_shift'
+        ? JSON.stringify({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate })
+        : JSON.stringify({ projectTitle: title, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, client: job.client })
 
       if (rows.length > 0) {
         await svc.from('notifications').insert(rows.map(d => ({
           user_id: d.user_id,
-          type:    'design_due_shift',
+          type:    notifType,
           job_id:  jobId,
           title,
           body:    bodyJson,
         })) as never)
       }
 
-      // Telegram on EVERY shift, earlier or later (Nic 2026-08-31 — was
-      // earlier-only, which read as "Telegram didn't send" on a later move).
-      // Only designers who have linked Telegram can receive one; the warn
-      // line is the tell when a job's designers have no chat id (B3: the
-      // test designer accounts had none, so there was nobody to send to).
+      // Telegram on EVERY move — due date shifted earlier or later (Nic
+      // 2026-08-31; was earlier-only, which read as "Telegram didn't send"
+      // on a later move), or install date moved with the due date kept
+      // (edit 17). Only designers who have linked Telegram can receive one;
+      // the warn line is the tell when a job's designers have no chat id
+      // (B3: the test designer accounts had none — nobody to send to).
       const targets = rows.filter(d => d.users?.telegram_chat_id)
       if (targets.length === 0) {
-        console.warn('[jobs/patch] due-shift: no assigned designer has a Telegram chat id', { jobId, designers: rows.length })
+        console.warn(`[jobs/patch] ${n.kind}: no assigned designer has a Telegram chat id`, { jobId, designers: rows.length })
       } else {
-        const msg = tplDesignDueShift({
-          projectTitle: title,
-          oldDue:       notify.oldDue,
-          newDue:       notify.newDue,
-          client:       job.client,
-          installDate:  notify.installDate,
-          jobUrl:       `${APP_URL}/jobs/${jobId}`,
-        })
+        const msg = n.kind === 'due_shift'
+          ? tplDesignDueShift({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate, jobUrl })
+          : tplDesignInstallShift({ projectTitle: title, client: job.client, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, jobUrl })
         await Promise.all(targets.map(d => sendTelegram(d.users!.telegram_chat_id!, msg)))
       }
     } catch (err) {

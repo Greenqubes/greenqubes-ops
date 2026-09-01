@@ -95,6 +95,23 @@ function parseDueShiftBody(raw: string | null): DueShiftBody | null {
   return null
 }
 
+// design_install_shift (edit 17, Nic 2026-09-01): the install date moved but
+// the design due date did NOT follow — kept via the "Install date moved"
+// prompt, or the job had none to shift. Born as JSON, so no plain-text
+// fallback rows exist for this type.
+type InstallShiftBody = { projectTitle: string; oldInstallDate: string; installDate: string; dueDate: string | null; client: string }
+
+function parseInstallShiftBody(raw: string | null): InstallShiftBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<InstallShiftBody> | null
+    if (v && typeof v === 'object' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string' && (typeof v.dueDate === 'string' || v.dueDate === null)) {
+      return v as InstallShiftBody
+    }
+  } catch { /* malformed row */ }
+  return null
+}
+
 interface Props {
   lang: LangCode
 }
@@ -530,6 +547,50 @@ export function NotificationDrawer({ lang }: Props) {
                   </p>
                   <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
                   <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', formatDate(parsed.installDate))}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    // Install date moved, due date kept (edit 17) — same card shape as the
+    // due-shift one, but the move is on the install line and the due line
+    // says the date stayed put (or that there is none).
+    if (n.type === 'design_install_shift') {
+      const parsed = parseInstallShiftBody(n.body)
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifInstallLine').replace('{date}', `${formatDate(parsed.oldInstallDate)} → ${formatDate(parsed.installDate)}`)}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifDuePrefix')} {parsed.dueDate ? `${formatDate(parsed.dueDate)} ${t(lang, 'notifDueUnchanged')}` : t(lang, 'notifDueNotSet')}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
                 </>
               ) : (
                 n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>

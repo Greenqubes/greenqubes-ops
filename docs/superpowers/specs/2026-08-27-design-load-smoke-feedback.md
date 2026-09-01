@@ -60,4 +60,4 @@ R3 FIX BATCH (2026-09-01):
 - Edit 16 DONE — en + zh copy: "This marks the design work as done — no design rating is recorded."
 
 R3 RE-TEST NOTES (2026-09-01):
-17. "Keep my date" in the install-date-moved prompt fires no Telegram (and no bell card). BY DESIGN today: keep = no due-date shift = no "Design Due Date Moved" notification. PENDING NIC: notify designers anyway on the keep path with different wording — "Install date moved: old → new — design due date unchanged (6 Sep)" — bell + Telegram. Not built until confirmed.
+17. "Keep my date" in the install-date-moved prompt fires no Telegram (and no bell card). BY DESIGN today: keep = no due-date shift = no "Design Due Date Moved" notification. CONFIRMED by Nic + BUILT 2026-09-01: new notification type `design_install_shift` — bell card + Telegram "Install date moved: old → new" with "Due date: X (unchanged)" (or "not set" when the job has none); covers both the keep-my-date path and jobs with no due date.
