@@ -41,7 +41,7 @@ export const zh: Partial<Translations> = {
   designRatingConfirm: '确认 — 设计完成',
   designReopenBtn: '重新打开设计',
   designCompleteConfirmTitle: '标记设计完成？',
-  designCompleteConfirmBody: '这会将设计工作标记为已完成 — 调度员/管理员的操作不会记录评分。',
+  designCompleteConfirmBody: '这会将设计工作标记为已完成 — 不会记录设计评分。',
   designReopenConfirmTitle: '重新打开此设计工作？',
   designReopenConfirmBody: '该工作将重新出现在设计看板中，并清除之前的评分。',
   designJoProtected: '设计完成需要此文件夹',

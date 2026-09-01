@@ -60,7 +60,7 @@ export const en = {
   designRatingConfirm: 'Confirm — design done',
   designReopenBtn: 'Reopen design',
   designCompleteConfirmTitle: 'Mark design completed?',
-  designCompleteConfirmBody: 'This marks the design work as done — no rating is recorded for a scheduler/admin override.',
+  designCompleteConfirmBody: 'This marks the design work as done — no design rating is recorded.',
   designReopenConfirmTitle: 'Reopen this design job?',
   designReopenConfirmBody: 'The job reappears on the Design Load board and any rating is cleared.',
   designJoProtected: 'This bucket is required for design completion',
