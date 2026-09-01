@@ -317,6 +317,7 @@ Bugs). **English only — no zh strings** (single reader: Nic). Read-only.
 | Due date auto-shifted | Bell + Telegram on every shift, earlier or later (Nic 2026-08-31 — was earlier-only) | each assigned designer |
 | Install date moved, due date kept or none | Bell + Telegram "Install date moved: old → new" with the due date shown as unchanged / not set (edit 17, Nic 2026-09-01) | each assigned designer |
 | Due date cleared by the office | Bell + Telegram "Design Due Date Removed — was X"; a cleared date stays cleared (manual flag) and the auto-shift never resurrects it (edit 18, Nic 2026-09-01) | each assigned designer |
+| Due date typed by hand (new or changed) and kept | Bell + Telegram "Design Due Date Set" (first date) / "Design Due Date Changed" (old → new); a same-save install move shows on the install line. Not sent when "use shifted date" discarded the typed value — the auto-shift message covers that (edit 19, Nic 2026-09-01) | each assigned designer |
 
 New i18n strings in **en + zh** (Bengali frozen) — except the AI Scores tab,
 which is English-only.

@@ -159,6 +159,34 @@ export function tplDesignDueRemoved(p: {
   )
 }
 
+// Sent to each assigned designer when the office types a design due date by
+// hand — a first date ("Set") or a different one ("Changed") — and it sticks
+// (edit 19, Nic 2026-09-01). The install line shows a same-save move too.
+export function tplDesignDueSet(p: {
+  projectTitle:   string
+  client:         string
+  oldDue:         string | null
+  newDue:         string
+  oldInstallDate: string
+  installDate:    string
+  jobUrl:         string
+}): string {
+  const installLine = p.oldInstallDate === p.installDate
+    ? formatDate(p.installDate)
+    : `${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}`
+  const dueLine = p.oldDue
+    ? `${formatDate(p.oldDue)} → ${formatDate(p.newDue)}`
+    : formatDate(p.newDue)
+  return (
+    `📌 <b>Design Due Date ${p.oldDue ? 'Changed' : 'Set'}</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${installLine}\n` +
+    `<b>Due date:</b> ${dueLine}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
 // Wording per Nic (Phase 4 smoke test): make clear they support the main team.
 export function tplSubInstallerAssigned(p: {

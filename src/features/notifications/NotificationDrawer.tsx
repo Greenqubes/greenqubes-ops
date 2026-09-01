@@ -128,6 +128,21 @@ function parseDueRemovedBody(raw: string | null): DueRemovedBody | null {
   return null
 }
 
+// design_due_set (edit 19, Nic 2026-09-01): the office typed a due date by
+// hand — oldDue null means a first date, otherwise a change.
+type DueSetBody = { projectTitle: string; oldDue: string | null; newDue: string; oldInstallDate: string; installDate: string; client: string }
+
+function parseDueSetBody(raw: string | null): DueSetBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<DueSetBody> | null
+    if (v && typeof v === 'object' && (typeof v.oldDue === 'string' || v.oldDue === null) && typeof v.newDue === 'string' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string') {
+      return v as DueSetBody
+    }
+  } catch { /* malformed row */ }
+  return null
+}
+
 interface Props {
   lang: LangCode
 }
@@ -651,6 +666,55 @@ export function NotificationDrawer({ lang }: Props) {
                   <p className="text-[11px] text-muted mt-0.5">
                     {t(lang, 'notifDuePrefix')} {t(lang, 'notifDueRemoved').replace('{date}', formatDate(parsed.oldDue))}
                   </p>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', installLine)}</p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    // Due date set or changed by hand (edit 19) — same card shape; the due
+    // line reads "set: X" for a first date, "old → new" for a change.
+    if (n.type === 'design_due_set') {
+      const parsed = parseDueSetBody(n.body)
+      const installLine = parsed
+        ? (parsed.oldInstallDate === parsed.installDate
+            ? formatDate(parsed.installDate)
+            : `${formatDate(parsed.oldInstallDate)} → ${formatDate(parsed.installDate)}`)
+        : ''
+      const dueLine = parsed
+        ? (parsed.oldDue
+            ? `${formatDate(parsed.oldDue)} → ${formatDate(parsed.newDue)}`
+            : t(lang, 'notifDueSet').replace('{date}', formatDate(parsed.newDue)))
+        : ''
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifDuePrefix')} {dueLine}</p>
                   <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', installLine)}</p>
                   <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
                 </>
