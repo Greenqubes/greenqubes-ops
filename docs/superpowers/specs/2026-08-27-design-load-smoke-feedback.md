@@ -58,3 +58,6 @@ R3 FIX BATCH (2026-09-01):
   RE-TEST NOTE (B3): you must be an assigned designer yourself (you are, on Test1). Move the install date WITHOUT typing a due date in the same save — or answer Shift, not Keep, in the prompt — otherwise no shift happens and nothing fires by design. Wan Jun / Yu Fei have no Telegram link, so they only ever get bell cards.
 - Edit 15 DONE — on release the button slides (220 ms) to the nearer side edge, 16 px in (the same inset as its default spot), vertical position kept; the snapped spot is what's persisted; stored/resized positions re-snap and keep their side when the window widens.
 - Edit 16 DONE — en + zh copy: "This marks the design work as done — no design rating is recorded."
+
+R3 RE-TEST NOTES (2026-09-01):
+17. "Keep my date" in the install-date-moved prompt fires no Telegram (and no bell card). BY DESIGN today: keep = no due-date shift = no "Design Due Date Moved" notification. PENDING NIC: notify designers anyway on the keep path with different wording — "Install date moved: old → new — design due date unchanged (6 Sep)" — bell + Telegram. Not built until confirmed.
