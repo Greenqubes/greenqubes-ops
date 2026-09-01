@@ -13,6 +13,16 @@ import type { Role } from '@/lib/supabase/types'
 // clash check only ran at push time. Options depend on who is saving:
 //   coordinator          → Alert Scheduler (save + Telegram schedulers) / Re-assign
 //   scheduler / admin    → Save Anyway / Go Back (they resolve clashes themselves)
+//
+// Smoke feedback edit 8 (2026-08-27) narrowed WHEN this opens for
+// coordinator — they can no longer dirty the formal installer list (suggest-
+// only now), so their pre-flight (JobDetailShell's needsCheck) only fires on
+// a TIME change on a scheduled job with existing installers, never on an
+// installer swap. Code-review fix (same day, Critical #1) restored that
+// path after a first pass over-narrowed the pre-flight to scheduler-only
+// and made this branch briefly unreachable for coordinator — see
+// JobDetailShell.tsx's needsCheck and assign-installers/route.ts's checkOnly
+// gate for the mechanics. Scheduler/admin behavior here is unchanged.
 
 export interface CheckClash {
   installerId:   string

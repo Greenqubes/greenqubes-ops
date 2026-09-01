@@ -2,62 +2,18 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { NAV_TABS } from '@/lib/navTabs'
 import type { Role } from '@/lib/supabase/types'
 
-type Tab = { href: string; label: string; Icon: typeof Calendar }
-
-const TABS: Record<Role, Tab[]> = {
-  scheduler: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  sales: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/pending',   label: 'Pending',   Icon: Clock         },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  // No FCFS for installers — the board is a scheduler/coordinator planning tool.
-  // Installers only need to know the jobs they're on. (Nic's call, 2026-07-22.)
-  installer: [
-    { href: '/installer', label: 'My Jobs',   Icon: HardHat       },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  admin: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  coordinator: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  designer: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-  production: [
-    { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
-    { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
-    { href: '/assistant', label: 'Assistant', Icon: Bot           },
-  ],
-}
-
+// Desktop-only (≥lg) since R2-T5 / F1 — the mobile nav drawer (NavDrawer,
+// driven by the same NAV_TABS) replaces this bar below lg in every shell
+// that renders it. Callers are responsible for the `hidden lg:block`
+// wrapper (kept out of this component so a future desktop-only consumer
+// isn't forced to fight it).
 export function BottomNav({ role }: { role: Role }) {
   const pathname = usePathname()
-  const tabs = TABS[role]
+  const tabs = NAV_TABS[role]
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-paper border-t border-line">

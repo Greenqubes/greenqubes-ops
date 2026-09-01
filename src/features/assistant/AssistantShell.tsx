@@ -4,12 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, Send, RotateCcw, Bot, User, ExternalLink, Sparkles,
-  ChevronDown, Menu, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
+  ChevronDown, History, Plus, Mic, Square, Home, Paperclip, X, ClipboardList, Folder,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { MAX_FILES_PER_MESSAGE, MAX_MESSAGE_BYTES, validateAttachment } from '@/lib/ai/attachments'
 import type { ChatAttachment } from '@/lib/ai/attachments'
 import { BottomNav } from '@/components/BottomNav'
+import { NavDrawer } from '@/components/NavDrawer'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
@@ -570,7 +571,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
 
       {/* ── Company bar + sub-header (desktop only — phone gets the slim bar) ── */}
       <div className="hidden md:block">
-        <CompanyBar lang={lang} />
+        <CompanyBar lang={lang} role={role} />
       </div>
 
       <div className="hidden shrink-0 border-b border-line bg-paper px-4 py-3 md:flex items-center gap-3">
@@ -604,22 +605,33 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
         )}
       </div>
 
-      {/* ── Phone: slim app-like top bar — hamburger left (drawer side), home right ── */}
+      {/* ── Phone: slim app-like top bar — chat-history trigger left (its
+          own drawer, unrelated to site nav), site nav drawer + home right.
+          This shell hides CompanyBar below md for chat real estate, so the
+          R2-T5 / F1 nav drawer trigger lives here instead — NavDrawer is
+          self-contained (renders its own trigger + backdrop + panel), so it
+          just drops in as a second icon beside Home. The two triggers use
+          distinct glyphs (History vs. NavDrawer's own Menu) — Menu now
+          means "site nav" everywhere else in the app, so reusing it here
+          for a different drawer read as two identical hamburgers. ── */}
       <div className="md:hidden shrink-0 border-b border-line bg-paper px-2.5 py-2 flex items-center justify-between">
         <button
           onClick={() => setDrawerOpen(true)}
           className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          aria-label="Menu"
+          aria-label="Chat history"
         >
-          <Menu size={18} />
+          <History size={18} />
         </button>
-        <Link
-          href={backHref}
-          className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
-          aria-label={t(lang, 'backToSchedule')}
-        >
-          <Home size={18} />
-        </Link>
+        <div className="flex items-center gap-1">
+          <NavDrawer role={role} lang={lang} />
+          <Link
+            href={backHref}
+            className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
+            aria-label={t(lang, 'backToSchedule')}
+          >
+            <Home size={18} />
+          </Link>
+        </div>
       </div>
 
       {/* ── Below header: sidebar + main content side by side ── */}
@@ -802,7 +814,10 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
           </div>
         </div>
 
-        <BottomNav role={role} />
+        {/* Nav drawer (CompanyBar/slim bar above) replaces this below lg — R2-T5 / F1 */}
+        <div className="hidden lg:block">
+          <BottomNav role={role} />
+        </div>
       </div>
       </div>
 

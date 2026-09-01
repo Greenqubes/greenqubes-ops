@@ -1,11 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bell, X, Hourglass, ArrowRight, RotateCcw, Trash2, Check } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
+import { DesignRatingSlider } from '@/features/job-detail/DesignRatingSlider'
+import { formatDate } from '@/lib/telegram/templates'
 import type { LangCode } from '@/lib/i18n'
 
 type InAppNotif = {
@@ -48,6 +52,97 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+// Reads a JSON { error } body off a failed response, if there is one — same
+// helper shape as JobDetailShell's errorCodeOf, used to turn a 409
+// no-jo-file into the designReminderNoJo toast instead of the generic one.
+async function errorCodeOf(res: Response): Promise<string | null> {
+  try {
+    const body = await res.json() as { error?: string }
+    return body.error ?? null
+  } catch {
+    return null
+  }
+}
+
+// design_assigned / design_due_shift upgraded their `body` column to a JSON
+// blob (R2-T2 edit 4) so the drawer can show who assigned + client + install
+// date, and the due-shift line as "Due date: old → new". Pre-upgrade rows
+// carry a plain-text body (the project title, or "old → new") — JSON.parse
+// throws on those, so callers fall back to the original single-line
+// rendering and older rows still render sensibly.
+type AssignedBody  = { projectTitle: string; assignedBy: string; client: string; installDate: string }
+type DueShiftBody  = { projectTitle: string; oldDue: string; newDue: string; client: string; installDate: string }
+
+function parseAssignedBody(raw: string | null): AssignedBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<AssignedBody> | null
+    if (v && typeof v === 'object' && typeof v.assignedBy === 'string' && typeof v.client === 'string' && typeof v.installDate === 'string') {
+      return v as AssignedBody
+    }
+  } catch { /* pre-upgrade plain-text row */ }
+  return null
+}
+
+function parseDueShiftBody(raw: string | null): DueShiftBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<DueShiftBody> | null
+    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.newDue === 'string' && typeof v.client === 'string' && typeof v.installDate === 'string') {
+      return v as DueShiftBody
+    }
+  } catch { /* pre-upgrade plain-text row */ }
+  return null
+}
+
+// design_install_shift (edit 17, Nic 2026-09-01): the install date moved but
+// the design due date did NOT follow — kept via the "Install date moved"
+// prompt, or the job had none to shift. Born as JSON, so no plain-text
+// fallback rows exist for this type.
+type InstallShiftBody = { projectTitle: string; oldInstallDate: string; installDate: string; dueDate: string | null; client: string }
+
+function parseInstallShiftBody(raw: string | null): InstallShiftBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<InstallShiftBody> | null
+    if (v && typeof v === 'object' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string' && (typeof v.dueDate === 'string' || v.dueDate === null)) {
+      return v as InstallShiftBody
+    }
+  } catch { /* malformed row */ }
+  return null
+}
+
+// design_due_removed (edit 18, Nic 2026-09-01): the office cleared the due
+// date. installDate/oldInstallDate differ only when the same save also
+// moved the install date.
+type DueRemovedBody = { projectTitle: string; oldDue: string; oldInstallDate: string; installDate: string; client: string }
+
+function parseDueRemovedBody(raw: string | null): DueRemovedBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<DueRemovedBody> | null
+    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string') {
+      return v as DueRemovedBody
+    }
+  } catch { /* malformed row */ }
+  return null
+}
+
+// design_due_set (edit 19, Nic 2026-09-01): the office typed a due date by
+// hand — oldDue null means a first date, otherwise a change.
+type DueSetBody = { projectTitle: string; oldDue: string | null; newDue: string; oldInstallDate: string; installDate: string; client: string }
+
+function parseDueSetBody(raw: string | null): DueSetBody | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as Partial<DueSetBody> | null
+    if (v && typeof v === 'object' && (typeof v.oldDue === 'string' || v.oldDue === null) && typeof v.newDue === 'string' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string') {
+      return v as DueSetBody
+    }
+  } catch { /* malformed row */ }
+  return null
+}
+
 interface Props {
   lang: LangCode
 }
@@ -60,6 +155,17 @@ export function NotificationDrawer({ lang }: Props) {
   const [selected,    setSelected]    = useState<Set<string>>(new Set())
   const [deleting,    setDeleting]    = useState(false)
 
+  // design_reminder Yes/No cards (Task 9) — which card's inline rating
+  // slider is expanded, a nonce bumped on every open so the slider gets a
+  // fresh `key` (and therefore fresh internal value/touched state) each time
+  // — a kept-mounted slider does not reset itself between opens.
+  const [openSliderId,     setOpenSliderId]     = useState<string | null>(null)
+  const [sliderNonce,      setSliderNonce]      = useState(0)
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
+
+  const router = useRouter()
+  const { success: showSuccess, error: showError } = useToast()
+
   // localStorage key for overdue alerts this user has marked read on this
   // device (job_id → job date; a reschedule to a new date re-alerts)
   const seenKeyRef = useRef<string | null>(null)
@@ -67,6 +173,13 @@ export function NotificationDrawer({ lang }: Props) {
   const unreadCount   = notifs.filter(n => !n.read).length
   const unreadOverdue = overdueJobs.filter(j => !j.read).length
   const totalBadge    = unreadCount + unreadOverdue
+
+  // Answered design_reminder cards vanish from the drawer (R2-T2 edit 7) —
+  // both Yes and No mark the row read, and a read reminder is simply never
+  // rendered. The row itself stays in `notifs` (its created_at still drives
+  // the cron's 3-day snooze on the No path); this filter only controls what
+  // paints, so bell-badge math (unreadCount above) still counts it.
+  const visibleNotifs = notifs.filter(n => !(n.type === 'design_reminder' && n.read))
 
   const fetchNotifs = useCallback(async () => {
     try {
@@ -173,21 +286,48 @@ export function NotificationDrawer({ lang }: Props) {
     setSelected(new Set())
   }
 
-  async function handleMarkAllRead() {
-    // Grey out overdue alerts on this device (pruned to the current list so
-    // the stored map never grows unbounded)
-    if (overdueJobs.length > 0 && seenKeyRef.current) {
-      const seen: Record<string, string> = {}
-      for (const j of overdueJobs) seen[j.id] = j.date
-      try { localStorage.setItem(seenKeyRef.current, JSON.stringify(seen)) } catch { /* best-effort */ }
-      setOverdueJobs(prev => prev.map(j => ({ ...j, read: true })))
-    }
-    if (unreadCount > 0) {
-      try {
-        await fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
-        setNotifs(prev => prev.map(n => ({ ...n, read: true })))
-      } catch { /* best-effort */ }
-    }
+  // Overdue "Clear All" (R2-T2 edit 4) — overdue cards are computed live from
+  // jobs, not DB rows, so there's nothing to delete; this is the same
+  // per-device mark-as-read mechanism that used to live in the combined
+  // handler, now triggered from the Overdue section header on its own.
+  function handleClearOverdue() {
+    if (overdueJobs.length === 0 || !seenKeyRef.current) return
+    const seen: Record<string, string> = {}
+    for (const j of overdueJobs) seen[j.id] = j.date
+    try { localStorage.setItem(seenKeyRef.current, JSON.stringify(seen)) } catch { /* best-effort */ }
+    setOverdueJobs(prev => prev.map(j => ({ ...j, read: true })))
+  }
+
+  // Updates "Clear All" (R2-T2 edit 4) — hard-deletes every one of the
+  // caller's own notification rows EXCEPT design_reminder (unlike the
+  // Overdue clear above, these are real rows; RLS scopes the omitted-ids
+  // DELETE to the caller). design_reminder rows are excluded — code review
+  // fix (post-R2-T2): their lifecycle is Yes/No only, and deleting one would
+  // erase the created_at the cron's 3-day snooze reads, causing daily
+  // re-nudges. Answered reminders are already hidden by visibleNotifs, so
+  // this changes nothing visible. The route (route.ts) also enforces this
+  // exclusion server-side; this local filter just keeps optimistic state in
+  // sync with what the server will actually do, so a pending reminder never
+  // flashes away and reappears.
+  async function handleClearAllUpdates() {
+    const hasDeletable = notifs.some(n => n.type !== 'design_reminder')
+    if (!hasDeletable) return
+    setNotifs(prev => prev.filter(n => n.type === 'design_reminder'))
+    try {
+      await fetch('/api/notifications', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+    } catch { /* best-effort */ }
+  }
+
+  // Per-card 'X' (R2-T2 edit 4) — deletes just that one notification row.
+  async function deleteOne(id: string) {
+    setNotifs(prev => prev.filter(n => n.id !== id))
+    try {
+      await fetch('/api/notifications', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids: [id] }),
+      })
+    } catch { /* best-effort — optimistic UI already updated */ }
   }
 
   function toggleSelect(id: string) {
@@ -213,6 +353,408 @@ export function NotificationDrawer({ lang }: Props) {
     } catch { /* best-effort */ } finally {
       setDeleting(false)
     }
+  }
+
+  // Mark a single notification read — used by design_reminder's Yes (on a
+  // successful complete) and No (edit 7 — this hides the card via
+  // visibleNotifs above while keeping the row for the cron's 3-day snooze),
+  // and by every other card type's own tap-to-navigate (edit 4 bullet 1).
+  async function markRead(id: string) {
+    try {
+      await fetch('/api/notifications', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids: [id] }),
+      })
+      setNotifs(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))
+    } catch { /* best-effort */ }
+  }
+
+  function handleReminderYes(id: string) {
+    setOpenSliderId(id)
+    setSliderNonce(x => x + 1) // fresh slider mount even when re-opening the same card
+  }
+
+  function handleReminderNo(id: string) {
+    void markRead(id)
+  }
+
+  // Confirm inside the expanded slider — POSTs the rating the same way the
+  // designer action bar does (JobDetailShell.handleDesignComplete). On
+  // 409 no-jo-file the slider stays open and the notification stays unread,
+  // mirroring that same handler's error path.
+  async function handleReminderConfirm(n: InAppNotif, rating: number) {
+    if (!n.job_id) return
+    setRatingSubmitting(true)
+    try {
+      const res = await fetch(`/api/jobs/${n.job_id}/design-complete`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ rating }),
+      })
+      if (!res.ok) {
+        if (res.status === 409 && await errorCodeOf(res) === 'no-jo-file') {
+          showError(t(lang, 'designReminderNoJo'))
+          return
+        }
+        throw new Error()
+      }
+      await markRead(n.id)
+      setOpenSliderId(null)
+      showSuccess(t(lang, 'savedSuccessfully'))
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setRatingSubmitting(false)
+    }
+  }
+
+  // Per-notification card renderer — branches by type. design_reminder gets
+  // the Yes/No + inline slider (a read one never reaches here — visibleNotifs
+  // filters it out, edit 7); design_assigned/design_due_shift parse their
+  // JSON body for the assigner/client/install-date/due-date details (edit 4)
+  // and fall back to the original single-line render for pre-upgrade rows;
+  // everything else (sent_back, …) uses that same generic {title}/{body}
+  // card. Clicking/tapping any card here marks it read AND navigates in one
+  // tap (edit 4 bullet 1) — design_reminder is the one exception, since its
+  // read state is governed entirely by Yes/No (edit 7), not by a body tap.
+  function renderNotifCard(n: InAppNotif) {
+    // design_reminder rows must be unreachable by every delete path — code
+    // review fix (post-R2-T2): their lifecycle is Yes/No only (edit 7's
+    // CRITICAL mechanic — a read reminder's row survives so its created_at
+    // keeps driving the cron's 3-day snooze). Neither the bulk-select
+    // checkbox nor the per-card X render for this type, so a reminder's id
+    // can never enter `selected` or reach deleteOne — the DELETE route
+    // (route.ts) also excludes type='design_reminder' server-side as a
+    // second, independent guarantee.
+    const isReminder = n.type === 'design_reminder'
+
+    const checkbox = selectMode && !isReminder && (
+      <button
+        onClick={() => toggleSelect(n.id)}
+        className="mt-3 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
+        style={{
+          borderColor:     selected.has(n.id) ? 'var(--terracotta)' : 'var(--line)',
+          backgroundColor: selected.has(n.id) ? 'var(--terracotta)' : 'var(--paper)',
+        }}
+      >
+        {selected.has(n.id) && <Check size={9} className="text-white" strokeWidth={3} />}
+      </button>
+    )
+
+    // Per-card 'X' (edit 4 bullet 3) — hidden while bulk-selecting (that
+    // flow already has its own Delete action in the footer) and hidden for
+    // design_reminder (see isReminder note above).
+    const clearBtn = !selectMode && !isReminder && (
+      <button
+        type="button"
+        onClick={() => void deleteOne(n.id)}
+        aria-label={t(lang, 'notifClearOne')}
+        title={t(lang, 'notifClearOne')}
+        className="mt-3 shrink-0 p-1 text-muted hover:text-bad rounded transition-colors"
+      >
+        <X size={12} />
+      </button>
+    )
+
+    const markReadAndNavigate = () => { handleClose(); if (!n.read) void markRead(n.id) }
+
+    if (n.type === 'design_reminder') {
+      const sliderOpen = openSliderId === n.id
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <div
+            onClick={() => { if (n.job_id) { handleClose(); router.push(`/jobs/${n.job_id}`) } }}
+            className="flex-1 p-3 rounded-xl border transition-colors cursor-pointer bg-terracotta-soft border-terracotta/30 hover:brightness-95"
+          >
+            <div className="flex items-start gap-2.5">
+              <div className="shrink-0 mt-0.5">
+                <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-ink">
+                  {t(lang, 'designReminderQ').replace('{title}', n.title)}
+                </p>
+                <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+              </div>
+            </div>
+
+            {sliderOpen ? (
+              <div onClick={e => e.stopPropagation()}>
+                <DesignRatingSlider
+                  key={`${n.id}-${sliderNonce}`}
+                  lang={lang}
+                  busy={ratingSubmitting}
+                  onCancel={() => setOpenSliderId(null)}
+                  onConfirm={rating => handleReminderConfirm(n, rating)}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-2.5" onClick={e => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => handleReminderYes(n.id)}
+                  className="flex-1 px-3 py-1.5 rounded-lg bg-brand-green text-white text-xs font-semibold hover:bg-brand-green/90 transition-colors"
+                >
+                  {t(lang, 'yesBtn')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReminderNo(n.id)}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-line text-ink2 text-xs font-medium hover:bg-bg transition-colors"
+                >
+                  {t(lang, 'noBtn')}
+                </button>
+              </div>
+            )}
+          </div>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    if (n.type === 'design_assigned') {
+      const parsed = parseAssignedBody(n.body)
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className={cn('text-[11px] mt-0.5 truncate', n.read ? 'text-muted' : 'text-ink2')}>{parsed.projectTitle}</p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifAssignedBy').replace('{name}', parsed.assignedBy)}</p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', formatDate(parsed.installDate))}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    if (n.type === 'design_due_shift') {
+      const parsed = parseDueShiftBody(n.body)
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifDuePrefix')} {formatDate(parsed.oldDue)} → {formatDate(parsed.newDue)}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', formatDate(parsed.installDate))}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    // Install date moved, due date kept (edit 17) — same card shape as the
+    // due-shift one, but the move is on the install line and the due line
+    // says the date stayed put (or that there is none).
+    if (n.type === 'design_install_shift') {
+      const parsed = parseInstallShiftBody(n.body)
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifInstallLine').replace('{date}', `${formatDate(parsed.oldInstallDate)} → ${formatDate(parsed.installDate)}`)}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifDuePrefix')} {parsed.dueDate ? `${formatDate(parsed.dueDate)} ${t(lang, 'notifDueUnchanged')}` : t(lang, 'notifDueNotSet')}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    // Due date removed (edit 18) — same card shape; the due line says it was
+    // removed and what it used to be.
+    if (n.type === 'design_due_removed') {
+      const parsed = parseDueRemovedBody(n.body)
+      const installLine = parsed
+        ? (parsed.oldInstallDate === parsed.installDate
+            ? formatDate(parsed.installDate)
+            : `${formatDate(parsed.oldInstallDate)} → ${formatDate(parsed.installDate)}`)
+        : ''
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    {t(lang, 'notifDuePrefix')} {t(lang, 'notifDueRemoved').replace('{date}', formatDate(parsed.oldDue))}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', installLine)}</p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    // Due date set or changed by hand (edit 19) — same card shape; the due
+    // line reads "set: X" for a first date, "old → new" for a change.
+    if (n.type === 'design_due_set') {
+      const parsed = parseDueSetBody(n.body)
+      const installLine = parsed
+        ? (parsed.oldInstallDate === parsed.installDate
+            ? formatDate(parsed.installDate)
+            : `${formatDate(parsed.oldInstallDate)} → ${formatDate(parsed.installDate)}`)
+        : ''
+      const dueLine = parsed
+        ? (parsed.oldDue
+            ? `${formatDate(parsed.oldDue)} → ${formatDate(parsed.newDue)}`
+            : t(lang, 'notifDueSet').replace('{date}', formatDate(parsed.newDue)))
+        : ''
+      return (
+        <div key={n.id} className="flex items-start gap-2">
+          {checkbox}
+          <Link
+            href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+            onClick={markReadAndNavigate}
+            className={cn(
+              'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+              n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+            )}
+          >
+            <div className="shrink-0 mt-0.5">
+              {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+              {n.read && <RotateCcw size={13} className="text-muted" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+              {parsed ? (
+                <>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifDuePrefix')} {dueLine}</p>
+                  <p className="text-[11px] text-muted mt-0.5">{t(lang, 'notifInstallLine').replace('{date}', installLine)}</p>
+                  <p className="text-[11px] text-muted mt-0.5 truncate">{t(lang, 'notifClientLine').replace('{client}', parsed.client)}</p>
+                </>
+              ) : (
+                n.body && <p className="text-[11px] text-muted mt-0.5">{n.body}</p>
+              )}
+              <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+            </div>
+            <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+          </Link>
+          {clearBtn}
+        </div>
+      )
+    }
+
+    return (
+      <div key={n.id} className="flex items-start gap-2">
+        {checkbox}
+        <Link
+          href={n.job_id ? `/jobs/${n.job_id}` : '#'}
+          onClick={markReadAndNavigate}
+          className={cn(
+            'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
+            n.read ? 'bg-paper border-line hover:brightness-95' : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
+          )}
+        >
+          <div className="shrink-0 mt-0.5">
+            {!n.read && <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />}
+            {n.read && <RotateCcw size={13} className="text-muted" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={cn('text-xs font-medium truncate', n.read ? 'text-ink2' : 'text-ink')}>{n.title}</p>
+            {n.body && <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{n.body}</p>}
+            <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
+          </div>
+          <ArrowRight size={12} className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors" />
+        </Link>
+        {clearBtn}
+      </div>
+    )
   }
 
   return (
@@ -261,16 +803,6 @@ export function NotificationDrawer({ lang }: Props) {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {(unreadCount > 0 || unreadOverdue > 0) && !selectMode && (
-              <button
-                onClick={handleMarkAllRead}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-muted hover:text-ink2 hover:bg-bg transition-colors"
-                title="Mark as read"
-              >
-                <Check size={11} />
-                Mark as read
-              </button>
-            )}
             <button
               onClick={handleClose}
               className="p-1 text-muted hover:text-ink rounded transition-colors"
@@ -282,7 +814,7 @@ export function NotificationDrawer({ lang }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
-          {notifs.length === 0 && overdueJobs.length === 0 ? (
+          {visibleNotifs.length === 0 && overdueJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 px-4 text-center">
               <Bell size={28} className="text-muted" strokeWidth={1.5} />
               <p className="text-sm text-muted">{t(lang, 'notificationsNone')}</p>
@@ -291,71 +823,41 @@ export function NotificationDrawer({ lang }: Props) {
             <div className="px-3 py-3 space-y-4">
 
               {/* ── Sent-back notifications ── */}
-              {notifs.length > 0 && (
+              {visibleNotifs.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-muted uppercase tracking-widest px-1">
-                    Updates
-                  </p>
-                  {notifs.map(n => (
-                    <div key={n.id} className="flex items-start gap-2">
-                      {selectMode && (
-                        <button
-                          onClick={() => toggleSelect(n.id)}
-                          className="mt-3 shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors"
-                          style={{
-                            borderColor:     selected.has(n.id) ? 'var(--terracotta)' : 'var(--line)',
-                            backgroundColor: selected.has(n.id) ? 'var(--terracotta)' : 'var(--paper)',
-                          }}
-                        >
-                          {selected.has(n.id) && <Check size={9} className="text-white" strokeWidth={3} />}
-                        </button>
-                      )}
-                      <Link
-                        href={n.job_id ? `/jobs/${n.job_id}` : '#'}
-                        onClick={handleClose}
-                        className={cn(
-                          'flex-1 flex items-start gap-2.5 p-3 rounded-xl border transition-colors group',
-                          n.read
-                            ? 'bg-paper border-line hover:brightness-95'
-                            : 'bg-terracotta-soft border-terracotta/30 hover:brightness-95',
-                        )}
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[11px] text-muted uppercase tracking-widest">
+                      Updates
+                    </p>
+                    {!selectMode && (
+                      <button
+                        type="button"
+                        onClick={() => void handleClearAllUpdates()}
+                        className="text-[10px] font-medium text-muted hover:text-ink2 transition-colors"
                       >
-                        <div className="shrink-0 mt-0.5">
-                          {!n.read && (
-                            <span className="block w-2 h-2 rounded-full bg-terracotta mt-1" />
-                          )}
-                          {n.read && (
-                            <RotateCcw size={13} className="text-muted" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn(
-                            'text-xs font-medium truncate',
-                            n.read ? 'text-ink2' : 'text-ink',
-                          )}>
-                            {n.title}
-                          </p>
-                          {n.body && (
-                            <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{n.body}</p>
-                          )}
-                          <p className="text-[10px] text-muted/60 mt-1">{timeAgo(n.created_at)}</p>
-                        </div>
-                        <ArrowRight
-                          size={12}
-                          className="text-muted group-hover:text-ink2 mt-0.5 shrink-0 transition-colors"
-                        />
-                      </Link>
-                    </div>
-                  ))}
+                        {t(lang, 'notifClearAll')}
+                      </button>
+                    )}
+                  </div>
+                  {visibleNotifs.map(renderNotifCard)}
                 </div>
               )}
 
               {/* ── Overdue jobs ── */}
               {overdueJobs.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-muted uppercase tracking-widest px-1">
-                    {overdueJobs.length} {t(lang, 'overdueCount')}
-                  </p>
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[11px] text-muted uppercase tracking-widest">
+                      {overdueJobs.length} {t(lang, 'overdueCount')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleClearOverdue}
+                      className="text-[10px] font-medium text-muted hover:text-ink2 transition-colors"
+                    >
+                      {t(lang, 'notifClearAll')}
+                    </button>
+                  </div>
                   {overdueJobs.map(job => (
                     <Link
                       key={job.id}
@@ -394,8 +896,8 @@ export function NotificationDrawer({ lang }: Props) {
           )}
         </div>
 
-        {/* Footer — Delete controls (only when there are in-app notifs) */}
-        {notifs.length > 0 && (
+        {/* Footer — Delete controls (only when there are visible in-app notifs) */}
+        {visibleNotifs.length > 0 && (
           <div className="shrink-0 border-t border-line px-4 py-3 flex items-center justify-between gap-2">
             {selectMode ? (
               <>

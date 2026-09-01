@@ -39,8 +39,11 @@ export function ListView({
         onSelectDate={onSelectDate}
       />
 
-      {/* Job list for selected date */}
-      <div className="px-4 pb-24">
+      {/* Job list for selected date — pb-24 was mobile clearance for the
+          fixed BottomNav; gone below lg now (nav drawer instead — R2-T5 /
+          F1). Shared by ScheduleShell and InstallerShell, both lg-gate
+          BottomNav the same way. */}
+      <div className="px-4 pb-8 lg:pb-24">
         {dayJobs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">
             <Calendar size={28} strokeWidth={1.2} />

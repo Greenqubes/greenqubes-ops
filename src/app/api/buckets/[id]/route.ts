@@ -30,14 +30,23 @@ export async function DELETE(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  type BucketRow = { id: string; job_id: string }
+  type BucketRow = { id: string; job_id: string; name: string }
   const { data: bucket } = await service
     .from('attachment_buckets')
-    .select('id, job_id')
+    .select('id, job_id, name')
     .eq('id', bucketId)
     .maybeSingle() as { data: BucketRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
   if (!bucket) return NextResponse.json({ ok: true })
+
+  // The Designer JO bucket is protected for every role, including scheduler
+  // and admin (Task 8) — this route runs on the service client and bypasses
+  // RLS, so the AttachmentBuckets UI hiding the trash icon isn't enough on
+  // its own; the design-complete route and the Task 9 3-day reminder both
+  // find this bucket by name, and a stray delete would silently break both.
+  if (/designer\s*jo/i.test(bucket.name)) {
+    return NextResponse.json({ error: 'Protected bucket' }, { status: 403 })
+  }
 
   const { data: job } = await service
     .from('jobs')

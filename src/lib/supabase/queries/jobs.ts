@@ -160,8 +160,18 @@ export type JobDetail = {
   approved_at:             string | null
   completed_at:            string | null
   completion_override:     boolean
+  design_brief:            string | null
+  design_due_date:         string | null
+  design_due_manual:       boolean
+  // Design-completed flow (Task 8) — the shell needs only the timestamp to
+  // gate the completion pill / scheduler tick / reopen button; the rating
+  // fields belong to Task 11's Flagged strip, not here.
+  design_completed_at:     string | null
   created_at:              string
   updated_at:              string
+  // Addendum §3 (Nic, 2026-08-27) — plain uuid, no FK (the 0035 lesson),
+  // stamped by a BEFORE INSERT trigger; null on every pre-existing job.
+  created_by:               string | null
   job_assignees: Array<{
     user_id:          string
     is_suggestion:    boolean
@@ -211,7 +221,9 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
-      completed_at, completion_override, created_at, updated_at,
+      completed_at, completion_override,
+      design_brief, design_due_date, design_due_manual, design_completed_at,
+      created_at, updated_at, created_by,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
       files ( id, bucket_id, kind, r2_key, name, uploader_id, ts, users!files_uploader_id_fkey ( name ) )
@@ -221,6 +233,22 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
 
   if (error) throw error
   return data as unknown as JobDetail | null
+}
+
+// Creator's display name for the "Created by" line (Addendum §3) — a
+// follow-up query, same rule as attachSalesNames: never embed users onto
+// jobs in a PostgREST select (standing rule; it has broken twice, PGRST201).
+// Returns null for pre-existing jobs (created_by is null) and for the rare
+// case the creator's user row is gone (e.g. hard-deleted).
+export async function getCreatorName(createdBy: string | null): Promise<string | null> {
+  if (!createdBy) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('name')
+    .eq('id', createdBy)
+    .maybeSingle() as { data: { name: string } | null; error: unknown }
+  return data?.name ?? null
 }
 
 export async function updateJobFields(id: string, patch: CoreFieldsPatch): Promise<void> {

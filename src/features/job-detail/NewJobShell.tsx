@@ -12,6 +12,7 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
+import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { Lock, ArrowLeft } from 'lucide-react'
@@ -36,23 +37,41 @@ interface Props {
   allInstallers:       InstallerUser[]
   role:                Role
   coordinatorOptions?: Array<{ id: string; label: string }>
+  designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
+  const [selectedDesignerIds,   setSelectedDesignerIds]  = useState<string[]>([])
+  // Design brief card (Task 6) — pre-book is exempt from the required rule.
+  // Brief text, and a picked due date (with dueManual, per handleDueDate
+  // below), all ride into the create payload; dueManual is only ever true
+  // once the user has actually touched the date field, so an untouched due
+  // date rides in as null/false exactly as if the fields were omitted.
+  const [briefText,             setBriefText]            = useState('')
+  const [dueDate,                setDueDate]             = useState<string | null>(null)
+  const [dueManual,              setDueManual]           = useState(false)
+  const handleDueDate = (v: string | null) => { setDueDate(v); setDueManual(true) }
   const [showPushedModal,       setShowPushedModal]      = useState(false)
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Sales pick installers as tentative suggestions (yellow); scheduler/coordinator/
-  // admin creating a job assign them formally (green).
-  const suggestMode = role === 'sales'
+  // Sales AND coordinator pick installers as tentative suggestions (yellow);
+  // only scheduler/admin creating a job assign them formally (green). Smoke
+  // feedback edit 8 (Nic explicit, 2026-08-27): coordinator loses formal
+  // installer assignment everywhere, including here at job creation.
+  const suggestMode = role === 'sales' || role === 'coordinator'
+
+  // Designers picker: editable for sales/scheduler/coordinator/admin,
+  // read-only chips for designer/production — matches the edit form's
+  // canEditCore gate on the Team card (JobDetailShell).
+  const canEditDesigners = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
 
   const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -105,6 +124,9 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           punctuality:             values.punctuality,
           production_instructions: values.production_instructions || null,
           notes:                   values.notes || null,
+          design_brief:            briefText || null,
+          design_due_date:         dueDate,
+          design_due_manual:       dueManual,
           visibility:              ['role:sales', 'role:scheduler'],
         } as never)
         .select('id')
@@ -140,6 +162,15 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         await fetch(`/api/jobs/${job.id}/notify-assigned`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ installerIds: [], coordinatorIds: selectedCoordIds }),
+        })
+      }
+
+      // Attach selected designers — the route itself notifies each one
+      // (bell + Telegram), same as the edit form's save handler.
+      if (selectedDesignerIds.length > 0) {
+        await fetch(`/api/jobs/${job.id}/designers`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: selectedDesignerIds }),
         })
       }
 
@@ -276,6 +307,26 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               />
             </CollapseCard>
 
+            <DesignBriefSection
+              jobId={null}
+              lang={lang}
+              readOnly={false}
+              canManage={canEditDesigners}
+              userId={userId}
+              briefText={briefText}
+              onBriefText={setBriefText}
+              dueDate={dueDate}
+              dueManual={dueManual}
+              onDueDate={handleDueDate}
+              briefError={false}
+              files={[]}
+              designerOptions={designerOptions}
+              selectedDesignerIds={selectedDesignerIds}
+              onToggleDesigner={id => setSelectedDesignerIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+              )}
+            />
+
             {/* Production — instructions now, photos/DO after the job is saved */}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
               <div className="space-y-3">
@@ -344,7 +395,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
             {/* Installers — same sub-section framing as the edit page */}
             <div className="border-t border-line px-4 pt-3 pb-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-3">Installers</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Installers</p>
               {allInstallers.length === 0 ? (
                 <p className="text-sm text-muted">No installers found.</p>
               ) : (
@@ -358,6 +409,12 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                 />
               )}
             </div>
+
+            {/* Designers grid moved into the Design Brief card, Details tab
+                (edit 14, smoke feedback 2026-08-28) — see DesignBriefSection
+                below. selectedDesignerIds/setSelectedDesignerIds still live
+                here; it still rides into the post-create designers-assign
+                call in saveJob above, unchanged. */}
           </CollapseCard>
         }
         files={

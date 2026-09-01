@@ -170,7 +170,7 @@ export function TaskListSection({ jobId, role, lang, readOnly, refreshKey }: Pro
       )}>
         <div className="flex items-center gap-2">
           <ListChecks size={12} className={cn(done === total && total > 0 ? 'text-brand-green' : 'text-muted')} />
-          <span className="text-[10px] font-semibold tracking-widest uppercase text-muted">
+          <span className="text-[13px] font-semibold tracking-wide uppercase text-muted">
             {t(lang, 'taskListTitle')}
           </span>
           {canEdit && (

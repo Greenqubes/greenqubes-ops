@@ -42,10 +42,11 @@ export async function POST(
     client_poc_phone: string | null; production_ready: boolean
     do_issued: boolean; punctuality: string
     production_instructions: string | null
+    design_brief: string | null
   }
   const { data: source } = await service
     .from('jobs')
-    .select('project_title, date, date_end, time_start, time_end, client, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions')
+    .select('project_title, date, date_end, time_start, time_end, client, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions, design_brief')
     .eq('id', jobId)
     .maybeSingle() as { data: SourceJob | null; error: unknown }
   if (!source) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -70,7 +71,13 @@ export async function POST(
       punctuality:             source.punctuality,
       production_instructions: source.production_instructions,
       notes:                   null,
+      design_brief:            source.design_brief,
+      // design_due_date / design_due_manual and every design_* score,
+      // completion, and rating column deliberately stay at their column
+      // defaults (null / false) — never copied. Designers (job_designers)
+      // are never copied either; nothing here touches that table.
       sales_poc_id:            profile.id,
+      created_by:              profile.id,
       visibility:              ['role:sales', 'role:scheduler'],
     } as never)
     .select('id, r2_folder')
@@ -97,7 +104,7 @@ export async function POST(
     if (newBucket) bucketMap.set(bucket.id, newBucket.id)
   }
 
-  // ── Copy files: bucket uploads/links + production photos ────────────────────
+  // ── Copy files: bucket uploads/links + production photos + design brief ────
   // Chat attachments (kind 'attachment', NULL bucket_id) and do/completion
   // proof photos are deliberately excluded.
   type FileRow = {
@@ -108,7 +115,7 @@ export async function POST(
     .from('files')
     .select('bucket_id, kind, r2_key, name, url_text, visibility')
     .eq('job_id', jobId)
-    .or('bucket_id.not.is.null,kind.eq.production_instructions') as { data: FileRow[] | null; error: unknown }
+    .or('bucket_id.not.is.null,kind.eq.production_instructions,kind.eq.design_brief') as { data: FileRow[] | null; error: unknown }
 
   let skippedFiles = 0
   for (const file of sourceFiles ?? []) {

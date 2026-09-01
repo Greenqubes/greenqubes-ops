@@ -1,6 +1,6 @@
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
+export function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${d} ${months[m - 1]} ${y}`
@@ -67,6 +67,122 @@ export function tplJobAssigned(p: {
     `${pocLines(p.pocName, p.pocPhone)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
     `📍 ${p.location}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to a newly-added DESIGNER when they're assigned to a job's design work.
+// `assignedBy` is the display name (fallback email) of whoever made the
+// assignment — any role can assign (R2-T2, Nic smoke-test edit 4).
+export function tplDesignAssigned(p: {
+  projectTitle: string
+  client:       string
+  date:         string
+  assignedBy:   string
+  jobUrl:       string
+}): string {
+  return (
+    `🎨 <b>New Design Job Assigned</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.date)}\n` +
+    `<b>Assigned by:</b> ${p.assignedBy}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to each assigned designer when a job's install date change shifts its
+// design due date — on EVERY shift, earlier or later (Nic 2026-08-31; was
+// earlier-only). This template just renders the move. Client + install date
+// added for parity with the upgraded bell card (R2-T2 edit 4).
+export function tplDesignDueShift(p: {
+  projectTitle: string
+  oldDue:       string
+  newDue:       string
+  client:       string
+  installDate:  string
+  jobUrl:       string
+}): string {
+  return (
+    `⏰ <b>Design Due Date Moved</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.installDate)}\n` +
+    `<b>Due date:</b> ${formatDate(p.oldDue)} → ${formatDate(p.newDue)}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to each assigned designer when a job's install date moves WITHOUT the
+// design due date following it — the office kept its typed due date in the
+// "Install date moved" prompt, or the job had no due date to shift. Edit 17
+// (Nic, 2026-09-01): designers must still hear that the install date moved.
+export function tplDesignInstallShift(p: {
+  projectTitle:   string
+  client:         string
+  oldInstallDate: string
+  installDate:    string
+  dueDate:        string | null
+  jobUrl:         string
+}): string {
+  return (
+    `📅 <b>Install Date Moved</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}\n` +
+    `<b>Due date:</b> ${p.dueDate ? `${formatDate(p.dueDate)} (unchanged)` : 'not set'}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to each assigned designer when the office clears a job's design due
+// date (edit 18, Nic 2026-09-01). The install line shows a move too when the
+// same save carried one.
+export function tplDesignDueRemoved(p: {
+  projectTitle:   string
+  client:         string
+  oldDue:         string
+  oldInstallDate: string
+  installDate:    string
+  jobUrl:         string
+}): string {
+  const installLine = p.oldInstallDate === p.installDate
+    ? formatDate(p.installDate)
+    : `${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}`
+  return (
+    `🗓 <b>Design Due Date Removed</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${installLine}\n` +
+    `<b>Due date:</b> removed (was ${formatDate(p.oldDue)})\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent to each assigned designer when the office types a design due date by
+// hand — a first date ("Set") or a different one ("Changed") — and it sticks
+// (edit 19, Nic 2026-09-01). The install line shows a same-save move too.
+export function tplDesignDueSet(p: {
+  projectTitle:   string
+  client:         string
+  oldDue:         string | null
+  newDue:         string
+  oldInstallDate: string
+  installDate:    string
+  jobUrl:         string
+}): string {
+  const installLine = p.oldInstallDate === p.installDate
+    ? formatDate(p.installDate)
+    : `${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}`
+  const dueLine = p.oldDue
+    ? `${formatDate(p.oldDue)} → ${formatDate(p.newDue)}`
+    : formatDate(p.newDue)
+  return (
+    `📌 <b>Design Due Date ${p.oldDue ? 'Changed' : 'Set'}</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${installLine}\n` +
+    `<b>Due date:</b> ${dueLine}\n\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }

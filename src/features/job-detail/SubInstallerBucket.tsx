@@ -53,7 +53,7 @@ export function SubInstallerBucket({
   return (
     <div className="border-t border-line px-4 pt-3 pb-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted flex items-center gap-1.5">
+        <p className="text-[13px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1.5">
           <Users size={12} />
           {t(lang, 'subBucketTitle')}
           {subCount > 0 && (

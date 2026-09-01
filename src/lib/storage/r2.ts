@@ -24,6 +24,7 @@ const KIND_FOLDER: Record<FileKind, string> = {
   url_link:                'links',
   production_instructions: 'production-instructions',
   external_verification:   'external-verification',
+  design_brief:            'design-briefs',
 }
 
 // `folder` is the job's readable r2_folder slug (new jobs) or the bare job id

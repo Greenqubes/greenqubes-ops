@@ -28,12 +28,42 @@ export const en = {
 
   // ── Job form ───────────────────────────────────────────────────────────────
   editJob: 'Edit job',
+  createdByLabel: 'Created by',
   tabDetails: 'Details',
   tabTeam: 'Team',
+  designersLabel: 'Designers',
+  designersAddPlaceholder: '+ Add designer',
   tabFiles: 'Files',
   tabChat: 'Chat',
   jobDetails: 'Job details',
   attachments: 'Attachments',
+  designBriefTitle: 'Design brief',
+  designBriefPlaceholder: 'What exactly does the designer need to produce? Which area / items?',
+  designBriefRequired: 'Design brief is required once a designer is assigned',
+  designDueDateLabel: 'Design due date',
+  designDueAiSuggested: 'AI suggested',
+  whiteboardSoon: 'Whiteboard — coming soon',
+
+  // ── Same-save due-date conflict (Task 14 addendum §1) ─────────────────────
+  dueConflictTitle: 'Install date moved',
+  dueConflictBody: 'Keep your typed due date ({typed}), or let it shift to {shifted}?',
+  dueConflictKeep: 'Keep my date',
+  dueConflictShift: 'Use shifted date',
+
+  // ── Design completed flow (Task 8) ────────────────────────────────────────
+  designCompletedBtn: 'Design completed',
+  designCompletedNeedsJo: 'Upload the Job Order PDF first',
+  designCompletedDone: 'Design completed ✓',
+  designRatingQ: 'How heavy was this design work?',
+  designRatingLight: '1 · quick prep',
+  designRatingHeavy: '5 · multi-day',
+  designRatingConfirm: 'Confirm — design done',
+  designReopenBtn: 'Reopen design',
+  designCompleteConfirmTitle: 'Mark design completed?',
+  designCompleteConfirmBody: 'This marks the design work as done — no design rating is recorded.',
+  designReopenConfirmTitle: 'Reopen this design job?',
+  designReopenConfirmBody: 'The job reappears on the Design Load board and any rating is cleared.',
+  designJoProtected: 'This bucket is required for design completion',
   duplicateJob: 'Duplicate',
   duplicateSuccess: 'Job duplicated — set the new location',
   jobUpdatedBanner: 'This job was updated by someone else',
@@ -41,8 +71,10 @@ export const en = {
   createJob: 'Create Job',
   projectTitle: 'Project Title',
   date: 'Date',
+  day: 'Day',
   dateEnd: 'End Date (optional)',
   client: 'Customer',
+  company: 'Company',
   jobDescription: 'Job Description',
   locationAddress: 'Location / Address',
   timeStart: 'Time start',
@@ -197,6 +229,24 @@ export const en = {
   notificationsNone: 'All clear — no overdue jobs',
   overdueCount: 'overdue',
 
+  // ── Design daily reminders (Task 9) ─────────────────────────────────────────
+  designReminderQ: 'Is your design work on “{title}” finished?',
+  yesBtn: 'Yes',
+  noBtn: 'No',
+  designReminderNoJo: 'No Job Order PDF uploaded yet — open the job to finish up',
+
+  // ── Notification drawer upgrades (R2-T2) ────────────────────────────────────
+  notifAssignedBy:  'Assigned by: {name}',
+  notifClientLine:  'Client: {client}',
+  notifInstallLine: 'Install date: {date}',
+  notifDuePrefix:   'Due date:',
+  notifDueUnchanged: '(unchanged)',
+  notifDueNotSet:    'not set',
+  notifDueRemoved:   'removed (was {date})',
+  notifDueSet:       'set: {date}',
+  notifClearAll:    'Clear all',
+  notifClearOne:    'Clear notification',
+
   // ── Auth ───────────────────────────────────────────────────────────────────
   loginTitle: 'Welcome back',
   loginSubtitle: 'Enter your email to receive a sign-in link',
@@ -318,6 +368,7 @@ export const en = {
   fcfsHasClash: 'Has clash today',
   fcfsNoInstallers: 'No installers on this job yet',
   fcfsSaveNotify: 'Save & Notify',
+  fcfsSaveSuggestions: 'Save suggestions',
   fcfsClashDrawerTitle: 'Clashes',
   fcfsNoClashes: 'No unresolved clashes',
   fcfsHardClashTitle: 'Hard clash — must resolve',
@@ -385,6 +436,24 @@ export const en = {
   extBucketRestoreInfo: 'The same unique link will be reactivated — their existing bookmark works again. All pending, accepted, and past jobs are restored exactly as they were.',
   extBucketRestoreConfirm: 'Restore contact',
   extBucketSuspended: 'jobs suspended · Restore to reactivate',
+
+  // ── Design Load board (Task 10) ─────────────────────────────────────────────
+  designLoadTitle: 'Design Load',
+  boardTab: 'Board',
+  myJobsTab: 'My Jobs',
+  myJobsTodo: 'To-do',
+  myJobsReady: 'Ready to install',
+  myJobsPast: 'Past',
+  urgency0: 'Not scored',
+  urgency1: 'Relaxed',
+  urgency2: 'Low',
+  urgency3: 'Medium',
+  urgency4: 'High',
+  urgency5: 'Urgent',
+  noDesigners: 'No designers provisioned yet',
+  openJobBtn: 'Open job',
+  lowConfidence: 'Low confidence',
+  untitledJob: 'Untitled job',
 }
 
 export type Translations = typeof en

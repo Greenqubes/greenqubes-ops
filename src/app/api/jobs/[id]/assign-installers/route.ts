@@ -10,10 +10,28 @@ import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
-// Coordinator / scheduler / admin formally assign installers. This clears any
-// sales suggestions for the job, sets the formal assignee list, and notifies:
+// Scheduler / admin formally assign installers. This clears any sales/
+// coordinator suggestions for the job, sets the formal assignee list, and
+// notifies:
 //   • newly-added installers  → "Job Assigned"
 //   • sales POC + coordinators → "Installer Assigned"
+// Smoke feedback edit 8 (Nic explicit, 2026-08-27): coordinator no longer
+// formally assigns — the WRITE gate below (past the checkOnly branch) stays
+// scheduler/admin-only. Coordinator now suggests via /suggest-installer,
+// same as sales.
+//
+// Code-review fix (2026-08-27, Critical #1): checkOnly is authorized
+// SEPARATELY from — and runs BEFORE — the write gate. Coordinator can still
+// edit a scheduled job's date/time (canEditCore), which can double-book the
+// installers already formally assigned to it regardless of who assigned
+// them, so JobDetailShell's onSubmit pre-flight now calls this endpoint's
+// checkOnly branch for coordinator too on a time change (never on an
+// installer change — coordinator can't dirty that list). checkOnly is
+// READ-ONLY (no job_assignees write below this point in that branch), so
+// widening its own gate to include coordinator does not open any mutation
+// path. Final ordering, top to bottom: auth → profile → parse body →
+// checkOnly gate + checkOnly logic (return) → WRITE gate (scheduler/admin
+// only) → the mutation below.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -34,9 +52,6 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
 
   const body = await req.json().catch(() => ({}))
   const installerIds: string[] = Array.isArray(body.installer_ids)
@@ -46,8 +61,14 @@ export async function POST(
   // ── checkOnly: report clashes without saving (Workflow V2 Task 19) ─────────
   // Used before saving an already-scheduled job so moving its time or installer
   // onto another booking warns first. Optional date/time/punctuality overrides
-  // let the form check its UNSAVED values.
+  // let the form check its UNSAVED values. Read-only — gated on its own
+  // (scheduler/coordinator/admin), separately from the write gate below,
+  // so a coordinator's time-change pre-flight can reach this report without
+  // gaining any write access.
   if (new URL(req.url).searchParams.get('checkOnly') === 'true') {
+    if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     type JobRow = { date: string; time_start: string | null; time_end: string | null; punctuality: string }
     const { data: currentJob } = await supabase
       .from('jobs')
@@ -115,6 +136,13 @@ export async function POST(
     }
 
     return NextResponse.json({ hasClash: clashes.length > 0, clashes })
+  }
+
+  // ── Everything below here WRITES job_assignees — scheduler/admin only. ──
+  // Coordinator (checkOnly-eligible above) is rejected here same as before
+  // edit 8; this is the one and only mutation gate in the route.
+  if (!['scheduler', 'admin'].includes(effectiveRole)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   // Which installers are newly added (for their "Job Assigned" notification)?
