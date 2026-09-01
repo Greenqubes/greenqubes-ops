@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplDesignDueShift, tplDesignInstallShift } from '@/lib/telegram/templates'
+import { tplDesignDueShift, tplDesignInstallShift, tplDesignDueRemoved } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
 
@@ -169,7 +169,9 @@ export async function PATCH(
   // through the client-side update.
   const updates: Record<string, unknown> = {}
   if ('design_brief' in body)       updates.design_brief       = body.design_brief ?? null
-  if ('design_due_date' in body)    updates.design_due_date    = body.design_due_date ?? null
+  // `|| null`: a cleared date input can arrive as '' — a date column rejects
+  // that, and a cleared field must land as NULL.
+  if ('design_due_date' in body)    updates.design_due_date    = body.design_due_date || null
   if ('design_due_manual' in body)  updates.design_due_manual  = !!body.design_due_manual
 
   // What the assigned designers get told about this save, if anything:
@@ -177,9 +179,17 @@ export async function PATCH(
   // - install_shift: the install date moved but the due date did NOT follow —
   //                  kept via the prompt, or there was none to shift (edit 17,
   //                  Nic 2026-09-01: designers still hear about the move)
+  // - due_removed:   this save cleared the due date (edit 18, Nic 2026-09-01:
+  //                  a cleared date stays cleared, and designers are told)
   type DueShiftNotify     = { kind: 'due_shift'; oldDue: string; newDue: string; installDate: string }
   type InstallShiftNotify = { kind: 'install_shift'; oldInstallDate: string; installDate: string; dueDate: string | null }
-  let notify: DueShiftNotify | InstallShiftNotify | null = null
+  type DueRemovedNotify   = { kind: 'due_removed'; oldDue: string; oldInstallDate: string; installDate: string }
+  let notify: DueShiftNotify | InstallShiftNotify | DueRemovedNotify | null = null
+
+  // An explicitly empty due date in the body on a job that had one = the user
+  // cleared it. The auto-shift below must not resurrect it from the old value
+  // when the install date moves in the same save.
+  const dueCleared = 'design_due_date' in body && !body.design_due_date && !!job.design_due_date
 
   if (body.date && body.date !== job.date) {
     updates.date = body.date
@@ -197,20 +207,29 @@ export async function PATCH(
     // whitelist above, and `notify` staying null (no shift happened) also
     // correctly skips the designer-notification block below.
     const skipShiftForManualKeep = body.keepManualDue === true && 'design_due_date' in body
-    if (job.design_due_date && !skipShiftForManualKeep) {
+    if (job.design_due_date && !skipShiftForManualKeep && !dueCleared) {
       const delta   = daysBetween(job.date, body.date)
       const shifted = addDaysISO(job.design_due_date, delta)
       const today    = todaySGT()
       const newDue   = shifted < today ? today : shifted
       updates.design_due_date = newDue
       notify = { kind: 'due_shift', oldDue: job.design_due_date, newDue, installDate: body.date }
-    } else {
+    } else if (!dueCleared) {
       // The due date after this save: the kept/typed one from the body if it
       // was sent (it landed via the whitelist above), else whatever the job
       // already had (null when there's none).
       const dueAfterSave = ('design_due_date' in updates ? updates.design_due_date : job.design_due_date) as string | null
       notify = { kind: 'install_shift', oldInstallDate: job.date, installDate: body.date, dueDate: dueAfterSave }
     }
+  }
+
+  // Edit 18: a cleared due date wins over any move in the same save — the
+  // designers hear "removed" (with the install move shown on the install
+  // line if there was one). The clear itself already landed via the
+  // whitelist above; design_due_manual arrives true from the client, so the
+  // AI scorer never re-proposes over it — cleared stays cleared.
+  if (dueCleared && job.design_due_date) {
+    notify = { kind: 'due_removed', oldDue: job.design_due_date, oldInstallDate: job.date, installDate: body.date ?? job.date }
   }
 
   if (Object.keys(updates).length > 0) {
@@ -248,10 +267,14 @@ export async function PATCH(
       // date) plus Client/Install date. Pre-upgrade rows had a plain
       // "old → new" body string — NotificationDrawer's parser falls back to
       // that rendering when JSON.parse fails, so older rows still render.
-      const notifType = n.kind === 'due_shift' ? 'design_due_shift' : 'design_install_shift'
-      const bodyJson  = n.kind === 'due_shift'
-        ? JSON.stringify({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate })
-        : JSON.stringify({ projectTitle: title, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, client: job.client })
+      const notifType =
+        n.kind === 'due_shift'     ? 'design_due_shift' :
+        n.kind === 'install_shift' ? 'design_install_shift' :
+                                     'design_due_removed'
+      const bodyJson =
+        n.kind === 'due_shift'     ? JSON.stringify({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate }) :
+        n.kind === 'install_shift' ? JSON.stringify({ projectTitle: title, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, client: job.client }) :
+                                     JSON.stringify({ projectTitle: title, oldDue: n.oldDue, oldInstallDate: n.oldInstallDate, installDate: n.installDate, client: job.client })
 
       if (rows.length > 0) {
         await svc.from('notifications').insert(rows.map(d => ({
@@ -273,9 +296,10 @@ export async function PATCH(
       if (targets.length === 0) {
         console.warn(`[jobs/patch] ${n.kind}: no assigned designer has a Telegram chat id`, { jobId, designers: rows.length })
       } else {
-        const msg = n.kind === 'due_shift'
-          ? tplDesignDueShift({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate, jobUrl })
-          : tplDesignInstallShift({ projectTitle: title, client: job.client, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, jobUrl })
+        const msg =
+          n.kind === 'due_shift'     ? tplDesignDueShift({ projectTitle: title, oldDue: n.oldDue, newDue: n.newDue, client: job.client, installDate: n.installDate, jobUrl }) :
+          n.kind === 'install_shift' ? tplDesignInstallShift({ projectTitle: title, client: job.client, oldInstallDate: n.oldInstallDate, installDate: n.installDate, dueDate: n.dueDate, jobUrl }) :
+                                       tplDesignDueRemoved({ projectTitle: title, client: job.client, oldDue: n.oldDue, oldInstallDate: n.oldInstallDate, installDate: n.installDate, jobUrl })
         await Promise.all(targets.map(d => sendTelegram(d.users!.telegram_chat_id!, msg)))
       }
     } catch (err) {
@@ -286,5 +310,10 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ ok: true, design_due_date: updates.design_due_date ?? job.design_due_date })
+  // Echo the persisted due date. NOT `updates.design_due_date ?? job.…` — a
+  // cleared date is NULL in `updates`, and `??` handed the OLD date back to
+  // the form, which re-adopted it and wrote it back on the next save (the
+  // "cleared due date comes back" bug, edit 18).
+  const persistedDue = ('design_due_date' in updates ? updates.design_due_date : job.design_due_date) as string | null
+  return NextResponse.json({ ok: true, design_due_date: persistedDue })
 }

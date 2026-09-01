@@ -211,6 +211,7 @@ export const zh: Partial<Translations> = {
   notifDuePrefix:   '截止日期：',
   notifDueUnchanged: '（未变）',
   notifDueNotSet:    '未设定',
+  notifDueRemoved:   '已移除（原为 {date}）',
   notifClearAll:    '全部清除',
   notifClearOne:    '清除通知',
 

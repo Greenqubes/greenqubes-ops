@@ -242,6 +242,7 @@ export const en = {
   notifDuePrefix:   'Due date:',
   notifDueUnchanged: '(unchanged)',
   notifDueNotSet:    'not set',
+  notifDueRemoved:   'removed (was {date})',
   notifClearAll:    'Clear all',
   notifClearOne:    'Clear notification',
 

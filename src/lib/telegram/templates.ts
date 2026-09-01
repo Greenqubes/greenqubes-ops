@@ -135,6 +135,30 @@ export function tplDesignInstallShift(p: {
   )
 }
 
+// Sent to each assigned designer when the office clears a job's design due
+// date (edit 18, Nic 2026-09-01). The install line shows a move too when the
+// same save carried one.
+export function tplDesignDueRemoved(p: {
+  projectTitle:   string
+  client:         string
+  oldDue:         string
+  oldInstallDate: string
+  installDate:    string
+  jobUrl:         string
+}): string {
+  const installLine = p.oldInstallDate === p.installDate
+    ? formatDate(p.installDate)
+    : `${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}`
+  return (
+    `🗓 <b>Design Due Date Removed</b>\n` +
+    `<b>Project:</b> ${p.projectTitle}\n` +
+    `<b>Client:</b> ${p.client}\n` +
+    `<b>Install date:</b> ${installLine}\n` +
+    `<b>Due date:</b> removed (was ${formatDate(p.oldDue)})\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to a newly-confirmed SUB-installer — a helper, not the main crew.
 // Wording per Nic (Phase 4 smoke test): make clear they support the main team.
 export function tplSubInstallerAssigned(p: {
