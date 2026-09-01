@@ -14,8 +14,8 @@ function initials(name: string) {
 }
 
 // none      → not picked
-// suggested → sales' tentative pick (yellow)
-// assigned  → formal assignment by coordinator/scheduler (green)
+// suggested → sales/coordinator's tentative pick (yellow) — edit 8, 2026-08-27
+// assigned  → formal assignment by scheduler only (green, full-card fill)
 export type InstallerCardState = 'none' | 'suggested' | 'assigned'
 
 interface Props {
@@ -23,9 +23,9 @@ interface Props {
   stateOf:      (id: string) => InstallerCardState
   /** Omit to render the grid read-only (no clicks). */
   onToggle?:    (id: string) => void
-  /** Per-card lock — e.g. sales cannot un-assign a formally assigned installer. */
+  /** Per-card lock — e.g. sales/coordinator cannot un-assign a formally assigned installer. */
   disabledOf?:  (id: string) => boolean
-  /** Optional subtext under the installer name (e.g. "Sales suggested"). */
+  /** Optional subtext under the installer name (e.g. "Suggested" / "You suggested"). */
   noteOf?:      (id: string) => string | null
 }
 
@@ -82,8 +82,11 @@ export function InstallerGrid({ installers, stateOf, onToggle, disabledOf, noteO
                 disabled={locked}
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-[1.5px] text-left w-full transition-all',
-                  st === 'assigned'  ? 'border-brand-green bg-brand-green/20' :
-                  st === 'suggested' ? 'border-amber-300 bg-amber-50'         :
+                  // Full-card fill for both states (smoke feedback edit 8
+                  // addendum, 2026-08-27) — assigned now matches suggested's
+                  // solid tint instead of a faint 20%-opacity overlay.
+                  st === 'assigned'  ? 'border-brand-green bg-brand-green-soft' :
+                  st === 'suggested' ? 'border-amber-300 bg-amber-50'          :
                   'border-line bg-paper',
                   !locked && st === 'none' && 'hover:border-brand-green hover:bg-brand-green/5',
                   locked && 'cursor-default',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
@@ -20,6 +20,10 @@ interface Props {
   lang:        LangCode
   initialTab?: JobTab     // e.g. 'chat' from the ?tab=chat deep link
   lockedTabs?: JobTab[]   // New job pre-save: ['files', 'chat']
+  /** Bump (any changing value) to force-switch to the details tab on phone —
+   *  e.g. a validation error on a details-column card that's currently hidden
+   *  behind another tab. There's no other imperative tab control here. */
+  jumpToDetails?: number
   details:     React.ReactNode
   team:        React.ReactNode
   files:       React.ReactNode
@@ -31,11 +35,14 @@ interface Props {
 // Every group stays mounted at all times; tabs only toggle CSS visibility,
 // so form state, chat realtime, and uploads survive tab switches.
 export function JobFormLayout({
-  lang, initialTab = 'details', lockedTabs = [], details, team, files, chat,
+  lang, initialTab = 'details', lockedTabs = [], jumpToDetails, details, team, files, chat,
 }: Props) {
   const [active, setActive] = useState<JobTab>(
     lockedTabs.includes(initialTab) ? 'details' : initialTab,
   )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (jumpToDetails) setActive('details') }, [jumpToDetails])
 
   const groupCn = (tab: JobTab) => cn(tab !== active && 'hidden', 'lg:block')
 

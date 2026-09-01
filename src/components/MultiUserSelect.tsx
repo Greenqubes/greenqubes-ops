@@ -5,13 +5,14 @@ import { Search, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 interface Props {
-  options:   Array<{ id: string; label: string }>
-  value:     string[]
-  onChange:  (ids: string[]) => void
-  disabled?: boolean
+  options:      Array<{ id: string; label: string }>
+  value:        string[]
+  onChange:     (ids: string[]) => void
+  disabled?:    boolean
+  placeholder?: string
 }
 
-export function MultiUserSelect({ options, value, onChange, disabled = false }: Props) {
+export function MultiUserSelect({ options, value, onChange, disabled = false, placeholder = '+ Add coordinator' }: Props) {
   const [open,  setOpen]  = useState(false)
   const [query, setQuery] = useState('')
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -100,7 +101,7 @@ export function MultiUserSelect({ options, value, onChange, disabled = false }: 
             onClick={() => { setOpen(o => !o); setQuery('') }}
             className="text-xs text-muted hover:text-terracotta transition-colors"
           >
-            + Add coordinator
+            {placeholder}
           </button>
         )}
 

@@ -114,7 +114,7 @@ export async function GET(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['sales', 'scheduler', 'admin'].includes(effectiveRole)) {
+  if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -3,9 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { Role } from '@/lib/supabase/types'
 
-// Sales toggles a tentative installer suggestion (yellow) on a job. This does
-// NOT formally assign — a coordinator/scheduler does that via assign-installers,
-// which clears suggestions and turns the pick green.
+// Sales AND coordinator toggle a tentative installer suggestion (yellow) on a
+// job. This does NOT formally assign — only scheduler/admin does that via
+// assign-installers, which clears suggestions and turns the pick green.
+// Smoke feedback edit 8 (Nic explicit, 2026-08-27): coordinator lost formal
+// assignment and moved here, sales-parity.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -26,7 +28,7 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (effectiveRole !== 'sales') {
+  if (!['sales', 'coordinator'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

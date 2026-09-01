@@ -47,9 +47,16 @@ function avatarColor(name: string): string {
 
 interface Props {
   lang?: LangCode
+  // Dropdown placement relative to the avatar trigger — defaults reproduce
+  // the original top-right-of-CompanyBar behaviour exactly. NavDrawer (R2-T5
+  // / F1) passes 'up'/'left' since its trigger sits in the drawer's bottom
+  // area, near the bottom of the viewport, where opening downward would run
+  // off-screen.
+  openDirection?: 'down' | 'up'
+  align?:         'left' | 'right'
 }
 
-export function UserMenu({ lang: initialLang }: Props) {
+export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'right' }: Props) {
   const [open,         setOpen]         = useState(false)
   const [name,         setName]         = useState('')
   const [email,        setEmail]        = useState('')
@@ -176,7 +183,13 @@ export function UserMenu({ lang: initialLang }: Props) {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-paper border border-line rounded-card shadow-lg z-50 overflow-hidden">
+        <div
+          className={cn(
+            'absolute w-56 bg-paper border border-line rounded-card shadow-lg z-50 overflow-hidden',
+            openDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2',
+            align === 'left' ? 'left-0' : 'right-0',
+          )}
+        >
           {/* Identity */}
           <div className="px-4 py-3 border-b border-line">
             <div className="flex items-center gap-2.5">

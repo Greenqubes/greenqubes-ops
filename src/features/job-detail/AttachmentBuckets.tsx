@@ -11,7 +11,14 @@ import {
 import { MoveFileModal } from './MoveFileModal'
 import { cn } from '@/lib/utils/cn'
 import type { AttachmentBucket, BucketFile } from '@/lib/supabase/queries/jobs'
+import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
+
+// The Designer JO bucket is protected from rename/delete for every role
+// (Task 8) — the design-complete route and the Task 9 3-day reminder both
+// find it by name (`ilike '%designer jo%'`), so an unprotected rename or
+// delete would silently break both.
+const isDesignerJoBucket = (name: string) => /designer\s*jo/i.test(name)
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp'])
 
@@ -37,15 +44,22 @@ interface Props {
   lang:        LangCode
   readOnly?:   boolean
   refreshKey?: number   // bump to re-pull from the server (live job-form events)
+  // Lifts this component's own fetched bucket state up to the host (Task 8:
+  // JobDetailShell needs to know whether the DESIGNER JO bucket has >=1 file
+  // to gate the designer's completion button) — cheaper and never out of
+  // sync vs. the host running its own separate buckets query.
+  onBucketsChange?: (buckets: AttachmentBucket[]) => void
 }
 
-export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refreshKey }: Props) {
+export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refreshKey, onBucketsChange }: Props) {
   const [buckets,    setBuckets]    = useState<AttachmentBucket[]>([])
   const [loading,    setLoading]    = useState(true)
   const [lightbox,   setLightbox]   = useState<string | null>(null)
   const [moveTarget, setMoveTarget] = useState<BucketFile | null>(null)
   const supabase = createClient()
   const { success: showSuccess, error: showError } = useToast()
+
+  useEffect(() => { onBucketsChange?.(buckets) }, [buckets])  // eslint-disable-line react-hooks/exhaustive-deps
 
   async function load() {
     setLoading(true)
@@ -248,6 +262,7 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
         <BucketCard
           key={bucket.id}
           bucket={bucket}
+          lang={lang}
           readOnly={readOnly}
           onRename={name => renameBucket(bucket.id, name)}
           onDelete={() => deleteBucket(bucket.id)}
@@ -278,6 +293,7 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
 
 interface BucketCardProps {
   bucket:         AttachmentBucket
+  lang:           LangCode
   readOnly:       boolean
   onRename:       (name: string) => void
   onDelete:       () => void
@@ -290,7 +306,7 @@ interface BucketCardProps {
 }
 
 function BucketCard({
-  bucket, readOnly, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onMoveFile, onImageClick, getDownloadUrl,
+  bucket, lang, readOnly, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onMoveFile, onImageClick, getDownloadUrl,
 }: BucketCardProps) {
   const [name,       setName]       = useState(bucket.name)
   const [urlModal,   setUrlModal]   = useState(false)
@@ -298,6 +314,8 @@ function BucketCard({
   const [deleteConf, setDeleteConf] = useState(false)
   const imgRef  = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const protectedBucket = isDesignerJoBucket(bucket.name)
+  const protectedTitle  = protectedBucket ? t(lang, 'designJoProtected') : undefined
 
   return (
     <div className="rounded-xl border border-line bg-paper overflow-hidden">
@@ -307,8 +325,9 @@ function BucketCard({
           value={name}
           onChange={e => setName(e.target.value)}
           onBlur={() => { if (name !== bucket.name) onRename(name) }}
-          disabled={readOnly}
-          className="flex-1 bg-transparent text-[11px] font-semibold tracking-widest uppercase text-ink2 outline-none disabled:cursor-default"
+          disabled={readOnly || protectedBucket}
+          title={protectedTitle}
+          className="flex-1 bg-transparent text-[13px] font-semibold tracking-wide uppercase text-ink2 outline-none disabled:cursor-default"
         />
         {!readOnly && (
           <div className="flex items-center gap-1 shrink-0">
@@ -322,10 +341,16 @@ function BucketCard({
 
             <ActionBtn icon={<LinkIcon size={11} />} label="URL" onClick={() => setUrlModal(true)} />
 
-            <button type="button" onClick={() => setDeleteConf(true)}
-              className="p-1.5 rounded-lg text-muted hover:text-terracotta hover:bg-terracotta/5 transition-colors">
-              <Trash2 size={13} />
-            </button>
+            {protectedBucket ? (
+              <span title={protectedTitle} className="p-1.5 rounded-lg text-line cursor-not-allowed">
+                <Trash2 size={13} />
+              </span>
+            ) : (
+              <button type="button" onClick={() => setDeleteConf(true)}
+                className="p-1.5 rounded-lg text-muted hover:text-terracotta hover:bg-terracotta/5 transition-colors">
+                <Trash2 size={13} />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -457,22 +482,22 @@ function FileRow({ file, readOnly, onDelete, onMove, onImageClick, getDownloadUr
 
       {!isUrl && !imgFile && (
         <button type="button" onClick={handleClick} disabled={dlLoading}
-          className="text-muted hover:text-ink transition-colors shrink-0">
-          <Download size={13} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted hover:text-ink hover:bg-bg transition-colors shrink-0">
+          <Download size={14} />
         </button>
       )}
 
       {!readOnly && (
         <button type="button" onClick={onMove} title="Move to…"
-          className="text-muted opacity-0 group-hover:opacity-100 hover:text-ink transition-all shrink-0">
-          <FolderInput size={12} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted md:opacity-0 md:group-hover:opacity-100 hover:text-ink hover:bg-bg transition-all shrink-0">
+          <FolderInput size={14} />
         </button>
       )}
 
       {!readOnly && (
         <button type="button" onClick={onDelete}
-          className="text-muted opacity-0 group-hover:opacity-100 hover:text-terracotta transition-all shrink-0">
-          <Trash2 size={12} />
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-muted md:opacity-0 md:group-hover:opacity-100 hover:text-terracotta hover:bg-terracotta/5 transition-all shrink-0">
+          <Trash2 size={14} />
         </button>
       )}
     </div>

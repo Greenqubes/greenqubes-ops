@@ -13,8 +13,11 @@ interface WeekViewProps {
 }
 
 export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
+  // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
+  // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
+  // InstallerShell, both lg-gate BottomNav the same way.
   return (
-    <div className="px-4 pb-24 space-y-5">
+    <div className="px-4 pb-8 lg:pb-24 space-y-5">
       {weekDays.map(d => {
         const jobs    = jobsByDate[d] ?? []
         const dayNum  = new Date(d + 'T00:00:00').getDate()

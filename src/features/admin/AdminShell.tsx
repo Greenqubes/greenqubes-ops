@@ -2,7 +2,6 @@
 
 import { useState }    from 'react'
 import { cn }          from '@/lib/utils/cn'
-import { BottomNav }    from '@/components/BottomNav'
 import { CompanyBar }  from '@/components/CompanyBar'
 import { ArrowLeft }   from 'lucide-react'
 import Link            from 'next/link'
@@ -11,16 +10,18 @@ import { DigestTab }     from '@/features/admin/DigestTab'
 import { HealthTab }     from '@/features/admin/HealthTab'
 import { CrashLogTab }  from '@/features/admin/CrashLogTab'
 import { BugReportsTab } from '@/features/admin/BugReportsTab'
+import { AIScoresTab }   from '@/features/admin/AIScoresTab'
 import type { LangCode, Role } from '@/lib/supabase/types'
 
-type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs'
+type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs' | 'ai-scores'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'users',   label: 'Users'   },
-  { id: 'digest',  label: 'Digest'  },
-  { id: 'health',  label: 'Health'  },
-  { id: 'crashes', label: 'Crashes' },
-  { id: 'bugs',    label: 'Bugs'    },
+  { id: 'users',     label: 'Users'    },
+  { id: 'digest',    label: 'Digest'   },
+  { id: 'health',    label: 'Health'   },
+  { id: 'crashes',   label: 'Crashes'  },
+  { id: 'bugs',      label: 'Bugs'     },
+  { id: 'ai-scores', label: 'AI Scores' },
 ]
 
 type Props = {
@@ -32,10 +33,14 @@ type Props = {
 export function AdminShell({ userName, role, lang }: Props) {
   const [tab, setTab] = useState<Tab>('users')
 
+  // pb-24 dropped (R2-T5 / F1): that was mobile-only clearance for the old
+  // fixed BottomNav, which no longer renders here at any breakpoint — the
+  // nav drawer replaces it below lg, and the sidebar already covered ≥lg.
+  // The tab content below carries its own pb-8.
   return (
-    <div className="min-h-screen bg-bg lg:pb-0 pb-24">
+    <div className="min-h-screen bg-bg">
 
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role={role} />
 
       {/* ── Top header (full width) ─────────────────────────────────────────── */}
       <div className="sticky top-[45px] z-20 bg-paper border-b border-line">
@@ -104,17 +109,13 @@ export function AdminShell({ userName, role, lang }: Props) {
 
         {/* Tab content */}
         <main className="flex-1 min-w-0">
-          {tab === 'users'   && <UsersTab />}
-          {tab === 'digest'  && <DigestTab />}
-          {tab === 'health'  && <HealthTab />}
-          {tab === 'crashes' && <CrashLogTab />}
-          {tab === 'bugs'    && <BugReportsTab />}
+          {tab === 'users'     && <UsersTab />}
+          {tab === 'digest'    && <DigestTab />}
+          {tab === 'health'    && <HealthTab />}
+          {tab === 'crashes'   && <CrashLogTab />}
+          {tab === 'bugs'      && <BugReportsTab />}
+          {tab === 'ai-scores' && <AIScoresTab />}
         </main>
-      </div>
-
-      {/* Bottom nav — mobile only */}
-      <div className="lg:hidden">
-        <BottomNav role={role} />
       </div>
     </div>
   )

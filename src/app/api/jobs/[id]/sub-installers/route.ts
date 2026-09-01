@@ -8,12 +8,17 @@ import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
-// Coordinator / scheduler / admin confirm the sub-installer set for a job.
-// Mirrors assign-installers but touches ONLY sub rows (is_sub_installer=true):
+// Scheduler / admin confirm the sub-installer set for a job. Mirrors
+// assign-installers but touches ONLY sub rows (is_sub_installer=true):
 // clears sub suggestions, sets the formal sub list, Telegrams newly-added
 // subs their job link. Main installer rows are never touched here.
 // job_assignees PK is (job_id, user_id) — someone already on the job as a
 // main installer is silently skipped rather than double-inserted.
+// Smoke feedback edit 8 (Nic explicit, 2026-08-27): coordinator lost formal
+// installer assignment "everywhere" — extended here to the sub-installer
+// bucket for consistency with the main grid (not explicitly named in the
+// feedback doc's route list, but same is_suggestion/formal pattern; a
+// coordinator suggests subs via /suggest-installer's is_sub flag instead).
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -33,7 +38,7 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+  if (!['scheduler', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -54,7 +54,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState<'delete' | 'revert' | 'complete' | false>(false)
 
-  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending')
+  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending') || (role === 'coordinator' && pageMode === 'pending')
   // Undo accidental completions straight from the Completed list, and mark
   // jobs complete in bulk from the Schedule list (Nic, 2026-08-19).
   const canBulkRevert   = role === 'scheduler' && pageMode === 'completed'
@@ -197,7 +197,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   return (
     <div className="min-h-screen bg-bg">
 
-      <CompanyBar lang={lang} />
+      <CompanyBar lang={lang} role={role ?? 'sales'} />
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
@@ -254,7 +254,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           >
             <Search size={15} />
           </button>
-          {(role === 'sales' || role === 'scheduler') && (
+          {(role === 'sales' || role === 'scheduler' || role === 'coordinator') && (
             <Link
               href="/jobs/new"
               className="inline-flex items-center gap-1 px-3 py-[11px] text-xs rounded-lg font-semibold tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
@@ -355,9 +355,11 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
         />
       )}
 
-      {/* Bulk delete bar — sits above BottomNav */}
+      {/* Bulk delete bar — sits above BottomNav at lg (still fixed there,
+          unchanged); below lg the nav drawer replaces BottomNav (R2-T5 / F1)
+          so this bar can sit flush with the viewport bottom instead. */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
+        <div className="fixed bottom-0 lg:bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
           {confirmBulk ? (
             <>
               <p className="text-sm font-medium text-ink">
@@ -435,7 +437,10 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
         </div>
       )}
 
-      <BottomNav role={role ?? 'sales'} />
+      {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
+      <div className="hidden lg:block">
+        <BottomNav role={role ?? 'sales'} />
+      </div>
     </div>
   )
 }
