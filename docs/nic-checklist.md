@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-08-31 (fix-auth — **Google first-login bounce fixed, live on production**; the app's gatekeeper (middleware) found to have never run and switched on; Vercel preview bypass set up. Design Load (`feat-designer-load-flow`) still NOT merged — **next session: B3 Telegram fix + two small edits, then your merge call.** Seven small Design Load decisions still pending below.)_
+_Last updated: 2026-09-01 (feat-design — **Design Load is LIVE on production.** B3 solved (the test designer accounts have no Telegram link; rule is now every shift), edits 15–19 built and re-tested by you, merged `feat-designer-load-flow` → `dev` → `main`, test data wiped (8 real client jobs kept). **Tomorrow morning: check Admin → Health for the first `design_daily_cron` run (08:30 SGT).** Seven small Design Load decisions still pending below.)_
 
 ---
 
@@ -14,10 +14,11 @@ _Last updated: 2026-08-31 (fix-auth — **Google first-login bounce fixed, live 
 
 ### Design Load — designer workflow (from 2026-08-18 → 2026-08-28, feat-design)
 
-- [ ] **Next session: three queued fixes** — **B3** Telegram on due-date shifts (the bell card works; the Telegram message doesn't send — and per your call it should fire on **every** shift, earlier or later), **edit 15** floating buttons snap to the nearest screen edge when released, **edit 16** the "Design completed" modal reads "This marks the design work as done — no design rating is recorded." Then you re-test B3 only.
-- [ ] **Merge decision** — after B3 passes: `feat-designer-load-flow` → `dev` → `main`, your call (clean-cut, like Workflow V2). **First production morning after merge:** Admin → Health should show the `design_daily_cron` run (08:30 SGT) — the reminder cron couldn't be exercised on the preview (Vercel's login protection blocks it), so this is the first real run.
+- [ ] **First production morning check (2026-09-02):** Admin → Health should show the `design_daily_cron` run at 08:30 SGT — the reminder cron couldn't be exercised on the preview (Vercel's login protection blocks it), so this is its first real run. If it's missing, tell Claude.
+- [x] **[Nic] Three queued fixes — DONE 2026-09-01** — **B3** turned out not to be a broken send: your earlier-move test's only designer was Wan Jun, whose test account has no Telegram link; the later move was blocked by the old "earlier only" rule. Rule is now Telegram on **every** shift, and any failure writes a `[jobs/patch] …` line to Vercel → Logs. **Edit 15** (edge snap) and **edit 16** (modal copy) done. Your re-test passed.
+- [x] **[Nic] Merge decision — MERGED 2026-09-01**: `feat-designer-load-flow` → `dev` → `main`, live on production, probes green. Branch kept for history (no new pushes, like Workflow V2).
 - [ ] **Seven small decisions (none blocking):** may sales and coordinators delete *each other's* installer suggestions (currently yes)? · should coordinators keep confirming **external** installer contacts, or become suggest-only there too? · want a non-destructive bulk "mark as read" back (Clear All now deletes)? · show *who* moved the date on due-shift cards? · give the job-form pages the new mobile top bar (hamburger)? · hide "Reopen design" on jobs whose *installation* is already completed? · check the drawer on an iPad in portrait if the team uses tablets.
-- [ ] **Test-data cleanup** — the Test DL* / Test1 jobs, the reminder cards Claude planted, and Test DL A's JO file whose upload time was backdated 4 days for the reminder test.
+- [x] **[Nic] Test-data cleanup — DONE 2026-09-01** — 9 test jobs (Test DL*, Test1 + dupe, teset g1, testest, "test design completed…", "test 1/9 tele fire designer") deleted with every attached row (files, buckets, chat, assignments, AI scores, bell rows incl. the planted reminders and the backdated JO file) and all 10 R2 files (13.5 MB). Dry run shown to you first — it caught **8 real client jobs** (Luxottica, Fossil, Onitsuka Tiger, ASICS, Aydan Co) that a blanket wipe would have taken; all kept. Script deleted after use.
 - [ ] **Standing rule — replacing a departed designer (or anyone):** create a NEW Google account for the replacement (old address as alias/forward), provision fresh, reassign their open jobs while the old bar is still on Design Load, THEN remove the old account. Never rename the old account's email over — it hands the replacement the old person's private assistant chats, history attribution and Telegram link.
 - [x] **[Nic] CRON_SECRET confirmed set in Vercel** (2026-08-27) — the new daily cron deliberately refuses to run without it.
 - [x] **[Nic] Post-migration policy sanity query run** (2026-08-27) — the NULL on the "jobs: sales and scheduler can insert" row was expected (insert rules live in a different column); the files/jobs rules carried the new roles.
@@ -183,6 +184,19 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-01, feat-design — Design Load Fix Round 3 + LIVE on Production)
+
+- [x] **[Nic] B3 solved — the due-date Telegram was never broken.** The database timeline of your test showed the earlier move only had *Wan Jun* as designer, and that test account has no Telegram link, so there was nobody to message; the later move was blocked by the old "earlier moves only" rule. Rule changed: Telegram fires on **every** shift. Any future miss writes a `[jobs/patch] …` line to Vercel → Logs.
+- [x] **[Nic] Edits 15 + 16** — floating buttons slide to the nearer screen edge when released (and stay on their side when the window resizes); the Design-completed confirm reads "This marks the design work as done — no design rating is recorded."
+- [x] **[Nic] Edits 17–19 from your re-test** — designers now get a bell card + Telegram for **every** due-date event: install date moved but due date kept ("Install Date Moved … (unchanged)"), due date **removed** ("removed (was X)"), due date **set** or **changed** by hand. The "cleared due date comes back" bug is fixed — the save was echoing the old date back into the form, which wrote it back on the next save.
+- [x] **[Nic] Re-test passed on the branch preview** — all Telegrams arrived.
+- [x] **[Nic] Merge decision: Design Load → `dev` → `main`, LIVE on production.** Production checked: new pages bounce signed-out visitors to login, the new API route guards itself, crons and external installer links untouched.
+- [x] **[Nic] Test-data cleanup** — 9 test jobs (incl. Test DL B1 and "test design completed…", confirmed as tests despite real client names) with every attached row and all 10 R2 files deleted; the 8 real client jobs untouched. Dry run first, script deleted after.
+- [x] **[Nic] AI importance tagger** — skipped, no changes (your call at session start).
+- Note: the test designer accounts **Wan Jun / Yu Fei have no Telegram link** — a future Telegram test needs your own account as an assigned designer, or link theirs via Connect Telegram first.
 
 ---
 
