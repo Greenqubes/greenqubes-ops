@@ -78,13 +78,15 @@ export interface Database {
           design_rated_complexity: number | null
           design_rating_suspect:   boolean
           design_rating_resolution: 'kept' | 'discarded' | null
+          project_id:              string | null
+          time_inherited:          boolean
           visibility:              string[]
           created_at:              string
           updated_at:              string
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
+          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution' | 'project_id' | 'time_inherited'
         > & {
           id?:                     string
           created_at?:             string
@@ -106,8 +108,33 @@ export interface Database {
           design_rated_complexity?: number | null
           design_rating_suspect?:  boolean
           design_rating_resolution?: 'kept' | 'discarded' | null
+          project_id?:             string | null
+          time_inherited?:         boolean
         }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
+        Relationships: []
+      }
+
+      job_projects: {
+        Row: {
+          id:                  string
+          name:                string
+          client:              string
+          description:         string | null
+          time_start:          string | null
+          time_end:            string | null
+          default_punctuality: Punctuality | null
+          created_by:          string | null
+          r2_folder:           string | null
+          created_at:          string
+          updated_at:          string
+        }
+        Insert: Omit<Database['public']['Tables']['job_projects']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['job_projects']['Insert']>
         Relationships: []
       }
 
@@ -158,6 +185,7 @@ export interface Database {
           uploader_id: string | null
           bucket_id:   string | null
           url_text:    string | null
+          project_id:  string | null
           visibility:  string[]
           ts:          string
         }
@@ -165,6 +193,7 @@ export interface Database {
           id?:   string
           ts?:   string
           name?: string | null
+          project_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['files']['Insert']>
         Relationships: []
@@ -421,13 +450,14 @@ export interface Database {
       attachment_buckets: {
         Row: {
           id:         string
-          job_id:     string
+          job_id:     string | null
           name:       string
           position:   number
+          project_id: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['attachment_buckets']['Row'], 'id' | 'created_at'> & {
-          id?: string; created_at?: string
+          id?: string; created_at?: string; project_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['attachment_buckets']['Insert']>
         Relationships: []
