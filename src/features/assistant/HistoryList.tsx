@@ -233,7 +233,7 @@ export function ChatRow({
               className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-bg transition-colors flex items-center gap-2"
             >
               <FolderInput size={13} className="text-muted" />
-              Move to project…
+              Move to workspace…
             </button>
           )}
           <button
