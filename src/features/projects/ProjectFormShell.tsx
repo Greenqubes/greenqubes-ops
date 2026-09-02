@@ -170,28 +170,37 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
     }
   }
 
-  async function handleSave() {
-    setSaving(true)
-    const labels = {
+  function currentLabels() {
+    return {
       name, client, description: description || null,
       time_start: timeStart || null, time_end: timeEnd || null,
       default_punctuality: defPunct,
     }
+  }
+
+  // Shared by Save and "+ New job in this project" — the jump to /jobs/new
+  // must never lose unsaved label edits (smoke feedback #1: autosave first).
+  async function saveEditLabels(): Promise<boolean> {
+    const res = await fetch(`/api/projects/${project!.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentLabels()),
+    })
+    return res.ok
+  }
+
+  async function handleSave() {
+    setSaving(true)
     try {
       if (mode === 'new') {
         const res = await fetch('/api/projects', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...labels, nestJobIds: picks.map(p => p.id) }),
+          body: JSON.stringify({ ...currentLabels(), nestJobIds: picks.map(p => p.id) }),
         })
         if (!res.ok) throw new Error()
         const { id } = await res.json() as { id: string }
         router.push(`/projects/${id}`)
       } else {
-        const res = await fetch(`/api/projects/${project!.id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(labels),
-        })
-        if (!res.ok) throw new Error()
+        if (!await saveEditLabels()) throw new Error()
         showSuccess(t(lang, 'savedSuccessfully'))
         setSaving(false)
       }
@@ -199,6 +208,14 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
       showError(t(lang, 'saveError'))
       setSaving(false)
     }
+  }
+
+  // Autosave, then open the prefilled New Job form (smoke feedback #1).
+  async function handleNewJobHere() {
+    setSaving(true)
+    const ok = await saveEditLabels().catch(() => false)
+    if (!ok) { showError(t(lang, 'saveError')); setSaving(false); return }
+    router.push(`/jobs/new?project=${project!.id}`)
   }
 
   async function handleDelete() {
@@ -510,7 +527,7 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
         callerId={userId}
         nestedIds={nestedIds}
         onNest={handleNest}
-        onNewJobHere={mode === 'new' ? null : () => router.push(`/jobs/new?project=${project!.id}`)}
+        onNewJobHere={mode === 'new' ? null : handleNewJobHere}
         onClose={() => setPickerOpen(false)}
       />
 
