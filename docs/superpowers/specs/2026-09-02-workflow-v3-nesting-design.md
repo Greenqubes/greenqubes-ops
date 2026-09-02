@@ -111,8 +111,10 @@ new-job form (§4). Every job keeps its own; folders display the mix (§6).
 filter; their nav entries go away. The Schedule list gains **filter chips** (All default).
 
 **Pending is personal (hard rule — a leak here causes hysteria):** the **Pending chip
-renders only for sales and coordinator**, and it shows only their **own** pending jobs
-(personal working view). Every other role sees no Pending chip and no pending rows on the
+renders only for sales and coordinator**. It shows sales their **own** pending jobs;
+a coordinator sees their own **plus the pending jobs they're assigned to via
+`job_coordinators`** — a pending job is shared between its sales person and their
+assigned coordinators (Nic, 2026-09-02). Every other role sees no Pending chip and no pending rows on the
 schedule — installers above all (their views already load scheduled/completed only).
 **Admin keeps the chip** (Nic confirmed 2026-09-02) — admin is full-access everywhere in
 the app by design. Enforcement is not UI-only: round 2 verifies the `jobs`
@@ -167,7 +169,9 @@ coordinator, admin — same as today's per-job push rights).
 - The route only pushes jobs the caller could push individually (RLS rule 0036: sales
   transition their **own** pending jobs only). A sales push over a mixed project holds
   other people's jobs with the reason "created by {name} — they push it, or a scheduler
-  does"; scheduler/coordinator/admin push all.
+  does". A **coordinator pushes only jobs they created or are assigned to via
+  `job_coordinators`** — a pending job is shared between its sales person and their
+  assigned coordinators (Nic, 2026-09-02). Scheduler/admin push all.
 - Result sheet: "13 / 15 jobs pushed" + the hold-outs listed with their reason and an
   Open link each; resolution happens on the job as today (Notify Scheduler / Push Anyways).
 - **One** Telegram to all schedulers per push — new template `tplProjectPushed`

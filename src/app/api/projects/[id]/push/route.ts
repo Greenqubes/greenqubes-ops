@@ -49,16 +49,34 @@ export async function POST(
     .select('id, status, project_id, sales_poc_id, created_by, date, date_end')
     .in('id', jobIds) as { data: JobRow[] | null; error: unknown }
 
+  // Coordinator assignments for the ownership rule below — one query, not
+  // one per job. A pending job is shared between its sales person and the
+  // coordinators assigned on it (Nic, 2026-09-02).
+  const coordinatedIds = new Set<string>()
+  if (role === 'coordinator') {
+    type CoordRow = { job_id: string }
+    const { data: coordRows } = await service.from('job_coordinators')
+      .select('job_id').eq('user_id', profile.id).in('job_id', jobIds) as
+      { data: CoordRow[] | null; error: unknown }
+    for (const r of coordRows ?? []) coordinatedIds.add(r.job_id)
+  }
+
   const pushed: string[] = []
   const held: { id: string; reason: 'not-pending' | 'not-yours' | 'not-nested' }[] = []
   for (const job of jobs ?? []) {
     if (job.project_id !== projectId)   { held.push({ id: job.id, reason: 'not-nested' });  continue }
     if (job.status !== 'pending')       { held.push({ id: job.id, reason: 'not-pending' }); continue }
-    // Sales push only their own jobs (the 0036 rule, mirrored here because
-    // this runs on the service client). Scheduler/coordinator/admin push all
-    // (spec §7 — coordinators hold sales-level job access).
+    // Ownership rule (spec §7, Nic 2026-09-02): sales push only their own
+    // jobs (the 0036 rule, mirrored here because this runs on the service
+    // client); a coordinator pushes only jobs they created or are assigned
+    // to via job_coordinators; scheduler/admin push all.
     if (role === 'sales'
         && job.sales_poc_id !== profile.id && job.created_by !== profile.id) {
+      held.push({ id: job.id, reason: 'not-yours' }); continue
+    }
+    if (role === 'coordinator'
+        && job.sales_poc_id !== profile.id && job.created_by !== profile.id
+        && !coordinatedIds.has(job.id)) {
       held.push({ id: job.id, reason: 'not-yours' }); continue
     }
     const { data: updated, error } = await service.from('jobs')

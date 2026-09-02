@@ -10,18 +10,22 @@ import { scoreJob } from '@/lib/utils/project-keywords'
 export type NestableJob = {
   id: string; project_title: string | null; client: string; status: string
   date: string; sales_poc_id: string | null; created_by: string | null
+  job_coordinators?: { user_id: string }[] | null
 }
 
 // Picker search (browser). Pending is personal (spec §6): when the caller is
 // sales or coordinator, other people's PENDING jobs are filtered out here
-// even though today's blanket RLS would return them — scheduler/admin see all.
+// even though today's blanket RLS would return them — scheduler/admin see
+// all. A pending job is shared between its sales person and the coordinators
+// assigned on it (Nic, 2026-09-02), so coordinators also see pending jobs
+// they're assigned to via job_coordinators.
 export async function searchNestableJobs(opts: {
   keywords: string[]; query: string; callerRole: string; callerId: string
 }): Promise<NestableJob[]> {
   const supabase = createBrowserClient()
   let q = supabase
     .from('jobs')
-    .select('id, project_title, client, status, date, sales_poc_id, created_by')
+    .select('id, project_title, client, status, date, sales_poc_id, created_by, job_coordinators ( user_id )')
     .is('project_id', null)
     .in('status', ['pending', 'scheduled', 'completed'])
     .order('date', { ascending: false })
@@ -36,7 +40,11 @@ export async function searchNestableJobs(opts: {
   let rows = (data ?? []) as unknown as NestableJob[]
   if (opts.callerRole === 'sales' || opts.callerRole === 'coordinator') {
     rows = rows.filter(j =>
-      j.status !== 'pending' || j.sales_poc_id === opts.callerId || j.created_by === opts.callerId)
+      j.status !== 'pending'
+      || j.sales_poc_id === opts.callerId
+      || j.created_by === opts.callerId
+      || (opts.callerRole === 'coordinator'
+          && (j.job_coordinators ?? []).some(c => c.user_id === opts.callerId)))
   }
   return rows
     .map(j => ({ j, s: scoreJob(j, opts.keywords) }))
