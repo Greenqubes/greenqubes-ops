@@ -801,7 +801,26 @@ export function JobDetailShell({
         } as never)
       }
       if (timeStart !== (job.time_start ?? '').slice(0, 5) || timeEnd !== (job.time_end ?? '').slice(0, 5)) {
-        await supabase.from('jobs').update({ time_start: timeStart || null, time_end: timeEnd || null } as never).eq('id', job.id)
+        // Workflow V3 container core (Task 13 fix) — this second time-write
+        // path (clash-resolution modal) bypassed timingOnJobTimeEdit, so a
+        // nested job that still had time_inherited: true from before this
+        // save kept that flag after the scheduler picked a clash-resolved
+        // time here — a later project-time edit would then fan out and
+        // silently overwrite the resolved time, recreating the clash. Route
+        // through the same rule as saveValues: a time set here (including
+        // via this modal) stops following the project; a cleared time
+        // re-inherits when the project has one.
+        const timing = timingOnJobTimeEdit(
+          timeStart || null,
+          timeEnd   || null,
+          !!job.project_id,
+          projectTimes,
+        )
+        await supabase.from('jobs').update({
+          time_start:     timing.time_start,
+          time_end:       timing.time_end,
+          time_inherited: timing.time_inherited,
+        } as never).eq('id', job.id)
         if (timeStart) setValue('time_start', timeStart)
         if (timeEnd)   setValue('time_end', timeEnd)
       }
