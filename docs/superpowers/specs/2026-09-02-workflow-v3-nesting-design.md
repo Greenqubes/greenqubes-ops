@@ -114,8 +114,8 @@ filter; their nav entries go away. The Schedule list gains **filter chips** (All
 renders only for sales and coordinator**, and it shows only their **own** pending jobs
 (personal working view). Every other role sees no Pending chip and no pending rows on the
 schedule — installers above all (their views already load scheduled/completed only).
-Exception, called out for Nic's veto: **admin keeps the chip** — admin is full-access
-everywhere in the app by design. Enforcement is not UI-only: round 2 verifies the `jobs`
+**Admin keeps the chip** (Nic confirmed 2026-09-02) — admin is full-access everywhere in
+the app by design. Enforcement is not UI-only: round 2 verifies the `jobs`
 RLS actually denies other roles' pending rows to every non-privileged role and tightens it
 if any gap exists; the UI hiding is on top. Folder counts ("15 in this project",
 "4 / 15 done") are computed from rows the viewer can see, so a scheduler who cannot see
