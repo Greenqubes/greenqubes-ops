@@ -1027,9 +1027,10 @@ export async function POST(
   for (const job of jobs ?? []) {
     if (job.project_id !== projectId)   { held.push({ id: job.id, reason: 'not-nested' });  continue }
     if (job.status !== 'pending')       { held.push({ id: job.id, reason: 'not-pending' }); continue }
-    // Sales (and suggest-only coordinators) push only their own jobs — the
-    // 0036 rule, mirrored here because this runs on the service client.
-    if ((role === 'sales' || role === 'coordinator')
+    // Sales push only their own jobs (the 0036 rule, mirrored here because
+    // this runs on the service client). Scheduler/coordinator/admin push all
+    // (spec §7 — coordinators hold sales-level job access).
+    if (role === 'sales'
         && job.sales_poc_id !== profile.id && job.created_by !== profile.id) {
       held.push({ id: job.id, reason: 'not-yours' }); continue
     }
