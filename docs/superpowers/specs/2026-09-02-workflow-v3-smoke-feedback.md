@@ -7,3 +7,5 @@
 | # | Reported | Item | Status |
 |---|---|---|---|
 | 1 | 2026-09-02 | "+ New job in this project" navigates away and loses unsaved project edits — the project must autosave before the jump. | Fixed — edit-mode labels PATCH before the navigation; a failed save shows the error toast and stays put. |
+| 2 | 2026-09-02 | Project collapsible folder doesn't appear on the schedule list. | Not a round-1 bug — schedule folding is round 2's headline (spec §13); logged so it stays visible. Round 2 starts on Nic's call. |
+| 3 | 2026-09-02 | Creating a job inside a not-yet-pushed project needs an informational prompt: Save as pending keeps it pending inside the folder until the project is pushed; Push to Schedule from the job form supersedes and goes onto the schedule immediately (existing behaviour, just unexplained). | Fixed — amber notice under the New Job heading (en + zh), shown only while the project has no scheduled jobs yet. |

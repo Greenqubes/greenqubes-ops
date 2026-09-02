@@ -151,6 +151,7 @@ export const zh: Partial<Translations> = {
   jpJobsDone: '已完成',
   jpNoTeamChat: '项目没有团队和聊天——每个任务保留自己的。',
   jpSaveFirstFiles: '先保存项目，再添加共享文件。',
+  jpPartOfNotice: '此任务属于该项目。「保存为待定」会让它留在项目文件夹中待定——项目推送到日程后它才会上日程。「推送到日程」则会立即把它单独排上日程。',
 
   loading: '加载中…',
   language: '语言',

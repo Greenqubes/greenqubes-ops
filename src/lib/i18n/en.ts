@@ -252,6 +252,7 @@ export const en = {
   jpJobsDone: 'done',
   jpNoTeamChat: 'Projects have no team or chat — each job keeps its own.',
   jpSaveFirstFiles: 'Save the project first to add shared files.',
+  jpPartOfNotice: 'This job is part of the project. Save as pending keeps it pending inside the project folder — it reaches the schedule when the project is pushed. Push to Schedule sends it onto the schedule right away.',
 
   // ── Telegram notifications ─────────────────────────────────────────────────
   notifySaveBtn: 'Save & notify',

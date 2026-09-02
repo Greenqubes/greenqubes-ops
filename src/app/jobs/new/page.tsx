@@ -14,6 +14,21 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams
   const projectPrefill = sp.project ? await getProjectById(sp.project) : null
 
+  // Smoke feedback #3: the "part of project" notice only shows while the
+  // project has nothing on the schedule yet — one cheap existence check.
+  let projectHasScheduled = false
+  if (projectPrefill) {
+    // Own client — this runs before the page's `supabase` is declared.
+    const sb = await createClient()
+    const { data: sched } = await sb
+      .from('jobs')
+      .select('id')
+      .eq('project_id', projectPrefill.id)
+      .eq('status', 'scheduled')
+      .limit(1)
+    projectHasScheduled = !!(sched && sched.length > 0)
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -69,6 +84,7 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
         default_punctuality: projectPrefill.default_punctuality,
         time_start: projectPrefill.time_start,
         time_end: projectPrefill.time_end,
+        hasScheduledJobs: projectHasScheduled,
       } : undefined}
     />
   )

@@ -45,6 +45,7 @@ interface Props {
     id: string; name: string; client: string; description: string | null
     default_punctuality: Punctuality | null
     time_start: string | null; time_end: string | null
+    hasScheduledJobs: boolean
   }
 }
 
@@ -380,6 +381,14 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           </div>
           {!projectPrefill && canManageProjects && <ProjectToggle onToggle={() => setIsProject(true)} lang={lang} />}
         </div>
+        {/* Smoke feedback #3: explain where the job lands. Only while the
+            project has nothing on the schedule yet — once the project is
+            pushed, the distinction stops mattering. */}
+        {projectPrefill && !projectPrefill.hasScheduledJobs && (
+          <div className="mt-2 rounded-[10px] border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {t(lang, 'jpPartOfNotice')}
+          </div>
+        )}
       </div>
 
       <JobFormLayout
