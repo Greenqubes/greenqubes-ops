@@ -87,7 +87,10 @@ export async function searchNestableJobs(opts: {
     .in('status', ['pending', 'scheduled', 'completed'])
     .order('date', { ascending: false })
     .limit(200)
-  const text = opts.query.trim()
+  // PostgREST or-filters treat , ( ) as syntax and % as a wildcard — strip
+  // them from user text so a search for "Acme, Inc." can't produce a
+  // malformed filter that throws (controller ruling, Task 5 review).
+  const text = opts.query.replace(/[,()%]/g, ' ').trim()
   if (text) q = q.or(`project_title.ilike.%${text}%,client.ilike.%${text}%`)
   const { data, error } = await q
   if (error) throw error
