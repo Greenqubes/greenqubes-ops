@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
-import { scoreJob } from '@/lib/utils/project-keywords'
+
+// NestableJob/searchNestableJobs live in projects-search.ts (browser-only —
+// no `next/headers` import) so Client Components can pull in the search
+// function without dragging this file's server client into their bundle.
+// Re-exported here (type-only) so existing `from '.../queries/projects'`
+// type imports keep working unchanged.
+export type { NestableJob } from './projects-search'
 
 export type JobProject = {
   id: string; name: string; client: string; description: string | null
@@ -68,40 +73,4 @@ export async function getProjectsList(): Promise<ProjectListItem[]> {
   })
 }
 
-export type NestableJob = {
-  id: string; project_title: string | null; client: string; status: string
-  date: string; sales_poc_id: string | null; created_by: string | null
-}
-
-// Picker search (browser). Pending is personal (spec §6): when the caller is
-// sales or coordinator, other people's PENDING jobs are filtered out here
-// even though today's blanket RLS would return them — scheduler/admin see all.
-export async function searchNestableJobs(opts: {
-  keywords: string[]; query: string; callerRole: string; callerId: string
-}): Promise<NestableJob[]> {
-  const supabase = createBrowserClient()
-  let q = supabase
-    .from('jobs')
-    .select('id, project_title, client, status, date, sales_poc_id, created_by')
-    .is('project_id', null)
-    .in('status', ['pending', 'scheduled', 'completed'])
-    .order('date', { ascending: false })
-    .limit(200)
-  // PostgREST or-filters treat , ( ) as syntax and % as a wildcard — strip
-  // them from user text so a search for "Acme, Inc." can't produce a
-  // malformed filter that throws (controller ruling, Task 5 review).
-  const text = opts.query.replace(/[,()%]/g, ' ').trim()
-  if (text) q = q.or(`project_title.ilike.%${text}%,client.ilike.%${text}%`)
-  const { data, error } = await q
-  if (error) throw error
-  let rows = (data ?? []) as unknown as NestableJob[]
-  if (opts.callerRole === 'sales' || opts.callerRole === 'coordinator') {
-    rows = rows.filter(j =>
-      j.status !== 'pending' || j.sales_poc_id === opts.callerId || j.created_by === opts.callerId)
-  }
-  return rows
-    .map(j => ({ j, s: scoreJob(j, opts.keywords) }))
-    .sort((a, b) => b.s - a.s || a.j.date.localeCompare(b.j.date))
-    .map(x => x.j)
-    .slice(0, 30)
-}
+// NestableJob + searchNestableJobs moved to ./projects-search (browser-only).

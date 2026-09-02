@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getDesignerUsers } from '@/lib/supabase/queries/designers'
+import { getProjectById } from '@/lib/supabase/queries/projects'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -9,7 +10,10 @@ import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { SelectOption } from '@/components/SearchableSelect'
 import type { Role } from '@/lib/supabase/types'
 
-export default async function NewJobPage() {
+export default async function NewJobPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
+  const sp = await searchParams
+  const projectPrefill = sp.project ? await getProjectById(sp.project) : null
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -57,6 +61,15 @@ export default async function NewJobPage() {
       role={role}
       coordinatorOptions={coordinatorOptions}
       designerOptions={designerOptions}
+      projectPrefill={projectPrefill ? {
+        id: projectPrefill.id,
+        name: projectPrefill.name,
+        client: projectPrefill.client,
+        description: projectPrefill.description,
+        default_punctuality: projectPrefill.default_punctuality,
+        time_start: projectPrefill.time_start,
+        time_end: projectPrefill.time_end,
+      } : undefined}
     />
   )
 }

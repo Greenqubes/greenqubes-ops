@@ -26,8 +26,11 @@ import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import { ProjectFormShell } from '@/features/projects/ProjectFormShell'
+import { timingOnNest } from '@/lib/utils/project-timing'
+import { cn } from '@/lib/utils/cn'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
-import type { Role } from '@/lib/supabase/types'
+import type { Role, Punctuality } from '@/lib/supabase/types'
 
 interface Props {
   userId:          string
@@ -38,11 +41,37 @@ interface Props {
   role:                Role
   coordinatorOptions?: Array<{ id: string; label: string }>
   designerOptions?:    Array<{ id: string; label: string }>
+  projectPrefill?: {
+    id: string; name: string; client: string; description: string | null
+    default_punctuality: Punctuality | null
+    time_start: string | null; time_end: string | null
+  }
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [], designerOptions = [] }: Props) {
+// Small labelled switch matching the mockup's pill look (workflow-v3-nesting
+// .toggle: 34×20 pill, 16px sliding dot) — used both in NewJobShell's header
+// and (flipped on) atop the New Project form it swaps in for.
+function ProjectToggle({ on = false, onToggle, lang }: { on?: boolean; onToggle: () => void; lang: LangCode }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onToggle}
+      className="inline-flex items-center gap-2 text-xs font-medium text-ink2"
+    >
+      {t(lang, 'jpSwitchLabel')}
+      <span className={cn('relative inline-block h-5 w-[34px] rounded-full transition-colors', on ? 'bg-terracotta' : 'bg-line')}>
+        <span className={cn('absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-paper transition-transform', on && 'translate-x-3.5')} />
+      </span>
+    </button>
+  )
+}
+
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [], designerOptions = [], projectPrefill }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
+  const [isProject,             setIsProject]            = useState(false)
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
@@ -75,19 +104,19 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
 
   const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
-      project_title:           '',
+      project_title:           projectPrefill ? `${projectPrefill.name} — ` : '',
       date:                    today,
       date_end:                '',
       time_start:              '',
       time_end:                '',
-      client:                  '',
+      client:                  projectPrefill ? projectPrefill.client : '',
       location:                '',
-      description:             '',
+      description:             projectPrefill ? (projectPrefill.description ?? '') : '',
       client_poc_name:         '',
       client_poc_phone:        '',
       production_ready:        false,
       do_issued:               false,
-      punctuality:             'strict',
+      punctuality:             projectPrefill ? (projectPrefill.default_punctuality ?? 'strict') : 'strict',
       production_instructions: '',
       notes:                   '',
       quote_amount:            '',
@@ -128,6 +157,13 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           design_due_date:         dueDate,
           design_due_manual:       dueManual,
           visibility:              ['role:sales', 'role:scheduler'],
+          ...(projectPrefill ? {
+            project_id: projectPrefill.id,
+            ...(timingOnNest(
+              { time_start: values.time_start || null, time_end: values.time_end || null },
+              { time_start: projectPrefill.time_start, time_end: projectPrefill.time_end },
+            ) ?? {}),
+          } : {}),
         } as never)
         .select('id')
         .single() as unknown as Promise<{ data: { id: string } | null; error: Error | null }>)
@@ -273,17 +309,44 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
     }
   }
 
+  // "Multiple jobs" switch flipped on — swap wholesale for the New Project
+  // form (ProjectFormShell renders its own full layout/chrome). Job-form
+  // typing loss on toggle is accepted behaviour (approved in mockup rounds).
+  if (isProject) {
+    return (
+      <div className="min-h-screen bg-bg pb-28">
+        <CompanyBar lang={lang} />
+        <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0"><ArrowLeft size={18} /></Link>
+              <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'jpTitle')}</h1>
+            </div>
+            <ProjectToggle on onToggle={() => setIsProject(false)} lang={lang} />
+          </div>
+        </div>
+        <ProjectFormShell mode="new" lang={lang} role={role} userId={userId} />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-bg pb-28">
       <CompanyBar lang={lang} />
 
       {/* Back + title — same container width as the columns */}
       <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
-        <div className="flex items-center gap-3">
-          <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'newJob')}</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'newJob')}</h1>
+              {projectPrefill && <p className="text-xs text-muted">Part of {projectPrefill.name}</p>}
+            </div>
+          </div>
+          {!projectPrefill && <ProjectToggle onToggle={() => setIsProject(true)} lang={lang} />}
         </div>
       </div>
 

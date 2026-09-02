@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Search, X } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { extractKeywords } from '@/lib/utils/project-keywords'
-import { searchNestableJobs, type NestableJob } from '@/lib/supabase/queries/projects'
+import { searchNestableJobs, type NestableJob } from '@/lib/supabase/queries/projects-search'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
