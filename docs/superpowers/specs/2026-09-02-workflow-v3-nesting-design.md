@@ -108,8 +108,20 @@ new-job form (§4). Every job keeps its own; folders display the mix (§6).
 ## 6. Schedule page — one page, filter chips, folders
 
 **Tabs retired.** `/pending` and `/completed` redirect to `/schedule` with the matching
-filter; their nav entries go away. The Schedule list gains **filter chips:
-All / Scheduled / Pending / Completed** (All default). Completed jobs no longer vanish
+filter; their nav entries go away. The Schedule list gains **filter chips** (All default).
+
+**Pending is personal (hard rule — a leak here causes hysteria):** the **Pending chip
+renders only for sales and coordinator**, and it shows only their **own** pending jobs
+(personal working view). Every other role sees no Pending chip and no pending rows on the
+schedule — installers above all (their views already load scheduled/completed only).
+Exception, called out for Nic's veto: **admin keeps the chip** — admin is full-access
+everywhere in the app by design. Enforcement is not UI-only: round 2 verifies the `jobs`
+RLS actually denies other roles' pending rows to every non-privileged role and tightens it
+if any gap exists; the UI hiding is on top. Folder counts ("15 in this project",
+"4 / 15 done") are computed from rows the viewer can see, so a scheduler who cannot see
+3 pending stores simply sees "4 / 12 done" — RLS truth, never a leak.
+Chips: **All / Scheduled / Pending / Completed** for sales + coordinator (+ admin);
+**All / Scheduled / Completed** for everyone else. Completed jobs no longer vanish
 from the day — every finished job stays in its day's list under a **"Completed" veil**
 (dotted border, 75% grey overlay, the word centred; hover or tap reveals the card
 beneath). Bulk-action bars follow the active chip: Delete N (pending, roles as today),
@@ -134,8 +146,10 @@ in the job title. No installer query touches job_projects.
 **Sort & filter dropdown** (list view, office roles) — a small dropdown beside the view
 toggle:
 - Sorts: start time (default) · created date ↑/↓ · alphabetical A–Z / Z–A.
-- Filters: client · date range · job-time window (AM / PM / all-day) · installer ·
-  **no installer yet** · **my jobs only** (POC = me).
+- Filters: client · date range · job-time window (AM / PM / all-day) · installer
+  (matches **suggested and assigned** alike — sales/coordinator can only suggest, so both
+  count; suggestions are office-visible anyway and this page is office-only) ·
+  **no installer yet**. ("My jobs only" was dropped — pending is personal already, Nic.)
 - Combines with the status chips; active count badge on the dropdown button; Clear all.
 
 **"Day x / y" label:** rename "Job Day: 1/3" → "Day 1 / 3" and add it to installer cards
@@ -211,6 +225,10 @@ mobile-app spec (jobs stay jobs; title carries the project name) · overdue aler
 - Type-check + build + all 14 existing suites green before every push.
 - Preview smoke checklist per build round; real-installer login check that a nested job
   looks 100% ordinary (title, time, files) and no project artefact leaks.
+- **Pending-leak test (round 2 gate):** real non-admin logins — an installer and a
+  scheduler each confirm they see no Pending chip and no pending rows (including inside
+  folded projects and folder counts); a second sales login confirms it cannot see the
+  first sales user's pending jobs. Verified at the DB layer (RLS), not just the UI.
 
 ## 13. Build rounds (each: dev-preview smoke test by Nic before the next)
 
