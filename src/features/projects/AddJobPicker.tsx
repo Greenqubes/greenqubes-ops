@@ -70,7 +70,7 @@ export function AddJobPicker({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t(lang, 'jpPickerSearch')}
-            className="w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
+            className="w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/20"
           />
         </div>
 
