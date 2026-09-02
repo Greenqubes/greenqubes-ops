@@ -14,6 +14,7 @@ import { Btn } from '@/components/Btn'
 import { CompanyBar } from '@/components/CompanyBar'
 import { JobFormLayout } from '@/features/job-detail/JobFormLayout'
 import { CollapseCard } from '@/features/job-detail/CollapseCard'
+import { AttachmentBuckets } from '@/features/job-detail/AttachmentBuckets'
 import { AddJobPicker } from './AddJobPicker'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
@@ -402,13 +403,19 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
           </Card>
         }
         files={
-          <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
-            <h3 className="text-sm font-medium text-ink">{t(lang, 'tabFiles')}</h3>
-            <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
-              <Lock size={14} />
-              {t(lang, 'jpSaveFirstFiles')}
-            </div>
-          </Card>
+          mode === 'edit' ? (
+            <Card className="p-5">
+              <AttachmentBuckets projectId={project!.id} userId={userId} lang={lang} readOnly={!['sales','scheduler','coordinator','admin'].includes(role)} />
+            </Card>
+          ) : (
+            <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
+              <h3 className="text-sm font-medium text-ink">{t(lang, 'tabFiles')}</h3>
+              <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
+                <Lock size={14} />
+                {t(lang, 'jpSaveFirstFiles')}
+              </div>
+            </Card>
+          )
         }
         chat={
           <Card className="p-5 space-y-3 opacity-60 pointer-events-none select-none">

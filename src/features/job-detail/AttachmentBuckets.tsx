@@ -39,7 +39,8 @@ function FileTypeIcon({ filename }: { filename: string }) {
 }
 
 interface Props {
-  jobId:       string
+  jobId?:      string   // exactly one of jobId/projectId
+  projectId?:  string   // exactly one of jobId/projectId
   userId:      string   // app users.id — the FK target for files.uploader_id
   lang:        LangCode
   readOnly?:   boolean
@@ -51,7 +52,7 @@ interface Props {
   onBucketsChange?: (buckets: AttachmentBucket[]) => void
 }
 
-export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refreshKey, onBucketsChange }: Props) {
+export function AttachmentBuckets({ jobId, projectId, userId, lang, readOnly = false, refreshKey, onBucketsChange }: Props) {
   const [buckets,    setBuckets]    = useState<AttachmentBucket[]>([])
   const [loading,    setLoading]    = useState(true)
   const [lightbox,   setLightbox]   = useState<string | null>(null)
@@ -61,13 +62,18 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
 
   useEffect(() => { onBucketsChange?.(buckets) }, [buckets])  // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Inline query, not the jobs.ts getJobBuckets/getProjectBucketsQ helpers —
+  // that module also imports the next/headers server client for its
+  // server-side queries, and pulling any value out of it here would drag
+  // that import into this 'use client' component's bundle and break the
+  // build. Both branches below stay in lockstep with those helpers' shape.
   async function load() {
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from('attachment_buckets')
         .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts)')
-        .eq('job_id', jobId)
+        .eq(projectId ? 'project_id' : 'job_id', projectId ?? (jobId as string))
         .order('position')
       if (error) throw error
       setBuckets((data ?? []) as unknown as AttachmentBucket[])
@@ -76,13 +82,21 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
     }
   }
 
-  useEffect(() => { load() }, [jobId, refreshKey])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [jobId, projectId, refreshKey])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Every hook above runs unconditionally first — this check must stay below
+  // them (see react-hooks/rules-of-hooks) even though it's a caller-contract
+  // bug, not real conditional rendering.
+  if (!jobId === !projectId) {
+    throw new Error('AttachmentBuckets requires exactly one of jobId or projectId')
+  }
 
   async function addBucket() {
     const maxPos = buckets.reduce((m, b) => Math.max(m, b.position), -1)
+    const owner = projectId ? { project_id: projectId } : { job_id: jobId }
     const { data, error } = await supabase
       .from('attachment_buckets')
-      .insert({ job_id: jobId, name: 'NEW BUCKET', position: maxPos + 1 } as never)
+      .insert({ ...owner, name: 'NEW BUCKET', position: maxPos + 1 } as never)
       .select('id, job_id, name, position, created_at')
       .single()
     if (error) return
@@ -125,7 +139,10 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
       const res = await fetch('/api/r2/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType }),
+        body: JSON.stringify({
+          ...(projectId ? { projectId } : { jobId }),
+          kind: 'attachment', filename: file.name, contentType,
+        }),
       })
       if (!res.ok) {
         const detail = await res.text().catch(() => '')
@@ -156,10 +173,11 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
     }
 
     // Step 3 — record the file row.
+    const owner = projectId ? { project_id: projectId } : { job_id: jobId }
     const { data: fileRow, error } = await supabase
       .from('files')
       .insert({
-        job_id:      jobId,
+        ...owner,
         bucket_id:   bucket.id,
         kind:        'attachment',
         r2_key:      key,
@@ -182,10 +200,11 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
 
   async function addUrl(bucket: AttachmentBucket, url: string) {
     if (!userId) { showError('Not signed in.'); return }
+    const owner = projectId ? { project_id: projectId } : { job_id: jobId }
     const { data: fileRow, error } = await supabase
       .from('files')
       .insert({
-        job_id:      jobId,
+        ...owner,
         bucket_id:   bucket.id,
         kind:        'url_link',
         r2_key:      '',

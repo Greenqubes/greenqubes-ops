@@ -396,6 +396,17 @@ export async function getJobBuckets(jobId: string): Promise<AttachmentBucket[]> 
   return (data ?? []) as unknown as AttachmentBucket[]
 }
 
+export async function getProjectBucketsQ(projectId: string): Promise<AttachmentBucket[]> {
+  const supabase = createBrowserClient()
+  const { data, error } = await supabase
+    .from('attachment_buckets')
+    .select('id, job_id, name, position, created_at, files(id, job_id, bucket_id, kind, r2_key, name, url_text, uploader_id, ts)')
+    .eq('project_id', projectId)
+    .order('position')
+  if (error) throw error
+  return (data ?? []) as unknown as AttachmentBucket[]
+}
+
 export async function createDefaultBuckets(jobId: string): Promise<void> {
   const supabase = createBrowserClient()
   const buckets = [

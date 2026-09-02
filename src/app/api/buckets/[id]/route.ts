@@ -6,6 +6,10 @@ import { deleteObject } from '@/lib/storage/r2'
 import { canManageJobFiles } from '@/lib/storage/job-file-permissions'
 import type { Role } from '@/lib/supabase/types'
 
+// Project buckets have no completed-lock and are manager-only (no
+// designer/production/installer) — same set the projects routes use.
+const PROJECT_MANAGER_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
+
 // Delete a bucket AND its files (R2 objects + rows). files.bucket_id is
 // ON DELETE SET NULL, so deleting only the bucket row would orphan its
 // attachment rows into job chat (chat = kind 'attachment' with no bucket).
@@ -30,10 +34,10 @@ export async function DELETE(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  type BucketRow = { id: string; job_id: string; name: string }
+  type BucketRow = { id: string; job_id: string | null; project_id: string | null; name: string }
   const { data: bucket } = await service
     .from('attachment_buckets')
-    .select('id, job_id, name')
+    .select('id, job_id, project_id, name')
     .eq('id', bucketId)
     .maybeSingle() as { data: BucketRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
@@ -44,22 +48,30 @@ export async function DELETE(
   // RLS, so the AttachmentBuckets UI hiding the trash icon isn't enough on
   // its own; the design-complete route and the Task 9 3-day reminder both
   // find this bucket by name, and a stray delete would silently break both.
+  // Applies to project buckets exactly as job buckets.
   if (/designer\s*jo/i.test(bucket.name)) {
     return NextResponse.json({ error: 'Protected bucket' }, { status: 403 })
   }
 
-  const { data: job } = await service
-    .from('jobs')
-    .select('status')
-    .eq('id', bucket.job_id)
-    .maybeSingle() as { data: { status: string } | null; error: unknown }
+  if (bucket.project_id) {
+    // Projects have no completed-lock — manager roles only, no job lookup.
+    if (!PROJECT_MANAGER_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  } else {
+    const { data: job } = await service
+      .from('jobs')
+      .select('status')
+      .eq('id', bucket.job_id as string)
+      .maybeSingle() as { data: { status: string } | null; error: unknown }
 
-  const decision = canManageJobFiles(role, job?.status ?? null)
-  if (!decision.allowed) {
-    return NextResponse.json(
-      { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
-      { status: 403 },
-    )
+    const decision = canManageJobFiles(role, job?.status ?? null)
+    if (!decision.allowed) {
+      return NextResponse.json(
+        { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
+        { status: 403 },
+      )
+    }
   }
 
   type FileRow = { id: string; r2_key: string }

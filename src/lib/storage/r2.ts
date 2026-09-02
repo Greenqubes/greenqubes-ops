@@ -62,6 +62,28 @@ export async function getUploadUrlForKind(
   return { url, key }
 }
 
+// `folder` is the project's readable r2_folder slug (new projects) or the
+// bare project id (never expected in practice — projects always get an
+// r2_folder at creation, see /api/projects). Mirrors getUploadUrlForKind.
+export function generateProjectKey(folder: string, kind: FileKind, originalName: string): string {
+  const ext  = originalName.includes('.') ? originalName.split('.').pop() : undefined
+  const name = ext ? `${randomUUID()}.${ext}` : randomUUID()
+  return `projects/${folder}/${KIND_FOLDER[kind]}/${name}`
+}
+
+export async function getProjectFileUploadUrl(
+  folder: string, kind: FileKind, filename: string, contentType: string,
+): Promise<{ url: string; key: string }> {
+  const key = generateProjectKey(folder, kind, filename)
+  const url = await getSignedUrl(
+    r2,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: 300 },
+  )
+  void logApiUsage({ service: 'r2', endpoint: 'put', estimated_cost: 0 })
+  return { url, key }
+}
+
 export async function getDownloadUrl(key: string, filename?: string): Promise<string> {
   const url = await getSignedUrl(
     r2,

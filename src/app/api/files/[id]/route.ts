@@ -6,6 +6,10 @@ import { deleteObject } from '@/lib/storage/r2'
 import { canManageJobFiles } from '@/lib/storage/job-file-permissions'
 import type { Role } from '@/lib/supabase/types'
 
+// Project files have no completed-lock and are manager-only (no
+// designer/production/installer) — same set the projects routes use.
+const PROJECT_MANAGER_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
+
 // Move one attachment to another bucket on the same job. The R2 object never
 // moves — a bucket is only the bucket_id column on the files row. The files
 // table has no client-side UPDATE policy (RLS deny-by-default), so this route
@@ -35,39 +39,48 @@ export async function PATCH(
   const role    = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  type FileRow = { id: string; job_id: string | null }
+  type FileRow = { id: string; job_id: string | null; project_id: string | null }
   const { data: file } = await service
     .from('files')
-    .select('id, job_id')
+    .select('id, job_id, project_id')
     .eq('id', fileId)
     .maybeSingle() as { data: FileRow | null; error: unknown }
   if (!file) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  let jobStatus: string | null = null
-  if (file.job_id) {
-    const { data: job } = await service
-      .from('jobs')
-      .select('status')
-      .eq('id', file.job_id)
-      .maybeSingle() as { data: { status: string } | null; error: unknown }
-    jobStatus = job?.status ?? null
+  if (file.project_id) {
+    // Projects have no completed-lock — manager roles only, no job lookup.
+    if (!PROJECT_MANAGER_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  } else {
+    let jobStatus: string | null = null
+    if (file.job_id) {
+      const { data: job } = await service
+        .from('jobs')
+        .select('status')
+        .eq('id', file.job_id)
+        .maybeSingle() as { data: { status: string } | null; error: unknown }
+      jobStatus = job?.status ?? null
+    }
+
+    const decision = canManageJobFiles(role, jobStatus)
+    if (!decision.allowed) {
+      return NextResponse.json(
+        { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
+        { status: 403 },
+      )
+    }
   }
 
-  const decision = canManageJobFiles(role, jobStatus)
-  if (!decision.allowed) {
-    return NextResponse.json(
-      { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
-      { status: 403 },
-    )
-  }
-
-  // The target bucket must exist on the SAME job — no cross-job moves.
+  // The target bucket must stay within the same owner — no cross-job or
+  // cross-project moves.
   const { data: bucket } = await service
     .from('attachment_buckets')
-    .select('id, job_id')
+    .select('id, job_id, project_id')
     .eq('id', bucketId)
-    .maybeSingle() as { data: { id: string; job_id: string } | null; error: unknown }
-  if (!bucket || bucket.job_id !== file.job_id) {
+    .maybeSingle() as { data: { id: string; job_id: string | null; project_id: string | null } | null; error: unknown }
+  const sameOwner = !!bucket && (file.project_id ? bucket.project_id === file.project_id : bucket.job_id === file.job_id)
+  if (!sameOwner) {
     return NextResponse.json({ error: 'Bucket is not on this job' }, { status: 400 })
   }
 
@@ -104,31 +117,38 @@ export async function DELETE(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  type FileRow = { id: string; job_id: string | null; r2_key: string }
+  type FileRow = { id: string; job_id: string | null; project_id: string | null; r2_key: string }
   const { data: file } = await service
     .from('files')
-    .select('id, job_id, r2_key')
+    .select('id, job_id, project_id, r2_key')
     .eq('id', fileId)
     .maybeSingle() as { data: FileRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
   if (!file) return NextResponse.json({ ok: true })
 
-  let jobStatus: string | null = null
-  if (file.job_id) {
-    const { data: job } = await service
-      .from('jobs')
-      .select('status')
-      .eq('id', file.job_id)
-      .maybeSingle() as { data: { status: string } | null; error: unknown }
-    jobStatus = job?.status ?? null
-  }
+  if (file.project_id) {
+    // Projects have no completed-lock — manager roles only, no job lookup.
+    if (!PROJECT_MANAGER_ROLES.includes(role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  } else {
+    let jobStatus: string | null = null
+    if (file.job_id) {
+      const { data: job } = await service
+        .from('jobs')
+        .select('status')
+        .eq('id', file.job_id)
+        .maybeSingle() as { data: { status: string } | null; error: unknown }
+      jobStatus = job?.status ?? null
+    }
 
-  const decision = canManageJobFiles(role, jobStatus)
-  if (!decision.allowed) {
-    return NextResponse.json(
-      { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
-      { status: 403 },
-    )
+    const decision = canManageJobFiles(role, jobStatus)
+    if (!decision.allowed) {
+      return NextResponse.json(
+        { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
+        { status: 403 },
+      )
+    }
   }
 
   // R2 object goes first; a failure here leaves the row (and the file) intact
