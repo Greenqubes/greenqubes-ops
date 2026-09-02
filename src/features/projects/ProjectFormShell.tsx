@@ -237,9 +237,10 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
         const out = await res.json() as { pushed: string[]; held: { id: string; reason: string }[] }
         pushedCount = out.pushed.length
         for (const h of out.held) {
+          const heldJob = jobs.find(j => j.id === h.id)
           held.push({
             id: h.id,
-            title: jobs.find(j => j.id === h.id)?.project_title ?? '',
+            title: heldJob?.project_title ?? heldJob?.client ?? '',
             reason: h.reason === 'not-yours' ? t(lang, 'jpHeldNotYours') : h.reason,
           })
         }
