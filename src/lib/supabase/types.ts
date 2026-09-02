@@ -189,7 +189,7 @@ export interface Database {
           visibility:  string[]
           ts:          string
         }
-        Insert: Omit<Database['public']['Tables']['files']['Row'], 'id' | 'ts' | 'name'> & {
+        Insert: Omit<Database['public']['Tables']['files']['Row'], 'id' | 'ts' | 'name' | 'project_id'> & {
           id?:   string
           ts?:   string
           name?: string | null
@@ -456,8 +456,8 @@ export interface Database {
           project_id: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['attachment_buckets']['Row'], 'id' | 'created_at'> & {
-          id?: string; created_at?: string; project_id?: string | null
+        Insert: Omit<Database['public']['Tables']['attachment_buckets']['Row'], 'id' | 'created_at' | 'job_id' | 'project_id'> & {
+          id?: string; created_at?: string; job_id?: string | null; project_id?: string | null
         }
         Update: Partial<Database['public']['Tables']['attachment_buckets']['Insert']>
         Relationships: []
