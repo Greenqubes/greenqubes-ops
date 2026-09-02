@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Lock, Plus, X } from 'lucide-react'
@@ -29,6 +29,7 @@ interface Props {
   userId:      string
   project?:    JobProject          // edit mode
   initialJobs?: ProjectJobRow[]    // edit mode
+  modeSwitch?: ReactNode           // caller-supplied control rendered in the header (e.g. NewJobShell's "Multiple jobs" toggle, flipped on)
 }
 
 type Held = { id: string; title: string; reason: string }
@@ -59,7 +60,7 @@ type DisplayRow = {
   status: string
 }
 
-export function ProjectFormShell({ mode, lang, role, userId, project, initialJobs = [] }: Props) {
+export function ProjectFormShell({ mode, lang, role, userId, project, initialJobs = [], modeSwitch }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
 
@@ -267,13 +268,16 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
       <CompanyBar lang={lang} />
 
       <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
-        <div className="flex items-center gap-3">
-          <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="font-display text-xl font-semibold text-ink">
-            {mode === 'new' ? t(lang, 'jpTitle') : 'Edit project'}
-          </h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0">
+              <ArrowLeft size={18} />
+            </Link>
+            <h1 className="font-display text-xl font-semibold text-ink">
+              {mode === 'new' ? t(lang, 'jpTitle') : 'Edit project'}
+            </h1>
+          </div>
+          {modeSwitch}
         </div>
       </div>
 

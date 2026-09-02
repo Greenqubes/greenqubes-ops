@@ -310,23 +310,20 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   }
 
   // "Multiple jobs" switch flipped on — swap wholesale for the New Project
-  // form (ProjectFormShell renders its own full layout/chrome). Job-form
-  // typing loss on toggle is accepted behaviour (approved in mockup rounds).
+  // form. ProjectFormShell renders its own full layout/chrome (CompanyBar +
+  // back link + jpTitle heading), so this early return renders only the
+  // shell itself, handing it the toggle (flipped on) to render in its own
+  // header row via modeSwitch. Job-form typing loss on toggle is accepted
+  // behaviour (approved in mockup rounds).
   if (isProject) {
     return (
-      <div className="min-h-screen bg-bg pb-28">
-        <CompanyBar lang={lang} />
-        <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-5 pb-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/schedule" className="text-ink2 hover:text-ink shrink-0"><ArrowLeft size={18} /></Link>
-              <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'jpTitle')}</h1>
-            </div>
-            <ProjectToggle on onToggle={() => setIsProject(false)} lang={lang} />
-          </div>
-        </div>
-        <ProjectFormShell mode="new" lang={lang} role={role} userId={userId} />
-      </div>
+      <ProjectFormShell
+        mode="new"
+        lang={lang}
+        role={role}
+        userId={userId}
+        modeSwitch={<ProjectToggle on onToggle={() => setIsProject(false)} lang={lang} />}
+      />
     )
   }
 
