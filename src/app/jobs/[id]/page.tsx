@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getJobById, getInstallerUsers, getJobMessages, getCreatorName } from '@/lib/supabase/queries/jobs'
 import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getJobDesigners, getDesignerUsers } from '@/lib/supabase/queries/designers'
+import { getProjectById } from '@/lib/supabase/queries/projects'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -49,6 +50,13 @@ export default async function JobDetailPage({
   // never an embed. Null for every pre-existing job.
   const createdByName = await getCreatorName(job.created_by)
 
+  // Workflow V3 container core (Task 13) — only nested jobs need the
+  // project's times (timingOnJobTimeEdit uses them when the user clears
+  // the job's own time fields). A follow-up query, not an embed, same
+  // rule as getCreatorName above.
+  const proj = job.project_id ? await getProjectById(job.project_id) : null
+  const projectTimes = proj ? { time_start: proj.time_start, time_end: proj.time_end } : null
+
   // Person-in-Charge and Sub POC/Coordinators both offer every office role
   // (Nic, 2026-07-22). The old sales-only filter here hid newly provisioned
   // schedulers/coordinators/designers/production from Person-in-Charge.
@@ -71,6 +79,7 @@ export default async function JobDetailPage({
       createdByName={createdByName}
       backHref={backHref}
       initialTab={sp.tab === 'chat' ? 'chat' : undefined}
+      projectTimes={projectTimes}
     />
   )
 }

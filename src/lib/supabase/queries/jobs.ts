@@ -144,6 +144,11 @@ export type JobDetail = {
   date_end:                string | null
   time_start:              string | null
   time_end:                string | null
+  // Workflow V3 container core (Task 13) — null for every job outside a
+  // project; time_inherited flags a nested job's time as copied from its
+  // project rather than set on the job itself (timingOnJobTimeEdit, below).
+  project_id:              string | null
+  time_inherited:          boolean
   project_title:           string | null
   client:                  string
   location:                string
@@ -192,6 +197,10 @@ export type CoreFieldsPatch = {
   date_end?:                string | null
   time_start?:              string | null
   time_end?:                string | null
+  // Workflow V3 container core (Task 13) — set alongside time_start/time_end
+  // whenever timingOnJobTimeEdit runs; updateJobFields passes it through
+  // unchanged like every other field here.
+  time_inherited?:          boolean
   project_title?:           string | null
   client?:                  string
   location?:                string
@@ -217,7 +226,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
   const { data, error } = await supabase
     .from('jobs')
     .select(`
-      id, status, date, date_end, time_start, time_end,
+      id, status, date, date_end, time_start, time_end, project_id, time_inherited,
       project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,

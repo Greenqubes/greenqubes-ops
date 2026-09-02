@@ -32,6 +32,7 @@ import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
 import { daysBetween, addDaysISO, todaySGT } from '@/lib/utils/design-urgency'
+import { timingOnJobTimeEdit } from '@/lib/utils/project-timing'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage, AttachmentBucket } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -103,13 +104,17 @@ interface Props {
   createdByName?:         string | null
   backHref?:              string
   initialTab?:            'chat'
+  // Workflow V3 container core (Task 13) — the nested job's project's own
+  // times, fetched server-side by the page (never client-side here). Null
+  // for a non-nested job or one whose project has no times of its own.
+  projectTimes?:          { time_start: string | null; time_end: string | null } | null
 }
 
 export function JobDetailShell({
   job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
-  backHref = '/schedule', initialTab,
+  backHref = '/schedule', initialTab, projectTimes = null,
 }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const router   = useRouter()
@@ -286,12 +291,26 @@ export function JobDetailShell({
   })
 
   const saveValues = async (values: FormValues) => {
+    // Workflow V3 container core (Task 13) — a nested job (job.project_id
+    // set) that gets its own time fields cleared falls back to its
+    // project's time (time_inherited: true) instead of saving as blank; a
+    // non-nested job (project_id null) is untouched — timingOnJobTimeEdit
+    // with isNested=false returns newStart/newEnd unchanged, so this is a
+    // no-op for every job outside a project (time_inherited: false is a new
+    // column write, but the values saved are byte-identical to before).
+    const timing = timingOnJobTimeEdit(
+      values.time_start || null,
+      values.time_end   || null,
+      !!job.project_id,
+      projectTimes,
+    )
     await supabase.from('jobs').update({
       project_title:           values.project_title || null,
       date:                    values.date,
       date_end:                values.date_end || null,
-      time_start:              values.time_start || null,
-      time_end:                values.time_end || null,
+      time_start:              timing.time_start,
+      time_end:                timing.time_end,
+      time_inherited:          timing.time_inherited,
       client:                  values.client,
       location:                values.location,
       description:             values.description || null,

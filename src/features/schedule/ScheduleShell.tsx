@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { createClient } from '@/lib/supabase/client'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
+import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus, Folder } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
@@ -254,6 +254,14 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           >
             <Search size={15} />
           </button>
+          {role && role !== 'installer' && (
+            <Link
+              href="/projects"
+              className="flex items-center gap-1.5 rounded-[10px] border border-line bg-paper px-3 py-2 text-xs font-medium text-ink2 hover:bg-bg"
+            >
+              <Folder size={14} />{tr(lang, 'jpProjectsTitle')}
+            </Link>
+          )}
           {(role === 'sales' || role === 'scheduler' || role === 'coordinator') && (
             <Link
               href="/jobs/new"
