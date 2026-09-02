@@ -27,7 +27,7 @@ import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import { ProjectFormShell } from '@/features/projects/ProjectFormShell'
-import { timingOnNest } from '@/lib/utils/project-timing'
+import { timingOnNest, timingOnJobTimeEdit } from '@/lib/utils/project-timing'
 import { cn } from '@/lib/utils/cn'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { Role, Punctuality } from '@/lib/supabase/types'
@@ -101,6 +101,12 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
   // read-only chips for designer/production — matches the edit form's
   // canEditCore gate on the Team card (JobDetailShell).
   const canEditDesigners = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
+
+  // Round-1 fix (finding 5): projects are managed by sales/scheduler/
+  // coordinator/admin only (spec §5 access table) — designer/production get
+  // read-only viewing via /projects, never the "Multiple jobs" toggle that
+  // swaps this form for the New Project form.
+  const canManageProjects = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
 
   const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -274,9 +280,38 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       const curStart = (watch('time_start') ?? '').slice(0, 5)
       const curEnd   = (watch('time_end')   ?? '').slice(0, 5)
       if (timeStart !== curStart || timeEnd !== curEnd) {
-        await supabase.from('jobs')
-          .update({ time_start: timeStart || null, time_end: timeEnd || null } as never)
-          .eq('id', pushJobId)
+        if (projectPrefill) {
+          // Round-1 fix (finding 3): the insert in saveJob above may have
+          // written inherited timing via timingOnNest (job created inside a
+          // project with no own time). If the clash-resolution modal then
+          // shifts the time to resolve a clash, that write has to go through
+          // the same timingOnJobTimeEdit rule as every other job time edit —
+          // otherwise the job keeps time_inherited: true with a
+          // clash-resolved time that doesn't match the project's, and the
+          // next project-time fan-out silently clobbers it back, recreating
+          // the clash. `inserted` recomputes what saveJob's insert wrote so
+          // timingOnJobTimeEdit's `prev` sees the row as it actually stands.
+          const inserted = timingOnNest(
+            { time_start: (watch('time_start') || null), time_end: (watch('time_end') || null) },
+            { time_start: projectPrefill.time_start, time_end: projectPrefill.time_end },
+          )
+          const timing = timingOnJobTimeEdit(
+            timeStart || null,
+            timeEnd   || null,
+            true,
+            { time_start: projectPrefill.time_start, time_end: projectPrefill.time_end },
+            inserted
+              ? { ...inserted }
+              : { time_start: watch('time_start') || null, time_end: watch('time_end') || null, time_inherited: false },
+          )
+          await supabase.from('jobs')
+            .update({ time_start: timing.time_start, time_end: timing.time_end, time_inherited: timing.time_inherited } as never)
+            .eq('id', pushJobId)
+        } else {
+          await supabase.from('jobs')
+            .update({ time_start: timeStart || null, time_end: timeEnd || null } as never)
+            .eq('id', pushJobId)
+        }
       }
       const res = await fetch(`/api/jobs/${pushJobId}/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -343,7 +378,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               {projectPrefill && <p className="text-xs text-muted">Part of {projectPrefill.name}</p>}
             </div>
           </div>
-          {!projectPrefill && <ProjectToggle onToggle={() => setIsProject(true)} lang={lang} />}
+          {!projectPrefill && canManageProjects && <ProjectToggle onToggle={() => setIsProject(true)} lang={lang} />}
         </div>
       </div>
 

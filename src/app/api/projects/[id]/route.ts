@@ -89,9 +89,10 @@ export async function DELETE(
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // 1. Un-nest every job — jobs are NEVER deleted (spec §3). Times stay.
-  await service.from('jobs')
+  const { error: unnestError } = await service.from('jobs')
     .update({ project_id: null, time_inherited: false } as never)
     .eq('project_id', id)
+  if (unnestError) return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
 
   // 2. Delete the project's R2 objects, then rows (files → buckets → project).
   type FileRow = { id: string; kind: string; r2_key: string }

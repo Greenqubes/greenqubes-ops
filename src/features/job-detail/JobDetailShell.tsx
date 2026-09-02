@@ -298,11 +298,20 @@ export function JobDetailShell({
     // with isNested=false returns newStart/newEnd unchanged, so this is a
     // no-op for every job outside a project (time_inherited: false is a new
     // column write, but the values saved are byte-identical to before).
+    //
+    // Round-1 fix (finding 2): the form initialises time_start/time_end from
+    // the job's own (already-inherited) HH:MM, so a routine save with no
+    // time change — editing notes, say — used to look identical to "user
+    // cleared nothing, typed nothing new" and fell through to time_inherited:
+    // false, silently detaching the job. Passing `prev` (the job's time
+    // fields + flag as they stood before this save) lets timingOnJobTimeEdit
+    // tell "still the same inherited time" apart from a real edit.
     const timing = timingOnJobTimeEdit(
       values.time_start || null,
       values.time_end   || null,
       !!job.project_id,
       projectTimes,
+      { time_start: job.time_start, time_end: job.time_end, time_inherited: job.time_inherited },
     )
     await supabase.from('jobs').update({
       project_title:           values.project_title || null,
@@ -815,6 +824,7 @@ export function JobDetailShell({
           timeEnd   || null,
           !!job.project_id,
           projectTimes,
+          { time_start: job.time_start, time_end: job.time_end, time_inherited: job.time_inherited },
         )
         await supabase.from('jobs').update({
           time_start:     timing.time_start,

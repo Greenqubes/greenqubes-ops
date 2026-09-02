@@ -8,9 +8,13 @@ import { getDownloadUrl } from '@/lib/storage/r2'
 // authenticated user could get a URL for any key they named.
 //
 // Authorization model:
-//   • Job files (a row in `files` with this r2_key): allowed iff the caller can
-//     see the owning job. We re-use the jobs RLS SELECT (office roles see all
-//     jobs; installers see only assigned ones) as the source of truth.
+//   • Job files (a row in `files` with this r2_key, job_id set): allowed iff
+//     the caller can see the owning job. We re-use the jobs RLS SELECT
+//     (office roles see all jobs; installers see only assigned ones) as the
+//     source of truth.
+//   • Project files (a row in `files` with this r2_key, project_id set):
+//     allowed iff the caller can see the owning project. We re-use the
+//     job_projects RLS SELECT (office roles only) as the source of truth.
 //   • Bug screenshots (a row in `bug_reports` with this screenshot_key, no
 //     `files` row): scheduler / admin only — matches the Bugs tab access.
 //   • Anything else: 404 (no record references the key).
@@ -26,14 +30,15 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
 
-  // ── Job file? Authorize by whether the caller can see the owning job. ───────
-  // Service client reads job_id regardless of the caller's own file RLS; the
-  // access decision is then made by the jobs RLS on the user's session.
+  // ── Job or project file? Authorize by whether the caller can see the
+  // owner. Service client reads job_id/project_id regardless of the
+  // caller's own file RLS; the access decision is then made by the jobs /
+  // job_projects RLS on the user's session.
   const { data: fileRow } = await service
     .from('files')
-    .select('job_id')
+    .select('job_id, project_id')
     .eq('r2_key', key)
-    .maybeSingle() as { data: { job_id: string | null } | null; error: unknown }
+    .maybeSingle() as { data: { job_id: string | null; project_id: string | null } | null; error: unknown }
 
   if (fileRow?.job_id) {
     const { data: visibleJob } = await supabase
@@ -42,6 +47,22 @@ export async function POST(req: NextRequest) {
       .eq('id', fileRow.job_id)
       .maybeSingle() as { data: { id: string } | null; error: unknown }
     if (!visibleJob) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+    const url = await getDownloadUrl(key, filename)
+    return NextResponse.json({ url })
+  }
+
+  // ── Project file? Authorize by whether the caller can see the owning
+  // project. RLS's office-role SELECT on job_projects is the authorization
+  // check — a row back means allowed, none means 404 (same as "no record
+  // references this key" below; installers never reach a project file).
+  if (fileRow?.project_id) {
+    const { data: visibleProject } = await supabase
+      .from('job_projects')
+      .select('id')
+      .eq('id', fileRow.project_id)
+      .maybeSingle() as { data: { id: string } | null; error: unknown }
+    if (!visibleProject) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const url = await getDownloadUrl(key, filename)
     return NextResponse.json({ url })

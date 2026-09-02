@@ -53,17 +53,19 @@ export async function POST(req: NextRequest) {
     .single() as unknown as { data: { id: string } | null; error: Error | null }
   if (error || !project) return NextResponse.json({ error: 'Insert failed' }, { status: 500 })
 
-  await service.from('job_projects')
+  const { error: folderError } = await service.from('job_projects')
     .update({ r2_folder: projectFolder(name, project.id) } as never)
     .eq('id', project.id)
+  if (folderError) return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
 
   // Default buckets — same four as jobs (spec §2).
-  await service.from('attachment_buckets').insert([
+  const { error: bucketsError } = await service.from('attachment_buckets').insert([
     { project_id: project.id, name: 'PERMIT-TO-WORK', position: 0 },
     { project_id: project.id, name: 'BCA',            position: 1 },
     { project_id: project.id, name: 'DESIGNER JO',    position: 2 },
     { project_id: project.id, name: 'OTHERS',         position: 3 },
   ] as never)
+  if (bucketsError) return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
 
   // Nest the picker's selections (created-then-nested in one Save).
   const projectTimes = { time_start: body.time_start || null, time_end: body.time_end || null }
@@ -74,9 +76,10 @@ export async function POST(req: NextRequest) {
       { data: JobRow | null; error: unknown }
     if (!job || job.project_id) continue
     const timing = timingOnNest({ time_start: job.time_start, time_end: job.time_end }, projectTimes)
-    await service.from('jobs')
+    const { error: nestError } = await service.from('jobs')
       .update({ project_id: project.id, ...(timing ?? {}) } as never)
       .eq('id', jobId)
+    if (nestError) return NextResponse.json({ error: 'Setup failed' }, { status: 500 })
   }
 
   return NextResponse.json({ id: project.id })

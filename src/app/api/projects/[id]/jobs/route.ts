@@ -48,12 +48,14 @@ export async function POST(
       { time_start: job.time_start, time_end: job.time_end },
       { time_start: project.time_start, time_end: project.time_end },
     )
-    await service.from('jobs')
+    const { error: nestError } = await service.from('jobs')
       .update({ project_id: projectId, ...(timing ?? {}) } as never).eq('id', jobId)
+    if (nestError) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   } else {
     if (job.project_id !== projectId) return NextResponse.json({ ok: true }) // idempotent
-    await service.from('jobs')
+    const { error: unnestError } = await service.from('jobs')
       .update({ project_id: null, ...timingOnUnnest() } as never).eq('id', jobId)
+    if (unnestError) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

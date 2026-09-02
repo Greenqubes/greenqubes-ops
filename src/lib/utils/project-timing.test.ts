@@ -42,5 +42,20 @@ check('edit start only → own', timingOnJobTimeEdit('08:00', null, true, P),
 // un-nest: times stay, flag drops
 check('unnest → flag false', timingOnUnnest(), { time_inherited: false })
 
+// prev param (routine save, times unchanged): a nested job whose form fields
+// were initialised from its own already-inherited times must stay inherited
+// on save — editing notes alone must not detach it from project timing.
+const PREV_INHERITED    = { time_start: '09:00', time_end: '13:00', time_inherited: true }
+const PREV_OWN          = { time_start: '09:00', time_end: '13:00', time_inherited: false }
+check('edit, unchanged times, prev inherited → stays inherited',
+  timingOnJobTimeEdit('09:00', '13:00', true, P, PREV_INHERITED),
+  { time_start: '09:00', time_end: '13:00', time_inherited: true })
+check('edit, changed start, prev inherited → own with new times',
+  timingOnJobTimeEdit('10:00', '13:00', true, P, PREV_INHERITED),
+  { time_start: '10:00', time_end: '13:00', time_inherited: false })
+check('edit, unchanged times, prev NOT inherited → stays own',
+  timingOnJobTimeEdit('09:00', '13:00', true, P, PREV_OWN),
+  { time_start: '09:00', time_end: '13:00', time_inherited: false })
+
 if (failures > 0) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll project-timing checks passed')

@@ -20,7 +20,21 @@ export function timingOnNest(job: Times, project: Times):
 export function timingOnJobTimeEdit(
   newStart: string | null, newEnd: string | null,
   isNested: boolean, project: Times | null,
+  // Optional: the row's time fields (and time_inherited flag) as they stood
+  // before this save. When the form re-submits the SAME inherited times
+  // unchanged (e.g. saving notes on a nested job whose fields were
+  // initialised from the job's own already-inherited time), that's not a
+  // user time edit at all — stay inherited instead of falling through to
+  // "own" below, which would silently detach the job from project timing.
+  prev?: { time_start: string | null; time_end: string | null; time_inherited: boolean },
 ): { time_start: string | null; time_end: string | null; time_inherited: boolean } {
+  const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null)
+  if (
+    prev && isNested && prev.time_inherited &&
+    hhmm(newStart) === hhmm(prev.time_start) && hhmm(newEnd) === hhmm(prev.time_end)
+  ) {
+    return { time_start: prev.time_start, time_end: prev.time_end, time_inherited: true }
+  }
   const cleared = newStart === null && newEnd === null
   if (isNested && cleared && hasTime(project)) {
     return { time_start: project!.time_start, time_end: project!.time_end, time_inherited: true }
