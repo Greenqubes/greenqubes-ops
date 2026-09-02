@@ -61,9 +61,12 @@ export async function POST(
         && job.sales_poc_id !== profile.id && job.created_by !== profile.id) {
       held.push({ id: job.id, reason: 'not-yours' }); continue
     }
-    const { error } = await service.from('jobs')
-      .update({ status: 'scheduled' } as never).eq('id', job.id)
-    if (error) held.push({ id: job.id, reason: 'not-pending' })
+    const { data: updated, error } = await service.from('jobs')
+      .update({ status: 'scheduled' } as never)
+      .eq('id', job.id)
+      .eq('status', 'pending')
+      .select('id')
+    if (error || !updated || updated.length === 0) held.push({ id: job.id, reason: 'not-pending' })
     else pushed.push(job.id)
   }
 
