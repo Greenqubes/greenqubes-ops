@@ -71,6 +71,24 @@ export function tplJobAssigned(p: {
   )
 }
 
+export function tplProjectPushed(p: {
+  projectName: string
+  client:      string
+  count:       number
+  ranges:      string
+  byName:      string
+  projectUrl:  string
+}): string {
+  return (
+    `📦 <b>Project Pushed — Assign Installers</b>\n` +
+    `<b>${p.projectName}</b>\n` +
+    `Client: ${p.client}\n` +
+    `${p.count} job${p.count === 1 ? '' : 's'}${p.ranges ? ` · ${p.ranges}` : ''}\n` +
+    `Pushed by: ${p.byName}\n\n` +
+    `<a href="${p.projectUrl}">View project →</a>`
+  )
+}
+
 // Sent to a newly-added DESIGNER when they're assigned to a job's design work.
 // `assignedBy` is the display name (fallback email) of whoever made the
 // assignment — any role can assign (R2-T2, Nic smoke-test edit 4).
