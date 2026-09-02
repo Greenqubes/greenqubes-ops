@@ -7,18 +7,20 @@ import type { Role, Punctuality } from '@/lib/supabase/types'
 
 const MANAGER_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
 
-async function requireManager() {
+type ProfileRow = { id: string; role: Role }
+type AuthResult = { ok: true; profile: ProfileRow; role: Role } | { ok: false; status: 401 | 403 }
+
+async function requireManager(): Promise<AuthResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  type ProfileRow = { id: string; role: Role }
+  if (!user) return { ok: false, status: 401 }
   const { data: profile } = await supabase
     .from('users').select('id, role').eq('auth_id', user.id).maybeSingle() as
     { data: ProfileRow | null; error: unknown }
-  if (!profile) return null
+  if (!profile) return { ok: false, status: 401 }
   const role = await getEffectiveRole(profile.role)
-  if (!MANAGER_ROLES.includes(role)) return null
-  return { profile, role }
+  if (!MANAGER_ROLES.includes(role)) return { ok: false, status: 403 }
+  return { ok: true, profile, role }
 }
 
 export async function PATCH(
@@ -27,7 +29,7 @@ export async function PATCH(
 ) {
   const { id } = await params
   const auth = await requireManager()
-  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: auth.status })
 
   const body = await req.json() as Partial<{
     name: string; client: string; description: string | null
@@ -59,10 +61,11 @@ export async function PATCH(
   const newStart = 'time_start' in body ? (body.time_start || null) : project.time_start
   const newEnd   = 'time_end'   in body ? (body.time_end   || null) : project.time_end
   if (timeTouched && (newStart !== project.time_start || newEnd !== project.time_end)) {
-    await service.from('jobs')
+    const { error: fanOutError } = await service.from('jobs')
       .update({ time_start: newStart, time_end: newEnd } as never)
       .eq('project_id', id)
       .eq('time_inherited', true)
+    if (fanOutError) return NextResponse.json({ error: 'Timing update failed' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })
@@ -74,9 +77,16 @@ export async function DELETE(
 ) {
   const { id } = await params
   const auth = await requireManager()
-  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, { status: auth.status })
 
   const service = createServiceClient()
+
+  // Verify the project exists before proceeding.
+  type ProjectRow = { id: string }
+  const { data: project } = await service.from('job_projects')
+    .select('id').eq('id', id).maybeSingle() as
+    { data: ProjectRow | null; error: unknown }
+  if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // 1. Un-nest every job — jobs are NEVER deleted (spec §3). Times stay.
   await service.from('jobs')
