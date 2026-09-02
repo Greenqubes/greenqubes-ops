@@ -76,8 +76,8 @@ Bottom sheet (z-[60]+):
 - **Search** over pending, scheduled AND completed jobs the caller can see (RLS does the
   filtering); seeded with keyword chips from the project's name + client (tokenised,
   stop-words dropped); results ranked by keyword overlap, then free-text search.
-- Jobs already in any project show disabled ("already in this project" / "in {other}").
-  Nesting is one job → at most one project.
+- Jobs already in another project don't appear at all (only nestable jobs are listed);
+  rows picked in this session show as "Nested" and disabled. One job → at most one project.
 - **Nest** sets `jobs.project_id` (+ timing write-through, §5). No notifications fire.
 - **New job in this project** → `/jobs/new?project=<id>`: the normal New Job form
   pre-filled with title `"{project.name} — "` (cursor at end), client, description, and
