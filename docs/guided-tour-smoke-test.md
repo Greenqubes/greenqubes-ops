@@ -6,8 +6,9 @@
 
 **What this is:** every team member's first sign-in now offers a two-minute guided walkthrough —
 the screen dims, one real button lights up at a time, and a small card explains it. It finishes by
-pointing at Connect Telegram. This checklist confirms it actually works for every one of the 6
-roles, on both a phone and a PC, before it goes live for real.
+pointing at Connect Telegram, then closes with a plain "You're all set!" card. This checklist
+confirms it actually works for every one of the 6 roles, on both a phone and a PC, before it goes
+live for real.
 
 ---
 
@@ -36,12 +37,14 @@ role, even on that role's home page.
 
 Everywhere below marked **"(reset first)"** means: do this reset before that check.
 
-### About the Bengali (বাংলা) copy
+### About the 简体中文 and বাংলা copy — both unvetted
 
-The Bengali tour text has **not** been checked by a native Bengali speaker yet — Nic's call. Read
-it anyway and note down anything that looks obviously wrong, badly worded, or doesn't fit its card,
-so it can be corrected live with native speakers at the team demo. This is expected to need fixes —
-it is not a reason to fail the smoke test.
+**Neither** the Chinese nor the Bengali tour text has been checked by a native speaker yet —
+Nic's call, and it applies to both languages equally, including 简体中文 even though it's this
+checklist's primary walkthrough language (item 2 below). Read both anyway and note down anything
+that looks obviously wrong, badly worded, or doesn't fit its card, so it can be corrected live with
+native speakers at the team demo. This is expected to need fixes in either language — it is not a
+reason to fail the smoke test.
 
 ---
 
@@ -54,15 +57,20 @@ For every role × device pair, work through this same run in order:
    welcome card **does** appear.
 2. Tap **Start tour** → the language chooser appears (English / 简体中文 / বাংলা) → pick
    **简体中文** → the **whole app** switches to Chinese right away, not just the tour, and the tour
-   carries on in Chinese.
+   carries on in Chinese (简体中文 is unvetted too — see the note above; this whole walkthrough
+   doubles as your Chinese read-through, not just item 3's close read).
 3. Walk through every step (now in Chinese): each one shows either a **glowing ring around the
    right button**, or (for a few steps that just explain a concept, or where there's no real data
    yet on a fresh account) a **plain centred card with no ring** — both are correct by design,
    neither should look broken, blank, or pointing at nothing. Read at least **3 of the Chinese
-   cards** closely and note anything that's missing, cut off, or clearly wrong.
+   cards** closely and note anything that's missing, cut off, or clearly wrong (unvetted — see the
+   note above; wording issues are not a fail, just write them down).
 4. **Steps that jump to another page** (see the role's own list below) land on that page and the
    tour carries straight on without you doing anything.
-5. The **last step** opens the account menu itself and puts the ring around **Connect Telegram**.
+5. **Second-to-last step**: the tour opens the account menu itself and puts the ring around
+   **Connect Telegram** — the button in the card still says **Next** here, not Finish.
+   **Last step**: one more card appears, centred with no ring, saying "You're all set!" — **this**
+   is the one where the button finally says **Finish**.
 6. Exit the tour (or let it finish) → the page underneath looks completely normal (nothing stuck
    dimmed or stuck open), the welcome offer does **not** pop up again on this device, and — open any
    other page — **the app is still in Chinese**: the language choice stuck after the tour, exactly
@@ -91,10 +99,10 @@ tab for you — check that switch happens on its own.
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. New Job form + FCFS board land correctly, job form auto-switches to the Team tab
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -104,10 +112,10 @@ tab for you — check that switch happens on its own.
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. New Job form + FCFS board land correctly (Team is just a column here, no tab switch to check)
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -125,10 +133,10 @@ those pages, that's expected.
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. FCFS board lands correctly
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -138,10 +146,10 @@ those pages, that's expected.
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. FCFS board lands correctly
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -159,10 +167,10 @@ form to its **Team** tab for you.
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. New Job form + FCFS board land correctly, job form auto-switches to the Team tab
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -172,10 +180,10 @@ form to its **Team** tab for you.
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. New Job form + FCFS board land correctly (Team is just a column here, no tab switch to check)
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -194,10 +202,10 @@ assigned job to point at, so this is correct, not a bug.
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese, remember: 3 steps are centred cards on purpose) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/installer` throughout — nothing else to check here
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -207,10 +215,10 @@ assigned job to point at, so this is correct, not a bug.
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese, remember: 3 steps are centred cards on purpose) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/installer` throughout — nothing else to check here
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -227,10 +235,10 @@ Home page: `/schedule`. Page the tour jumps to (item 4): the **Design Load board
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. Design Load board lands correctly
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -240,10 +248,10 @@ Home page: `/schedule`. Page the tour jumps to (item 4): the **Design Load board
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
 - [ ] 4. Design Load board lands correctly
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -262,10 +270,10 @@ point at, so this is correct, not a bug.
 
 ### Phone
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese, remember: 2 steps are centred cards on purpose) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 2 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/schedule` throughout — nothing else to check here
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
@@ -275,10 +283,10 @@ point at, so this is correct, not a bug.
 
 ### PC
 - [ ] 1. First offer (reset first)
-- [ ] 2. Language chooser → 简体中文, whole app switches
-- [ ] 3. Every step looks right (Chinese, remember: 2 steps are centred cards on purpose) — read 3 cards closely
+- [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 2 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/schedule` throughout — nothing else to check here
-- [ ] 5. Finale → account menu → Connect Telegram
+- [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
 - [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
