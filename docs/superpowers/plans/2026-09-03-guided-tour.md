@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - **No new dependencies.** The engine, overlay and spotlight are hand-built.
-- **No user-facing copy in components** — every string is an i18n key in `src/lib/i18n/en.ts` + `zh.ts`. **No `bn` keys** (frozen; `t()` falls back per key).
+- **No user-facing copy in components** — every string is an i18n key in `src/lib/i18n/{en,zh,bn}.ts`. **The tour is Nic's explicit exception (2026-09-03) to the 2026-08-03 bn freeze:** tour keys get Bengali too (Task 11) — unvetted, corrected live at the team demo. Every other feature stays en+zh with bn falling back; Tasks 3–10 add en+zh only, Task 11 adds all bn strings in one pass.
 - **Date labels always English** — not relevant here, but never add locale date calls.
 - Tour overlay z-index: **`z-[80]`** (card `z-[81]`) — above BottomNav `z-50`, NotificationDrawer `z-50`, FABs `z-[59]/z-[60]`, NavDrawer `z-[70]`.
 - **Portal all tour UI to `document.body`** with a mount-gate (`useEffect` → `setMounted(true)`), exactly like `NavDrawer.tsx:81` — CompanyBar's `sticky z-30` root creates a stacking context that would cap any nested z-index.
@@ -1308,7 +1308,136 @@ git commit -m "feat(tour): designer + production scripts — all 6 roles live"
 
 ---
 
-### Task 11: Full verification + smoke-test checklist doc
+### Task 11: Bengali tour translations
+
+**Files:**
+- Modify: `src/lib/i18n/bn.ts` (append every tour key under a `// ── Guided tour ──` comment)
+- Modify: `src/features/tour/steps/scripts.test.ts` (bn coverage)
+
+**Interfaces:**
+- Consumes: every tour key added in Tasks 3, 7, 8, 9, 10.
+- Context: **Nic's explicit exception (2026-09-03) to the bn freeze — tour keys only.** Translations are unvetted (Nic can't vet bn/zh); the team corrects them live at the demo. Where the app UI shows an English label to bn users (bn falls back per key: Today, Pending, Design, Details, Save, Push to Schedule, My Jobs, App tour…), the bn copy quotes that label in English so it matches what's on screen.
+
+- [ ] **Step 1: Extend the validation test** — in `scripts.test.ts`, add `import { bn } from '../../../lib/i18n/bn'`, add these two lines inside the per-step loop next to the zh checks:
+
+```ts
+    assert(`${role}/${s.id}: bn has ${s.titleKey}`, s.titleKey in bn)
+    assert(`${role}/${s.id}: bn has ${s.bodyKey}`, s.bodyKey in bn)
+```
+
+and add a chrome-key block after the shared-step checks:
+
+```ts
+const CHROME_KEYS = ['tourWelcomeTitle', 'tourWelcomeBody', 'tourStart', 'tourSkip',
+  'tourNext', 'tourBack', 'tourFinish', 'tourExit', 'tourMenuLabel'] as const
+for (const k of CHROME_KEYS) {
+  assert(`chrome ${k} in en`, k in en)
+  assert(`chrome ${k} in zh`, k in zh)
+  assert(`chrome ${k} in bn`, k in bn)
+}
+```
+
+- [ ] **Step 2: Run it to verify it fails** — `npx tsx src/features/tour/steps/scripts.test.ts` → bn checks fail.
+
+- [ ] **Step 3: Add the bn strings** to `src/lib/i18n/bn.ts`:
+
+| key | bn |
+|---|---|
+| `tourWelcomeTitle` | `GreenQubes-এ স্বাগতম!` |
+| `tourWelcomeBody` | `একটা ছোট্ট ঘুরে দেখা নেবেন? প্রায় দুই মিনিট লাগবে, সবকিছু কোথায় আছে দেখিয়ে দেবে। পরে যেকোনো সময় প্রোফাইল ছবি থেকে আবার খুলতে পারবেন।` |
+| `tourStart` | `ট্যুর শুরু করুন` |
+| `tourSkip` | `এখন থাক` |
+| `tourNext` | `পরের ধাপ` |
+| `tourBack` | `আগের ধাপ` |
+| `tourFinish` | `শেষ` |
+| `tourExit` | `ট্যুর বন্ধ করুন` |
+| `tourMenuLabel` | `অ্যাপ ট্যুর` |
+| `tourBellTitle` | `নোটিফিকেশন` |
+| `tourBellBody` | `ঘণ্টাটি আপনার কাজের সতর্কবার্তা দেখায় — সময় পেরোনো কাজ ও আপডেট। লাল মানে দেখা দরকার।` |
+| `tourAccountTitle` | `আপনার অ্যাকাউন্ট` |
+| `tourAccountBody` | `প্রোফাইল ছবিতে চাপ দিলে অ্যাকাউন্ট মেনু খোলে: ভাষা, ডার্ক মোড আর Telegram।` |
+| `tourTelegramTitle` | `Telegram যুক্ত করুন — এখনই` |
+| `tourTelegramBody` | `মাত্র দুই চাপ, আর কাজের প্রতিটি নোটিফিকেশন আপনার Telegram-এও যাবে। ট্যুর শেষ হলেই চাপ দিন।` |
+| `tourDoneTitle` | `সব তৈরি!` |
+| `tourDoneBody` | `মূল বিষয় এই ছিল। যেকোনো সময় আবার খুলুন: প্রোফাইল ছবি → App tour।` |
+| `tourScheduleViewsTitle` | `সময়সূচির ভিউ` |
+| `tourScheduleViewsBody` | `তালিকা, সপ্তাহ ও মাসের মধ্যে বদলান। তালিকা একদিন করে দেখায়।` |
+| `tourDateStripTitle` | `দিন বদলানো` |
+| `tourDateStripBody` | `তারিখে চাপ দিন, তীর দিয়ে এগোন-পেছোন, বা হলুদ 'Today' বোতামে ফিরে আসুন।` |
+| `tourCompletedTitle` | `সম্পন্ন কাজ` |
+| `tourCompletedBody` | `শেষ হওয়া কাজগুলো এখানে থাকে, চলতি সময়সূচির বাইরে।` |
+| `tourSalesIntroTitle` | `আপনার ভূমিকা: সেলস` |
+| `tourSalesIntroBody` | `আপনি কাজ তৈরি করেন, সময়সূচিতে পাঠান আর ইনস্টলার প্রস্তাব করেন। এই ট্যুর প্রতিটি ধাপ দেখাবে।` |
+| `tourPendingTitle` | `আপনার 'Pending' ট্যাব` |
+| `tourPendingBody` | `যে কাজ তৈরি করেছেন কিন্তু এখনো পাঠাননি। পেন্ডিং কাজ শুধু আপনি (আর নিযুক্ত কোঅর্ডিনেটর) দেখতে পান।` |
+| `tourNewJobTitle` | `কাজ তৈরি করা` |
+| `tourNewJobBody` | `এই বোতামে নতুন কাজের ফর্ম খোলে। চলুন দেখি।` |
+| `tourJobFormTitle` | `কাজের ফর্ম` |
+| `tourJobFormBody` | `'Details'-এ ক্লায়েন্ট, তারিখ, সময় আর জায়গা থাকে — কাজ সময়সূচিতে বসাতে দলের যা দরকার সবই।` |
+| `tourJobTeamTitle` | `টিম ও ইনস্টলার` |
+| `tourJobTeamBody` | `এখানে ইনস্টলার বাছুন। হলুদ ＝ আপনার প্রস্তাব; শিডিউলার নিশ্চিত করলে সবুজ। ডিজাইনারও দিতে পারেন।` |
+| `tourJobActionsTitle` | `সময়সূচিতে পাঠানো` |
+| `tourJobActionsBody` | `'Save' কাজ পেন্ডিং রাখে; 'Push to Schedule' চালু করে আর শিডিউলারদের জানায়। ইনস্টলারের সময় সংঘর্ষ হলে সতর্কবার্তা আসবে।` |
+| `tourFcfsTitle` | `FCFS বোর্ড` |
+| `tourFcfsBody` | `সিরিয়াল অনুযায়ী দিনের সব কাজের টাইমলাইন, ইনস্টলারদের ফাঁকা সময়সহ। আপনার কাজ কোথায় দাঁড়িয়ে দেখতে কাজে লাগে।` |
+| `tourDesignTabTitle` | `ডিজাইন ওয়ার্কলোড` |
+| `tourDesignTabBody` | `'Design' ট্যাবে প্রতিটি ডিজাইনারের কাজের চাপ দেখা যায় — ডিজাইনার দেওয়ার আগে দেখে নিন।` |
+| `tourSchedulerIntroTitle` | `আপনার ভূমিকা: শিডিউলার` |
+| `tourSchedulerIntroBody` | `কোম্পানির সময়সূচি আপনি চালান: ইনস্টলার নিযুক্ত করা, সময়ের সংঘর্ষ মেটানো আর কাজ সম্পন্ন করা।` |
+| `tourSchedulerCompletedBody` | `শেষ হওয়া কাজ এখানে। একসাথে কয়েকটা বেছে বাল্ক সম্পন্ন বা ফিরিয়ে নিতে পারেন।` |
+| `tourFcfsSchedulerTitle` | `FCFS — আপনার প্রধান হাতিয়ার` |
+| `tourFcfsSchedulerBody` | `আগে-আসা-আগে ক্রমে কাজ সাজানো, ইনস্টলারের বার সময়ানুবর্তিতা অনুযায়ী রঙিন। লাল ＝ কড়া সময়, নীল ＝ নমনীয়।` |
+| `tourAssignTitle` | `ইনস্টলার নিযুক্ত করা` |
+| `tourAssignBody` | `কাজের সারিতে চাপ দিলে অ্যাসাইনমেন্ট প্যানেল খোলে: প্রস্তাব নিশ্চিত করুন, ইনস্টলার যোগ করুন, তারপর 'Save & Notify' — Telegram সবাইকে জানিয়ে দেবে।` |
+| `tourSuggestVsAssignTitle` | `হলুদ বনাম সবুজ` |
+| `tourSuggestVsAssignBody` | `সেলস ও কোঅর্ডিনেটর শুধু প্রস্তাব দেয় (হলুদ)। আপনার আনুষ্ঠানিক নিয়োগেই সবুজ হয় — ইনস্টলাররা শুধু সবুজটাই দেখে।` |
+| `tourCoordinatorIntroTitle` | `আপনার ভূমিকা: কোঅর্ডিনেটর` |
+| `tourCoordinatorIntroBody` | `সেলসের মতোই কাজ তৈরি ও পাঠাতে পারেন, আর আপনাকে দেওয়া কাজগুলো সমন্বয় করেন।` |
+| `tourCoordPendingTitle` | `শেয়ার করা পেন্ডিং কাজ` |
+| `tourCoordPendingBody` | `নিজের তৈরি পেন্ডিং কাজ দেখবেন, আর যেসব কাজে সেলস আপনাকে কোঅর্ডিনেটর করেছে সেগুলোও।` |
+| `tourCoordSuggestTitle` | `ইনস্টলার প্রস্তাব করা` |
+| `tourCoordSuggestBody` | `আপনি ইনস্টলার প্রস্তাব করেন (হলুদ); আনুষ্ঠানিক নিয়োগ দেয় শিডিউলার (সবুজ)।` |
+| `tourInstallerIntroTitle` | `আপনার ভূমিকা: ইনস্টলার` |
+| `tourInstallerIntroBody` | `'My Jobs'-এ শুধু আপনাকে দেওয়া কাজগুলোই দেখা যায়।` |
+| `tourInstallerTabsTitle` | `আজ, এরপর, এই সপ্তাহ` |
+| `tourInstallerTabsBody` | `তিনটি ট্যাব সময় অনুযায়ী কাজ সাজায়। 'Today' মানে এখন যা করতে হবে।` |
+| `tourInstallerJobTitle` | `কাজের ভেতরে` |
+| `tourInstallerJobBody` | `কাজ খুললে ঠিকানা, সময়, টিক দেওয়ার কাজের তালিকা, আর ছবি ও সই করা DO আপলোডের জায়গা পাবেন।` |
+| `tourInstallerChatTitle` | `কাজের চ্যাট` |
+| `tourInstallerChatBody` | `প্রতিটি কাজের নিজস্ব চ্যাট আছে — লেখা, ছবি আর ভয়েস নোট। আপনি যা পাঠান অফিস তা দেখে।` |
+| `tourInstallerPhotosTitle` | `সম্পন্নের ছবি` |
+| `tourInstallerPhotosBody` | `ছবি আপলোড না করলে কাজ সম্পন্ন করা যায় না। সাইট ছাড়ার আগে ছবি তুলে নিন।` |
+| `tourDesignerIntroTitle` | `আপনার ভূমিকা: ডিজাইনার` |
+| `tourDesignerIntroBody` | `'Design' ট্যাবই আপনার ঘাঁটি: সব ডিজাইনারের কাজের চাপ এক নজরে, আপনারটাসহ।` |
+| `tourDesignBoardTitle` | `ডিজাইন লোড বোর্ড` |
+| `tourDesignBoardBody` | `ডেডলাইনের চাপ বাড়লে আপনার বার বড় হয়, জরুরিতে রং বদলায়। পাশের বুদবুদে আপনার কাজের তালিকা।` |
+| `tourDesignToggleTitle` | `বোর্ড না আমার কাজ` |
+| `tourDesignToggleBody` | `'My Jobs'-এ গেলে শুধু আপনার ডিজাইন কাজের সহজ তালিকা।` |
+| `tourDesignBriefTitle` | `ডিজাইন ব্রিফ` |
+| `tourDesignBriefBody` | `প্রতিটি কাজের ফর্মে 'Design brief' কার্ড আছে: সেলসের নির্দেশনা ও ফাইল। ওখান থেকেই শুরু করুন।` |
+| `tourDesignCompleteTitle` | `ডিজাইন শেষ করা` |
+| `tourDesignCompleteBody` | `'Design completed' টিক দিন আর জটিলতা ১–৫ নম্বরে দিন। সৎ রেটিং AI-কে ডেডলাইন ভালো আন্দাজ করতে শেখায়।` |
+| `tourDesignDueTitle` | `ডেডলাইনের সতর্কবার্তা` |
+| `tourDesignDueBody` | `ইনস্টলের তারিখ সরলে আপনার ডিজাইন ডেডলাইনও সরে — ঘণ্টা আর Telegram দুটোই জানাবে।` |
+| `tourProductionIntroTitle` | `আপনার ভূমিকা: প্রোডাকশন` |
+| `tourProductionIntroBody` | `কী বানানোর জন্য তৈরি তা আপনি দেখভাল করেন। অ্যাপের বেশিরভাগ অংশ আপনার জন্য শুধু দেখার — ইচ্ছা করেই।` |
+| `tourProductionFieldsTitle` | `আপনার ঘরগুলো` |
+| `tourProductionFieldsBody` | `যেকোনো কাজে আপনি বদলাতে পারেন: Production ready, DO issued, প্রোডাকশন নির্দেশনা ও প্রোডাকশন ছবি। বাকি সব শুধু দেখার।` |
+| `tourProductionFilesTitle` | `ফাইল` |
+| `tourProductionFilesBody` | `প্রতিটি কাজের ফাইল ও নকশা খুলে দেখতে পারবেন — শুধু অ্যাটাচমেন্ট গোছানো বদলাতে পারবেন না।` |
+
+- [ ] **Step 4: Run the tests** — scripts suite green (en+zh+bn all covered); `npx tsc --noEmit` clean.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/i18n/bn.ts src/features/tour/steps/scripts.test.ts
+git commit -m "feat(tour): Bengali tour copy — Nic's scoped exception to the bn freeze"
+```
+
+---
+
+### Task 12: Full verification + smoke-test checklist doc
 
 **Files:**
 - Create: `docs/guided-tour-smoke-test.md`
@@ -1332,7 +1461,7 @@ npm run build
 
 Expected: both clean. Fix anything that surfaces before proceeding.
 
-- [ ] **Step 3: Write `docs/guided-tour-smoke-test.md`** — a tickable checklist for Nic on the dev preview, structured as: for **each of the 6 roles** (via preview-as, plus one real non-admin login at the end) × **phone + PC**: offer appears once on the home page and never on deep links · Start walks every step with the spotlight on the right element · steps that navigate (`/jobs/new`, `/fcfs`, `/design-load`) land and continue · the finale opens the account menu and highlights Connect Telegram · Exit restores the page and the offer does not reappear · profile → App tour restarts from step 1 · switch to 中文 and spot-check three steps · dark mode readable · Bengali shows English tour text · the bell, FABs and bottom nav are not tappable while the tour runs.
+- [ ] **Step 3: Write `docs/guided-tour-smoke-test.md`** — a tickable checklist for Nic on the dev preview, structured as: for **each of the 6 roles** (via preview-as, plus one real non-admin login at the end) × **phone + PC**: offer appears once on the home page and never on deep links · Start walks every step with the spotlight on the right element · steps that navigate (`/jobs/new`, `/fcfs`, `/design-load`) land and continue · the finale opens the account menu and highlights Connect Telegram · Exit restores the page and the offer does not reappear · profile → App tour restarts from step 1 · switch to 中文 and spot-check three steps · dark mode readable · switch to বাং and spot-check three steps (bn copy is unvetted — collect corrections at the demo) · the bell, FABs and bottom nav are not tappable while the tour runs.
 
 - [ ] **Step 4: Commit + push to dev**
 
