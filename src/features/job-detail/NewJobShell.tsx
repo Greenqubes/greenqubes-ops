@@ -401,6 +401,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               ) : (
                 <InstallerGrid
                   installers={allInstallers}
+                  lang={lang}
                   stateOf={id => selectedIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
                   onToggle={id => setSelectedIds(prev =>
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]

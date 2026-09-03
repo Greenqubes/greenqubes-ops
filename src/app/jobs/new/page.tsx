@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getDesignerUsers } from '@/lib/supabase/queries/designers'
-import { getInstallerUsers, getSupportUsers } from '@/lib/supabase/queries/jobs'
+import { getInstallerUsers } from '@/lib/supabase/queries/jobs'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -31,10 +31,9 @@ export default async function NewJobPage() {
   // Person-in-Charge and Sub POC/Coordinators both offer every office role
   // (Nic, 2026-07-22) — the old sales/scheduler/admin filter hid newly
   // provisioned coordinators/designers/production. Same rule as /jobs/[id].
-  const [officeUsers, allInstallers, supportUsers, designerUsers] = await Promise.all([
+  const [officeUsers, allInstallers, designerUsers] = await Promise.all([
     getAllProvisionedUsers(),
     getInstallerUsers(),
-    getSupportUsers(),
     getDesignerUsers(),
   ])
 
@@ -52,7 +51,6 @@ export default async function NewJobPage() {
       lang={(profile.lang as LangCode) ?? 'en'}
       salesPocOptions={salesPocOptions}
       allInstallers={allInstallers}
-      supportUsers={supportUsers}
       role={role}
       coordinatorOptions={coordinatorOptions}
       designerOptions={designerOptions}

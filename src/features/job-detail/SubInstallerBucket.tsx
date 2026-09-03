@@ -25,9 +25,11 @@ interface Props {
   canEdit:     boolean
 }
 
-// Sub-installer bucket under the main installer grid (Team card). Same pool,
-// same card design, same amber-suggestion / green-confirmed rules as the main
-// grid — hidden behind a dashed "+ Sub-installer" trigger until needed.
+// Support crew bucket under the main installer grid (Team card) — holds
+// sub-installers AND dispatched other roles (production etc.; Nic 2026-09-04,
+// night jobs / manpower shortage). Same card design, same amber-suggestion /
+// green-confirmed rules as the main grid, everyone stored with the
+// is_sub_installer flag — hidden behind a dashed "+ Support crew" trigger.
 export function SubInstallerBucket({
   lang, installers, subCount, stateOf, onToggle, disabledOf, noteOf,
   onClear, defaultOpen, canEdit,
@@ -77,6 +79,7 @@ export function SubInstallerBucket({
       ) : (
         <InstallerGrid
           installers={installers}
+          lang={lang}
           stateOf={stateOf}
           onToggle={onToggle}
           disabledOf={disabledOf}
