@@ -24,6 +24,7 @@ export function BottomNav({ role }: { role: Role }) {
             <Link
               key={href}
               href={href}
+              data-tour={`nav-${href.slice(1)}`}
               className={cn(
                 'flex-1 flex flex-col items-center gap-1 text-[10px] font-medium uppercase tracking-wide transition-colors',
                 active ? 'text-terracotta' : 'text-muted hover:text-ink2',

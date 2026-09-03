@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
-import type { LangCode } from '@/lib/i18n'
+import { t, type LangCode } from '@/lib/i18n'
+import { TOUR_RESTART_KEY } from '@/features/tour/engine'
 import type { Role } from '@/lib/supabase/types'
 
 const VALID_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production']
@@ -100,10 +101,31 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
   // Close on outside click
   useEffect(() => {
     function onPointerDown(e: PointerEvent) {
+      const el = e.target as Element | null
+      if (el?.closest?.('[data-tour-ui]')) return // tour card clicks don't close the menu
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [])
+
+  // Guided tour: open this menu when the tour asks — but only the instance
+  // that's actually visible AND on screen. Two copies are mounted (desktop
+  // top bar; NavDrawer's footer), and the closed drawer is translated
+  // off-viewport with a non-zero size, so a width check alone would open
+  // the wrong one.
+  useEffect(() => {
+    function onOpen() {
+      const r = ref.current?.getBoundingClientRect()
+      if (r && r.width > 0 && r.right > 0 && r.left < window.innerWidth) setOpen(true)
+    }
+    function onClose() { setOpen(false) }
+    window.addEventListener('tour:open-account-menu', onOpen)
+    window.addEventListener('tour:close-menus', onClose)
+    return () => {
+      window.removeEventListener('tour:open-account-menu', onOpen)
+      window.removeEventListener('tour:close-menus', onClose)
+    }
   }, [])
 
   async function handleSignOut() {
@@ -169,6 +191,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
           onClick={() => setOpen(o => !o)}
           aria-label="User menu"
           aria-expanded={open}
+          data-tour="account"
           className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center',
             'text-white text-[11px] font-semibold tracking-wide select-none',
@@ -255,12 +278,28 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
+            data-tour="connect-telegram"
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
           >
             <Send size={14} strokeWidth={1.8} className={tgLinked ? 'text-brand-green' : undefined} />
             <span className="flex-1 text-left">{tgLinked ? 'Telegram connected' : 'Connect Telegram'}</span>
             {tgLinked && <Check size={13} strokeWidth={2} className="text-brand-green" />}
           </a>
+
+          {/* Guided tour — restart from the role home page. The '/' redirect
+              resolves the role server-side, so this works from any page,
+              including ones whose CompanyBar has no role prop. */}
+          <button
+            onClick={() => {
+              setOpen(false)
+              try { sessionStorage.setItem(TOUR_RESTART_KEY, '1') } catch { /* best effort */ }
+              router.push('/')
+            }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+          >
+            <Compass size={14} strokeWidth={1.8} />
+            {t(lang, 'tourMenuLabel')}
+          </button>
 
           {/* Admin shortcuts */}
           {isAdmin && (

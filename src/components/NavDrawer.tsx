@@ -35,6 +35,7 @@ export function NavDrawer({ role, lang }: Props) {
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const panelRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const tabs = NAV_TABS[role]
 
   useEffect(() => { setMounted(true) }, [])
@@ -53,15 +54,32 @@ export function NavDrawer({ role, lang }: Props) {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  // Guided tour: open the drawer when the tour asks (mobile only — the
+  // trigger has zero size at ≥lg, so this is a no-op on desktop).
+  useEffect(() => {
+    function onOpen() {
+      if (triggerRef.current && triggerRef.current.getBoundingClientRect().width > 0) setOpen(true)
+    }
+    function onClose() { setOpen(false) }
+    window.addEventListener('tour:open-nav-drawer', onOpen)
+    window.addEventListener('tour:close-menus', onClose)
+    return () => {
+      window.removeEventListener('tour:open-nav-drawer', onOpen)
+      window.removeEventListener('tour:close-menus', onClose)
+    }
+  }, [])
+
   return (
     <>
       {/* Trigger stays right where the caller put it (CompanyBar's mobile
           slot, or AssistantShell's own slim bar) — only the backdrop + panel
           below are portaled. */}
       <button
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
         aria-expanded={open}
+        data-tour="menu"
         className="lg:hidden p-2 -ml-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
       >
         <Menu size={19} strokeWidth={1.8} />
@@ -131,6 +149,7 @@ export function NavDrawer({ role, lang }: Props) {
                     key={href}
                     href={href}
                     onClick={close}
+                    data-tour={`nav-${href.slice(1)}`}
                     className={cn(
                       'flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                       active ? 'bg-terracotta-soft text-terracotta' : 'text-ink2 hover:bg-bg hover:text-ink',

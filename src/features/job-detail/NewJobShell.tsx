@@ -292,20 +292,22 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
         lockedTabs={['files', 'chat']}
         details={
           <div className="flex flex-col gap-4">
-            <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
-              <CoreSection
-                bare
-                register={register}
-                errors={errors}
-                control={control}
-                watch={watch}
-                setValue={setValue}
-                readOnly={false}
-                lang={lang}
-                role={role}
-                validateRequired
-              />
-            </CollapseCard>
+            <div data-tour="job-details">
+              <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+                <CoreSection
+                  bare
+                  register={register}
+                  errors={errors}
+                  control={control}
+                  watch={watch}
+                  setValue={setValue}
+                  readOnly={false}
+                  lang={lang}
+                  role={role}
+                  validateRequired
+                />
+              </CollapseCard>
+            </div>
 
             <DesignBriefSection
               jobId={null}
@@ -439,7 +441,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       />
 
       {/* ── Action bar (sticky bottom, same chrome as the edit page) ── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
+      <div data-tour="job-actions" className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto flex gap-2">
           <button
             type="button"

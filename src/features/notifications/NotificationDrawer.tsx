@@ -763,6 +763,7 @@ export function NotificationDrawer({ lang }: Props) {
       <button
         onClick={handleOpen}
         aria-label={t(lang, 'notifications')}
+        data-tour="bell"
         className={cn(
           'flex items-center gap-1.5 px-2 py-2 rounded-lg border transition-colors',
           unreadOverdue > 0

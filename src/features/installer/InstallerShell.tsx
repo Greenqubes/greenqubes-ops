@@ -242,30 +242,34 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
         </div>
 
         {/* Filter chips — list mode only */}
-        {viewMode === 'list' && chips.map(({ v, label, count }) => (
-          <button
-            key={v}
-            onClick={() => setTab(v)}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
-              tab === v
-                ? 'bg-terracotta-soft border-terracotta text-terracotta'
-                : 'bg-paper border-line text-ink2 hover:border-ink2',
-            )}
-          >
-            {label}
-            {count > 0 && (
-              <span className={cn(
-                'inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-bold leading-none',
-                tab === v
-                  ? 'bg-terracotta/15 text-terracotta'
-                  : 'bg-ink/10 text-ink2',
-              )}>
-                {count}
-              </span>
-            )}
-          </button>
-        ))}
+        {viewMode === 'list' && (
+          <div data-tour="installer-tabs" className="flex items-center gap-2 shrink-0">
+            {chips.map(({ v, label, count }) => (
+              <button
+                key={v}
+                onClick={() => setTab(v)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-medium shrink-0 transition-colors',
+                  tab === v
+                    ? 'bg-terracotta-soft border-terracotta text-terracotta'
+                    : 'bg-paper border-line text-ink2 hover:border-ink2',
+                )}
+              >
+                {label}
+                {count > 0 && (
+                  <span className={cn(
+                    'inline-flex items-center justify-center min-w-[16px] h-4 rounded-full px-1 text-[10px] font-bold leading-none',
+                    tab === v
+                      ? 'bg-terracotta/15 text-terracotta'
+                      : 'bg-ink/10 text-ink2',
+                  )}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Views ── */}

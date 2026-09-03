@@ -86,7 +86,7 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
         : `${fmt(first, { month: 'short', year: 'numeric' })} – ${fmt(last, { month: 'short', year: 'numeric' })}`
 
   return (
-    <div className="pb-2">
+    <div data-tour="date-strip" className="pb-2">
       <p className="px-4 pb-1 text-[10px] uppercase tracking-widest text-muted text-center">{windowLabel}</p>
       <div className="flex items-center gap-1 px-2">
       <button
