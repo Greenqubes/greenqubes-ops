@@ -2,11 +2,18 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-09-01 (feat-design — **Design Load is LIVE on production.** B3 solved (the test designer accounts have no Telegram link; rule is now every shift), edits 15–19 built and re-tested by you, merged `feat-designer-load-flow` → `dev` → `main`, test data wiped (8 real client jobs kept). **Tomorrow morning: check Admin → Health for the first `design_daily_cron` run (08:30 SGT).** Seven small Design Load decisions still pending below.)_
+_Last updated: 2026-09-02 (feat-workflow-v3 — **Workflow V3 round 1 (project containers) built and your smoke round CLEARED — NOT merged.** Your rule: one clean-cut merge only once V3 is fully built. Migration 0051 applied by you (from the worktree folder). Round 2 — the collapsible folders on the schedule + filter chips — is next session; round 3 (the new month calendar) after. Branch and worktree kept. Also still open: the Design Load `design_daily_cron` morning check below if you haven't looked yet.)_
 
 ---
 
 ## Pending — Next Session
+
+### Workflow V3 — project containers (from 2026-09-02, feat-workflow-v3)
+
+- [ ] **Round 2 build — next session:** collapsible project folders on the schedule (green ring, split punctuality stripe, date ranges, "x / N done"), completed jobs staying in their day under the grey veil, All / Scheduled / Pending / Completed filter chips replacing the Pending + Completed tabs, your pending-privacy rule enforced at the database layer (with the two-login leak test), and the sort & filter dropdown. The plan gets written from the approved spec at session start.
+- [ ] **Round 3 build — after round 2:** the Notion-style month calendar (project pop-outs on PC + centred on phone) and week-view project chips.
+- [ ] **Merge decision — only when V3 is fully built (your rule, 2026-09-02):** one clean-cut `feat-workflow-v3` → `dev` → your dev-preview check → `main`. Until then production knows nothing of projects (migration 0051 is live but additive-only, so it's harmless).
+- [ ] **Round-1 smoke checklist page** (tickable, stays for reference): https://claude.ai/code/artifact/91a9f0e5-a9f2-4b3f-9d01-9d83ae187246 — rounds 2/3 get their own.
 
 ### Auth (from 2026-08-31, fix-auth)
 
@@ -184,6 +191,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-02, feat-workflow-v3 — Workflow V3 Round 1: Project Containers Built + Smoke Cleared)
+
+- [x] **[Nic] Design settled through 5 mockup rounds + your 8 page comments** — projects are containers with labels, nothing copied: nest existing jobs or create inside; timing follows the project until a job sets its own; completed jobs stay in their day under a veil; one Schedule page with filter chips (pending stays personal — your hard rule); admin keeps full access; the AI chat folders renamed **Workspaces** so the word Project belongs to jobs.
+- [x] **[Nic] Spec + 14-task plan approved; build ran subagent-driven** — every task built by a fresh worker behind a reviewer gate, then a whole-branch final review; ~12 real bugs were caught and fixed before you ever tested (headline: project files that uploaded but could never be opened, and ordinary saves silently detaching a job from project timing).
+- [x] **[Nic] Ran `npx supabase db push` for migration 0051** — from the worktree folder (your main folder's dev branch doesn't carry the file until the merge — that's expected).
+- [x] **[Nic] Smoke round CLEARED** — with 5 feedback fixes built and re-tested the same day: the project autosaves before "New job in this project"; an amber notice explains where such a job lands; the project push now opens the SAME clash resolution as the job form (your call — no more soft-lock) while still sending ONE scheduler Telegram; empty titles become "(Untitled X)"; and your coordinator rule — a pending job is shared between its sales person and the coordinators assigned on it, nobody else sees or pushes it.
+- [x] **[Nic] Decision — merge only when V3 is fully built** — rounds 2 and 3 first, then one clean cut to dev, your dev-preview check, then main.
+- Note: the collapsible folder NOT appearing on the schedule is round 2's headline, not a round-1 bug.
 
 ---
 
