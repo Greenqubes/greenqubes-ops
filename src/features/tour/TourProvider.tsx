@@ -153,15 +153,19 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
     // retrying until the last menu has opened.
     window.dispatchEvent(new CustomEvent('tour:close-menus'))
     const actions = step.before ? (Array.isArray(step.before) ? step.before : [step.before]) : []
+    // Every timer this effect creates — the staggered before-actions AND the
+    // target poll — is collected here so cleanup can clear all of them.
+    // Left uncleared, a stale tour:* event (e.g. open-account-menu) could
+    // still fire after a fast step change, tour exit, or unmount.
+    const timers: number[] = []
     actions.forEach((a, i) => {
-      window.setTimeout(() => window.dispatchEvent(new CustomEvent(`tour:${a}`)), 60 + i * 180)
+      timers.push(window.setTimeout(() => window.dispatchEvent(new CustomEvent(`tour:${a}`)), 60 + i * 180))
     })
 
     setReady(false)
     setTarget(null)
     let cancelled = false
     const t0 = Date.now()
-    let timer = 0
     const tick = () => {
       if (cancelled) return
       const el = findVisibleTarget(step.targets)
@@ -173,11 +177,11 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
         setTarget(null) // centred-card fallback — the tour never stalls
         setReady(true)
       } else {
-        timer = window.setTimeout(tick, POLL_MS)
+        timers.push(window.setTimeout(tick, POLL_MS))
       }
     }
-    timer = window.setTimeout(tick, 0)
-    return () => { cancelled = true; window.clearTimeout(timer) }
+    timers.push(window.setTimeout(tick, 0))
+    return () => { cancelled = true; timers.forEach((id) => window.clearTimeout(id)) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, tour, pathname])
 
