@@ -18,7 +18,7 @@
 - TypeScript strict, no `any`/`@ts-ignore`. Files < 500 lines.
 - `years_experience` / `skills`: remove from UI + swap out of queries where the meta line changes, but DB columns, `types.ts` Row entries, and `AdminUser` stay (dropped in a later session — ledgered).
 - Tests: standalone tsx scripts (`npx tsx <file>`, exit 1 on failure) — mirror `src/lib/utils/design-urgency.test.ts` conventions.
-- Link-status wording is Nic's exact spec: red **"Unlinked"** (no email), yellow **"Unlinked"** (email, never signed in), green **"Linked"** (`auth_id` set).
+- Link status renders as a **colored dot beside the name (left)** with a `title` tooltip — red (no email), amber (email, never signed in), green (signed in) — NEVER a text chip (Nic's artifact comments 2026-09-04). Driver = chip **right beside the name**; subrole = chip; qualifications = chips on their own row.
 - Commit after every task; branch `feat-provision-organisation`; do NOT push to `dev` until Nic confirms the DB push happened.
 
 ---
@@ -413,7 +413,25 @@ git commit -m "feat(provision): migration 0051 + email-optional provisioning + r
   const [qualInput, setQualInput] = useState('')
 ```
 
-Subrole input with datalist suggestions (native, no new component needed):
+Subrole is a single-value tag field with an **Insert button** (Nic: "type anything and click insert, it inserts as it is; retain suggestion"): a text input (with datalist suggestions) + an "Insert" `Btn` on its right; Insert sets `subrole` to the typed text and shows it as a chip with an **×** that clears it back to the input. Qualifications keep the chip editor but ALSO get an "Insert" button beside the input (Enter/comma still work). Pattern for both rows:
+
+```tsx
+          <div className="flex gap-2">
+            <input className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                   placeholder="Subrole — e.g. metalworks, printing"
+                   value={subroleInput} onChange={e => setSubroleInput(e.target.value)}
+                   list="subrole-suggestions" />
+            <Btn type="button" variant="ghost" size="sm" onClick={() => { if (subroleInput.trim()) { setSubrole(subroleInput.trim()); setSubroleInput('') } }}>Insert</Btn>
+          </div>
+          {subrole && (
+            <span className="self-start flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+              {subrole}
+              <button type="button" onClick={() => setSubrole('')} className="text-muted hover:text-terracotta leading-none">×</button>
+            </span>
+          )}
+```
+
+(state: `const [subrole, setSubrole] = useState(''); const [subroleInput, setSubroleInput] = useState('')`; the qualifications Insert button calls the existing `addQual(qualInput)`.) Datalist suggestions:
 
 ```tsx
           <input
@@ -468,7 +486,7 @@ In the editing branch, ABOVE the role select, add (hidden for GreenqubesAI, same
             )}
 ```
 
-After the role select add the subrole input + installer-only Driver checkbox + qualifications chips (same blocks as Step 1, datalist ids `subrole-suggestions-${user.id}` / `qual-suggestions-${user.id}` to avoid collisions; suggestions from a new `allUsers` prop threaded by Task 4 — until then use `[user]`, Task 4 finishes the wiring).
+After the role select add the subrole Insert-button field + installer-only Driver checkbox + qualifications chips-with-Insert (same blocks as Step 1 — every inserted tag shows its × remover in edit mode, which the chip patterns above already provide, datalist ids `subrole-suggestions-${user.id}` / `qual-suggestions-${user.id}` to avoid collisions; suggestions from a new `allUsers` prop threaded by Task 4 — until then use `[user]`, Task 4 finishes the wiring).
 **Delete** the `role === 'installer'` years-experience + skills block (lines 436-477) and the `yearsExp`/`skills`/`skillInput` state + `addSkill` (lines 223-225, 234-238) + their `cancel()` resets.
 `save()` body becomes:
 
@@ -509,22 +527,18 @@ git commit -m "feat(provision): card-only provisioning + rename/email/subrole/dr
 - Consumes: Task 1 (`linkStatus`, `filterUsers`, `subroleSuggestions`, `qualificationSuggestions`), Task 3 form changes.
 - Produces: `UserRow` gains `allUsers: AdminUser[]` prop (suggestion datalists); `ProvisionForm` receives `allUsers` here.
 
-- [ ] **Step 1: Link tag + new display badges in UserRow** — replace the old amber "not linked" badge (lines 507-511) with a three-state tag:
+- [ ] **Step 1: Dot + name-row chips in UserRow** (Nic's comment layout) — DELETE the old amber "not linked" badge (lines 507-511). The name line (line 377) becomes: link dot on the LEFT of the name, Driver chip on the RIGHT of the name:
 
 ```tsx
-              {(() => {
-                const st = linkStatus(user)
-                return st === 'linked' ? (
-                  <span className="text-xs bg-brand-green/10 text-brand-green border border-brand-green/20 rounded-full px-2 py-0.5 font-medium">Linked</span>
-                ) : st === 'pending' ? (
-                  <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 font-medium">Unlinked</span>
-                ) : (
-                  <span className="text-xs bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5 font-medium">Unlinked</span>
-                )
-              })()}
+            <p className="font-display font-medium text-ink text-sm truncate flex items-center gap-1.5">
+              <LinkDot status={linkStatus(user)} />
+              <span className="truncate">{user.name}</span>
+              {user.is_driver && <DriverChip label="Driver" />}
+            </p>
 ```
 
-Above the pill row: keep "Waiting for sign-in: {email}" for pending rows (existing lines 492-494 already gate on `user.email` — unchanged); add for card-only rows:
+(`LinkDot` + `DriverChip` come from `@/components/UserMetaLine` — Task 6; if Task 6 hasn't run yet, Task 6 owns creating them and this import compiles then — execute Tasks in order 1→9 and type-check at Task 6/7.)
+Above the pill row: keep "Waiting for sign-in: {email}" for pending rows (existing lines 492-494 — unchanged); add for card-only rows:
 
 ```tsx
             {user.auth_id === null && !user.email && (
@@ -532,18 +546,23 @@ Above the pill row: keep "Waiting for sign-in: {email}" for pending rows (existi
             )}
 ```
 
-In the pill row, after `<Pill variant={user.role} />` add subrole + driver + qualification tags:
+Pill row = role pill + subrole chip only; qualifications get **their own row below**:
 
 ```tsx
               {user.subrole && (
                 <span className="text-xs text-ink2 bg-bg border border-line rounded-full px-2 py-0.5">{user.subrole}</span>
               )}
-              {user.is_driver && (
-                <span className="text-xs bg-brand-blue/10 text-brand-blue border border-brand-blue/20 rounded-full px-2 py-0.5 font-medium">Driver</span>
-              )}
-              {(user.qualifications ?? []).map(q => (
-                <span key={q} className="text-xs text-muted bg-bg border border-line rounded-full px-2 py-0.5">{q}</span>
-              ))}
+              {/* …existing TG / digest spans stay in this row… */}
+```
+
+```tsx
+            {(user.qualifications ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {user.qualifications.map(q => (
+                  <span key={q} className="text-xs text-muted bg-bg border border-line rounded-full px-2 py-0.5">{q}</span>
+                ))}
+              </div>
+            )}
 ```
 
 - [ ] **Step 2: Filter bar in UsersTab root** — add state + derived lists:
@@ -614,7 +633,7 @@ git commit -m "feat(provision): admin link-status tags + role/subrole filter bar
   - `getDesignerUsers(): Promise<Array<{ id: string; name: string; subrole: string | null; qualifications: string[]; link_status: LinkStatus }>>`
   - `DesignerOption` (Task 6) is fed `{ id, label, subrole, qualifications, linkStatus }` by both pages.
   - `Substitute` gains `subrole: string | null; isDriver: boolean; qualifications: string[]` and loses `yearsExperience`/`skills` (update the `Substitute` type where it is declared — find with `grep -rn "yearsExperience" src/` and change every hit; the modal display swap itself is Task 7).
-  - i18n keys (en / zh): `metaDriver: 'Driver' / '司机'`, `metaLinked: 'Linked' / '已绑定'`, `metaUnlinked: 'Unlinked' / '未绑定'`.
+  - i18n key (en / zh): `metaDriver: 'Driver' / '司机'` (link status is a dot with an English tooltip — no keys needed).
 
 - [ ] **Step 1: `InstallerUser` + `getInstallerUsers`** — new type as above; query becomes:
 
@@ -653,7 +672,7 @@ export async function getInstallerUsers(): Promise<InstallerUser[]> {
 
 - [ ] **Step 5: Clash route substitutes** — select `id, name, role, subrole, is_driver, qualifications`; map to `{ id, name, role, subrole, isDriver: u.is_driver, qualifications: u.qualifications ?? [], hasConflict }`; update the `Substitute` type declaration and the route's local `UserRow` type.
 
-- [ ] **Step 6: i18n** — add the three keys to `en.ts` and `zh.ts` beside the fcfs block. Run `npm run type-check`.
+- [ ] **Step 6: i18n** — add `metaDriver` to `en.ts` and `zh.ts` beside the fcfs block. Run `npm run type-check`.
 
 - [ ] **Step 7: Verify + commit**
 
@@ -690,73 +709,85 @@ export function UserMetaLine({ user, lang, mutedClass }: {
 }): JSX.Element | null
 ```
 
-- [ ] **Step 1: Implement `UserMetaLine`** — a client-safe presentational component:
+- [ ] **Step 1: Implement `UserMetaLine`** — exports THREE pieces (Nic's comment layout: dot left of name, Driver chip right of name, subrole + qualifications as chip rows below):
 
 ```tsx
 'use client'
 
 import { cn } from '@/lib/utils/cn'
-import { t } from '@/lib/i18n'
 import { buildUserMeta, type LinkStatus } from '@/lib/utils/user-meta'
-import type { LangCode } from '@/lib/i18n'
 
-export function UserMetaLine({ user, lang, mutedClass = 'text-muted' }: {
-  user: { role?: string | null; subrole?: string | null; is_driver?: boolean | null;
-          qualifications?: string[] | null; linkStatus?: LinkStatus }
-  lang: LangCode
-  mutedClass?: string
+// Small colored dot beside a name. Words live in the tooltip only.
+export function LinkDot({ status }: { status: LinkStatus }) {
+  return (
+    <span
+      title={status === 'linked' ? 'Linked' : status === 'pending' ? 'Unlinked — waiting for sign-in' : 'Unlinked — no email yet'}
+      className={cn(
+        'inline-block w-2 h-2 rounded-full shrink-0',
+        status === 'linked' ? 'bg-brand-green' : status === 'pending' ? 'bg-brand-amber' : 'bg-bad',
+      )}
+    />
+  )
+}
+
+// Driver chip — always sits right beside the name.
+export function DriverChip({ label }: { label: string }) {
+  return (
+    <span className="text-[10px] font-medium bg-brand-blue/10 text-brand-blue border border-brand-blue/20 rounded-full px-1.5 py-px shrink-0">
+      {label}
+    </span>
+  )
+}
+
+// Chip rows under the name: subrole chip, then qualifications chips on their own row.
+export function UserMetaLine({ user, chipClass = 'text-muted bg-bg border-line' }: {
+  user: { role?: string | null; subrole?: string | null; qualifications?: string[] | null }
+  /** color classes for the chips — grids tint by card state */
+  chipClass?: string
 }) {
   const meta = buildUserMeta(user)
-  const st   = user.linkStatus
-  const hasAnything = meta.subroleLine || meta.isDriver || meta.qualifications.length > 0 || st
-  if (!hasAnything) return null
+  if (!meta.subroleLine && meta.qualifications.length === 0) return null
   return (
-    <div className="min-w-0">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {meta.subroleLine && (
-          <span className={cn('text-[11px] truncate', mutedClass)}>{meta.subroleLine}</span>
-        )}
-        {meta.isDriver && (
-          <span className="text-[10px] font-medium bg-brand-blue/10 text-brand-blue border border-brand-blue/20 rounded-full px-1.5 py-px shrink-0">
-            {t(lang, 'metaDriver')}
-          </span>
-        )}
-        {st && (st === 'linked' ? (
-          <span className="text-[10px] font-medium bg-brand-green/10 text-brand-green border border-brand-green/20 rounded-full px-1.5 py-px shrink-0">
-            {t(lang, 'metaLinked')}
-          </span>
-        ) : st === 'pending' ? (
-          <span className="text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-1.5 py-px shrink-0">
-            {t(lang, 'metaUnlinked')}
-          </span>
-        ) : (
-          <span className="text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 rounded-full px-1.5 py-px shrink-0">
-            {t(lang, 'metaUnlinked')}
-          </span>
-        ))}
-      </div>
+    <div className="min-w-0 mt-0.5 flex flex-col gap-0.5">
+      {meta.subroleLine && (
+        <span className={cn('self-start text-[10px] border rounded-full px-1.5 py-px truncate max-w-full', chipClass)}>
+          {meta.subroleLine}
+        </span>
+      )}
       {meta.qualifications.length > 0 && (
-        <p className={cn('text-[10px] truncate', mutedClass)}>{meta.qualifications.join(' · ')}</p>
+        <div className="flex flex-wrap gap-1">
+          {meta.qualifications.map(q => (
+            <span key={q} className={cn('text-[10px] border rounded-full px-1.5 py-px', chipClass)}>{q}</span>
+          ))}
+        </div>
       )}
     </div>
   )
 }
 ```
 
-(Check `t`'s actual import path/signature against another client component, e.g. `AssignmentPanel.tsx`, and mirror it exactly.)
+(`bg-bad` — check the tokens for the red utility class name; the app defines `--bad`, grep for how other components use it, e.g. `text-bad` in AssignmentPanel — use the same convention, or `style={{background:'var(--bad)'}}` if no bg utility exists. Driver label: pass `t(lang, 'metaDriver')` from the grid so UserMetaLine itself needs no i18n import. The `metaLinked`/`metaUnlinked` i18n keys from Task 5 are NOT needed — drop them from Task 5, keep `metaDriver`.)
 
-- [ ] **Step 2: InstallerGrid** — add `lang: LangCode` to `Props`; delete the `meta` computation (lines 62-66); replace the meta `<p>` (lines 107-109) with:
+- [ ] **Step 2: InstallerGrid** — add `lang: LangCode` to `Props`; delete the `meta` computation (lines 62-66). Name `<p>` (lines 104-106) becomes a flex row: dot left, name, Driver chip right:
+
+```tsx
+                  <p className={cn('text-sm font-semibold truncate flex items-center gap-1.5', nameColor)}>
+                    <LinkDot status={inst.link_status} />
+                    <span className="truncate">{inst.name}</span>
+                    {inst.is_driver && <DriverChip label={t(lang, 'metaDriver')} />}
+                  </p>
+```
+
+then replace the old meta `<p>` (lines 107-109) with chip rows (chip colors follow card state — derive from the existing `metaColor` scheme, e.g. assigned → `'text-brand-green border-brand-green/30 bg-transparent'`, suggested → `'text-amber-700 border-amber-300 bg-transparent'`, none → default):
 
 ```tsx
                   <UserMetaLine
-                    user={{ role: inst.role, subrole: inst.subrole, is_driver: inst.is_driver,
-                            qualifications: inst.qualifications, linkStatus: inst.link_status }}
-                    lang={lang}
-                    mutedClass={metaColor}
+                    user={{ role: inst.role, subrole: inst.subrole, qualifications: inst.qualifications }}
+                    chipClass={chipClass}
                   />
 ```
 
-(`metaColor` at lines 72-75 stays as-is and feeds `mutedClass`.)
+(import `t` the same way `SubInstallerBucket.tsx` does.)
 
 - [ ] **Step 3: DesignerGrid** — extend the option type:
 
@@ -770,17 +801,20 @@ export interface DesignerOption {
 }
 ```
 
-add `lang: LangCode` to `Props`; under the name `<p>` (line 89-91) add:
+add `lang: LangCode` to `Props`; the name `<p>` (line 89-91) gains the dot (left) — designers have no Driver — and chip rows below:
 
 ```tsx
+                  <p className={cn('text-sm font-semibold truncate flex items-center gap-1.5', selected ? 'text-brand-green' : 'text-ink')}>
+                    {d.linkStatus && <LinkDot status={d.linkStatus} />}
+                    <span className="truncate">{d.label}</span>
+                  </p>
                   <UserMetaLine
-                    user={{ subrole: d.subrole, qualifications: d.qualifications, linkStatus: d.linkStatus }}
-                    lang={lang}
-                    mutedClass={selected ? 'text-brand-green/70' : 'text-muted'}
+                    user={{ subrole: d.subrole, qualifications: d.qualifications }}
+                    chipClass={selected ? 'text-brand-green border-brand-green/30 bg-transparent' : 'text-muted bg-bg border-line'}
                   />
 ```
 
-(no `role` fallback — a designer card with no subrole shows no meta line, matching today's clean look.)
+(no `role` fallback — a designer card with no subrole shows no chip, matching today's clean look.)
 
 - [ ] **Step 4: Thread `lang` through every call site** listed in Files (all hosts already hold `lang`; add a `lang` prop to `SubInstallerBucket` and `DesignBriefSection` only if they don't already receive it — check first).
 
@@ -858,60 +892,47 @@ git commit -m "feat(provision): FCFS + clash substitute rows show subrole/Driver
 
 ---
 
-### Task 8: Support crew bucket (added 2026-09-04 — Nic round 3)
+### Task 8: Support crew — widen the existing Sub-installer bucket (Nic 2026-09-04: ONE merged bucket)
 
 **Files:**
-- Create: `src/features/job-detail/SupportCrewBucket.tsx`
 - Modify: `src/lib/supabase/queries/jobs.ts` (add `getSupportUsers()` beside `getInstallerUsers`)
-- Modify: `src/features/job-detail/JobDetailShell.tsx` (sub-bucket wiring ~123-132, 950-953, 1286-1296 — split by role; new bucket below SubInstallerBucket)
-- Modify: `src/features/job-detail/NewJobShell.tsx` (same pattern as its sub-bucket wiring)
+- Modify: `src/features/job-detail/SubInstallerBucket.tsx` (labels via new i18n keys; comment update)
+- Modify: `src/features/job-detail/JobDetailShell.tsx` (~123-132, 950-953, 1286-1296 — widen the bucket pool)
+- Modify: `src/features/job-detail/NewJobShell.tsx` (same pattern for its sub-bucket pool)
 - Modify: `src/app/jobs/new/page.tsx` + `src/app/jobs/[id]/page.tsx` (fetch + pass `supportUsers`)
-- Modify: `src/lib/i18n/en.ts` + `zh.ts` (4 keys)
+- Modify: `src/lib/i18n/en.ts` + `zh.ts` (retitle the existing `subBucket*` keys)
 - Verify-only: `src/app/api/jobs/[id]/sub-installers/route.ts`, `src/app/api/jobs/[id]/suggest-installer/route.ts`
 
 **Interfaces:**
-- Consumes: `InstallerUser` (Task 5 shape — role-agnostic), `InstallerGrid` + `UserMetaLine` (Task 6), existing sub-installer save routes.
-- Produces: `getSupportUsers(): Promise<InstallerUser[]>` — same select/derivation as `getInstallerUsers` but `.neq('role', 'installer').neq('name', 'GreenqubesAI')`. `SupportCrewBucket` — identical Props to `SubInstallerBucket` (copy the file, swap the i18n keys, `installers` prop renamed `people`).
+- Consumes: `InstallerUser` (Task 5 shape — role-agnostic, carries role/subrole/quals/link_status), `InstallerGrid` + chips (Task 6), existing sub-installer save routes.
+- Produces: `getSupportUsers(): Promise<InstallerUser[]>` — same select/derivation as `getInstallerUsers` but `.neq('role', 'installer').neq('name', 'GreenqubesAI')`. NO new component; `SubInstallerBucket` keeps its name and Props.
 
-**Design (spec decision 10):** support crew rows live in `job_assignees` with the EXISTING `is_sub_installer = true` flag — no migration, no new route. The shells keep ONE sub id list (state unchanged); each bucket renders the ids whose user is in its own pool (installer pool → SubInstallerBucket, support pool → SupportCrewBucket), and saves send the UNION through the existing sub-installers / suggest-installer(isSub) paths. Support crew thereby inherit the "Supporting Role" Telegram, clash-check exclusion, FCFS-bar exclusion, and workload counting.
+**Design (spec decision 10):** the existing bucket is retitled **"Support crew"** and its pool widens to installers + all other roles. Rows keep `job_assignees.is_sub_installer = true` and the existing save/suggest routes — everyone in the bucket inherits the "Supporting Role" Telegram, clash-check exclusion, FCFS-bar exclusion, workload counting. Role/subrole chips (Task 6 cards) tell installers and production apart inside the grid.
 
-- [ ] **Step 1: `getSupportUsers()`** — copy `getInstallerUsers` (Task 5 version), change the filters to `.neq('role', 'installer').neq('name', 'GreenqubesAI')`, keep `.is('deleted_at', null).order('name')` and the `link_status` derivation. Same `InstallerUser` return type (it carries `role`, so cards show "production" etc. when no subrole).
+- [ ] **Step 1: `getSupportUsers()`** — copy `getInstallerUsers` (Task 5 version), filters `.neq('role', 'installer').neq('name', 'GreenqubesAI')`, keep `.is('deleted_at', null).order('name')` + the `link_status` derivation. Returns `InstallerUser[]` (the type carries `role`, so cards read "production" etc. when no subrole is set).
 
-- [ ] **Step 2: `SupportCrewBucket.tsx`** — copy `SubInstallerBucket.tsx` wholesale; rename component + `installers` prop → `people`; swap i18n keys to `supportBucketAdd` / `supportBucketTitle` / `supportBucketRemove` / `supportBucketAllUsed`; pass `lang` through to `InstallerGrid` (Task 6 prop). Keep the dashed trigger + count badge + Remove behavior identical.
+- [ ] **Step 2: Retitle the bucket** — in `en.ts`: `subBucketAdd: 'Support crew — sub-installers & other roles'`, `subBucketTitle: 'Support crew'` (keep `subBucketRemove` / `subBucketAllOnMain` values; reword `subBucketAllOnMain` to `'Everyone is already on this job'`). In `zh.ts`: `subBucketAdd: '支援人员 — 副安装员及其他岗位'`, `subBucketTitle: '支援人员'`, `subBucketAllOnMain: '所有人都已在此工作中'`. Update the header comment in `SubInstallerBucket.tsx` to say it now holds sub-installers AND dispatched other roles (Nic 2026-09-04, night jobs / manpower shortage).
 
-- [ ] **Step 3: i18n keys** —
-  en: `supportBucketAdd: 'Support crew — dispatch other roles'`, `supportBucketTitle: 'Support crew'`, `supportBucketRemove: 'Remove'`, `supportBucketAllUsed: 'Everyone is already on this job'`.
-  zh: `supportBucketAdd: '支援人员 — 调派其他岗位'`, `supportBucketTitle: '支援人员'`, `supportBucketRemove: '移除'`, `supportBucketAllUsed: '所有人都已在此工作中'`.
-
-- [ ] **Step 4: Shell wiring (JobDetailShell, then NewJobShell same pattern)** — pages fetch `getSupportUsers()` and pass `supportUsers: InstallerUser[]`. In the shell, keep `selectedSubIds` / `suggestedSubIds` as the single source of truth; derive per-bucket views:
+- [ ] **Step 3: Widen the pool (JobDetailShell, then NewJobShell same pattern)** — pages fetch `getSupportUsers()` and pass `supportUsers: InstallerUser[]` down. In each shell, wherever the sub-bucket pool is computed as "installer pool minus main-grid picks", append the support users:
 
 ```ts
-  const supportIdSet = new Set(supportUsers.map(u => u.id))
-  // SubInstallerBucket keeps its current pool (installer pool minus main grid).
-  // SupportCrewBucket pool = supportUsers; its subCount =
-  //   selectedSubIds.concat(suggestedSubIds).filter(id => supportIdSet.has(id)).length
+  const bucketPool = [
+    ...installers.filter(i => !mainGridIds.has(i.id)),   // existing expression, whatever its name
+    ...supportUsers,
+  ]
 ```
 
-`stateOf` / `onToggle` / `disabledOf` / `noteOf` / `onClear`: reuse the existing sub-bucket handlers untouched (they operate on the shared id lists) — except `onClear`, which must clear only ids in the bucket's own pool:
+(match the shell's actual variable names at JobDetailShell ~1286-1296 / NewJobShell's equivalent; `supportUsers` are never on the main grid, so no extra filtering). All handlers (`stateOf`/`onToggle`/`disabledOf`/`noteOf`/`onClear`), the shared `selectedSubIds`/`suggestedSubIds` state, `defaultOpen`, and both save paths stay EXACTLY as they are — they operate on ids and don't care about role.
 
-```ts
-  onClear={() => {
-    setSelectedSubIds(prev => prev.filter(id => !supportIdSet.has(id)))
-    setSuggestedSubIds(prev => prev.filter(id => !supportIdSet.has(id)))
-  }}
-```
+- [ ] **Step 4: Verify the two routes accept non-installer ids** — read `sub-installers/route.ts` + `suggest-installer/route.ts`; if either validates targets against an installer-role pool, relax to "any active non-deleted user (not GreenqubesAI)". The "Supporting Role" Telegram must fire for support crew exactly as for subs.
 
-(mirror-image filter for the sub-installer bucket's existing clear). `defaultOpen` = job already has a non-installer sub row. Render `<SupportCrewBucket>` immediately after `<SubInstallerBucket>` (JobDetailShell ~line 1286; same slot in NewJobShell). Save paths unchanged — they already send the shared lists.
+- [ ] **Step 5: Type-check + manual check** — `npm run type-check`; `npm run dev`: job → Team tab → "+ Support crew" trigger; grid shows installers AND production people (role chips distinguish); add a production person; save; row lands in `job_assignees` with `is_sub_installer = true`.
 
-- [ ] **Step 5: Verify the two routes accept non-installer ids** — read `sub-installers/route.ts` + `suggest-installer/route.ts`; if either filters target users by `role === 'installer'` (e.g. validating against the installer pool), relax that check to "any active non-deleted user". The Telegram send ("Supporting Role") must fire for support crew exactly as for subs.
-
-- [ ] **Step 6: Type-check + manual check** — `npm run type-check`; `npm run dev`: open a job → Team tab → "+ Support crew" trigger below the sub-installer trigger; add a production person; save; row lands in `job_assignees` with `is_sub_installer = true`.
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/features/job-detail/SupportCrewBucket.tsx src/features/job-detail/JobDetailShell.tsx src/features/job-detail/NewJobShell.tsx src/lib/supabase/queries/jobs.ts src/app/jobs/new/page.tsx "src/app/jobs/[id]/page.tsx" src/lib/i18n/en.ts src/lib/i18n/zh.ts
-git commit -m "feat(provision): Support crew bucket — dispatch non-installer roles onto the install team (rides is_sub_installer)"
+git add src/features/job-detail/SubInstallerBucket.tsx src/features/job-detail/JobDetailShell.tsx src/features/job-detail/NewJobShell.tsx src/lib/supabase/queries/jobs.ts src/app/jobs/new/page.tsx "src/app/jobs/[id]/page.tsx" src/lib/i18n/en.ts src/lib/i18n/zh.ts
+git commit -m "feat(provision): Support crew — sub-installer bucket widened to all roles (rides is_sub_installer)"
 ```
 
 ---

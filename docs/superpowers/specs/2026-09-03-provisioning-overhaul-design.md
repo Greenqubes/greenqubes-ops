@@ -22,25 +22,32 @@ can start on day one.
    not yet tagged; roles themselves are always set at provisioning, so no role-unassigned state).
 7. **Rename** — provisioned users can be renamed (and given/corrected an email) without delete +
    re-add.
-9. **Link-status tags (added 2026-09-03, second round)** — every user has a link status shown as
-   a small colored tag: **red "Unlinked"** = no email on the row (card-only), **yellow "Unlinked"**
-   = email entered but never signed in (`auth_id` null), **green "Linked"** = signed in at least
-   once (`auth_id` set). Shown on the admin Users page and on job-form name cards ONLY —
-   installer grid (incl. sub-installer bucket) + designer grid. NOT on pickers, NOT on the FCFS
-   panel, NOT on the clash substitute rows. Replaces the old amber "not linked" admin badge.
-   (Red and yellow share the word "Unlinked" by Nic's spec — color is the differentiator.)
-10. **Support crew bucket (added 2026-09-04, third round)** — a collapsible bucket in the job
-   form's Team card, below the Sub-installer bucket, for dispatching NON-installer people
-   (especially production) onto the install team — night jobs, manpower shortage. Mirrors the
-   Sub-installer bucket exactly: dashed "+ Support crew" trigger, same amber-suggestion /
-   green-assignment rules, same permissions. **Zero migration:** rows store in `job_assignees`
-   with the existing `is_sub_installer = true` flag; the two buckets split display by the
-   person's role (installer → Sub-installer bucket, everything else → Support crew bucket).
-   They therefore inherit: "Supporting Role" Telegram on assign, exclusion from clash
-   detection and FCFS bars, inclusion in team workload. Pool = all non-installer users except
-   GreenqubesAI (new `getSupportUsers()` mirroring `getInstallerUsers` with `.neq('role',
-   'installer')`). Known cosmetic side-effect (accepted): assigned support crew appear in the
-   schedule card's `Installer:` names line like subs do.
+9. **Link-status DOTS (2026-09-03 round 2; reworked per Nic's artifact comments 2026-09-04)** —
+   link status is a small colored **dot beside the name (left side)**, NOT a text chip ("too
+   cluttered"): **red dot** = no email (card-only), **amber dot** = email entered, never signed
+   in, **green dot** = signed in at least once. `title` tooltip carries the words (Unlinked /
+   Linked). Shown on the admin Users page and job-form name cards ONLY — installer grid (incl.
+   the merged crew bucket) + designer grid. NOT on pickers, FCFS panel, or clash rows.
+   Replaces the old amber "not linked" admin badge.
+9b. **Card layout rules (Nic's artifact comments, 2026-09-04)** — on every surface that shows
+   them: **Driver** is a chip sitting **beside the name, right side, always**; **subrole** is a
+   chip/tag (never flat text) — installers, designers and admin rows alike; **qualifications**
+   are chips on **their own row below** the role/subrole row. Provision + edit forms: the
+   subrole and qualifications inputs each get an **Insert button** (type anything → Insert adds
+   it exactly as typed; type-ahead suggestions stay), and in Edit mode every inserted
+   subrole/qualification tag shows an **×** to remove it.
+10. **Support crew = the existing Sub-installer bucket, widened (Nic's call 2026-09-04: one
+   merged bucket)** — the job form's existing collapsible sub-installer bucket is renamed
+   **"Support crew"** and its pool widens from installers-only to installers AND every other
+   role (except GreenqubesAI) — for dispatching production etc. onto the install team (night
+   jobs, manpower shortage). Role/subrole chips on the cards tell people apart. **Zero
+   migration, zero new component:** rows keep the existing `job_assignees.is_sub_installer =
+   true` flag and the existing save/suggest routes, so everyone in the bucket inherits the
+   "Supporting Role" Telegram, clash-check exclusion, FCFS-bar exclusion, and workload
+   counting. New `getSupportUsers()` (non-installer pool, mirrors `getInstallerUsers`) feeds
+   the merged pool = installer pool ∪ support pool, minus main-grid picks. Known cosmetic
+   side-effect (accepted): assigned support crew appear in the schedule card's `Installer:`
+   names line like subs do.
 8. **Design Load board bars** — deliberately skipped (tiny chart labels, no room). Everything else
    card-shaped gains the new info; dropdown pickers and their selected pills deliberately excluded.
 
