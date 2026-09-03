@@ -172,7 +172,7 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
         </div>
 
         <div className="flex items-center">
-          <div className="flex rounded-lg border border-line bg-bg overflow-hidden">
+          <div data-tour="fcfs-zoom" className="flex rounded-lg border border-line bg-bg overflow-hidden">
             {(Object.keys(RANGES) as TimeRange[]).map(r => (
               <button
                 key={r}

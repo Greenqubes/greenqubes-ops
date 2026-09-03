@@ -115,7 +115,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
         </h1>
 
         {isDesigner && (
-          <div className="flex gap-1 mt-3">
+          <div data-tour="design-toggle" className="flex gap-1 mt-3">
             {(['board', 'myJobs'] as const).map(tabId => (
               <button
                 key={tabId}
@@ -185,7 +185,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
                 ending in its (fixed-height) name label — is what pins every
                 column's baseline to the same line while the bars above it
                 grow upward by however tall their stacked segments are. */}
-            <div className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-220px))] lg:min-h-[max(260px,calc(100vh-300px))]">
+            <div data-tour="design-board" className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-220px))] lg:min-h-[max(260px,calc(100vh-300px))]">
               {data.designers.map(designer => (
                 <DesignerBar
                   key={designer.id}

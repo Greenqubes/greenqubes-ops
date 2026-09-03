@@ -44,12 +44,20 @@ export function JobFormLayout({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (jumpToDetails) setActive('details') }, [jumpToDetails])
 
+  // Guided tour: jump the phone layout to the Team tab so its step can
+  // spotlight the card (no-op on PC where all cards are visible).
+  useEffect(() => {
+    function onTeamTab() { setActive('team') }
+    window.addEventListener('tour:job-tab-team', onTeamTab)
+    return () => window.removeEventListener('tour:job-tab-team', onTeamTab)
+  }, [])
+
   const groupCn = (tab: JobTab) => cn(tab !== active && 'hidden', 'lg:block')
 
   return (
     <>
       {/* Tab bar — phone/narrow only; sticks below the CompanyBar (45px) */}
-      <div className="lg:hidden sticky top-[45px] z-20 bg-bg border-b border-line flex">
+      <div data-tour="job-tabs" className="lg:hidden sticky top-[45px] z-20 bg-bg border-b border-line flex">
         {TABS.map(tab => {
           const locked = lockedTabs.includes(tab)
           return (
@@ -78,7 +86,7 @@ export function JobFormLayout({
       <div className="max-w-2xl lg:max-w-6xl mx-auto px-4 pt-4 flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="lg:flex-1 lg:min-w-0 flex flex-col gap-4">
           <div className={groupCn('details')}>{details}</div>
-          <div className={groupCn('team')}>{team}</div>
+          <div data-tour="job-team" className={groupCn('team')}>{team}</div>
         </div>
         <div className="lg:flex-1 lg:min-w-0 flex flex-col gap-4">
           <div className={groupCn('files')}>{files}</div>

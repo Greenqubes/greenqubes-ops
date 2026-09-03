@@ -257,6 +257,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           {(role === 'sales' || role === 'scheduler' || role === 'coordinator') && (
             <Link
               href="/jobs/new"
+              data-tour="new-job"
               className="inline-flex items-center gap-1 px-3 py-[11px] text-xs rounded-lg font-semibold tracking-wide bg-terracotta text-white hover:brightness-90 active:brightness-75 transition-colors shrink-0"
             >
               <Plus size={12} />
@@ -302,7 +303,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
 
       {/* ── View toggle + filter chips ── */}
       <div className="flex items-center gap-2 px-4 pb-2 overflow-x-auto scrollbar-none">
-        <div className="flex bg-paper border border-line rounded-lg p-0.5 shrink-0">
+        <div data-tour="schedule-views" className="flex bg-paper border border-line rounded-lg p-0.5 shrink-0">
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}

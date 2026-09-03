@@ -96,7 +96,7 @@ export function FCFSTimeline({ jobs, clashes, startH, endH, lang, onJobClick }: 
       (c.jobA.id === job.id || c.jobB.id === job.id))
 
   return (
-    <div className="overflow-x-auto">
+    <div data-tour="fcfs-board" className="overflow-x-auto">
       <div style={{ minWidth }}>
         {/* Time axis header */}
         <div className="flex sticky top-0 z-10 bg-paper border-b-2 border-line">
