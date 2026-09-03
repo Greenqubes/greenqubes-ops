@@ -51,6 +51,10 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
   const [target, setTarget] = useState<Element | null>(null)
   const [ready, setReady] = useState(false)
   const userIdRef = useRef<string | null>(null)
+  // Tracks which step.id we've already pushed a route for, so a redirect
+  // back to the same page (no access, a guard bounce, etc.) doesn't loop
+  // navigation forever — see the step effect below (F1b).
+  const pushedStepRef = useRef<string | null>(null)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -113,9 +117,19 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
 
       const resumed = parseTourState(readSession(TOUR_STATE_KEY))
       if (resumed && scriptForRole(resumed.role)) {
-        setTour(resumed)
-        setPhase('running')
-        return
+        // Role-less pages (job-form etc.) have nothing to compare against —
+        // keep resuming as before, mid-tour navigation depends on it. When a
+        // role IS known, stale state from a different role (e.g. Preview-as
+        // switched roles, or a leftover key from another account sharing
+        // this browser) must not be resumed — that's what caused the
+        // infinite navigation loop (F1a). Drop it and fall through to the
+        // normal offer/restart logic for the CURRENT role instead.
+        if (!role || resumed.role === role) {
+          setTour(resumed)
+          setPhase('running')
+          return
+        }
+        clearSession(TOUR_STATE_KEY)
       }
       if (!role || !scriptForRole(role) || !userIdRef.current) return
 
@@ -141,10 +155,26 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
     const step = script[tour.step]
     if (!step) { finish(); return }
 
+    // Clear the overlay BEFORE navigating so the OLD step's card/spotlight
+    // never renders over the NEW step's target during the transit (F5).
+    // TourOverlay's `searching` mode keeps the dim + click shield mounted
+    // while !ready, so this doesn't leave the app exposed (F2) — it's a
+    // deliberate dim+shield-only frame during the route change.
+    setReady(false)
+    setTarget(null)
+
     if (step.route && pathname !== step.route) {
-      writeSession(TOUR_STATE_KEY, serializeTourState(tour))
-      router.push(step.route)
-      return // the destination page's provider resumes from sessionStorage
+      // Guard against a redirect loop (F1b): if we already pushed for this
+      // exact step and landed back here anyway (e.g. the destination
+      // bounced us — no access, a guard redirect), pushing again would just
+      // repeat forever. Skip the push and fall through to the poll below,
+      // which times out and degrades the step to a centred card instead.
+      if (pushedStepRef.current !== step.id) {
+        pushedStepRef.current = step.id
+        writeSession(TOUR_STATE_KEY, serializeTourState(tour))
+        router.push(step.route)
+        return // the destination page's provider resumes from sessionStorage
+      }
     }
     // Menu state is deterministic per step: close everything first, then run
     // the step's before-actions in order, staggered so each action's
@@ -162,8 +192,6 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
       timers.push(window.setTimeout(() => window.dispatchEvent(new CustomEvent(`tour:${a}`)), 60 + i * 180))
     })
 
-    setReady(false)
-    setTarget(null)
     let cancelled = false
     const t0 = Date.now()
     const tick = () => {
@@ -201,6 +229,33 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
         lang={lang}
         onPick={(code) => { void beginWithLang(role, code) }}
         onSkip={() => { markSeen(); setPhase('idle') }}
+      />
+    )
+  }
+
+  if (phase === 'running' && tour && !ready) {
+    // Keep the scrim + click shield mounted while the engine polls for the
+    // next target — otherwise the app underneath is tappable and undimmed
+    // for up to POLL_TIMEOUT_MS between steps (F2). The other props come
+    // from the current step so the types are satisfied; they're unused
+    // while searching.
+    const script = scriptForRole(tour.role)
+    const step = script?.[tour.step]
+    if (!script || !step) return null
+    return (
+      <TourOverlay
+        searching
+        lang={lang}
+        el={null}
+        titleKey={step.titleKey}
+        bodyKey={step.bodyKey}
+        stepNo={tour.step + 1}
+        total={script.length}
+        isFirst={tour.step === 0}
+        isLast={tour.step === script.length - 1}
+        onNext={() => move(1)}
+        onBack={() => move(-1)}
+        onExit={finish}
       />
     )
   }

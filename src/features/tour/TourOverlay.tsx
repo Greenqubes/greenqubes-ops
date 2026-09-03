@@ -19,9 +19,15 @@ interface Props {
   onNext: () => void
   onBack: () => void
   onExit: () => void
+  // While the engine polls for the next step's target: render only the
+  // click shield + full dim (no spotlight, no card) so the app underneath
+  // is never tappable/undimmed between steps (F2). The other props above
+  // are unused in this mode but still required so callers don't need a
+  // separate stripped-down props type.
+  searching?: boolean
 }
 
-export function TourOverlay({ lang, el, titleKey, bodyKey, stepNo, total, isFirst, isLast, onNext, onBack, onExit }: Props) {
+export function TourOverlay({ lang, el, titleKey, bodyKey, stepNo, total, isFirst, isLast, onNext, onBack, onExit, searching }: Props) {
   const [mounted, setMounted] = useState(false)
   const [rect, setRect] = useState<Rect | null>(null)
   const [cardStyle, setCardStyle] = useState<React.CSSProperties>({ visibility: 'hidden' })
@@ -62,6 +68,19 @@ export function TourOverlay({ lang, el, titleKey, bodyKey, stepNo, total, isFirs
   }, [rect, stepNo])
 
   if (!mounted) return null
+
+  if (searching) {
+    // Same mount-gated portal, same data-tour-ui marker, same z-[80] dim +
+    // click shield as the full overlay below — just no spotlight hole and
+    // no card, since there's no settled target yet.
+    return createPortal(
+      <div data-tour-ui>
+        <div className="fixed inset-0 z-[80]" />
+        <div className="fixed inset-0 z-[80] bg-black/55" />
+      </div>,
+      document.body,
+    )
+  }
 
   const cardBody = (
     <>

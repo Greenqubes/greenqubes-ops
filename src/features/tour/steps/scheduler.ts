@@ -1,7 +1,7 @@
 import type { TourStep } from '../engine'
 import { bellStep, dateStripStep, outroSteps, scheduleViewsStep } from './common'
 
-// Scheduler: the schedule + FCFS assignment loop. 13 steps.
+// Scheduler: the schedule + FCFS assignment loop. 12 steps.
 export const schedulerSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSchedulerIntroTitle', bodyKey: 'tourSchedulerIntroBody' },
   scheduleViewsStep,

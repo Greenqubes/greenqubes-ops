@@ -1,9 +1,7 @@
 import type { TourStep } from '../engine'
 import { bellStep, dateStripStep, outroSteps, scheduleViewsStep } from './common'
 
-// Coordinator: sales-level job flow, suggest-only for installers. 12 steps.
-// nav-pending may not exist for this role's tabs — the engine degrades that
-// step to a centred card, which reads fine.
+// Coordinator: sales-level job flow, suggest-only for installers. 13 steps.
 export const coordinatorSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourCoordinatorIntroTitle', bodyKey: 'tourCoordinatorIntroBody' },
   scheduleViewsStep,

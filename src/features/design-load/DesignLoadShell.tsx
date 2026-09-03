@@ -139,7 +139,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
           below lg now (nav drawer instead — R2-T5 / F1), so mobile only
           needs a modest breathing-room pb. lg: keeps the original value
           since BottomNav still renders there unchanged. */}
-      <main className="pb-8 lg:pb-24">
+      <main data-tour="design-board" className="pb-8 lg:pb-24">
         {isDesigner && tab === 'myJobs' ? (
           <MyJobsView
             jobs={myJobs}
@@ -185,7 +185,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
                 ending in its (fixed-height) name label — is what pins every
                 column's baseline to the same line while the bars above it
                 grow upward by however tall their stacked segments are. */}
-            <div data-tour="design-board" className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-220px))] lg:min-h-[max(260px,calc(100vh-300px))]">
+            <div className="flex items-end gap-1.5 sm:gap-3 px-2 sm:px-4 pt-6 pb-4 min-h-[max(260px,calc(100vh-220px))] lg:min-h-[max(260px,calc(100vh-300px))]">
               {data.designers.map(designer => (
                 <DesignerBar
                   key={designer.id}
