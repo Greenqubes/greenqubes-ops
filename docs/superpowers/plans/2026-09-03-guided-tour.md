@@ -122,7 +122,7 @@ export type TourStep = {
   id: string
   targets?: string[]             // data-tour values, tried in order; omit = centred card
   route?: string                 // navigate here before showing (e.g. '/jobs/new')
-  before?: TourAction
+  before?: TourAction | TourAction[]  // run in order (drawer → account menu)
   titleKey: keyof Translations   // typos fail the type-check
   bodyKey: keyof Translations
 }
@@ -555,14 +555,22 @@ const POLL_TIMEOUT_MS = 2000
 
 // A data-tour name can match several mounted elements (CompanyBar renders
 // mobile + desktop variants; BottomNav and NavDrawer share tab names) —
-// take the first one that's actually visible at this breakpoint.
+// take the first one that's actually visible at this breakpoint AND on
+// screen. The on-screen check matters: NavDrawer's closed panel is
+// translated off-viewport but keeps a non-zero size, so a width check
+// alone would match rows inside a closed drawer.
+function isOnScreen(r: DOMRect): boolean {
+  return r.width > 0 && r.height > 0 &&
+    r.right > 0 && r.bottom > 0 &&
+    r.left < window.innerWidth && r.top < window.innerHeight
+}
+
 function findVisibleTarget(names: string[] | undefined): Element | null {
   if (!names) return null
   for (const name of names) {
     const els = document.querySelectorAll(`[data-tour="${name}"]`)
     for (const el of Array.from(els)) {
-      const r = el.getBoundingClientRect()
-      if (r.width > 0 && r.height > 0) return el
+      if (isOnScreen(el.getBoundingClientRect())) return el
     }
   }
   return null
@@ -647,7 +655,16 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
       router.push(step.route)
       return // the destination page's provider resumes from sessionStorage
     }
-    if (step.before) window.dispatchEvent(new CustomEvent(`tour:${step.before}`))
+    // Menu state is deterministic per step: close everything first, then run
+    // the step's before-actions in order, staggered so each action's
+    // re-render lands before the next one needs it (open the drawer, THEN
+    // the account menu inside it). The target poll below simply keeps
+    // retrying until the last menu has opened.
+    window.dispatchEvent(new CustomEvent('tour:close-menus'))
+    const actions = step.before ? (Array.isArray(step.before) ? step.before : [step.before]) : []
+    actions.forEach((a, i) => {
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent(`tour:${a}`)), 60 + i * 180)
+    })
 
     setReady(false)
     setTarget(null)
@@ -764,11 +781,14 @@ All in `src/components/UserMenu.tsx`:
 
 ```ts
   // Guided tour: open this menu when the tour asks — but only the instance
-  // that's actually visible at this breakpoint (desktop top bar vs the copy
-  // inside NavDrawer's footer).
+  // that's actually visible AND on screen. Two copies are mounted (desktop
+  // top bar; NavDrawer's footer), and the closed drawer is translated
+  // off-viewport with a non-zero size, so a width check alone would open
+  // the wrong one.
   useEffect(() => {
     function onOpen() {
-      if (ref.current && ref.current.getBoundingClientRect().width > 0) setOpen(true)
+      const r = ref.current?.getBoundingClientRect()
+      if (r && r.width > 0 && r.right > 0 && r.left < window.innerWidth) setOpen(true)
     }
     function onClose() { setOpen(false) }
     window.addEventListener('tour:open-account-menu', onOpen)
@@ -991,15 +1011,20 @@ export const dateStripStep: TourStep = {
   titleKey: 'tourDateStripTitle', bodyKey: 'tourDateStripBody',
 }
 
+// Any step that targets a nav tab needs before: 'open-nav-drawer' — on the
+// phone the tabs live inside the closed hamburger drawer (on desktop the
+// action is a no-op and the target resolves to BottomNav instead).
 export const completedTabStep: TourStep = {
-  id: 'completed-tab', targets: ['nav-completed'],
+  id: 'completed-tab', before: 'open-nav-drawer', targets: ['nav-completed'],
   titleKey: 'tourCompletedTitle', bodyKey: 'tourCompletedBody',
 }
 
 export const outroSteps: TourStep[] = [
   { id: 'account', before: 'open-nav-drawer', targets: ['account'],
     titleKey: 'tourAccountTitle', bodyKey: 'tourAccountBody' },
-  { id: 'telegram', before: 'open-account-menu', targets: ['connect-telegram'],
+  // Both actions in order: on the phone the account menu lives inside the
+  // drawer, so the drawer must be (re)opened before the menu can.
+  { id: 'telegram', before: ['open-nav-drawer', 'open-account-menu'], targets: ['connect-telegram'],
     titleKey: 'tourTelegramTitle', bodyKey: 'tourTelegramBody' },
   { id: 'done', titleKey: 'tourDoneTitle', bodyKey: 'tourDoneBody' },
 ]
@@ -1067,13 +1092,13 @@ export const salesSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSalesIntroTitle', bodyKey: 'tourSalesIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'pending', targets: ['nav-pending'], titleKey: 'tourPendingTitle', bodyKey: 'tourPendingBody' },
+  { id: 'pending', before: 'open-nav-drawer', targets: ['nav-pending'], titleKey: 'tourPendingTitle', bodyKey: 'tourPendingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourJobTeamTitle', bodyKey: 'tourJobTeamBody' },
   { id: 'job-actions', targets: ['job-actions'], titleKey: 'tourJobActionsTitle', bodyKey: 'tourJobActionsBody' },
   { id: 'fcfs', route: '/fcfs', targets: ['fcfs-board'], titleKey: 'tourFcfsTitle', bodyKey: 'tourFcfsBody' },
-  { id: 'design-tab', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
+  { id: 'design-tab', before: 'open-nav-drawer', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
   bellStep,
   ...outroSteps,
 ]
@@ -1090,11 +1115,11 @@ export const schedulerSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSchedulerIntroTitle', bodyKey: 'tourSchedulerIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'completed-tab', targets: ['nav-completed'], titleKey: 'tourCompletedTitle', bodyKey: 'tourSchedulerCompletedBody' },
+  { id: 'completed-tab', before: 'open-nav-drawer', targets: ['nav-completed'], titleKey: 'tourCompletedTitle', bodyKey: 'tourSchedulerCompletedBody' },
   { id: 'fcfs', route: '/fcfs', targets: ['fcfs-board'], titleKey: 'tourFcfsSchedulerTitle', bodyKey: 'tourFcfsSchedulerBody' },
   { id: 'assign', targets: ['fcfs-board'], titleKey: 'tourAssignTitle', bodyKey: 'tourAssignBody' },
   { id: 'suggest-vs-assign', titleKey: 'tourSuggestVsAssignTitle', bodyKey: 'tourSuggestVsAssignBody' },
-  { id: 'design-tab', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
+  { id: 'design-tab', before: 'open-nav-drawer', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
   bellStep,
   ...outroSteps,
 ]
@@ -1158,7 +1183,7 @@ export const coordinatorSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourCoordinatorIntroTitle', bodyKey: 'tourCoordinatorIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'pending', targets: ['nav-pending'], titleKey: 'tourCoordPendingTitle', bodyKey: 'tourCoordPendingBody' },
+  { id: 'pending', before: 'open-nav-drawer', targets: ['nav-pending'], titleKey: 'tourCoordPendingTitle', bodyKey: 'tourCoordPendingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourCoordSuggestTitle', bodyKey: 'tourCoordSuggestBody' },
