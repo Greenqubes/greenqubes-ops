@@ -29,6 +29,18 @@ can start on day one.
    installer grid (incl. sub-installer bucket) + designer grid. NOT on pickers, NOT on the FCFS
    panel, NOT on the clash substitute rows. Replaces the old amber "not linked" admin badge.
    (Red and yellow share the word "Unlinked" by Nic's spec — color is the differentiator.)
+10. **Support crew bucket (added 2026-09-04, third round)** — a collapsible bucket in the job
+   form's Team card, below the Sub-installer bucket, for dispatching NON-installer people
+   (especially production) onto the install team — night jobs, manpower shortage. Mirrors the
+   Sub-installer bucket exactly: dashed "+ Support crew" trigger, same amber-suggestion /
+   green-assignment rules, same permissions. **Zero migration:** rows store in `job_assignees`
+   with the existing `is_sub_installer = true` flag; the two buckets split display by the
+   person's role (installer → Sub-installer bucket, everything else → Support crew bucket).
+   They therefore inherit: "Supporting Role" Telegram on assign, exclusion from clash
+   detection and FCFS bars, inclusion in team workload. Pool = all non-installer users except
+   GreenqubesAI (new `getSupportUsers()` mirroring `getInstallerUsers` with `.neq('role',
+   'installer')`). Known cosmetic side-effect (accepted): assigned support crew appear in the
+   schedule card's `Installer:` names line like subs do.
 8. **Design Load board bars** — deliberately skipped (tiny chart labels, no room). Everything else
    card-shaped gains the new info; dropdown pickers and their selected pills deliberately excluded.
 

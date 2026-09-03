@@ -858,7 +858,65 @@ git commit -m "feat(provision): FCFS + clash substitute rows show subrole/Driver
 
 ---
 
-### Task 8: Full verification + docs + handoff
+### Task 8: Support crew bucket (added 2026-09-04 — Nic round 3)
+
+**Files:**
+- Create: `src/features/job-detail/SupportCrewBucket.tsx`
+- Modify: `src/lib/supabase/queries/jobs.ts` (add `getSupportUsers()` beside `getInstallerUsers`)
+- Modify: `src/features/job-detail/JobDetailShell.tsx` (sub-bucket wiring ~123-132, 950-953, 1286-1296 — split by role; new bucket below SubInstallerBucket)
+- Modify: `src/features/job-detail/NewJobShell.tsx` (same pattern as its sub-bucket wiring)
+- Modify: `src/app/jobs/new/page.tsx` + `src/app/jobs/[id]/page.tsx` (fetch + pass `supportUsers`)
+- Modify: `src/lib/i18n/en.ts` + `zh.ts` (4 keys)
+- Verify-only: `src/app/api/jobs/[id]/sub-installers/route.ts`, `src/app/api/jobs/[id]/suggest-installer/route.ts`
+
+**Interfaces:**
+- Consumes: `InstallerUser` (Task 5 shape — role-agnostic), `InstallerGrid` + `UserMetaLine` (Task 6), existing sub-installer save routes.
+- Produces: `getSupportUsers(): Promise<InstallerUser[]>` — same select/derivation as `getInstallerUsers` but `.neq('role', 'installer').neq('name', 'GreenqubesAI')`. `SupportCrewBucket` — identical Props to `SubInstallerBucket` (copy the file, swap the i18n keys, `installers` prop renamed `people`).
+
+**Design (spec decision 10):** support crew rows live in `job_assignees` with the EXISTING `is_sub_installer = true` flag — no migration, no new route. The shells keep ONE sub id list (state unchanged); each bucket renders the ids whose user is in its own pool (installer pool → SubInstallerBucket, support pool → SupportCrewBucket), and saves send the UNION through the existing sub-installers / suggest-installer(isSub) paths. Support crew thereby inherit the "Supporting Role" Telegram, clash-check exclusion, FCFS-bar exclusion, and workload counting.
+
+- [ ] **Step 1: `getSupportUsers()`** — copy `getInstallerUsers` (Task 5 version), change the filters to `.neq('role', 'installer').neq('name', 'GreenqubesAI')`, keep `.is('deleted_at', null).order('name')` and the `link_status` derivation. Same `InstallerUser` return type (it carries `role`, so cards show "production" etc. when no subrole).
+
+- [ ] **Step 2: `SupportCrewBucket.tsx`** — copy `SubInstallerBucket.tsx` wholesale; rename component + `installers` prop → `people`; swap i18n keys to `supportBucketAdd` / `supportBucketTitle` / `supportBucketRemove` / `supportBucketAllUsed`; pass `lang` through to `InstallerGrid` (Task 6 prop). Keep the dashed trigger + count badge + Remove behavior identical.
+
+- [ ] **Step 3: i18n keys** —
+  en: `supportBucketAdd: 'Support crew — dispatch other roles'`, `supportBucketTitle: 'Support crew'`, `supportBucketRemove: 'Remove'`, `supportBucketAllUsed: 'Everyone is already on this job'`.
+  zh: `supportBucketAdd: '支援人员 — 调派其他岗位'`, `supportBucketTitle: '支援人员'`, `supportBucketRemove: '移除'`, `supportBucketAllUsed: '所有人都已在此工作中'`.
+
+- [ ] **Step 4: Shell wiring (JobDetailShell, then NewJobShell same pattern)** — pages fetch `getSupportUsers()` and pass `supportUsers: InstallerUser[]`. In the shell, keep `selectedSubIds` / `suggestedSubIds` as the single source of truth; derive per-bucket views:
+
+```ts
+  const supportIdSet = new Set(supportUsers.map(u => u.id))
+  // SubInstallerBucket keeps its current pool (installer pool minus main grid).
+  // SupportCrewBucket pool = supportUsers; its subCount =
+  //   selectedSubIds.concat(suggestedSubIds).filter(id => supportIdSet.has(id)).length
+```
+
+`stateOf` / `onToggle` / `disabledOf` / `noteOf` / `onClear`: reuse the existing sub-bucket handlers untouched (they operate on the shared id lists) — except `onClear`, which must clear only ids in the bucket's own pool:
+
+```ts
+  onClear={() => {
+    setSelectedSubIds(prev => prev.filter(id => !supportIdSet.has(id)))
+    setSuggestedSubIds(prev => prev.filter(id => !supportIdSet.has(id)))
+  }}
+```
+
+(mirror-image filter for the sub-installer bucket's existing clear). `defaultOpen` = job already has a non-installer sub row. Render `<SupportCrewBucket>` immediately after `<SubInstallerBucket>` (JobDetailShell ~line 1286; same slot in NewJobShell). Save paths unchanged — they already send the shared lists.
+
+- [ ] **Step 5: Verify the two routes accept non-installer ids** — read `sub-installers/route.ts` + `suggest-installer/route.ts`; if either filters target users by `role === 'installer'` (e.g. validating against the installer pool), relax that check to "any active non-deleted user". The Telegram send ("Supporting Role") must fire for support crew exactly as for subs.
+
+- [ ] **Step 6: Type-check + manual check** — `npm run type-check`; `npm run dev`: open a job → Team tab → "+ Support crew" trigger below the sub-installer trigger; add a production person; save; row lands in `job_assignees` with `is_sub_installer = true`.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/features/job-detail/SupportCrewBucket.tsx src/features/job-detail/JobDetailShell.tsx src/features/job-detail/NewJobShell.tsx src/lib/supabase/queries/jobs.ts src/app/jobs/new/page.tsx "src/app/jobs/[id]/page.tsx" src/lib/i18n/en.ts src/lib/i18n/zh.ts
+git commit -m "feat(provision): Support crew bucket — dispatch non-installer roles onto the install team (rides is_sub_installer)"
+```
+
+---
+
+### Task 9: Full verification + docs + handoff
 
 **Files:**
 - Modify: `docs/nic-checklist.md` (pending item: drop years/skills columns; demo-day notes)
