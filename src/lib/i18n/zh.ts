@@ -289,10 +289,11 @@ export const zh: Partial<Translations> = {
   taskListDoneLabel: '已完成',
 
   // ── 副安装人员（第四阶段）─────────────────────────────────────────────────
-  subBucketAdd: '副安装人员',
-  subBucketTitle: '副安装人员',
+  subBucketAdd: '支援人员 — 副安装员及其他岗位',
+  subBucketTitle: '支援人员',
   subBucketRemove: '移除',
-  subBucketAllOnMain: '所有安装人员都已在主团队中。',
+  subBucketAllOnMain: '所有人都已在此工作中。',
+  metaDriver: '司机',
 
   // ── 外部安装人员（第四阶段）───────────────────────────────────────────────
   extBucketAdd: '外部安装人员',

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { JobStatus, FileKind, Punctuality } from '@/lib/supabase/types'
+import { linkStatus, type LinkStatus } from '@/lib/utils/user-meta'
 
 // â”€â”€ Schedule list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -103,12 +104,14 @@ export async function getPendingJobs(): Promise<ScheduleJob[]> {
 // â”€â”€ Job detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type InstallerUser = {
-  id:               string
-  name:             string
-  phone:            string | null
-  role:             string
-  years_experience: number | null
-  skills:           string[]
+  id:             string
+  name:           string
+  phone:          string | null
+  role:           string
+  subrole:        string | null
+  is_driver:      boolean
+  qualifications: string[]
+  link_status:    LinkStatus
 }
 
 export type JobFile = {
@@ -276,16 +279,43 @@ export async function updateJobStatus(
   if (error) throw error
 }
 
+type RawCardUser = {
+  id: string; name: string; phone: string | null; role: string
+  subrole: string | null; is_driver: boolean; qualifications: string[]
+  email: string | null; auth_id: string | null
+}
+
+// email/auth_id are consumed server-side to derive link_status — never returned.
+function toCardUser({ email, auth_id, ...u }: RawCardUser): InstallerUser {
+  return { ...u, link_status: linkStatus({ email, auth_id }) }
+}
+
 export async function getInstallerUsers(): Promise<InstallerUser[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
-    .select('id, name, phone, role, years_experience, skills')
+    .select('id, name, phone, role, subrole, is_driver, qualifications, email, auth_id')
     .eq('role', 'installer')
     .is('deleted_at', null)
     .order('name')
   if (error) throw error
-  return (data ?? []) as InstallerUser[]
+  return ((data ?? []) as unknown as RawCardUser[]).map(toCardUser)
+}
+
+// Pool for the Support crew bucket (Nic 2026-09-04): everyone who is NOT an
+// installer — production, sales, etc. — dispatched onto install teams for
+// night jobs / manpower shortage. Same card shape as installers.
+export async function getSupportUsers(): Promise<InstallerUser[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, name, phone, role, subrole, is_driver, qualifications, email, auth_id')
+    .neq('role', 'installer')
+    .neq('name', 'GreenqubesAI')
+    .is('deleted_at', null)
+    .order('name')
+  if (error) throw error
+  return ((data ?? []) as unknown as RawCardUser[]).map(toCardUser)
 }
 
 export async function addJobAssignee(jobId: string, userId: string): Promise<void> {

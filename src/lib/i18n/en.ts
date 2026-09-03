@@ -398,10 +398,11 @@ export const en = {
   taskListDoneLabel: 'done',
 
   // ── Sub-installer bucket (Phase 4) ─────────────────────────────────────────
-  subBucketAdd: 'Sub-installer',
-  subBucketTitle: 'Sub-installers',
+  subBucketAdd: 'Support crew — sub-installers & other roles',
+  subBucketTitle: 'Support crew',
   subBucketRemove: 'Remove',
-  subBucketAllOnMain: 'Every installer is already on the main team.',
+  subBucketAllOnMain: 'Everyone is already on this job.',
+  metaDriver: 'Driver',
 
   // ── External installer bucket (Phase 4) ────────────────────────────────────
   extBucketAdd: 'External installer',
