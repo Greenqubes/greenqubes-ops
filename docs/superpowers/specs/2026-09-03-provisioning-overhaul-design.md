@@ -22,6 +22,13 @@ can start on day one.
    not yet tagged; roles themselves are always set at provisioning, so no role-unassigned state).
 7. **Rename** — provisioned users can be renamed (and given/corrected an email) without delete +
    re-add.
+9. **Link-status tags (added 2026-09-03, second round)** — every user has a link status shown as
+   a small colored tag: **red "Unlinked"** = no email on the row (card-only), **yellow "Unlinked"**
+   = email entered but never signed in (`auth_id` null), **green "Linked"** = signed in at least
+   once (`auth_id` set). Shown on the admin Users page and on job-form name cards ONLY —
+   installer grid (incl. sub-installer bucket) + designer grid. NOT on pickers, NOT on the FCFS
+   panel, NOT on the clash substitute rows. Replaces the old amber "not linked" admin badge.
+   (Red and yellow share the word "Unlinked" by Nic's spec — color is the differentiator.)
 8. **Design Load board bars** — deliberately skipped (tiny chart labels, no room). Everything else
    card-shaped gains the new info; dropdown pickers and their selected pills deliberately excluded.
 
@@ -59,10 +66,12 @@ SELECTs the new columns.
 - `getAllUsers` select list: add the three new columns (drop nothing — `years_experience`/`skills`
   stay selected but unused, removed for real when the columns go).
 - `getInstallerUsers` + `InstallerUser` type (`src/lib/supabase/queries/jobs.ts`): replace
-  `years_experience, skills` with `subrole, is_driver, qualifications`.
+  `years_experience, skills` with `subrole, is_driver, qualifications`, plus a derived
+  `link_status: 'none' | 'pending' | 'linked'` (computed server-side from email/auth_id presence —
+  raw emails/auth ids are not shipped to card components).
 - `getDesignerUsers` (`src/lib/supabase/queries/designers.ts`): select `subrole, qualifications`
-  too; the designer-option mapping in `src/app/jobs/new/page.tsx` + `src/app/jobs/[id]/page.tsx`
-  passes them through.
+  and derive `link_status` too; the designer-option mapping in `src/app/jobs/new/page.tsx` +
+  `src/app/jobs/[id]/page.tsx` passes them through.
 - Clash route payload (`src/app/api/jobs/[id]/clashes/route.ts`): substitute candidates carry
   `subrole, isDriver, qualifications` instead of `yearsExperience, skills`.
 - `getAllProvisionedUsers` (coordinators/POC dropdowns): unchanged — pickers don't show the info.
@@ -70,7 +79,8 @@ SELECTs the new columns.
 ## Shared building block
 
 - `src/lib/utils/user-meta.ts` — pure helpers: build the card meta model
-  (subrole line, driver flag, qualification tags) from a user-ish object, and
+  (subrole line, driver flag, qualification tags) from a user-ish object,
+  `linkStatus({email, auth_id})` → `'none' | 'pending' | 'linked'` (red / yellow / green), and
   `filterUsers(users, role?, subrole?)` where `subrole === 'none'` means "No subrole".
   **New standalone test suite** `src/lib/utils/user-meta.test.ts` (repo convention: tsx script,
   exit 1 on failure).
@@ -89,19 +99,22 @@ SELECTs the new columns.
 - ProvisionForm: email optional (helper text "Leave blank to create a name card only — attach
   their email later"); add subrole (suggest), Driver checkbox (installer role only),
   qualifications chips.
-- UserRow: show subrole beside the role Pill, Driver badge, qualification tags. Null email +
-  null auth_id → grey "Card only — no email" tag (replaces "Waiting for sign-in" line, which
-  remains for rows that do have an email). Edit form: + Display name, + Email, + subrole,
+- UserRow: show subrole beside the role Pill, Driver badge, qualification tags, and the
+  **link-status tag** (red "Unlinked" no email / yellow "Unlinked" email but never signed in /
+  green "Linked" — replaces the old amber "not linked" badge). "Waiting for sign-in: {email}"
+  line stays for yellow rows; red rows get "Card only — no email". Edit form: + Display name, + Email, + subrole,
   + Driver (installer), + qualifications; − Years of experience, − Skills.
 - DeleteUserModal copy unchanged (card-only rows already hit the hard-delete path — correct).
 
 **Job form:**
 - `InstallerGrid` (also serves `SubInstallerBucket`): meta line becomes subrole (falls back to
-  role label) + Driver badge; qualification tags line below; old `role · Ny · skills` line gone.
+  role label) + Driver badge; qualification tags line below; **link-status tag** (red/yellow
+  "Unlinked" / green "Linked"); old `role · Ny · skills` line gone.
 - `DesignerGrid` + `DesignerOption`: gains the same meta rendering under the name (subrole +
-  qualification tags). Today it is name-only.
+  qualification tags + **link-status tag**). Today it is name-only.
 
-**FCFS `AssignmentPanel`:** assigned/suggested/newly-added rows gain UserMetaLine under the name.
+**FCFS `AssignmentPanel`:** assigned/suggested/newly-added rows gain UserMetaLine under the name
+(no link-status tag — Nic scoped tags to admin + job-form grids only).
 The add picker is a dropdown → unchanged.
 
 **`ClashResolutionModal`:** substitute row meta swaps years/skills for UserMetaLine.
@@ -123,7 +136,7 @@ This is the intended demo state.
 ## Testing
 
 1. `npm run type-check` + all 17 existing suites stay green.
-2. New `user-meta` suite (meta model + filter logic, incl. "No subrole").
+2. New `user-meta` suite (meta model + filter logic incl. "No subrole" + link-status derivation).
 3. Manual preview pass: provision card-only users (several roles), tag subroles, tick Driver,
    add qualifications, verify cards on new-job + edit-job forms + FCFS panel, rename a user,
    attach an email to a card-only user, filter by role/subrole/"No subrole".
