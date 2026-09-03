@@ -345,4 +345,17 @@ export const zh: Partial<Translations> = {
   openJobBtn: '打开项目',
   lowConfidence: '置信度低',
   untitledJob: '未命名工作',
+
+  // ── Guided tour ────────────────────────────────────────────────────────────
+  tourWelcomeTitle: '欢迎使用 GreenQubes！',
+  tourWelcomeBody: '要不要快速了解一下？大约两分钟，带你看看每个功能在哪里。之后随时可以从头像菜单重新打开。',
+  tourLangTitle: '选择你的语言',
+  tourLangBody: '应用和本导览都会使用它。之后可随时在头像菜单中更改。',
+  tourStart: '开始导览',
+  tourSkip: '暂时跳过',
+  tourNext: '下一步',
+  tourBack: '上一步',
+  tourFinish: '完成',
+  tourExit: '退出导览',
+  tourMenuLabel: '应用导览',
 }

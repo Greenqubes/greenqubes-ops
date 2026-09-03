@@ -454,6 +454,19 @@ export const en = {
   openJobBtn: 'Open job',
   lowConfidence: 'Low confidence',
   untitledJob: 'Untitled job',
+
+  // ── Guided tour ────────────────────────────────────────────────────────────
+  tourWelcomeTitle: 'Welcome to GreenQubes!',
+  tourWelcomeBody: 'Want a quick walkthrough? It takes about two minutes and shows you where everything lives. You can reopen it anytime from your profile picture.',
+  tourLangTitle: 'Choose your language',
+  tourLangBody: 'The app and this tour will use it. You can change it anytime from your profile picture.',
+  tourStart: 'Start tour',
+  tourSkip: 'Skip for now',
+  tourNext: 'Next',
+  tourBack: 'Back',
+  tourFinish: 'Finish',
+  tourExit: 'Exit tour',
+  tourMenuLabel: 'App tour',
 }
 
 export type Translations = typeof en
