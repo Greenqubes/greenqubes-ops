@@ -78,13 +78,15 @@ For every role × device pair, work through this same run in order:
 7. Open your **profile picture → App tour** → the tour restarts from step 1 immediately —
    **no language chooser this time** (it already knows your language; the chooser only shows up on
    the very first offer, never on a restart).
-8. While that restarted tour is on screen, open the **account menu and switch language to বাংলা**
-   *without* closing the tour → spot-check the **next 3 cards** (Bengali is unvetted — see the note
-   above; jot down anything that looks wrong).
-9. Switch to **dark mode** (account menu) → the dimmed background, the ring, and the card are all
-   still easy to read — no invisible text, no white-on-white.
+8. The tour's click shield makes menus impossible to open while it's on screen, so: **Exit** the
+   tour → open the **account menu and switch language to বাংলা** → restart via your **profile
+   picture → App tour** (restarts skip the language chooser) → spot-check the **first 3 cards**
+   (Bengali is unvetted — see the note above; jot down anything that looks wrong) → **Exit** again.
+9. Same pattern: **Exit** the tour → switch to **dark mode** (account menu) → restart via **profile
+   picture → App tour** → confirm the dimmed background, the ring, and the card are all still easy
+   to read — no invisible text, no white-on-white → **Exit**.
 10. Switch language back to **English** (account menu) so the device is clean for the next role's
-    check.
+    check — no need to restart the tour for this one, you're just resetting state before moving on.
 11. Confirm that throughout all of the above, the **bell**, any **floating buttons** (chat bubble,
     bug report), and the **bottom nav bar** never respond to a tap while the tour is on screen — it's
     look-only until you Exit or Finish.
@@ -97,6 +99,10 @@ Home page: `/schedule`. Pages the tour jumps to (item 4): the **New Job form** (
 the **FCFS board** (`/fcfs`). On phone, the Team step auto-switches the job form to its **Team**
 tab for you — check that switch happens on its own.
 
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Sales** before starting — a brand-new sign-in lands you on your own admin
+view, not this role.
+
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
@@ -105,9 +111,9 @@ tab for you — check that switch happens on its own.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
@@ -118,9 +124,9 @@ tab for you — check that switch happens on its own.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
@@ -131,6 +137,10 @@ Home page: `/schedule`. Pages the tour jumps to (item 4): the **FCFS board** (`/
 Completed tab and Design Load steps only **highlight the menu link** — they don't actually open
 those pages, that's expected.
 
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Scheduler** before starting — a brand-new sign-in lands you on your own
+admin view, not this role.
+
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
@@ -139,9 +149,9 @@ those pages, that's expected.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
@@ -152,9 +162,9 @@ those pages, that's expected.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
@@ -165,6 +175,10 @@ Home page: `/schedule`. Pages the tour jumps to (item 4): the **New Job form** (
 the **FCFS board** (`/fcfs`) — same as Sales. On phone, the job-team step auto-switches the job
 form to its **Team** tab for you.
 
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Coordinator** before starting — a brand-new sign-in lands you on your own
+admin view, not this role.
+
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
@@ -173,9 +187,9 @@ form to its **Team** tab for you.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
@@ -186,9 +200,9 @@ form to its **Team** tab for you.
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
@@ -196,34 +210,38 @@ form to its **Team** tab for you.
 ## Installer
 
 Home page: `/installer`. This role's tour **never leaves that one page** — there's nothing to check
-for item 4 beyond landing on `/installer` at the start. Three steps (the job page, job chat, and
-photo upload) are **plain centred cards with no ring by design** — a fresh test account has no
-assigned job to point at, so this is correct, not a bug.
+for item 4 beyond landing on `/installer` at the start. Four steps (the intro, the job page, job
+chat, and photo upload) are **plain centred cards with no ring by design** — a fresh test account
+has no assigned job to point at, so this is correct, not a bug.
+
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Installer** before starting — a brand-new sign-in lands you on your own
+admin view, not this role.
 
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 4 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/installer` throughout — nothing else to check here
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 4 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/installer` throughout — nothing else to check here
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
@@ -231,32 +249,38 @@ assigned job to point at, so this is correct, not a bug.
 ## Designer
 
 Home page: `/schedule`. Page the tour jumps to (item 4): the **Design Load board**
-(`/design-load`).
+(`/design-load`). Four steps (the intro, the design brief explainer, the complete explainer, and
+the due-date explainer) are **plain centred cards with no ring by design** — a fresh account has no
+job to open, so this is correct, not a bug.
+
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Designer** before starting — a brand-new sign-in lands you on your own
+admin view, not this role.
 
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 4 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Design Load board lands correctly
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 4 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Design Load board lands correctly
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
@@ -264,34 +288,38 @@ Home page: `/schedule`. Page the tour jumps to (item 4): the **Design Load board
 ## Production
 
 Home page: `/schedule`. This role's tour **never leaves that page** — nothing to check for item 4
-beyond landing on `/schedule` at the start. Two steps (the editable fields explainer and the files
-explainer) are **plain centred cards with no ring by design** — a fresh account has no live job to
-point at, so this is correct, not a bug.
+beyond landing on `/schedule` at the start. Three steps (the intro, the editable fields explainer,
+and the files explainer) are **plain centred cards with no ring by design** — a fresh account has
+no live job to point at, so this is correct, not a bug.
+
+**Reset reminder:** if item 1's reset used a fresh sign-in (private window or a new plain sign-in),
+re-select **Preview as → Production** before starting — a brand-new sign-in lands you on your own
+admin view, not this role.
 
 ### Phone
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted, remember: 2 steps are centred cards on purpose) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/schedule` throughout — nothing else to check here
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ### PC
 - [ ] 1. First offer (reset first)
 - [ ] 2. Language chooser → 简体中文 (unvetted, see note above), whole app switches
-- [ ] 3. Every step looks right (Chinese, unvetted, remember: 2 steps are centred cards on purpose) — read 3 cards closely, note wording issues
+- [ ] 3. Every step looks right (Chinese, unvetted, remember: 3 steps are centred cards on purpose) — read 3 cards closely, note wording issues
 - [ ] 4. Stays on `/schedule` throughout — nothing else to check here
 - [ ] 5. Finale → account menu → Connect Telegram (still "Next") → closing "You're all set!" card ("Finish")
 - [ ] 6. Exit restores the page, offer doesn't return, still Chinese elsewhere
 - [ ] 7. App tour restarts from step 1, no chooser
-- [ ] 8. Live-switch to বাংলা, 3 cards spot-checked (note anything odd)
-- [ ] 9. Dark mode readable
-- [ ] 10. Switch back to English
+- [ ] 8. Exit → বাংলা (account menu) → restart via App tour → 3 cards spot-checked (note anything odd) → Exit
+- [ ] 9. Exit → dark mode (account menu) → restart via App tour → dimmed background/ring/card readable → Exit
+- [ ] 10. Switch back to English (account menu) — no restart needed
 - [ ] 11. Bell / floating buttons / bottom nav inert during the tour
 
 ---
