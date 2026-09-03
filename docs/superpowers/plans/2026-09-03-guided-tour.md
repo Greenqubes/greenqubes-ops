@@ -13,11 +13,11 @@
 ## Global Constraints
 
 - **No new dependencies.** The engine, overlay and spotlight are hand-built.
-- **No user-facing copy in components** — every string is an i18n key in `src/lib/i18n/en.ts` + `zh.ts`. **No `bn` keys** (frozen; `t()` falls back per key).
+- **No user-facing copy in components** — every string is an i18n key in `src/lib/i18n/{en,zh,bn}.ts`. **The tour is Nic's explicit exception (2026-09-03) to the 2026-08-03 bn freeze:** tour keys get Bengali too (Task 11) — unvetted, corrected live at the team demo. Every other feature stays en+zh with bn falling back; Tasks 3–10 add en+zh only, Task 11 adds all bn strings in one pass.
 - **Date labels always English** — not relevant here, but never add locale date calls.
 - Tour overlay z-index: **`z-[80]`** (card `z-[81]`) — above BottomNav `z-50`, NotificationDrawer `z-50`, FABs `z-[59]/z-[60]`, NavDrawer `z-[70]`.
 - **Portal all tour UI to `document.body`** with a mount-gate (`useEffect` → `setMounted(true)`), exactly like `NavDrawer.tsx:81` — CompanyBar's `sticky z-30` root creates a stacking context that would cap any nested z-index.
-- **Show-and-explain only:** the tour must never write to the DB, never call an API route, never send Telegram. Its only writes are localStorage/sessionStorage.
+- **Show-and-explain only:** the tour must never write to the DB, never call an API route, never send Telegram. Its only writes are localStorage/sessionStorage — with ONE sanctioned exception (Nic 2026-09-03): the language chooser shown after "Start tour" saves the person's own language via the existing `PATCH /api/user/lang`, the same call the account menu's switcher makes. Nothing else.
 - All web-storage access wrapped in `try/catch`, read only after mount (hydration lesson).
 - TypeScript strict, no `any`. Files < 500 lines.
 - Standalone test files use **relative imports only** (`npx tsx` does not resolve the `@/` alias; type-only imports of `@/…` inside source files are fine — they're erased at transform).
@@ -122,7 +122,7 @@ export type TourStep = {
   id: string
   targets?: string[]             // data-tour values, tried in order; omit = centred card
   route?: string                 // navigate here before showing (e.g. '/jobs/new')
-  before?: TourAction
+  before?: TourAction | TourAction[]  // run in order (drawer → account menu)
   titleKey: keyof Translations   // typos fail the type-check
   bodyKey: keyof Translations
 }
@@ -300,7 +300,7 @@ git commit -m "feat(tour): tooltip card placement helper"
 
 **Interfaces:**
 - Consumes: `placeCard`/`Rect` from Task 2; `t(lang, key)` from `@/lib/i18n`.
-- Produces: `WelcomeCard({ lang, onStart, onSkip }: { lang: LangCode; onStart: () => void; onSkip: () => void })`; `TourOverlay({ lang, el, titleKey, bodyKey, stepNo, total, isFirst, isLast, onNext, onBack, onExit })` where `el: Element | null` (null → centred card) and `titleKey`/`bodyKey: keyof Translations`.
+- Produces: `WelcomeCard({ lang, onPick, onSkip }: { lang: LangCode; onPick: (code: LangCode) => void; onSkip: () => void })` — two views: the welcome ask, then (after Start tour) the language chooser, which calls `onPick` with the chosen code; `TourOverlay({ lang, el, titleKey, bodyKey, stepNo, total, isFirst, isLast, onNext, onBack, onExit })` where `el: Element | null` (null → centred card) and `titleKey`/`bodyKey: keyof Translations`.
 
 - [ ] **Step 1: Add the chrome keys**
 
@@ -310,6 +310,8 @@ Append to the `en` object in `src/lib/i18n/en.ts` (under a `// ── Guided tou
 |---|---|---|
 | `tourWelcomeTitle` | `Welcome to GreenQubes!` | `欢迎使用 GreenQubes！` |
 | `tourWelcomeBody` | `Want a quick walkthrough? It takes about two minutes and shows you where everything lives. You can reopen it anytime from your profile picture.` | `要不要快速了解一下？大约两分钟，带你看看每个功能在哪里。之后随时可以从头像菜单重新打开。` |
+| `tourLangTitle` | `Choose your language` | `选择你的语言` |
+| `tourLangBody` | `The app and this tour will use it. You can change it anytime from your profile picture.` | `应用和本导览都会使用它。之后可随时在头像菜单中更改。` |
 | `tourStart` | `Start tour` | `开始导览` |
 | `tourSkip` | `Skip for now` | `暂时跳过` |
 | `tourNext` | `Next` | `下一步` |
@@ -325,38 +327,62 @@ Append to the `en` object in `src/lib/i18n/en.ts` (under a `// ── Guided tou
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { t, type LangCode } from '@/lib/i18n'
+import { LANGS, t, type LangCode } from '@/lib/i18n'
 
-// First-login offer. Portaled to document.body with a mount gate —
-// CompanyBar's sticky z-30 root is a stacking context (see NavDrawer.tsx).
-export function WelcomeCard({ lang, onStart, onSkip }: {
+// First-login offer, two views: the welcome ask, then (after Start tour)
+// the language chooser — Nic 2026-09-03. Language names come from LANGS'
+// native labels, so they need no translation. Portaled to document.body
+// with a mount gate — CompanyBar's sticky z-30 root is a stacking context
+// (see NavDrawer.tsx).
+export function WelcomeCard({ lang, onPick, onSkip }: {
   lang: LangCode
-  onStart: () => void
+  onPick: (code: LangCode) => void
   onSkip: () => void
 }) {
   const [mounted, setMounted] = useState(false)
+  const [choosing, setChoosing] = useState(false)
   useEffect(() => { setMounted(true) }, [])
   if (!mounted) return null
 
   return createPortal(
     <div data-tour-ui className="fixed inset-0 z-[80] flex items-center justify-center px-6 bg-black/40">
       <div className="w-full max-w-sm bg-paper border border-line rounded-card shadow-lg p-6 space-y-4">
-        <p className="font-display text-lg font-medium text-ink">{t(lang, 'tourWelcomeTitle')}</p>
-        <p className="text-sm text-ink2 leading-relaxed">{t(lang, 'tourWelcomeBody')}</p>
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={onSkip}
-            className="flex-1 py-2 rounded-lg text-sm font-medium border border-line text-ink2 hover:border-ink2 transition-colors"
-          >
-            {t(lang, 'tourSkip')}
-          </button>
-          <button
-            onClick={onStart}
-            className="flex-1 py-2 rounded-lg text-sm font-medium bg-terracotta text-white hover:opacity-90 transition-opacity"
-          >
-            {t(lang, 'tourStart')}
-          </button>
-        </div>
+        {choosing ? (
+          <>
+            <p className="font-display text-lg font-medium text-ink">{t(lang, 'tourLangTitle')}</p>
+            <p className="text-sm text-ink2 leading-relaxed">{t(lang, 'tourLangBody')}</p>
+            <div className="flex flex-col gap-2 pt-1">
+              {LANGS.map(({ code, native }) => (
+                <button
+                  key={code}
+                  onClick={() => onPick(code)}
+                  className="w-full py-2.5 rounded-lg text-sm font-medium border border-line text-ink hover:border-ink2 transition-colors"
+                >
+                  {native}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="font-display text-lg font-medium text-ink">{t(lang, 'tourWelcomeTitle')}</p>
+            <p className="text-sm text-ink2 leading-relaxed">{t(lang, 'tourWelcomeBody')}</p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={onSkip}
+                className="flex-1 py-2 rounded-lg text-sm font-medium border border-line text-ink2 hover:border-ink2 transition-colors"
+              >
+                {t(lang, 'tourSkip')}
+              </button>
+              <button
+                onClick={() => setChoosing(true)}
+                className="flex-1 py-2 rounded-lg text-sm font-medium bg-terracotta text-white hover:opacity-90 transition-opacity"
+              >
+                {t(lang, 'tourStart')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>,
     document.body,
@@ -555,14 +581,22 @@ const POLL_TIMEOUT_MS = 2000
 
 // A data-tour name can match several mounted elements (CompanyBar renders
 // mobile + desktop variants; BottomNav and NavDrawer share tab names) —
-// take the first one that's actually visible at this breakpoint.
+// take the first one that's actually visible at this breakpoint AND on
+// screen. The on-screen check matters: NavDrawer's closed panel is
+// translated off-viewport but keeps a non-zero size, so a width check
+// alone would match rows inside a closed drawer.
+function isOnScreen(r: DOMRect): boolean {
+  return r.width > 0 && r.height > 0 &&
+    r.right > 0 && r.bottom > 0 &&
+    r.left < window.innerWidth && r.top < window.innerHeight
+}
+
 function findVisibleTarget(names: string[] | undefined): Element | null {
   if (!names) return null
   for (const name of names) {
     const els = document.querySelectorAll(`[data-tour="${name}"]`)
     for (const el of Array.from(els)) {
-      const r = el.getBoundingClientRect()
-      if (r.width > 0 && r.height > 0) return el
+      if (isOnScreen(el.getBoundingClientRect())) return el
     }
   }
   return null
@@ -589,6 +623,8 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
     if (id) try { localStorage.setItem(tourSeenKey(id), '1') } catch { /* best effort */ }
   }, [])
 
+  // Plain start — used by App-tour restarts (no language chooser there;
+  // the person already has their language set).
   const begin = useCallback((r: Role) => {
     markSeen()
     const s: TourState = { role: r, step: 0 }
@@ -597,6 +633,30 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
     setPhase('running')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markSeen])
+
+  // Start from the welcome flow's language chooser: persist the pick the
+  // same way the account menu's switcher does (the tour's ONE sanctioned
+  // write — Nic 2026-09-03), refresh so the whole app re-renders in that
+  // language, and run the tour; the state in sessionStorage carries the
+  // tour through the refresh.
+  const beginWithLang = useCallback(async (r: Role, code: LangCode) => {
+    markSeen()
+    const s: TourState = { role: r, step: 0 }
+    writeSession(TOUR_STATE_KEY, serializeTourState(s))
+    if (code !== lang) {
+      try {
+        await fetch('/api/user/lang', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lang: code }),
+        })
+      } catch { /* keep going — the tour still runs in the current language */ }
+      router.refresh()
+    }
+    setTour(s)
+    setPhase('running')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, markSeen])
 
   const finish = useCallback(() => {
     clearSession(TOUR_STATE_KEY)
@@ -647,7 +707,16 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
       router.push(step.route)
       return // the destination page's provider resumes from sessionStorage
     }
-    if (step.before) window.dispatchEvent(new CustomEvent(`tour:${step.before}`))
+    // Menu state is deterministic per step: close everything first, then run
+    // the step's before-actions in order, staggered so each action's
+    // re-render lands before the next one needs it (open the drawer, THEN
+    // the account menu inside it). The target poll below simply keeps
+    // retrying until the last menu has opened.
+    window.dispatchEvent(new CustomEvent('tour:close-menus'))
+    const actions = step.before ? (Array.isArray(step.before) ? step.before : [step.before]) : []
+    actions.forEach((a, i) => {
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent(`tour:${a}`)), 60 + i * 180)
+    })
 
     setReady(false)
     setTarget(null)
@@ -687,7 +756,7 @@ export function TourProvider({ lang = 'en', role }: { lang?: LangCode; role?: Ro
     return (
       <WelcomeCard
         lang={lang}
-        onStart={() => begin(role)}
+        onPick={(code) => { void beginWithLang(role, code) }}
         onSkip={() => { markSeen(); setPhase('idle') }}
       />
     )
@@ -764,11 +833,14 @@ All in `src/components/UserMenu.tsx`:
 
 ```ts
   // Guided tour: open this menu when the tour asks — but only the instance
-  // that's actually visible at this breakpoint (desktop top bar vs the copy
-  // inside NavDrawer's footer).
+  // that's actually visible AND on screen. Two copies are mounted (desktop
+  // top bar; NavDrawer's footer), and the closed drawer is translated
+  // off-viewport with a non-zero size, so a width check alone would open
+  // the wrong one.
   useEffect(() => {
     function onOpen() {
-      if (ref.current && ref.current.getBoundingClientRect().width > 0) setOpen(true)
+      const r = ref.current?.getBoundingClientRect()
+      if (r && r.width > 0 && r.right > 0 && r.left < window.innerWidth) setOpen(true)
     }
     function onClose() { setOpen(false) }
     window.addEventListener('tour:open-account-menu', onOpen)
@@ -991,15 +1063,20 @@ export const dateStripStep: TourStep = {
   titleKey: 'tourDateStripTitle', bodyKey: 'tourDateStripBody',
 }
 
+// Any step that targets a nav tab needs before: 'open-nav-drawer' — on the
+// phone the tabs live inside the closed hamburger drawer (on desktop the
+// action is a no-op and the target resolves to BottomNav instead).
 export const completedTabStep: TourStep = {
-  id: 'completed-tab', targets: ['nav-completed'],
+  id: 'completed-tab', before: 'open-nav-drawer', targets: ['nav-completed'],
   titleKey: 'tourCompletedTitle', bodyKey: 'tourCompletedBody',
 }
 
 export const outroSteps: TourStep[] = [
   { id: 'account', before: 'open-nav-drawer', targets: ['account'],
     titleKey: 'tourAccountTitle', bodyKey: 'tourAccountBody' },
-  { id: 'telegram', before: 'open-account-menu', targets: ['connect-telegram'],
+  // Both actions in order: on the phone the account menu lives inside the
+  // drawer, so the drawer must be (re)opened before the menu can.
+  { id: 'telegram', before: ['open-nav-drawer', 'open-account-menu'], targets: ['connect-telegram'],
     titleKey: 'tourTelegramTitle', bodyKey: 'tourTelegramBody' },
   { id: 'done', titleKey: 'tourDoneTitle', bodyKey: 'tourDoneBody' },
 ]
@@ -1037,7 +1114,7 @@ git commit -m "feat(tour): shared steps, script validation suite, shared copy"
 | `tourNewJobTitle` | `Creating a job` | `创建工作` |
 | `tourNewJobBody` | `This button opens the New Job form. Let's have a look.` | `这个按钮打开新建工作表单。我们去看看。` |
 | `tourJobFormTitle` | `The job form` | `工作表单` |
-| `tourJobFormBody` | `Details holds the client, date, time and location. Fill what you know — most fields are optional.` | `"详情"包含客户、日期、时间和地点。填写你知道的即可——大多数栏位是选填的。` |
+| `tourJobFormBody` | `Details holds the client, date, time and location — everything the team needs to schedule the job.` | `"详情"包含客户、日期、时间和地点——团队排程所需的信息都在这里。` |
 | `tourJobTeamTitle` | `Team & installers` | `团队与安装人员` |
 | `tourJobTeamBody` | `Pick installers here. Yellow = your suggestion; the scheduler confirms it to green. You can also assign a designer.` | `在这里选择安装人员。黄色＝你的建议；排程确认后变绿色。你也可以指派设计师。` |
 | `tourJobActionsTitle` | `Push to Schedule` | `推送到日程` |
@@ -1067,13 +1144,13 @@ export const salesSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSalesIntroTitle', bodyKey: 'tourSalesIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'pending', targets: ['nav-pending'], titleKey: 'tourPendingTitle', bodyKey: 'tourPendingBody' },
+  { id: 'pending', before: 'open-nav-drawer', targets: ['nav-pending'], titleKey: 'tourPendingTitle', bodyKey: 'tourPendingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourJobTeamTitle', bodyKey: 'tourJobTeamBody' },
   { id: 'job-actions', targets: ['job-actions'], titleKey: 'tourJobActionsTitle', bodyKey: 'tourJobActionsBody' },
   { id: 'fcfs', route: '/fcfs', targets: ['fcfs-board'], titleKey: 'tourFcfsTitle', bodyKey: 'tourFcfsBody' },
-  { id: 'design-tab', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
+  { id: 'design-tab', before: 'open-nav-drawer', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
   bellStep,
   ...outroSteps,
 ]
@@ -1090,11 +1167,11 @@ export const schedulerSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSchedulerIntroTitle', bodyKey: 'tourSchedulerIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'completed-tab', targets: ['nav-completed'], titleKey: 'tourCompletedTitle', bodyKey: 'tourSchedulerCompletedBody' },
+  { id: 'completed-tab', before: 'open-nav-drawer', targets: ['nav-completed'], titleKey: 'tourCompletedTitle', bodyKey: 'tourSchedulerCompletedBody' },
   { id: 'fcfs', route: '/fcfs', targets: ['fcfs-board'], titleKey: 'tourFcfsSchedulerTitle', bodyKey: 'tourFcfsSchedulerBody' },
   { id: 'assign', targets: ['fcfs-board'], titleKey: 'tourAssignTitle', bodyKey: 'tourAssignBody' },
   { id: 'suggest-vs-assign', titleKey: 'tourSuggestVsAssignTitle', bodyKey: 'tourSuggestVsAssignBody' },
-  { id: 'design-tab', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
+  { id: 'design-tab', before: 'open-nav-drawer', targets: ['nav-design-load'], titleKey: 'tourDesignTabTitle', bodyKey: 'tourDesignTabBody' },
   bellStep,
   ...outroSteps,
 ]
@@ -1158,7 +1235,7 @@ export const coordinatorSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourCoordinatorIntroTitle', bodyKey: 'tourCoordinatorIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'pending', targets: ['nav-pending'], titleKey: 'tourCoordPendingTitle', bodyKey: 'tourCoordPendingBody' },
+  { id: 'pending', before: 'open-nav-drawer', targets: ['nav-pending'], titleKey: 'tourCoordPendingTitle', bodyKey: 'tourCoordPendingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourCoordSuggestTitle', bodyKey: 'tourCoordSuggestBody' },
@@ -1283,7 +1360,138 @@ git commit -m "feat(tour): designer + production scripts — all 6 roles live"
 
 ---
 
-### Task 11: Full verification + smoke-test checklist doc
+### Task 11: Bengali tour translations
+
+**Files:**
+- Modify: `src/lib/i18n/bn.ts` (append every tour key under a `// ── Guided tour ──` comment)
+- Modify: `src/features/tour/steps/scripts.test.ts` (bn coverage)
+
+**Interfaces:**
+- Consumes: every tour key added in Tasks 3, 7, 8, 9, 10.
+- Context: **Nic's explicit exception (2026-09-03) to the bn freeze — tour keys only.** Translations are unvetted (Nic can't vet bn/zh); the team corrects them live at the demo. Where the app UI shows an English label to bn users (bn falls back per key: Today, Pending, Design, Details, Save, Push to Schedule, My Jobs, App tour…), the bn copy quotes that label in English so it matches what's on screen.
+
+- [ ] **Step 1: Extend the validation test** — in `scripts.test.ts`, add `import { bn } from '../../../lib/i18n/bn'`, add these two lines inside the per-step loop next to the zh checks:
+
+```ts
+    assert(`${role}/${s.id}: bn has ${s.titleKey}`, s.titleKey in bn)
+    assert(`${role}/${s.id}: bn has ${s.bodyKey}`, s.bodyKey in bn)
+```
+
+and add a chrome-key block after the shared-step checks:
+
+```ts
+const CHROME_KEYS = ['tourWelcomeTitle', 'tourWelcomeBody', 'tourLangTitle', 'tourLangBody',
+  'tourStart', 'tourSkip', 'tourNext', 'tourBack', 'tourFinish', 'tourExit', 'tourMenuLabel'] as const
+for (const k of CHROME_KEYS) {
+  assert(`chrome ${k} in en`, k in en)
+  assert(`chrome ${k} in zh`, k in zh)
+  assert(`chrome ${k} in bn`, k in bn)
+}
+```
+
+- [ ] **Step 2: Run it to verify it fails** — `npx tsx src/features/tour/steps/scripts.test.ts` → bn checks fail.
+
+- [ ] **Step 3: Add the bn strings** to `src/lib/i18n/bn.ts`:
+
+| key | bn |
+|---|---|
+| `tourWelcomeTitle` | `GreenQubes-এ স্বাগতম!` |
+| `tourWelcomeBody` | `একটা ছোট্ট ঘুরে দেখা নেবেন? প্রায় দুই মিনিট লাগবে, সবকিছু কোথায় আছে দেখিয়ে দেবে। পরে যেকোনো সময় প্রোফাইল ছবি থেকে আবার খুলতে পারবেন।` |
+| `tourLangTitle` | `আপনার ভাষা বেছে নিন` |
+| `tourLangBody` | `অ্যাপ আর এই ট্যুর দুটোই এই ভাষায় চলবে। পরে যেকোনো সময় প্রোফাইল ছবি থেকে বদলাতে পারবেন।` |
+| `tourStart` | `ট্যুর শুরু করুন` |
+| `tourSkip` | `এখন থাক` |
+| `tourNext` | `পরের ধাপ` |
+| `tourBack` | `আগের ধাপ` |
+| `tourFinish` | `শেষ` |
+| `tourExit` | `ট্যুর বন্ধ করুন` |
+| `tourMenuLabel` | `অ্যাপ ট্যুর` |
+| `tourBellTitle` | `নোটিফিকেশন` |
+| `tourBellBody` | `ঘণ্টাটি আপনার কাজের সতর্কবার্তা দেখায় — সময় পেরোনো কাজ ও আপডেট। লাল মানে দেখা দরকার।` |
+| `tourAccountTitle` | `আপনার অ্যাকাউন্ট` |
+| `tourAccountBody` | `প্রোফাইল ছবিতে চাপ দিলে অ্যাকাউন্ট মেনু খোলে: ভাষা, ডার্ক মোড আর Telegram।` |
+| `tourTelegramTitle` | `Telegram যুক্ত করুন — এখনই` |
+| `tourTelegramBody` | `মাত্র দুই চাপ, আর কাজের প্রতিটি নোটিফিকেশন আপনার Telegram-এও যাবে। ট্যুর শেষ হলেই চাপ দিন।` |
+| `tourDoneTitle` | `সব তৈরি!` |
+| `tourDoneBody` | `মূল বিষয় এই ছিল। যেকোনো সময় আবার খুলুন: প্রোফাইল ছবি → App tour।` |
+| `tourScheduleViewsTitle` | `সময়সূচির ভিউ` |
+| `tourScheduleViewsBody` | `তালিকা, সপ্তাহ ও মাসের মধ্যে বদলান। তালিকা একদিন করে দেখায়।` |
+| `tourDateStripTitle` | `দিন বদলানো` |
+| `tourDateStripBody` | `তারিখে চাপ দিন, তীর দিয়ে এগোন-পেছোন, বা হলুদ 'Today' বোতামে ফিরে আসুন।` |
+| `tourCompletedTitle` | `সম্পন্ন কাজ` |
+| `tourCompletedBody` | `শেষ হওয়া কাজগুলো এখানে থাকে, চলতি সময়সূচির বাইরে।` |
+| `tourSalesIntroTitle` | `আপনার ভূমিকা: সেলস` |
+| `tourSalesIntroBody` | `আপনি কাজ তৈরি করেন, সময়সূচিতে পাঠান আর ইনস্টলার প্রস্তাব করেন। এই ট্যুর প্রতিটি ধাপ দেখাবে।` |
+| `tourPendingTitle` | `আপনার 'Pending' ট্যাব` |
+| `tourPendingBody` | `যে কাজ তৈরি করেছেন কিন্তু এখনো পাঠাননি। পেন্ডিং কাজ শুধু আপনি (আর নিযুক্ত কোঅর্ডিনেটর) দেখতে পান।` |
+| `tourNewJobTitle` | `কাজ তৈরি করা` |
+| `tourNewJobBody` | `এই বোতামে নতুন কাজের ফর্ম খোলে। চলুন দেখি।` |
+| `tourJobFormTitle` | `কাজের ফর্ম` |
+| `tourJobFormBody` | `'Details'-এ ক্লায়েন্ট, তারিখ, সময় আর জায়গা থাকে — কাজ সময়সূচিতে বসাতে দলের যা দরকার সবই।` |
+| `tourJobTeamTitle` | `টিম ও ইনস্টলার` |
+| `tourJobTeamBody` | `এখানে ইনস্টলার বাছুন। হলুদ ＝ আপনার প্রস্তাব; শিডিউলার নিশ্চিত করলে সবুজ। ডিজাইনারও দিতে পারেন।` |
+| `tourJobActionsTitle` | `সময়সূচিতে পাঠানো` |
+| `tourJobActionsBody` | `'Save' কাজ পেন্ডিং রাখে; 'Push to Schedule' চালু করে আর শিডিউলারদের জানায়। ইনস্টলারের সময় সংঘর্ষ হলে সতর্কবার্তা আসবে।` |
+| `tourFcfsTitle` | `FCFS বোর্ড` |
+| `tourFcfsBody` | `সিরিয়াল অনুযায়ী দিনের সব কাজের টাইমলাইন, ইনস্টলারদের ফাঁকা সময়সহ। আপনার কাজ কোথায় দাঁড়িয়ে দেখতে কাজে লাগে।` |
+| `tourDesignTabTitle` | `ডিজাইন ওয়ার্কলোড` |
+| `tourDesignTabBody` | `'Design' ট্যাবে প্রতিটি ডিজাইনারের কাজের চাপ দেখা যায় — ডিজাইনার দেওয়ার আগে দেখে নিন।` |
+| `tourSchedulerIntroTitle` | `আপনার ভূমিকা: শিডিউলার` |
+| `tourSchedulerIntroBody` | `কোম্পানির সময়সূচি আপনি চালান: ইনস্টলার নিযুক্ত করা, সময়ের সংঘর্ষ মেটানো আর কাজ সম্পন্ন করা।` |
+| `tourSchedulerCompletedBody` | `শেষ হওয়া কাজ এখানে। একসাথে কয়েকটা বেছে বাল্ক সম্পন্ন বা ফিরিয়ে নিতে পারেন।` |
+| `tourFcfsSchedulerTitle` | `FCFS — আপনার প্রধান হাতিয়ার` |
+| `tourFcfsSchedulerBody` | `আগে-আসা-আগে ক্রমে কাজ সাজানো, ইনস্টলারের বার সময়ানুবর্তিতা অনুযায়ী রঙিন। লাল ＝ কড়া সময়, নীল ＝ নমনীয়।` |
+| `tourAssignTitle` | `ইনস্টলার নিযুক্ত করা` |
+| `tourAssignBody` | `কাজের সারিতে চাপ দিলে অ্যাসাইনমেন্ট প্যানেল খোলে: প্রস্তাব নিশ্চিত করুন, ইনস্টলার যোগ করুন, তারপর 'Save & Notify' — Telegram সবাইকে জানিয়ে দেবে।` |
+| `tourSuggestVsAssignTitle` | `হলুদ বনাম সবুজ` |
+| `tourSuggestVsAssignBody` | `সেলস ও কোঅর্ডিনেটর শুধু প্রস্তাব দেয় (হলুদ)। আপনার আনুষ্ঠানিক নিয়োগেই সবুজ হয় — ইনস্টলাররা শুধু সবুজটাই দেখে।` |
+| `tourCoordinatorIntroTitle` | `আপনার ভূমিকা: কোঅর্ডিনেটর` |
+| `tourCoordinatorIntroBody` | `সেলসের মতোই কাজ তৈরি ও পাঠাতে পারেন, আর আপনাকে দেওয়া কাজগুলো সমন্বয় করেন।` |
+| `tourCoordPendingTitle` | `শেয়ার করা পেন্ডিং কাজ` |
+| `tourCoordPendingBody` | `নিজের তৈরি পেন্ডিং কাজ দেখবেন, আর যেসব কাজে সেলস আপনাকে কোঅর্ডিনেটর করেছে সেগুলোও।` |
+| `tourCoordSuggestTitle` | `ইনস্টলার প্রস্তাব করা` |
+| `tourCoordSuggestBody` | `আপনি ইনস্টলার প্রস্তাব করেন (হলুদ); আনুষ্ঠানিক নিয়োগ দেয় শিডিউলার (সবুজ)।` |
+| `tourInstallerIntroTitle` | `আপনার ভূমিকা: ইনস্টলার` |
+| `tourInstallerIntroBody` | `'My Jobs'-এ শুধু আপনাকে দেওয়া কাজগুলোই দেখা যায়।` |
+| `tourInstallerTabsTitle` | `আজ, এরপর, এই সপ্তাহ` |
+| `tourInstallerTabsBody` | `তিনটি ট্যাব সময় অনুযায়ী কাজ সাজায়। 'Today' মানে এখন যা করতে হবে।` |
+| `tourInstallerJobTitle` | `কাজের ভেতরে` |
+| `tourInstallerJobBody` | `কাজ খুললে ঠিকানা, সময়, টিক দেওয়ার কাজের তালিকা, আর ছবি ও সই করা DO আপলোডের জায়গা পাবেন।` |
+| `tourInstallerChatTitle` | `কাজের চ্যাট` |
+| `tourInstallerChatBody` | `প্রতিটি কাজের নিজস্ব চ্যাট আছে — লেখা, ছবি আর ভয়েস নোট। আপনি যা পাঠান অফিস তা দেখে।` |
+| `tourInstallerPhotosTitle` | `সম্পন্নের ছবি` |
+| `tourInstallerPhotosBody` | `ছবি আপলোড না করলে কাজ সম্পন্ন করা যায় না। সাইট ছাড়ার আগে ছবি তুলে নিন।` |
+| `tourDesignerIntroTitle` | `আপনার ভূমিকা: ডিজাইনার` |
+| `tourDesignerIntroBody` | `'Design' ট্যাবই আপনার ঘাঁটি: সব ডিজাইনারের কাজের চাপ এক নজরে, আপনারটাসহ।` |
+| `tourDesignBoardTitle` | `ডিজাইন লোড বোর্ড` |
+| `tourDesignBoardBody` | `ডেডলাইনের চাপ বাড়লে আপনার বার বড় হয়, জরুরিতে রং বদলায়। পাশের বুদবুদে আপনার কাজের তালিকা।` |
+| `tourDesignToggleTitle` | `বোর্ড না আমার কাজ` |
+| `tourDesignToggleBody` | `'My Jobs'-এ গেলে শুধু আপনার ডিজাইন কাজের সহজ তালিকা।` |
+| `tourDesignBriefTitle` | `ডিজাইন ব্রিফ` |
+| `tourDesignBriefBody` | `প্রতিটি কাজের ফর্মে 'Design brief' কার্ড আছে: সেলসের নির্দেশনা ও ফাইল। ওখান থেকেই শুরু করুন।` |
+| `tourDesignCompleteTitle` | `ডিজাইন শেষ করা` |
+| `tourDesignCompleteBody` | `'Design completed' টিক দিন আর জটিলতা ১–৫ নম্বরে দিন। সৎ রেটিং AI-কে ডেডলাইন ভালো আন্দাজ করতে শেখায়।` |
+| `tourDesignDueTitle` | `ডেডলাইনের সতর্কবার্তা` |
+| `tourDesignDueBody` | `ইনস্টলের তারিখ সরলে আপনার ডিজাইন ডেডলাইনও সরে — ঘণ্টা আর Telegram দুটোই জানাবে।` |
+| `tourProductionIntroTitle` | `আপনার ভূমিকা: প্রোডাকশন` |
+| `tourProductionIntroBody` | `কী বানানোর জন্য তৈরি তা আপনি দেখভাল করেন। অ্যাপের বেশিরভাগ অংশ আপনার জন্য শুধু দেখার — ইচ্ছা করেই।` |
+| `tourProductionFieldsTitle` | `আপনার ঘরগুলো` |
+| `tourProductionFieldsBody` | `যেকোনো কাজে আপনি বদলাতে পারেন: Production ready, DO issued, প্রোডাকশন নির্দেশনা ও প্রোডাকশন ছবি। বাকি সব শুধু দেখার।` |
+| `tourProductionFilesTitle` | `ফাইল` |
+| `tourProductionFilesBody` | `প্রতিটি কাজের ফাইল ও নকশা খুলে দেখতে পারবেন — শুধু অ্যাটাচমেন্ট গোছানো বদলাতে পারবেন না।` |
+
+- [ ] **Step 4: Run the tests** — scripts suite green (en+zh+bn all covered); `npx tsc --noEmit` clean.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/i18n/bn.ts src/features/tour/steps/scripts.test.ts
+git commit -m "feat(tour): Bengali tour copy — Nic's scoped exception to the bn freeze"
+```
+
+---
+
+### Task 12: Full verification + smoke-test checklist doc
 
 **Files:**
 - Create: `docs/guided-tour-smoke-test.md`
@@ -1307,7 +1515,7 @@ npm run build
 
 Expected: both clean. Fix anything that surfaces before proceeding.
 
-- [ ] **Step 3: Write `docs/guided-tour-smoke-test.md`** — a tickable checklist for Nic on the dev preview, structured as: for **each of the 6 roles** (via preview-as, plus one real non-admin login at the end) × **phone + PC**: offer appears once on the home page and never on deep links · Start walks every step with the spotlight on the right element · steps that navigate (`/jobs/new`, `/fcfs`, `/design-load`) land and continue · the finale opens the account menu and highlights Connect Telegram · Exit restores the page and the offer does not reappear · profile → App tour restarts from step 1 · switch to 中文 and spot-check three steps · dark mode readable · Bengali shows English tour text · the bell, FABs and bottom nav are not tappable while the tour runs.
+- [ ] **Step 3: Write `docs/guided-tour-smoke-test.md`** — a tickable checklist for Nic on the dev preview, structured as: for **each of the 6 roles** (via preview-as, plus one real non-admin login at the end) × **phone + PC**: offer appears once on the home page and never on deep links · Start tour shows the language chooser; picking 中文 switches the whole app + tour to Chinese and the choice sticks after the tour (App-tour restarts skip the chooser) · the tour walks every step with the spotlight on the right element · steps that navigate (`/jobs/new`, `/fcfs`, `/design-load`) land and continue · the finale opens the account menu and highlights Connect Telegram · Exit restores the page and the offer does not reappear · profile → App tour restarts from step 1 · switch to 中文 and spot-check three steps · dark mode readable · switch to বাং and spot-check three steps (bn copy is unvetted — collect corrections at the demo) · the bell, FABs and bottom nav are not tappable while the tour runs.
 
 - [ ] **Step 4: Commit + push to dev**
 

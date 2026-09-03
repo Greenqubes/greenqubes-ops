@@ -28,6 +28,9 @@ export interface Database {
           visibility:        string[]
           years_experience:  number | null
           skills:            string[]
+          subrole:           string | null
+          is_driver:         boolean
+          qualifications:    string[]
           created_at:        string
           deleted_at:        string | null
         }

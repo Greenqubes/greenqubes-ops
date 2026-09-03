@@ -92,6 +92,8 @@ interface Props {
   userName:        string
   lang:            LangCode
   installers:             InstallerUser[]
+  /** Non-installer users for the Support crew bucket (Nic 2026-09-04). */
+  supportUsers:           InstallerUser[]
   initialMessages:        JobMessage[]
   salesPocOptions:        SelectOption[]
   initialCoordinatorIds?: string[]
@@ -106,7 +108,7 @@ interface Props {
 }
 
 export function JobDetailShell({
-  job, role, userId, userName, lang, installers, initialMessages, salesPocOptions,
+  job, role, userId, userName, lang, installers, supportUsers, initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
   backHref = '/schedule', initialTab,
@@ -1045,7 +1047,10 @@ export function JobDetailShell({
       ? [...selectedInstallerIds, ...initialSuggestedIds]
       : [...initialAssigneeIds, ...((isSales || isCoordinator) ? suggestedInstallerIds : initialSuggestedIds)],
   )
-  const subPool = installers.filter(i => !mainEngagedIds.has(i.id))
+  // Support crew (Nic 2026-09-04): the bucket pool = remaining installers
+  // PLUS every other role, dispatched for night jobs / manpower shortage.
+  // All of them ride the existing is_sub_installer flag and save paths.
+  const subPool = [...installers.filter(i => !mainEngagedIds.has(i.id)), ...supportUsers]
 
   const subCount = canAssign
     ? new Set([...selectedSubIds, ...initialSubSuggestedIds]).size
@@ -1248,11 +1253,13 @@ export function JobDetailShell({
               /* installer sees only the confirmed (formal) assignees, read-only */
               <InstallerGrid
                 installers={installers.filter(i => initialAssigneeIds.includes(i.id))}
+                lang={lang}
                 stateOf={() => 'assigned'}
               />
             ) : (
               <InstallerGrid
                 installers={installers}
+                lang={lang}
                 stateOf={installerStateOf}
                 onToggle={installerOnToggle}
                 disabledOf={installerDisabledOf}

@@ -22,6 +22,9 @@ export type AdminUser = {
   digest_subscriber: boolean
   years_experience:  number | null
   skills:            string[]
+  subrole:           string | null
+  is_driver:         boolean
+  qualifications:    string[]
   created_at:        string
   deleted_at:        string | null
 }
@@ -30,7 +33,7 @@ export async function getAllUsers(): Promise<AdminUser[]> {
   const db = createServiceClient()
   const { data, error } = await db
     .from('users')
-    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, created_at, deleted_at')
+    .select('id, auth_id, email, name, role, telegram_chat_id, lang, phone, digest_subscriber, years_experience, skills, subrole, is_driver, qualifications, created_at, deleted_at')
     .is('deleted_at', null)
     .order('name')
   if (error) throw error
@@ -38,36 +41,43 @@ export async function getAllUsers(): Promise<AdminUser[]> {
 }
 
 export async function provisionUser(
-  email: string,
+  email: string | null,
   name:  string,
   role:  Role,
   lang:  LangCode = 'en',
+  extras: { subrole?: string | null; is_driver?: boolean; qualifications?: string[] } = {},
 ): Promise<AdminUser> {
   const db = createServiceClient()
+  const cleanEmail = email?.trim().toLowerCase() || null
 
-  // Prevent duplicate provisioning by email
-  const { data: existing } = await db
-    .from('users')
-    .select('id')
-    .eq('email', email.toLowerCase())
-    .maybeSingle()
-  if (existing) throw new Error(`${email} is already provisioned.`)
+  // Prevent duplicate provisioning by email (card-only rows have no email to clash)
+  if (cleanEmail) {
+    const { data: existing } = await db
+      .from('users')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle()
+    if (existing) throw new Error(`${cleanEmail} is already provisioned.`)
+  }
 
   const { data, error } = await db
     .from('users')
     .insert({
-      email:             email.toLowerCase(),
+      email:             cleanEmail,
       auth_id:           null,
       name,
       role,
       lang,
       digest_subscriber: false,
       visibility:        ['public-internal'],
+      subrole:           extras.subrole?.trim() || null,
+      is_driver:         extras.is_driver === true,
+      qualifications:    extras.qualifications ?? [],
     } as never)
     .select()
     .single()
   if (error) {
-    if (error.code === '23505') throw new Error(`${email} is already provisioned.`)
+    if (error.code === '23505') throw new Error(`${cleanEmail} is already provisioned.`)
     throw error
   }
   return data as unknown as AdminUser
@@ -75,11 +85,20 @@ export async function provisionUser(
 
 export async function updateUser(
   id:    string,
-  patch: Partial<Pick<AdminUser, 'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone' | 'years_experience' | 'skills'>>,
+  patch: Partial<Pick<AdminUser,
+    'role' | 'telegram_chat_id' | 'digest_subscriber' | 'lang' | 'phone' |
+    'years_experience' | 'skills' |
+    'name' | 'email' | 'subrole' | 'is_driver' | 'qualifications'>>,
 ): Promise<void> {
+  const clean = { ...patch }
+  if (typeof clean.email === 'string') clean.email = clean.email.trim().toLowerCase() || null
+  if (typeof clean.subrole === 'string') clean.subrole = clean.subrole.trim() || null
   const db = createServiceClient()
-  const { error } = await db.from('users').update(patch as never).eq('id', id)
-  if (error) throw error
+  const { error } = await db.from('users').update(clean as never).eq('id', id)
+  if (error) {
+    if (error.code === '23505') throw new Error('That email is already used by another user.')
+    throw error
+  }
 }
 
 export async function removeUserAccess(id: string): Promise<void> {

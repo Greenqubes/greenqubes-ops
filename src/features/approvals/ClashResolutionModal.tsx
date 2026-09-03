@@ -6,6 +6,7 @@ import { Btn } from '@/components/Btn'
 import { TimeSelect } from '@/features/job-detail/TimeSelect'
 import { WeekWorkloadChart } from './WeekWorkloadChart'
 import { cn } from '@/lib/utils/cn'
+import { buildUserMeta } from '@/lib/utils/user-meta'
 import type { Clash, Substitute, WeekDay } from '@/app/api/jobs/[id]/clashes/route'
 import type { LangCode } from '@/lib/i18n'
 
@@ -230,11 +231,13 @@ export function ClashResolutionModal({
                   ) : (
                     substitutes.map(sub => {
                       const isSelected = selected === sub.id
+                      const m = buildUserMeta({ role: sub.role, subrole: sub.subrole,
+                        is_driver: sub.isDriver, qualifications: sub.qualifications })
                       const meta = [
-                        sub.role.charAt(0).toUpperCase() + sub.role.slice(1),
-                        sub.yearsExperience != null ? `${sub.yearsExperience}y` : 'N/A',
-                        sub.skills.length > 0 ? sub.skills.join(', ') : 'N/A',
-                      ].join(' · ')
+                        m.subroleLine ? m.subroleLine.charAt(0).toUpperCase() + m.subroleLine.slice(1) : null,
+                        m.isDriver ? 'Driver' : null,
+                        ...m.qualifications,
+                      ].filter(Boolean).join(' · ')
 
                       return (
                         <button

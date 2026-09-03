@@ -21,12 +21,13 @@ export interface Clash {
 }
 
 export interface Substitute {
-  id:              string
-  name:            string
-  role:            string
-  yearsExperience: number | null
-  skills:          string[]
-  hasConflict:     boolean
+  id:             string
+  name:           string
+  role:           string
+  subrole:        string | null
+  isDriver:       boolean
+  qualifications: string[]
+  hasConflict:    boolean
 }
 
 export interface InstallerDayJob {
@@ -201,10 +202,10 @@ export async function GET(
     for (const a of conflict.job_assignees) busyInstallerIds.add(a.user_id)
   }
 
-  type UserRow = { id: string; name: string; role: string; years_experience: number | null; skills: string[] }
+  type UserRow = { id: string; name: string; role: string; subrole: string | null; is_driver: boolean; qualifications: string[] }
   const { data: allInstallers } = await supabase
     .from('users')
-    .select('id, name, role, years_experience, skills')
+    .select('id, name, role, subrole, is_driver, qualifications')
     .eq('role', 'installer')
     .is('deleted_at', null) as { data: UserRow[] | null; error: unknown }
 
@@ -213,9 +214,10 @@ export async function GET(
     .filter(u => !currentAssigneeIds.has(u.id))
     .map(u => ({
       id: u.id, name: u.name, role: u.role,
-      yearsExperience: u.years_experience,
-      skills:          u.skills ?? [],
-      hasConflict:     busyInstallerIds.has(u.id),
+      subrole:        u.subrole,
+      isDriver:       u.is_driver,
+      qualifications: u.qualifications ?? [],
+      hasConflict:    busyInstallerIds.has(u.id),
     }))
     .sort((a, b) => Number(a.hasConflict) - Number(b.hasConflict))
 

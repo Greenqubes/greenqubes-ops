@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
+import { buildUserMeta } from '@/lib/utils/user-meta'
 import { EditClashModal, type CheckClash } from '@/features/job-detail/EditClashModal'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
@@ -96,6 +97,16 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
   const hasClashToday = (installerId: string) =>
     clashesForInstaller(clashes, installerId)
       .some(c => c.jobA.id === job.id || c.jobB.id === job.id)
+
+  // Subrole · Driver · licenses line under each name (no link dot here —
+  // Nic scoped dots to the admin page + job-form grids, 2026-09-04).
+  const metaTextOf = (id: string): string | null => {
+    const u = installers.find(x => x.id === id)
+    if (!u) return null
+    const m = buildUserMeta(u)
+    const parts = [m.subroleLine, m.isDriver ? t(lang, 'metaDriver') : null, ...m.qualifications]
+    return parts.filter(Boolean).join(' · ') || null
+  }
 
   const doSave = async () => {
     setSaving(true)
@@ -270,6 +281,9 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-ink truncate">{a.name}</p>
+                    {metaTextOf(a.user_id) && (
+                      <p className="text-[10px] text-muted truncate">{metaTextOf(a.user_id)}</p>
+                    )}
                     {hasClashToday(a.user_id) && (
                       <p className="text-[10px] text-bad flex items-center gap-1">
                         <AlertTriangle size={9} /> {t(lang, 'fcfsHasClash')}
@@ -310,6 +324,9 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-ink truncate">{a.name}</p>
+                      {metaTextOf(a.user_id) && (
+                        <p className="text-[10px] text-muted truncate">{metaTextOf(a.user_id)}</p>
+                      )}
                       {hasClashToday(a.user_id) && (
                         <p className="text-[10px] text-bad flex items-center gap-1">
                           <AlertTriangle size={9} /> {t(lang, 'fcfsHasClash')}
@@ -375,6 +392,9 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-ink truncate">{u.name}</p>
+                      {metaTextOf(id) && (
+                        <p className="text-[10px] text-muted truncate">{metaTextOf(id)}</p>
+                      )}
                       {hasClashToday(id) && (
                         <p className="text-[10px] text-bad flex items-center gap-1">
                           <AlertTriangle size={9} /> {t(lang, 'fcfsHasClash')}

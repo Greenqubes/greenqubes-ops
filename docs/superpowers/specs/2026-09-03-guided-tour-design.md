@@ -15,7 +15,9 @@ page, matched to the person's role (a sales person sees the job-creation flow,
 an installer sees My Jobs and photo uploads), and finishes by pointing at
 **Connect Telegram**. It never performs real actions — nobody can break
 anything or spam the team while learning. Re-openable anytime from the
-account menu ("App tour"). English + Chinese; Bengali falls back to English.
+account menu ("App tour"). English, Chinese and Bengali — the tour is Nic's
+explicit exception (2026-09-03) to the bn freeze; bn copy ships unvetted and
+gets corrected live at the team demo.
 
 ---
 
@@ -31,6 +33,7 @@ account menu ("App tour"). English + Chinese; Bengali falls back to English.
 | Dependencies | **None added.** Custom-built engine; stack stays locked |
 | Sign-up coverage | Out of scope — happens before login; stays with the rollout runbook + meeting |
 | Workflow V3 | Not covered — scripts get a small update when V3 merges (add to the V3 merge checklist) |
+| Language chooser (Nic 2026-09-03) | After **Start tour**, a "Choose your language" card (English / 中文 / বাংলা). The pick sets the person's **app** language via the existing `PATCH /api/user/lang` (the same call the account-menu switcher makes — the tour's only sanctioned write), then the tour runs in it. App-tour restarts skip the chooser. |
 
 ---
 
@@ -47,6 +50,11 @@ account menu ("App tour"). English + Chinese; Bengali falls back to English.
   tour** / **Skip for now**"*.
 - Both buttons write `tour-seen:{userId}` — the offer never nags twice on the
   same device. Skipping still leaves the account-menu entry available.
+- **Start tour → "Choose your language"** (Nic 2026-09-03): the same card
+  swaps to three buttons — English / 中文 / বাংলা. The pick is saved as the
+  person's app language (existing `/api/user/lang` route), the app
+  re-renders in it, and the tour begins in it. Doubles as day-one language
+  setup for the whole team. Restarts from Account → App tour skip this.
 
 ### 2.2 The tour itself
 
@@ -77,8 +85,11 @@ account menu ("App tour"). English + Chinese; Bengali falls back to English.
 
 ### 2.4 Languages, themes, devices
 
-- All copy through the i18n table: keys added to `en.ts` + `zh.ts`; `bn`
-  falls back to English per the standing rule. Live in `src/lib/i18n/`.
+- All copy through the i18n table in `src/lib/i18n/`: keys added to `en.ts`,
+  `zh.ts` **and `bn.ts`** — Nic's explicit exception (2026-09-03) to the
+  2026-08-03 bn freeze, scoped to the tour only (every other feature stays
+  en+zh with bn falling back). The zh/bn tour copy is unvetted; the team
+  corrects it live at the demo.
 - Styled with existing tokens; correct in light and dark mode.
 - Phone-first (the team is mostly on phones) and PC. Where the two layouts
   diverge (job form: 4 tabs on phone vs two columns on PC), a step lists
@@ -212,7 +223,7 @@ Step counts are estimates; final wording lands during the build.
 - **Manual checklist** (tickable artifact page, like the smoke-test pages):
   per role × phone + PC × light + dark — offer shows once, spotlight lands
   right, navigation steps work, finale opens the menu, Exit restores the page,
-  re-open from menu works, bn shows English.
+  re-open from menu works, bn shows the Bengali tour copy.
 - Type-check + production build green before push (house rule).
 
 ## 8. Rollout

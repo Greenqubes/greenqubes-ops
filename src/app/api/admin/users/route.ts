@@ -32,13 +32,14 @@ export async function POST(req: NextRequest) {
   if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const { email, name, role, lang } = await req.json() as {
-      email: string; name: string; role: Role; lang?: LangCode
+    const { email, name, role, lang, subrole, is_driver, qualifications } = await req.json() as {
+      email?: string | null; name: string; role: Role; lang?: LangCode
+      subrole?: string | null; is_driver?: boolean; qualifications?: string[]
     }
-    if (!email || !name || !role) {
-      return NextResponse.json({ error: 'email, name, and role are required' }, { status: 400 })
+    if (!name?.trim() || !role) {
+      return NextResponse.json({ error: 'name and role are required' }, { status: 400 })
     }
-    const user = await provisionUser(email, name, role, lang)
+    const user = await provisionUser(email ?? null, name.trim(), role, lang, { subrole, is_driver, qualifications })
     return NextResponse.json(user, { status: 201 })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 })

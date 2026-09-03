@@ -2,6 +2,8 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
+import { LinkDot, UserMetaLine } from '@/components/UserMetaLine'
+import type { LinkStatus } from '@/lib/utils/user-meta'
 
 // Same avatar palette as InstallerGrid — kept as its own copy since the two
 // grids take differently-shaped data (designers are plain {id,label} options,
@@ -17,8 +19,11 @@ function initials(name: string) {
 }
 
 export interface DesignerOption {
-  id:    string
-  label: string
+  id:              string
+  label:           string
+  subrole?:        string | null
+  qualifications?: string[]
+  linkStatus?:     LinkStatus
 }
 
 interface Props {
@@ -86,9 +91,14 @@ export function DesignerGrid({ designers, selectedIds, onToggle }: Props) {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-semibold truncate', selected ? 'text-brand-green' : 'text-ink')}>
-                    {d.label}
+                  <p className={cn('text-sm font-semibold truncate flex items-center gap-1.5', selected ? 'text-brand-green' : 'text-ink')}>
+                    {d.linkStatus && <LinkDot status={d.linkStatus} />}
+                    <span className="truncate">{d.label}</span>
                   </p>
+                  <UserMetaLine
+                    user={{ subrole: d.subrole, qualifications: d.qualifications }}
+                    chipClass={selected ? 'text-brand-green border-brand-green/30 bg-transparent' : 'text-muted bg-bg border-line'}
+                  />
                 </div>
               </button>
             )

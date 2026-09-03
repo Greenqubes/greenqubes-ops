@@ -7,6 +7,8 @@ import { Card }    from '@/components/Card'
 import { cn }      from '@/lib/utils/cn'
 import type { AdminUser } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode } from '@/lib/supabase/types'
+import { linkStatus, filterUsers, subroleSuggestions, qualificationSuggestions } from '@/lib/utils/user-meta'
+import { LinkDot, DriverChip } from '@/components/UserMetaLine'
 
 const ROLES: Role[]     = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'admin']
 const LANGS: LangCode[] = ['en', 'zh', 'bn']
@@ -59,15 +61,26 @@ function AdminRoleModal({
 
 // ── Provision form ─────────────────────────────────────────────────────────────
 
-function ProvisionForm({ onDone }: { onDone: () => void }) {
-  const [email,       setEmail]       = useState('')
-  const [name,        setName]        = useState('')
-  const [role,        setRole]        = useState<Role>('installer')
-  const [lang,        setLang]        = useState<LangCode>('en')
-  const [busy,        setBusy]        = useState(false)
-  const [err,         setErr]         = useState<string | null>(null)
-  const [showModal,   setShowModal]   = useState(false)
-  const [pendingRole, setPendingRole] = useState<Role | null>(null)
+function ProvisionForm({ onDone, allUsers }: { onDone: () => void; allUsers: AdminUser[] }) {
+  const [email,        setEmail]        = useState('')
+  const [name,         setName]         = useState('')
+  const [role,         setRole]         = useState<Role>('installer')
+  const [lang,         setLang]         = useState<LangCode>('en')
+  const [subrole,      setSubrole]      = useState('')
+  const [subroleInput, setSubroleInput] = useState('')
+  const [isDriver,     setIsDriver]     = useState(false)
+  const [quals,        setQuals]        = useState<string[]>([])
+  const [qualInput,    setQualInput]    = useState('')
+  const [busy,         setBusy]         = useState(false)
+  const [err,          setErr]          = useState<string | null>(null)
+  const [showModal,    setShowModal]    = useState(false)
+  const [pendingRole,  setPendingRole]  = useState<Role | null>(null)
+
+  function addQual(raw: string) {
+    const tag = raw.trim().replace(/,+$/, '').trim()
+    if (tag && !quals.includes(tag)) setQuals(prev => [...prev, tag])
+    setQualInput('')
+  }
 
   function handleRoleChange(next: Role) {
     if (next === 'admin') {
@@ -96,13 +109,20 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
       const res = await fetch('/api/admin/users', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email, name, role, lang }),
+        body:    JSON.stringify({
+          email:          email.trim() || null,
+          name, role, lang,
+          subrole:        subrole.trim() || null,
+          is_driver:      isDriver,
+          qualifications: quals,
+        }),
       })
       if (!res.ok) {
         const { error } = await res.json() as { error: string }
         throw new Error(error)
       }
-      setEmail(''); setName('')
+      setEmail(''); setName(''); setSubrole(''); setSubroleInput('')
+      setIsDriver(false); setQuals([]); setQualInput('')
       onDone()
     } catch (err) {
       setErr((err as Error).message)
@@ -129,11 +149,10 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
         <form onSubmit={submit} className="flex flex-col gap-2.5">
           <input
             className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-            placeholder="Google account email"
+            placeholder="Google account email — leave blank for a name card only"
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            required
           />
           <input
             className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
@@ -158,6 +177,68 @@ function ProvisionForm({ onDone }: { onDone: () => void }) {
               {LANGS.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
+
+          <div className="flex gap-2">
+            <input
+              className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              placeholder="Subrole — e.g. metalworks, printing"
+              value={subroleInput}
+              onChange={e => setSubroleInput(e.target.value)}
+              list="subrole-suggestions"
+            />
+            <Btn type="button" variant="ghost" size="sm"
+                 onClick={() => { if (subroleInput.trim()) { setSubrole(subroleInput.trim()); setSubroleInput('') } }}>
+              Insert
+            </Btn>
+          </div>
+          <datalist id="subrole-suggestions">
+            {subroleSuggestions(allUsers, role).map(s => <option key={s} value={s} />)}
+          </datalist>
+          {subrole && (
+            <span className="self-start flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+              {subrole}
+              <button type="button" onClick={() => setSubrole('')} className="text-muted hover:text-terracotta leading-none">×</button>
+            </span>
+          )}
+
+          {role === 'installer' && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" className="accent-terracotta w-4 h-4"
+                     checked={isDriver} onChange={e => setIsDriver(e.target.checked)} />
+              <span className="text-sm text-ink">Driver (licensed vehicle operator)</span>
+            </label>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            {quals.map(q => (
+              <span key={q} className="flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+                {q}
+                <button type="button" onClick={() => setQuals(prev => prev.filter(x => x !== q))}
+                        className="text-muted hover:text-terracotta leading-none">×</button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+              placeholder="Qualifications — e.g. WAH, Safety Supervisor"
+              value={qualInput}
+              onChange={e => {
+                const v = e.target.value
+                if (v.endsWith(',')) { addQual(v.slice(0, -1)); return }
+                setQualInput(v)
+              }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addQual(qualInput) } }}
+              list="qual-suggestions"
+            />
+            <Btn type="button" variant="ghost" size="sm" onClick={() => addQual(qualInput)}>
+              Insert
+            </Btn>
+          </div>
+          <datalist id="qual-suggestions">
+            {qualificationSuggestions(allUsers).map(q => <option key={q} value={q} />)}
+          </datalist>
+
           {err && <p className="text-xs text-red-500">{err}</p>}
           <Btn type="submit" variant="accent" size="sm" disabled={busy}>
             {busy ? 'Adding…' : 'Add user'}
@@ -215,14 +296,18 @@ function DeleteUserModal({
 
 // ── User row ───────────────────────────────────────────────────────────────────
 
-function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
+function UserRow({ user, allUsers, onSaved }: { user: AdminUser; allUsers: AdminUser[]; onSaved: () => void }) {
   const [editing,       setEditing]       = useState(false)
   const [role,          setRole]          = useState<Role>(user.role)
   const [tgId,          setTgId]          = useState(user.telegram_chat_id ?? '')
   const [digestSub,     setDigestSub]     = useState(user.digest_subscriber)
-  const [yearsExp,      setYearsExp]      = useState<number | string>(user.years_experience ?? '')
-  const [skills,        setSkills]        = useState<string[]>(user.skills ?? [])
-  const [skillInput,    setSkillInput]    = useState('')
+  const [name,          setName]          = useState(user.name)
+  const [email,         setEmail]         = useState(user.email ?? '')
+  const [subrole,       setSubrole]       = useState(user.subrole ?? '')
+  const [subroleInput,  setSubroleInput]  = useState('')
+  const [isDriver,      setIsDriver]      = useState(user.is_driver)
+  const [quals,         setQuals]         = useState<string[]>(user.qualifications ?? [])
+  const [qualInput,     setQualInput]     = useState('')
   const [busy,          setBusy]          = useState(false)
   const [err,           setErr]           = useState<string | null>(null)
   const [modalPhase,    setModalPhase]    = useState<'confirm' | 'success' | null>(null)
@@ -231,10 +316,10 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
   const [deleteBusy,    setDeleteBusy]    = useState(false)
   const [deleteErr,     setDeleteErr]     = useState<string | null>(null)
 
-  function addSkill(raw: string) {
+  function addQual(raw: string) {
     const tag = raw.trim().replace(/,+$/, '').trim()
-    if (tag && !skills.includes(tag)) setSkills(prev => [...prev, tag])
-    setSkillInput('')
+    if (tag && !quals.includes(tag)) setQuals(prev => [...prev, tag])
+    setQualInput('')
   }
 
   function handleRoleChange(next: Role) {
@@ -291,10 +376,13 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
         role,
         telegram_chat_id:  tgId.trim() || null,
         digest_subscriber: digestSub,
+        subrole:           subrole.trim() || null,
+        is_driver:         isDriver,
+        qualifications:    quals,
       }
-      if (role === 'installer') {
-        body.years_experience = yearsExp === '' ? null : Number(yearsExp)
-        body.skills = skills
+      if (user.name !== 'GreenqubesAI') {
+        body.name  = name.trim()
+        body.email = email.trim() || null
       }
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method:  'PATCH',
@@ -340,9 +428,13 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
     setRole(user.role)
     setTgId(user.telegram_chat_id ?? '')
     setDigestSub(user.digest_subscriber)
-    setYearsExp(user.years_experience ?? '')
-    setSkills(user.skills ?? [])
-    setSkillInput('')
+    setName(user.name)
+    setEmail(user.email ?? '')
+    setSubrole(user.subrole ?? '')
+    setSubroleInput('')
+    setIsDriver(user.is_driver)
+    setQuals(user.qualifications ?? [])
+    setQualInput('')
     setEditing(false)
     setErr(null)
   }
@@ -374,7 +466,11 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
       <Card className={cn('p-4 transition-colors', editing && 'ring-2 ring-terracotta/30')}>
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="min-w-0">
-            <p className="font-display font-medium text-ink text-sm truncate">{user.name}</p>
+            <p className="font-display font-medium text-ink text-sm truncate flex items-center gap-1.5">
+              <LinkDot status={linkStatus(user)} />
+              <span className="truncate">{user.name}</span>
+              {user.is_driver && <DriverChip label="Driver" />}
+            </p>
             <p className="text-xs text-muted truncate">{joined}</p>
           </div>
           {!editing && (
@@ -399,6 +495,28 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
 
         {editing ? (
           <div className="flex flex-col gap-2.5 mt-2">
+            {user.name !== 'GreenqubesAI' && (
+              <>
+                <div>
+                  <label className="text-xs text-muted mb-1 block">Display name</label>
+                  <input
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted mb-1 block">Google account email</label>
+                  <input
+                    type="email"
+                    placeholder="Add email to let them sign in"
+                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
             {user.name === 'GreenqubesAI' ? (
               <div className="w-full border border-line rounded-lg px-3 py-2 text-sm text-muted bg-bg opacity-60 cursor-not-allowed">
                 {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -433,48 +551,75 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
               <span className="text-sm text-ink">Receives Monday digest</span>
             </label>
 
-            {role === 'installer' && (
-              <>
-                <div>
-                  <label className="text-xs text-muted mb-1 block">Years of experience</label>
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-                    placeholder="e.g. 5"
-                    value={yearsExp}
-                    onChange={e => setYearsExp(e.target.value)}
-                  />
-                </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block">Subrole</label>
+              {subrole && (
+                <span className="mb-2 inline-flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+                  {subrole}
+                  <button type="button" onClick={() => setSubrole('')} className="text-muted hover:text-terracotta leading-none">×</button>
+                </span>
+              )}
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                  placeholder="e.g. metalworks, printing"
+                  value={subroleInput}
+                  onChange={e => setSubroleInput(e.target.value)}
+                  list={`subrole-suggestions-${user.id}`}
+                />
+                <Btn type="button" variant="ghost" size="sm"
+                     onClick={() => { if (subroleInput.trim()) { setSubrole(subroleInput.trim()); setSubroleInput('') } }}>
+                  Insert
+                </Btn>
+              </div>
+              <datalist id={`subrole-suggestions-${user.id}`}>
+                {subroleSuggestions(allUsers, role).map(s => <option key={s} value={s} />)}
+              </datalist>
+            </div>
 
-                <div>
-                  <label className="text-xs text-muted mb-1 block">Skills</label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {skills.map(s => (
-                      <span key={s} className="flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
-                        {s}
-                        <button
-                          type="button"
-                          onClick={() => setSkills(prev => prev.filter(x => x !== s))}
-                          className="text-muted hover:text-terracotta leading-none"
-                        >×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <input
-                    className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
-                    placeholder="Add skill, press Enter or comma"
-                    value={skillInput}
-                    onChange={e => {
-                      const v = e.target.value
-                      if (v.endsWith(',')) { addSkill(v.slice(0, -1)); return }
-                      setSkillInput(v)
-                    }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput) } }}
-                  />
-                </div>
-              </>
+            {role === 'installer' && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="accent-terracotta w-4 h-4"
+                       checked={isDriver} onChange={e => setIsDriver(e.target.checked)} />
+                <span className="text-sm text-ink">Driver (licensed vehicle operator)</span>
+              </label>
             )}
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">Qualifications / licenses</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {quals.map(q => (
+                  <span key={q} className="flex items-center gap-1 text-xs bg-bg border border-line rounded-full px-2.5 py-0.5 text-ink">
+                    {q}
+                    <button
+                      type="button"
+                      onClick={() => setQuals(prev => prev.filter(x => x !== q))}
+                      className="text-muted hover:text-terracotta leading-none"
+                    >×</button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+                  placeholder="e.g. WAH, Safety Supervisor"
+                  value={qualInput}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (v.endsWith(',')) { addQual(v.slice(0, -1)); return }
+                    setQualInput(v)
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addQual(qualInput) } }}
+                  list={`qual-suggestions-${user.id}`}
+                />
+                <Btn type="button" variant="ghost" size="sm" onClick={() => addQual(qualInput)}>
+                  Insert
+                </Btn>
+              </div>
+              <datalist id={`qual-suggestions-${user.id}`}>
+                {qualificationSuggestions(allUsers).map(q => <option key={q} value={q} />)}
+              </datalist>
+            </div>
 
             {err && <p className="text-xs text-red-500">{err}</p>}
 
@@ -492,8 +637,14 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
             {user.auth_id === null && user.email && (
               <p className="text-sm text-[--ink2] mb-2">Waiting for sign-in: <span className="font-medium">{user.email}</span></p>
             )}
+            {user.auth_id === null && !user.email && (
+              <p className="text-sm text-[--ink2] mb-2">Card only — no email yet</p>
+            )}
             <div className="flex flex-wrap gap-2 items-center">
               <Pill variant={user.role} />
+              {user.subrole && (
+                <span className="text-xs text-ink2 bg-bg border border-line rounded-full px-2 py-0.5">{user.subrole}</span>
+              )}
               {user.telegram_chat_id ? (
                 <span className="text-xs text-muted font-mono">TG {user.telegram_chat_id}</span>
               ) : (
@@ -504,12 +655,14 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
                   digest
                 </span>
               )}
-              {!user.auth_id && (
-                <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
-                  not linked
-                </span>
-              )}
             </div>
+            {(user.qualifications ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {user.qualifications.map(q => (
+                  <span key={q} className="text-xs text-muted bg-bg border border-line rounded-full px-2 py-0.5">{q}</span>
+                ))}
+              </div>
+            )}
           </>
         )}
       </Card>
@@ -520,10 +673,17 @@ function UserRow({ user, onSaved }: { user: AdminUser; onSaved: () => void }) {
 // ── Tab root ───────────────────────────────────────────────────────────────────
 
 export function UsersTab() {
-  const [users,       setUsers]       = useState<AdminUser[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [loadErr,     setLoadErr]     = useState<string | null>(null)
-  const [showProvide, setShowProvide] = useState(false)
+  const [users,         setUsers]         = useState<AdminUser[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [loadErr,       setLoadErr]       = useState<string | null>(null)
+  const [showProvide,   setShowProvide]   = useState(false)
+  const [roleFilter,    setRoleFilter]    = useState<string>('all')
+  const [subroleFilter, setSubroleFilter] = useState<string>('all')
+
+  const shown = filterUsers(users, roleFilter, subroleFilter)
+  const subroleOptions = roleFilter === 'all'
+    ? ([...new Set(users.map(u => u.subrole?.trim()).filter(Boolean))] as string[]).sort((a, b) => a.localeCompare(b))
+    : subroleSuggestions(users, roleFilter)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -563,8 +723,35 @@ export function UsersTab() {
       </button>
 
       {showProvide && (
-        <ProvisionForm onDone={() => { setShowProvide(false); load() }} />
+        <ProvisionForm onDone={() => { setShowProvide(false); load() }} allUsers={users} />
       )}
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {(['all', ...ROLES] as string[]).map(r => (
+          <button
+            key={r}
+            onClick={() => { setRoleFilter(r); setSubroleFilter('all') }}
+            className={cn(
+              'text-xs rounded-full border px-2.5 py-1 transition-colors',
+              roleFilter === r
+                ? 'border-terracotta text-terracotta bg-terracotta/5 font-medium'
+                : 'border-line text-muted hover:text-ink2',
+            )}
+          >
+            {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
+          </button>
+        ))}
+        <select
+          className="ml-auto border border-line rounded-lg px-2 py-1 text-xs text-ink bg-bg focus:outline-none"
+          value={subroleFilter}
+          onChange={e => setSubroleFilter(e.target.value)}
+        >
+          <option value="all">All subroles</option>
+          <option value="none">No subrole</option>
+          {subroleOptions.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
 
       {/* User list */}
       {loading ? (
@@ -582,14 +769,18 @@ export function UsersTab() {
         </div>
       ) : users.length === 0 ? (
         <p className="text-sm text-muted py-6 text-center">No users yet.</p>
+      ) : shown.length === 0 ? (
+        <p className="text-sm text-muted py-6 text-center">No users match this filter.</p>
       ) : (
         <div>
           <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-2">
-            {users.length} user{users.length !== 1 ? 's' : ''}
+            {roleFilter === 'all' && subroleFilter === 'all'
+              ? `${users.length} user${users.length !== 1 ? 's' : ''}`
+              : `${shown.length} of ${users.length} user${users.length !== 1 ? 's' : ''}`}
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {users.map(u => (
-              <UserRow key={u.id} user={u} onSaved={load} />
+            {shown.map(u => (
+              <UserRow key={u.id} user={u} allUsers={users} onSaved={load} />
             ))}
           </div>
         </div>

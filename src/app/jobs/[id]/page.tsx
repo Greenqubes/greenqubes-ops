@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getJobById, getInstallerUsers, getJobMessages, getCreatorName } from '@/lib/supabase/queries/jobs'
+import { getJobById, getInstallerUsers, getSupportUsers, getJobMessages, getCreatorName } from '@/lib/supabase/queries/jobs'
 import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getJobDesigners, getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
@@ -33,9 +33,10 @@ export default async function JobDetailPage({
 
   const role = await getEffectiveRole(profile.role)
 
-  const [job, installers, messages, coordinators, officeUsers, designers, designerUsers] = await Promise.all([
+  const [job, installers, supportUsers, messages, coordinators, officeUsers, designers, designerUsers] = await Promise.all([
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
+    role === 'installer' ? Promise.resolve([]) : getSupportUsers(),
     getJobMessages(id),
     getJobCoordinators(id),
     getAllProvisionedUsers(),
@@ -62,12 +63,16 @@ export default async function JobDetailPage({
       userName={profile.name ?? ''}
       lang={(profile.lang as LangCode) ?? 'en'}
       installers={installers}
+      supportUsers={supportUsers}
       initialMessages={messages}
       salesPocOptions={salesPocOptions}
       initialCoordinatorIds={coordinators.map(c => c.id)}
       coordinatorOptions={officeUsers}
       initialDesignerIds={designers.map(d => d.id)}
-      designerOptions={designerUsers.map(u => ({ id: u.id, label: u.name }))}
+      designerOptions={designerUsers.map(u => ({
+        id: u.id, label: u.name,
+        subrole: u.subrole, qualifications: u.qualifications, linkStatus: u.link_status,
+      }))}
       createdByName={createdByName}
       backHref={backHref}
       initialTab={sp.tab === 'chat' ? 'chat' : undefined}

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { linkStatus, type LinkStatus } from '@/lib/utils/user-meta'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,18 @@ type DesignerRow = {
 type UserRow = {
   id: string
   name: string
+  subrole: string | null
+  qualifications: string[]
+  email: string | null
+  auth_id: string | null
+}
+
+export type DesignerUser = {
+  id: string
+  name: string
+  subrole: string | null
+  qualifications: string[]
+  link_status: LinkStatus
 }
 
 // ── Queries ──────────────────────────────────────────────────────────────────
@@ -69,15 +82,19 @@ export async function setJobDesigners(
   return { added }
 }
 
-export async function getDesignerUsers(): Promise<Array<{ id: string; name: string }>> {
+export async function getDesignerUsers(): Promise<DesignerUser[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
-    .select('id, name')
+    .select('id, name, subrole, qualifications, email, auth_id')
     .eq('role', 'designer')
     .is('deleted_at', null)
     .order('name', { ascending: true })
   if (error) throw error
   const rows = (data ?? []) as unknown as UserRow[]
-  return rows
+  // email/auth_id are consumed here to derive link_status — never returned.
+  return rows.map(({ email, auth_id, ...u }) => ({
+    ...u,
+    link_status: linkStatus({ email, auth_id }),
+  }))
 }

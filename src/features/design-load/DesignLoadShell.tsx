@@ -115,7 +115,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
         </h1>
 
         {isDesigner && (
-          <div className="flex gap-1 mt-3">
+          <div data-tour="design-toggle" className="flex gap-1 mt-3">
             {(['board', 'myJobs'] as const).map(tabId => (
               <button
                 key={tabId}
@@ -139,7 +139,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
           below lg now (nav drawer instead — R2-T5 / F1), so mobile only
           needs a modest breathing-room pb. lg: keeps the original value
           since BottomNav still renders there unchanged. */}
-      <main className="pb-8 lg:pb-24">
+      <main data-tour="design-board" className="pb-8 lg:pb-24">
         {isDesigner && tab === 'myJobs' ? (
           <MyJobsView
             jobs={myJobs}

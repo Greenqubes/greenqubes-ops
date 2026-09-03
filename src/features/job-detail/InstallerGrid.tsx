@@ -2,7 +2,10 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
+import { t } from '@/lib/i18n'
+import { LinkDot, DriverChip, UserMetaLine } from '@/components/UserMetaLine'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
+import type { LangCode } from '@/lib/i18n'
 
 const AVATAR_COLORS = [
   '#5C7A6B', '#7A6B8A', '#6B7A8A', '#8A6B6B',
@@ -20,6 +23,7 @@ export type InstallerCardState = 'none' | 'suggested' | 'assigned'
 
 interface Props {
   installers:   InstallerUser[]
+  lang:         LangCode
   stateOf:      (id: string) => InstallerCardState
   /** Omit to render the grid read-only (no clicks). */
   onToggle?:    (id: string) => void
@@ -29,7 +33,7 @@ interface Props {
   noteOf?:      (id: string) => string | null
 }
 
-export function InstallerGrid({ installers, stateOf, onToggle, disabledOf, noteOf }: Props) {
+export function InstallerGrid({ installers, lang, stateOf, onToggle, disabledOf, noteOf }: Props) {
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
   const gridReadOnly = !onToggle
@@ -59,20 +63,15 @@ export function InstallerGrid({ installers, stateOf, onToggle, disabledOf, noteO
             const locked   = gridReadOnly || (disabledOf?.(inst.id) ?? false)
             const color    = AVATAR_COLORS[i % AVATAR_COLORS.length]
             const note     = noteOf?.(inst.id) ?? null
-            const meta     = [
-              inst.role,
-              inst.years_experience ? `${inst.years_experience}y` : null,
-              inst.skills?.length ? inst.skills.join(', ') : null,
-            ].filter(Boolean).join(' · ')
 
             const nameColor =
               st === 'assigned'  ? 'text-brand-green' :
               st === 'suggested' ? 'text-amber-700'   :
               'text-ink'
-            const metaColor =
-              st === 'assigned'  ? 'text-brand-green/70' :
-              st === 'suggested' ? 'text-amber-600'      :
-              'text-muted'
+            const chipClass =
+              st === 'assigned'  ? 'text-brand-green border-brand-green/30 bg-transparent' :
+              st === 'suggested' ? 'text-amber-700 border-amber-300 bg-transparent'        :
+              'text-muted bg-bg border-line'
 
             return (
               <button
@@ -101,12 +100,15 @@ export function InstallerGrid({ installers, stateOf, onToggle, disabledOf, noteO
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-semibold truncate', nameColor)}>
-                    {inst.name}
+                  <p className={cn('text-sm font-semibold truncate flex items-center gap-1.5', nameColor)}>
+                    <LinkDot status={inst.link_status} />
+                    <span className="truncate">{inst.name}</span>
+                    {inst.is_driver && <DriverChip label={t(lang, 'metaDriver')} />}
                   </p>
-                  {meta && (
-                    <p className={cn('text-[11px] truncate', metaColor)}>{meta}</p>
-                  )}
+                  <UserMetaLine
+                    user={{ role: inst.role, subrole: inst.subrole, qualifications: inst.qualifications }}
+                    chipClass={chipClass}
+                  />
                   {note && (
                     <p className="text-[11px] truncate text-amber-600 mt-0.5">{note}</p>
                   )}

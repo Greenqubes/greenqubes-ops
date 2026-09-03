@@ -30,7 +30,15 @@ export async function PATCH(
       digest_subscriber: boolean
       lang:              LangCode
       phone:             string | null
+      name:              string
+      email:             string | null
+      subrole:           string | null
+      is_driver:         boolean
+      qualifications:    string[]
     }>
+    if (typeof patch.name === 'string' && !patch.name.trim()) {
+      return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 })
+    }
     await updateUser(id, patch)
     return NextResponse.json({ ok: true })
   } catch (err) {
