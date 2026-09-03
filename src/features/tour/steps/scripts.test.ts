@@ -22,6 +22,7 @@ assert('outro is account → telegram → done',
   outroSteps.map(s => s.id).join(',') === 'account,telegram,done')
 
 const entries = Object.entries(TOUR_SCRIPTS)
+assert('at least one script registered', entries.length > 0)
 
 for (const [role, steps] of entries) {
   if (!steps) continue
