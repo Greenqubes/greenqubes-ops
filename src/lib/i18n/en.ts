@@ -506,6 +506,22 @@ export const en = {
   tourAssignBody: 'Tap a job row to open the assignment panel: confirm suggestions, add installers, then Save & Notify — Telegram tells everyone involved.',
   tourSuggestVsAssignTitle: 'Yellow vs green',
   tourSuggestVsAssignBody: 'Sales and coordinators suggest installers (yellow). Only your formal assignment turns them green — installers only ever see green.',
+  tourCoordinatorIntroTitle: 'Your role: Coordinator',
+  tourCoordinatorIntroBody: 'You create and push jobs like sales, and coordinate the jobs you\'re assigned to.',
+  tourCoordPendingTitle: 'Pending jobs you share',
+  tourCoordPendingBody: 'You see pending jobs you created, plus ones whose sales person added you as coordinator.',
+  tourCoordSuggestTitle: 'Suggesting installers',
+  tourCoordSuggestBody: 'You suggest installers (yellow); the scheduler makes the formal assignment (green).',
+  tourInstallerIntroTitle: 'Your role: Installer',
+  tourInstallerIntroBody: 'My Jobs shows every job assigned to you — and only yours.',
+  tourInstallerTabsTitle: 'Today, up next, this week',
+  tourInstallerTabsBody: 'Three tabs sort your jobs by when they happen. Today is what needs doing now.',
+  tourInstallerJobTitle: 'Inside a job',
+  tourInstallerJobBody: 'Open a job to see the address, time, a task list to tick off, and where to upload photos and the signed DO.',
+  tourInstallerChatTitle: 'Job chat',
+  tourInstallerChatBody: 'Every job has its own chat — text, photos and voice notes. The office sees what you post.',
+  tourInstallerPhotosTitle: 'Completion photos',
+  tourInstallerPhotosBody: 'A job can only be marked complete with photos uploaded. Take them before you leave the site.',
 }
 
 export type Translations = typeof en
