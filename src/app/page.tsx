@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import SignOutButton from '@/components/SignOutButton'
 import { en } from '@/lib/i18n/en'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { roleHome } from '@/lib/utils/roleHome'
 import type { Role } from '@/lib/supabase/types'
 
 const roleColor: Record<string, string> = {
@@ -26,8 +27,7 @@ export default async function Home() {
 
   if (profile) {
     const effectiveRole = await getEffectiveRole(profile.role)
-    if (effectiveRole === 'installer') redirect('/installer')
-    if (['sales', 'scheduler', 'designer', 'coordinator', 'production'].includes(effectiveRole)) redirect('/schedule')
+    if (effectiveRole !== 'admin') redirect(roleHome(effectiveRole))
   }
 
   return (
