@@ -8,6 +8,12 @@ _Last updated: 2026-09-03 (infra-perf — **page speed fixed, live on production
 
 ## Pending — Next Session
 
+### Provisioning overhaul (from 2026-09-04, feat-provision-organisation — launch-day build)
+
+- [ ] **Run `npx supabase db push` for migration 0052 BEFORE the code deploys** — subrole / Driver / qualifications columns + the self-edit guard. Renumbered from 0051 (taken by V3's project migration, already applied).
+- [ ] **Drop `users.years_experience` + `users.skills` columns** — hidden from every screen 2026-09-04 (your call: redundant); needs a small migration + type cleanup in a quiet session. Claude's memory also holds this reminder.
+- [ ] **Bengali note:** the Support crew bucket still shows the old "সাব-ইনস্টলার" (Sub-installer) label — bn is frozen (boss decision), so it was left untouched. Say the word if that one label should be updated as an exception.
+
 ### Workflow V3 — project containers (from 2026-09-02, feat-workflow-v3)
 
 - [ ] **Round 2 build — next session:** collapsible project folders on the schedule (green ring, split punctuality stripe, date ranges, "x / N done"), completed jobs staying in their day under the grey veil, All / Scheduled / Pending / Completed filter chips replacing the Pending + Completed tabs, your pending-privacy rule enforced at the database layer (with the two-login leak test), and the sort & filter dropdown. The plan gets written from the approved spec at session start.

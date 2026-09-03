@@ -51,7 +51,10 @@ can start on day one.
 8. **Design Load board bars** — deliberately skipped (tiny chart labels, no room). Everything else
    card-shaped gains the new info; dropdown pickers and their selected pills deliberately excluded.
 
-## Data model — migration `0051_user_subrole_driver_qualifications.sql`
+## Data model — migration `0052_user_subrole_driver_qualifications.sql`
+
+> Renumbered from 0051 on 2026-09-04: feat-workflow-v3's `0051_job_projects.sql`
+> is already applied to the shared DB (additive-only, branch unmerged).
 
 ```sql
 alter table users add column if not exists subrole text;                          -- nullable, one label

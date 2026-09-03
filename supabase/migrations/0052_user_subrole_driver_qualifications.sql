@@ -1,4 +1,7 @@
--- 0051_user_subrole_driver_qualifications.sql
+-- 0052_user_subrole_driver_qualifications.sql
+-- (0051 is taken: feat-workflow-v3's 0051_job_projects.sql is already applied
+-- to the shared DB even though that branch hasn't merged — same-number
+-- migrations are silently skipped by db push, the 0015→0031 lesson.)
 -- Provisioning overhaul (2026-09-03): subrole label, Driver flag, qualification
 -- tags on users. Labels only — no permission impact; the 7-role model is untouched.
 -- Also extends the 0044 privileged-column guard: these are admin-managed facts
