@@ -1062,7 +1062,7 @@ git commit -m "feat(tour): shared steps, script validation suite, shared copy"
 | `tourNewJobTitle` | `Creating a job` | `创建工作` |
 | `tourNewJobBody` | `This button opens the New Job form. Let's have a look.` | `这个按钮打开新建工作表单。我们去看看。` |
 | `tourJobFormTitle` | `The job form` | `工作表单` |
-| `tourJobFormBody` | `Details holds the client, date, time and location. Fill what you know — most fields are optional.` | `"详情"包含客户、日期、时间和地点。填写你知道的即可——大多数栏位是选填的。` |
+| `tourJobFormBody` | `Details holds the client, date, time and location — everything the team needs to schedule the job.` | `"详情"包含客户、日期、时间和地点——团队排程所需的信息都在这里。` |
 | `tourJobTeamTitle` | `Team & installers` | `团队与安装人员` |
 | `tourJobTeamBody` | `Pick installers here. Yellow = your suggestion; the scheduler confirms it to green. You can also assign a designer.` | `在这里选择安装人员。黄色＝你的建议；排程确认后变绿色。你也可以指派设计师。` |
 | `tourJobActionsTitle` | `Push to Schedule` | `推送到日程` |
