@@ -3,6 +3,7 @@ import { createClient }                           from '@/lib/supabase/server'
 import { createServiceClient }                    from '@/lib/supabase/service'
 import { getUsageSummary, getUnusualActivity,
          getLastEventTime, type HealthCheck }     from '@/lib/supabase/queries/admin'
+import { cronFreshness }                          from '@/lib/utils/cron-health'
 
 async function guardAdmin(): Promise<boolean> {
   const supabase = await createClient()
@@ -53,16 +54,14 @@ async function checkLastSync(): Promise<HealthCheck> {
   }
 }
 
-async function checkLastOverdueCron(): Promise<HealthCheck> {
-  const ts = await getLastEventTime('overdue_check')
-  if (!ts) return { label: 'Overdue cron', status: 'unknown', detail: 'No cron run recorded yet' }
-  const age = Date.now() - new Date(ts).getTime()
-  const hrs = Math.floor(age / 3_600_000)
-  if (hrs > 4) return { label: 'Overdue cron', status: 'warn', detail: `Last run ${hrs}h ago (expected every 2h)` }
+async function checkLastCron(label: string, eventKind: string, maxGapHours: number, expectation: string): Promise<HealthCheck> {
+  const ts  = await getLastEventTime(eventKind)
+  const res = cronFreshness(ts, new Date().toISOString(), maxGapHours, expectation)
+  if (res.status !== 'ok') return { label, status: res.status, detail: res.detail }
   return {
-    label:  'Overdue cron',
+    label,
     status: 'ok',
-    detail: `Last run ${new Date(ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })} SGT`,
+    detail: `Last run ${new Date(res.lastRunISO).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })} SGT`,
   }
 }
 
@@ -92,7 +91,9 @@ export async function GET(req: NextRequest) {
       checkTelegramBot('Telegram digest bot', 'TELEGRAM_DIGEST_BOT_TOKEN'),
       checkTelegramBot('Telegram bugs bot',   'TELEGRAM_BUG_BOT_TOKEN'),
       checkLastSync(),
-      checkLastOverdueCron(),
+      // Longest normal gap is 15h (6pm → next 9am); only a longer silence warns.
+      checkLastCron('Overdue cron', 'overdue_check',     16, 'runs twice daily, 9am + 6pm SGT'),
+      checkLastCron('Design cron',  'design_daily_cron', 26, 'runs daily, 8:30am SGT'),
     ]),
     getUsageSummary(windowSince(window)),
     getUnusualActivity(7),

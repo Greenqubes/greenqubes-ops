@@ -1,0 +1,688 @@
+<title>Multi-Store Jobs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F4F1EC; --paper: #FFFFFF; --ink: #1A1815; --ink2: #5C564E; --muted: #8B8478; --line: #E8E2D7;
+    --accent: #5A801F; --accent-soft: #EEF3E3; --lime: #91C740; --slate: #6C747C; --sand: #A9852F; --sand-soft: #F5EEDC;
+    --strict: #D14545; --strict-soft: #FBE9E9; --flex: #3D6FB5; --flex-soft: #E6EEF9; --group: #ECE8E0; --frame: #DDD6CA;
+    --overlay: rgba(139,132,120,0.75); --scrim: rgba(26,24,21,0.4); --shadow: 0 10px 30px rgba(26,24,21,0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1C1A17; --paper: #26231F; --ink: #F1ECE4; --ink2: #CBC3B7; --muted: #948C80; --line: #3A3530;
+      --accent: #8DBA4A; --accent-soft: #2C3520; --lime: #A5D45C; --slate: #A0A8B0; --sand: #D1A94A; --sand-soft: #3A3220;
+      --strict: #E06060; --strict-soft: #3D2626; --flex: #6C97D8; --flex-soft: #22303F; --group: #2E2A25; --frame: #4A443C;
+      --overlay: rgba(60,56,50,0.78); --scrim: rgba(0,0,0,0.5); --shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1C1A17; --paper: #26231F; --ink: #F1ECE4; --ink2: #CBC3B7; --muted: #948C80; --line: #3A3530;
+    --accent: #8DBA4A; --accent-soft: #2C3520; --lime: #A5D45C; --slate: #A0A8B0; --sand: #D1A94A; --sand-soft: #3A3220;
+    --strict: #E06060; --strict-soft: #3D2626; --flex: #6C97D8; --flex-soft: #22303F; --group: #2E2A25; --frame: #4A443C;
+    --overlay: rgba(60,56,50,0.78); --scrim: rgba(0,0,0,0.5); --shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; }
+  svg { display: inline-block; vertical-align: middle; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .page { max-width: 1240px; margin: 0 auto; padding: 36px 20px 64px; }
+  .intro { max-width: 62ch; margin-bottom: 28px; }
+  .intro h1 { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 30px; margin: 0 0 8px; text-wrap: balance; letter-spacing: -0.01em; }
+  .intro p { margin: 0 0 6px; color: var(--ink2); }
+  .intro .hint { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 12px; }
+  .changes { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; color: var(--ink2); }
+  .changes li::before { content: "—"; color: var(--accent); margin-right: 8px; }
+
+  .screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; align-items: start; }
+  .screen { display: flex; flex-direction: column; gap: 12px; }
+  .screen.wide { grid-column: 1 / -1; }
+  .screen h2 { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 18px; margin: 0; }
+  .screen .who { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .screen p.note { margin: 0; font-size: 13px; color: var(--ink2); max-width: 60ch; }
+  .demo { display: flex; gap: 6px; flex-wrap: wrap; }
+  .demo button { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); color: var(--ink2); }
+  .demo button:hover { border-color: var(--ink2); }
+
+  .phone { width: 100%; max-width: 380px; border: 1px solid var(--frame); border-radius: 28px; background: var(--bg); padding: 10px; }
+  .phone .inner { border-radius: 20px; background: var(--bg); overflow: hidden; border: 1px solid var(--line); position: relative; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--paper); border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 15px; }
+  .brand i { width: 14px; height: 14px; border-radius: 3px; background: var(--lime); display: inline-block; }
+  .brand span { color: var(--slate); font-weight: 500; }
+  .content { padding: 12px 12px 14px; }
+
+  .pagehead { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 2px 10px; }
+  .pagehead h3 { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 20px; margin: 0; }
+  .backlink { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; margin: 2px 2px 6px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; background: var(--group); padding: 3px; border-radius: 10px; }
+  .tabs span { flex: 1; text-align: center; font-size: 12px; font-weight: 500; padding: 6px 0; border-radius: 8px; color: var(--muted); }
+  .tabs span.on { background: var(--paper); color: var(--ink); }
+  .tabs span.off { text-decoration: line-through; opacity: .45; }
+
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .card h4 { margin: 0 0 10px; font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+  .field { margin-bottom: 9px; }
+  .field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
+  .field .val { border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font-size: 13px; color: var(--ink); background: var(--bg); min-height: 32px; }
+  .field .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .punct { display: flex; gap: 6px; }
+  .punct span { flex: 1; text-align: center; font-size: 12px; padding: 6px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); }
+  .punct span.strict { border-color: var(--strict); color: var(--strict); font-weight: 500; }
+  .punct span.none { border-color: var(--ink2); color: var(--ink); font-weight: 500; background: var(--group); }
+
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--ink2); background: none; border: 0; padding: 0; }
+  .toggle .sw { width: 34px; height: 20px; border-radius: 10px; background: var(--line); position: relative; transition: background .15s; }
+  .toggle .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .15s; }
+  .toggle[aria-checked="true"] .sw { background: var(--accent); }
+  .toggle[aria-checked="true"] .sw::after { transform: translateX(14px); }
+  .explain { font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
+
+  .nested { border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: start; }
+  .nested .name { font-weight: 500; font-size: 13px; }
+  .nested .addr { font-size: 12px; color: var(--ink2); }
+  .nested .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; grid-column: 1 / -1; }
+  .nested .x { color: var(--muted); background: none; border: 0; padding: 2px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink2); background: var(--bg); font-variant-numeric: tabular-nums; }
+  .chip.inherit { border-style: dashed; color: var(--muted); }
+  .chip.pending { border-color: var(--sand); color: var(--sand); background: var(--sand-soft); }
+  .chip.sched { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .chip.strict { border-color: var(--strict); color: var(--strict); background: var(--strict-soft); }
+  .chip.flex { border-color: var(--flex); color: var(--flex); background: var(--flex-soft); }
+  .addjob { width: 100%; border: 1px dashed var(--line); background: none; border-radius: 12px; padding: 9px; font-size: 13px; font-weight: 500; color: var(--accent); display: flex; justify-content: center; align-items: center; gap: 6px; }
+  .actionbar { display: flex; gap: 8px; padding: 10px 12px; background: var(--paper); border-top: 1px solid var(--line); }
+  .btn { flex: 1; border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 500; border: 1px solid var(--line); background: var(--paper); color: var(--ink2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .scrim { position: absolute; inset: 0; background: var(--scrim); display: none; z-index: 60; }
+  .scrim[data-open="true"] { display: flex; }
+  .scrim.bottom { align-items: flex-end; }
+  .scrim.center { align-items: center; justify-content: center; padding: 20px; }
+  .sheet { width: 100%; background: var(--paper); border-radius: 18px 18px 0 0; padding: 14px 12px 12px; max-height: 88%; overflow: auto; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 10px; }
+  .sheet h5, .modal h5 { margin: 0 0 8px; font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 15px; }
+  .modal { width: 100%; max-width: 300px; background: var(--paper); border-radius: 18px; border: 1px solid var(--line); padding: 18px 16px 14px; text-align: center; }
+  .modal p { margin: 0 0 14px; font-size: 13px; color: var(--ink2); }
+  .modal .row { display: flex; gap: 8px; }
+  .search { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; font-size: 13px; color: var(--muted); background: var(--bg); margin-bottom: 8px; }
+  .kw { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .kw span { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .kw small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; align-self: center; }
+  .match { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+  .match .t { font-size: 13px; font-weight: 500; }
+  .match .s { font-size: 11px; color: var(--muted); display: flex; gap: 8px; margin-top: 2px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+  .match .s .warn { color: var(--sand); }
+  .match button { font-size: 12px; font-weight: 500; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 999px; padding: 4px 10px; flex-shrink: 0; }
+  .match button.done { color: var(--muted); background: var(--bg); border-color: var(--line); }
+  .newhere { margin-top: 10px; width: 100%; border: 1px dashed var(--line); background: none; border-radius: 12px; padding: 9px; font-size: 13px; font-weight: 500; color: var(--ink2); display: flex; justify-content: center; align-items: center; gap: 6px; }
+  .result-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .result-head .big { font-family: "Fraunces", Georgia, serif; font-size: 22px; font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .result-head .txt { font-size: 13px; color: var(--ink2); }
+  .result-sub { font-size: 12px; color: var(--sand); font-weight: 500; margin: 10px 0 2px; }
+
+  .strip { display: flex; gap: 4px; margin-bottom: 8px; }
+  .strip .d { flex: 1; text-align: center; border-radius: 10px; padding: 6px 0 4px; font-size: 11px; color: var(--muted); border: 1px solid transparent; }
+  .strip .d b { display: block; font-size: 15px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .strip .d.on { background: var(--paper); border-color: var(--line); }
+  .strip .d.on b { color: var(--accent); }
+  .strip .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--strict); margin: 3px auto 0; }
+  .filters { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+  .filters .f { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink2); background: var(--paper); }
+  .filters .f.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .filters .f i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+  .filters .f.on i { background: var(--paper) !important; }
+  .legend { display: flex; gap: 12px; font-size: 10px; color: var(--muted); margin: 0 2px 8px; }
+  .legend i { display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 4px; }
+
+  .job { display: flex; gap: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 8px; position: relative; }
+  .job .bar { width: 5px; border-radius: 3px; flex-shrink: 0; }
+  .job .bar.strict { background: var(--strict); } .job .bar.flex { background: var(--flex); }
+  .job .body { flex: 1; min-width: 0; }
+  .job .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .job .title { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 15px; line-height: 1.25; }
+  .job .time { text-align: right; flex-shrink: 0; }
+  .job .time small { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .job .time b { display: block; font-size: 14px; font-weight: 500; color: var(--ink2); font-variant-numeric: tabular-nums; }
+  .job .time b.day { color: var(--accent); }
+  .job .time b.inherit { color: var(--muted); font-weight: 400; }
+  .job .meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .job .team { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; gap: 8px; }
+  .job.pending { border-style: dashed; }
+  .job.done { border-style: dotted; border-color: var(--muted); }
+  .job.done .bar { background: var(--muted); }
+  .job.done .veil { position: absolute; inset: 0; border-radius: 13px; background: var(--overlay); display: grid; place-items: center; font-family: "Fraunces", Georgia, serif; font-size: 15px; font-weight: 500; letter-spacing: .04em; color: #fff; transition: opacity .15s; }
+  .job.done:hover .veil, .job.done:focus-within .veil { opacity: 0; pointer-events: none; }
+
+  /* Project folder — green ring + side stripe */
+  .group { background: var(--paper); border: 1.5px solid var(--accent); border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
+  .group > button.head { width: 100%; text-align: left; background: var(--group); border: 0; padding: 12px 12px 12px 10px; display: flex; gap: 8px; align-items: stretch; color: var(--ink); }
+  .group .side { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+  .group .chev { transition: transform .15s; color: var(--ink2); margin-top: 2px; }
+  .group[data-open="true"] .chev { transform: rotate(90deg); }
+  .group .stripe { width: 5px; flex: 1; border-radius: 3px; background: var(--strict); min-height: 28px; }
+  .group .stripe.flex { background: var(--flex); }
+  .group .stripe.mixed { background: linear-gradient(to bottom, var(--strict) 0 50%, var(--flex) 50% 100%); }
+  .group .gtitle { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 15px; line-height: 1.25; display: flex; align-items: center; gap: 6px; }
+  .group .gtitle svg { color: var(--accent); flex-shrink: 0; }
+  .group .gsub { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+  .group .count { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .group .ranges { font-size: 11px; color: var(--ink2); margin-top: 5px; font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+  .group .ranges span { background: var(--paper); border: 1px solid var(--line); padding: 1px 7px; border-radius: 999px; }
+  .group .pill { margin-left: auto; flex-shrink: 0; align-self: flex-start; font-size: 10px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .group .kids { display: none; padding: 8px; border-top: 1px solid var(--line); }
+  .group[data-open="true"] .kids { display: block; }
+  .group .kids .job { margin-left: 14px; margin-bottom: 6px; }
+  .group .kids .job::before { content: ""; position: absolute; left: -14px; top: 50%; width: 10px; height: 1px; background: var(--line); }
+  .group .kids .job:last-child { margin-bottom: 0; }
+
+  /* ── Notion-style month ── */
+  .monthwrap { overflow-x: auto; padding-bottom: 8px; }
+  .month { min-width: 720px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; position: relative; }
+  .month .mhead { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .month .mhead h3 { font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 18px; margin: 0; }
+  .month .mhead .nav { display: flex; gap: 6px; }
+  .month .mhead .nav span { font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink2); }
+  .month .mhead .nav span.today { color: var(--sand); border-color: var(--sand); font-weight: 500; }
+  .month .dow { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); }
+  .month .dow div { padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .month .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .month .cell { min-height: 108px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px; display: flex; flex-direction: column; gap: 3px; position: relative; }
+  .month .cell:nth-child(7n) { border-right: 0; }
+  .month .cell.out { background: var(--bg); }
+  .month .cell.out .num { color: var(--muted); opacity: .6; }
+  .month .num { font-size: 12px; font-weight: 500; color: var(--ink2); font-variant-numeric: tabular-nums; margin-bottom: 2px; display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 50%; }
+  .month .cell.today .num { background: var(--sand); color: #fff; }
+  .month .cell.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .ev { position: relative; display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1.2; padding: 3px 6px 3px 9px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); background: var(--group); border: 1px solid transparent; text-align: left; width: 100%; }
+  .ev::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--muted); }
+  .ev.strict { background: var(--strict-soft); } .ev.strict::before { background: var(--strict); }
+  .ev.flex { background: var(--flex-soft); } .ev.flex::before { background: var(--flex); }
+  .ev.mixed { background: var(--group); } .ev.mixed::before { background: linear-gradient(to bottom, var(--strict) 0 50%, var(--flex) 50% 100%); }
+  .ev.proj { border-color: var(--accent); cursor: pointer; }
+  .ev.done { background: var(--group); color: var(--muted); } .ev.done::before { background: var(--line); }
+  .ev .t { overflow: hidden; text-overflow: ellipsis; }
+  .ev .cnt { font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .ev .tm, .ev .dy { color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; margin-left: auto; }
+  .ev .dy { color: var(--accent); font-weight: 500; }
+  .ev .fold { width: 10px; height: 10px; flex-shrink: 0; color: var(--accent); }
+  .more { font-size: 10px; color: var(--muted); padding-left: 6px; }
+  /* floating project pop-out (like the Design Load bubbles) */
+  .pop { display: none; position: absolute; left: 4px; right: -140px; top: calc(100% + 4px); z-index: 60; background: var(--paper); border: 1.5px solid var(--accent); border-radius: 12px; box-shadow: var(--shadow); padding: 10px; font-size: 12px; white-space: normal; text-align: left; }
+  .pop[data-open="true"] { display: block; }
+  .pop h6 { margin: 0 0 2px; font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 13px; }
+  .pop .sub { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+  .pop .r { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); }
+  .pop .r .n { font-weight: 500; }
+  .pop .r .n i { display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 6px; }
+  .pop .r .m { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .pop .r.done .n { color: var(--muted); }
+  .pop .open { margin-top: 8px; font-size: 11px; font-weight: 500; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 999px; padding: 4px 10px; }
+  .cell:nth-child(7n) .pop, .cell:nth-child(7n-1) .pop { left: -140px; right: 4px; }
+  .pop.up { top: auto; bottom: calc(100% + 4px); }
+  .pop .r.link { cursor: pointer; }
+  .pop .r.link:hover .n { color: var(--accent); }
+  .popmodal { width: 100%; max-width: 280px; background: var(--paper); border: 1.5px solid var(--accent); border-radius: 14px; padding: 14px 12px 12px; text-align: left; font-size: 12px; box-shadow: var(--shadow); }
+  .popmodal h6 { margin: 0 0 2px; font-family: "Fraunces", Georgia, serif; font-weight: 500; font-size: 14px; }
+  .popmodal .sub { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+  .popmodal .r { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); align-items: center; }
+  .popmodal .r .n { font-weight: 500; }
+  .popmodal .r .n i { display: inline-block; width: 6px; height: 6px; border-radius: 2px; margin-right: 6px; }
+  .popmodal .r .m { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+  .popmodal .r.done .n { color: var(--muted); }
+  .popmodal .r .go { color: var(--muted); flex-shrink: 0; }
+  /* phone compaction */
+  .phone .month { min-width: 0; border: 0; border-radius: 0; }
+  .phone .month .mhead { padding: 8px 4px; }
+  .phone .month .cell { min-height: 74px; padding: 3px 2px; gap: 2px; }
+  .phone .month .num { width: 18px; height: 18px; font-size: 11px; }
+  .phone .month .dow div { padding: 4px 2px; font-size: 9px; text-align: center; }
+  .phone .ev { font-size: 9px; padding: 2px 3px 2px 6px; gap: 3px; border-radius: 4px; }
+  .phone .ev::before { width: 2px; }
+  .phone .ev .tm, .phone .ev .fold { display: none; }
+  .phone .more { font-size: 9px; padding-left: 3px; }
+  .phone .pop { left: 0; right: -80px; }
+  .phone .cell:nth-child(7n) .pop, .phone .cell:nth-child(7n-1) .pop, .phone .cell:nth-child(7n-2) .pop { left: -120px; right: 0; }
+
+  @media (prefers-reduced-motion: reduce) { .toggle .sw, .toggle .sw::after, .group .chev, .job.done .veil { transition: none; } }
+</style>
+
+<div class="page">
+  <div class="intro">
+    <h1>Multi-store jobs — the simple version, round 4</h1>
+    <p>A project is a container with labels. It copies nothing. Jobs keep their own forms; the container just groups them.</p>
+    <ul class="changes">
+      <li>Round 4: project folders get a <strong>green ring</strong> + a side <strong>punctuality stripe</strong> (split when mixed) — list and month</li>
+      <li>Round 4: month project pill opens a <strong>floating pop-out</strong> (no giant cells); finished jobs go grey, not struck out</li>
+      <li>Round 4: <strong>completed jobs stay in the day</strong> under the veil; one Schedule page with an All / Scheduled / Pending / Completed filter — the Completed (and Pending) tabs retire</li>
+      <li>Round 4: project punctuality is only a <strong>default for new jobs</strong>, unset by default — every job keeps its own</li>
+    </ul>
+    <p class="hint">Everything grey, green-ringed or dashed is tappable — try the demo buttons and the month pills</p>
+  </div>
+
+  <div class="screens">
+
+    <!-- ───────────── Screen 1: New Project ───────────── -->
+    <section class="screen">
+      <div>
+        <div class="who">Screen 1 · Sales / Scheduler / Coordinator</div>
+        <h2>New Project — the job form with the switch on</h2>
+      </div>
+      <div class="phone"><div class="inner">
+        <div class="topbar"><div class="brand"><i></i>Green<span>Qubes</span></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <div class="content">
+          <div class="backlink"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to Schedule</div>
+          <div class="pagehead"><h3 id="heading">New Project</h3></div>
+          <div class="tabs"><span class="on">Details</span><span class="off" id="tabTeam">Team</span><span>Files</span><span class="off" id="tabChat">Chat</span></div>
+
+          <div class="card">
+            <h4>Details</h4>
+            <div class="field"><label>Project title</label><div class="val">ABC Project — Visual Refresh</div></div>
+            <div class="field"><label>Client</label><div class="val">Luxottica</div></div>
+            <div class="field"><label>Description</label><div class="val">Replace window graphics + lightbox inserts across all outlets.</div></div>
+            <div class="row2">
+              <div class="field"><label>Start time</label><div class="val">09:00</div></div>
+              <div class="field"><label>End time</label><div class="val">13:00</div></div>
+            </div>
+            <div class="field" style="margin-top:-4px"><div class="sub">Project timing — used for nested jobs that have no time of their own.</div></div>
+            <div class="field"><label>Default punctuality for new jobs</label><div class="punct"><span class="none">Not set</span><span>Strict</span><span>Flexible</span></div><div class="sub">Only pre-fills jobs created inside this project. Every job keeps its own punctuality — the folder shows the mix.</div></div>
+          </div>
+
+          <div class="card">
+            <h4>Multiple jobs
+              <button class="toggle" id="storesToggle" role="switch" aria-checked="true" aria-label="This is a project holding multiple jobs"><span class="sw"></span></button>
+            </h4>
+            <div id="storesBody">
+              <p class="explain">A container with labels. Nothing is copied — nest jobs here and they fold under this project on the schedule.</p>
+              <div class="nested">
+                <div><div class="name">ABC Project — Jurong Point</div><div class="addr">1 Jurong West Central 2, #01-22</div></div>
+                <button class="x" type="button" aria-label="Remove from project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                <div class="meta"><span class="chip">15/09/2026</span><span class="chip">09:00 – 13:00 · own time</span><span class="chip strict">Strict</span><span class="chip sched">Scheduled</span></div>
+              </div>
+              <div class="nested">
+                <div><div class="name">ABC Project — VivoCity</div><div class="addr">1 HarbourFront Walk, #02-118</div></div>
+                <button class="x" type="button" aria-label="Remove from project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                <div class="meta"><span class="chip">15/09 – 16/09/2026</span><span class="chip inherit">project timing</span><span class="chip flex">Flexible</span><span class="chip sched">Scheduled</span></div>
+              </div>
+              <div class="nested">
+                <div><div class="name">ABC Project — Tampines Mall</div><div class="addr">4 Tampines Central 5, #01-30</div></div>
+                <button class="x" type="button" aria-label="Remove from project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                <div class="meta"><span class="chip">23/09/2026</span><span class="chip inherit">project timing</span><span class="chip strict">Strict</span><span class="chip pending">Pending</span></div>
+              </div>
+              <button class="addjob" type="button" id="addJobBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add job</button>
+            </div>
+          </div>
+        </div>
+        <div class="actionbar"><button class="btn" type="button">Save project</button><button class="btn primary" type="button" id="pushBtn">Push to schedule</button></div>
+
+        <div class="scrim bottom" id="picker" data-open="false">
+          <div class="sheet" role="dialog" aria-label="Add job to project">
+            <div class="grab"></div>
+            <h5>Add job to ABC Project</h5>
+            <div class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Search pending, scheduled and completed jobs…</div>
+            <div class="kw"><small>Matching</small><span>ABC Project</span><span>Luxottica</span><span>Visual Refresh</span></div>
+            <div class="match"><div><div class="t">ABC Project — Bugis Junction</div><div class="s"><span>Pending</span><span>24/09/2026</span><span>Luxottica</span></div></div><button type="button">Nest</button></div>
+            <div class="match"><div><div class="t">ABC Project — Raffles City</div><div class="s"><span>Scheduled</span><span>25/09/2026</span><span>Luxottica</span></div></div><button type="button">Nest</button></div>
+            <div class="match"><div><div class="t">ABC Project — Westgate</div><div class="s"><span>Completed</span><span>10/09/2026</span><span>Luxottica</span></div></div><button type="button">Nest</button></div>
+            <div class="match"><div><div class="t">ABC Project — Jurong Point</div><div class="s"><span>Scheduled</span><span>15/09/2026</span><span>already in this project</span></div></div><button type="button" class="done" disabled>Nested</button></div>
+            <button class="newhere" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New job in this project</button>
+            <button class="btn" type="button" data-close="picker" style="margin-top:10px;width:100%">Done</button>
+          </div>
+        </div>
+        <div class="scrim center" id="emptyPrompt" data-open="false">
+          <div class="modal" role="dialog" aria-label="This project has no jobs yet">
+            <h5>This project has no jobs yet</h5>
+            <p>Add existing jobs with <strong>+ Add job</strong>, or create one inside this project. Then push.</p>
+            <div class="row"><button class="btn" type="button" data-close="emptyPrompt">Close</button><button class="btn primary" type="button" id="promptAdd">Add job</button></div>
+          </div>
+        </div>
+        <div class="scrim bottom" id="pushResult" data-open="false">
+          <div class="sheet" role="dialog" aria-label="Push result">
+            <div class="grab"></div>
+            <div class="result-head"><span class="big">13 / 15</span><span class="txt">jobs pushed to the schedule.<br>Schedulers notified once for the project.</span></div>
+            <div class="result-sub">2 jobs need a look — they stay pending:</div>
+            <div class="match"><div><div class="t">ABC Project — Jurong Point</div><div class="s"><span class="warn">Clash: Ravi 09:00–13:00 (Fossil pop-up)</span></div></div><button type="button">Open</button></div>
+            <div class="match"><div><div class="t">ABC Project — Bugis Junction</div><div class="s"><span class="warn">Travel warning: Kai back-to-back</span></div></div><button type="button">Open</button></div>
+            <p style="font-size:11px;color:var(--muted);margin:10px 0 0">Open each one and resolve it the usual way — Notify Scheduler or Push Anyways.</p>
+            <button class="btn" type="button" data-close="pushResult" style="margin-top:10px;width:100%">Done</button>
+          </div>
+        </div>
+      </div></div>
+      <div class="demo">
+        <button type="button" data-open="emptyPrompt">Show: push with no jobs</button>
+        <button type="button" data-open="pushResult">Show: push result with clashes</button>
+        <button type="button" data-open="picker">Show: + Add job picker</button>
+      </div>
+      <p class="note"><strong>Punctuality</strong> on the project is now just a default for jobs created inside it, and it starts unset — nested jobs never change, each keeps its own, and the folder's side stripe shows the mix. <strong>Push to schedule</strong> pushes every nested pending job; empty project → the prompt; clashes handled per job as today.</p>
+    </section>
+
+    <!-- ───────────── Screen 2: Schedule list ───────────── -->
+    <section class="screen">
+      <div>
+        <div class="who">Screen 2 · Office roles</div>
+        <h2>Schedule — one page, a filter, folders with a green ring</h2>
+      </div>
+      <div class="phone"><div class="inner">
+        <div class="topbar"><div class="brand"><i></i>Green<span>Qubes</span></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <div class="content">
+          <div class="pagehead"><h3>Schedule</h3><span style="font-size:12px;color:var(--muted)">September 2026</span></div>
+          <div class="strip">
+            <div class="d">Mon<b>14</b></div>
+            <div class="d on">Tue<b>15</b><i class="dot"></i></div>
+            <div class="d">Wed<b>16</b><i class="dot"></i></div>
+            <div class="d">Thu<b>17</b></div>
+            <div class="d">Fri<b>18</b></div>
+            <div class="d">Sat<b>19</b></div>
+            <div class="d">Sun<b>20</b></div>
+          </div>
+          <div class="filters" id="filters">
+            <button class="f on" type="button" data-f="all">All</button>
+            <button class="f" type="button" data-f="scheduled"><i style="background:var(--accent)"></i>Scheduled</button>
+            <button class="f" type="button" data-f="pending"><i style="background:var(--sand)"></i>Pending</button>
+            <button class="f" type="button" data-f="done"><i style="background:var(--muted)"></i>Completed</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--strict)"></i>Strict on-time</span><span><i style="background:var(--flex)"></i>Flexible window</span></div>
+
+          <div id="dayList">
+          <div class="group" id="grp1" data-open="true" data-st="mixed">
+            <button class="head" type="button" aria-expanded="true" aria-controls="grp1kids">
+              <div class="side"><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><div class="stripe mixed"></div></div>
+              <div style="flex:1;min-width:0">
+                <div class="gtitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>ABC Project — Visual Refresh</div>
+                <div class="gsub">Luxottica · 09:00 – 13:00</div>
+                <div class="count">3 jobs today · 15 in this project</div>
+                <div class="ranges"><span>15/9/26 – 19/9/26</span><span>23/9/26 – 26/9/26</span><span>30/9/26 – 1/10/26</span></div>
+              </div>
+              <span class="pill">4 / 15 done</span>
+            </button>
+            <div class="kids" id="grp1kids">
+              <div class="job" data-st="scheduled"><div class="bar strict"></div><div class="body">
+                <div class="top"><div class="title">ABC Project — Jurong Point</div><div class="time"><small>Job time</small><b>09:00 – 13:00</b></div></div>
+                <div class="meta"><span>1 Jurong West Central 2, #01-22</span></div>
+                <div class="team"><span>Installer: Ravi, Ali</span><span>Sales: Nic</span></div>
+              </div></div>
+              <div class="job" data-st="scheduled"><div class="bar flex"></div><div class="body">
+                <div class="top"><div class="title">ABC Project — VivoCity</div><div class="time"><small>Project time</small><b class="inherit">09:00 – 13:00</b><small style="margin-top:3px">Day</small><b class="day">1 / 2</b></div></div>
+                <div class="meta"><span>1 HarbourFront Walk, #02-118</span></div>
+                <div class="team"><span>Installer: Kai</span><span>Sales: Nic</span></div>
+              </div></div>
+              <div class="job done" data-st="done" tabindex="0"><div class="bar strict"></div><div class="body">
+                <div class="top"><div class="title">ABC Project — Westgate</div><div class="time"><small>Job time</small><b>08:00 – 11:00</b></div></div>
+                <div class="meta"><span>3 Gateway Dr, #01-05</span><span>Completed 10:52</span></div>
+                <div class="team"><span>Installer: Ravi, Ali</span><span>Sales: Nic</span></div>
+              </div><div class="veil" aria-hidden="true">Completed</div></div>
+            </div>
+          </div>
+
+          <div class="job done" data-st="done" tabindex="0"><div class="bar strict"></div><div class="body">
+            <div class="top"><div class="title">ASICS — VivoCity window</div><div class="time"><small>Job time</small><b>07:30 – 09:00</b></div></div>
+            <div class="meta"><span>ASICS · 1 HarbourFront Walk, #01-64</span><span>Completed 08:41</span></div>
+            <div class="team"><span>Installer: Ali</span><span>Sales: Nic</span></div>
+          </div><div class="veil" aria-hidden="true">Completed</div></div>
+
+          <div class="job" data-st="scheduled"><div class="bar flex"></div><div class="body">
+            <div class="top"><div class="title">Fossil pop-up counter</div><div class="time"><small>Job time</small><b>All day</b><small style="margin-top:3px">Day</small><b class="day">2 / 3</b></div></div>
+            <div class="meta"><span>Fossil · ION Orchard, B2-14</span></div>
+            <div class="team"><span>Installer: Ravi</span><span>Sales: Sarah</span></div>
+          </div></div>
+
+          <div class="job pending" data-st="pending"><div class="bar strict"></div><div class="body">
+            <div class="top"><div class="title">Aydan Co — lobby signage</div><div class="time"><small>Job time</small><b>14:00 – 16:00</b></div></div>
+            <div class="meta"><span>Aydan Co · 8 Marina View</span><span class="chip pending" style="padding:1px 7px">Pending</span></div>
+            <div class="team"><span>Installer: NIL</span><span>Sales: Nic</span></div>
+          </div></div>
+
+          <div class="group" id="grp2" data-open="false" data-st="scheduled">
+            <button class="head" type="button" aria-expanded="false" aria-controls="grp2kids">
+              <div class="side"><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><div class="stripe flex"></div></div>
+              <div style="flex:1;min-width:0">
+                <div class="gtitle"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>Onitsuka Tiger — Autumn Window</div>
+                <div class="gsub">Onitsuka Tiger · All day</div>
+                <div class="count">1 job today · 4 in this project</div>
+                <div class="ranges"><span>15/9/26 – 17/9/26</span></div>
+              </div>
+              <span class="pill">0 / 4 done</span>
+            </button>
+            <div class="kids" id="grp2kids">
+              <div class="job" data-st="scheduled"><div class="bar flex"></div><div class="body">
+                <div class="top"><div class="title">Onitsuka Tiger — Paragon</div><div class="time"><small>Project time</small><b class="inherit">All day</b></div></div>
+                <div class="meta"><span>290 Orchard Rd, #01-08</span></div>
+                <div class="team"><span>Installer: NIL</span><span>Sales: Sarah</span></div>
+              </div></div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div></div>
+      <p class="note">Projects wear a <strong>green ring</strong> and a folder mark; the side stripe under the arrow shows punctuality — split red/blue when the day's nested jobs are mixed. <strong>Every</strong> finished job — nested or not — stays in its day under the veil (ASICS above). The filter chips do the sorting: tap Completed to see only finished work, Pending for the unpushed. The old Pending and Completed tabs are no longer needed. (Try the chips.)</p>
+    </section>
+
+    <!-- ───────────── Screen 3: Installer ───────────── -->
+    <section class="screen">
+      <div>
+        <div class="who">Screen 3 · Installers</div>
+        <h2>My Jobs — no folding, plain list</h2>
+      </div>
+      <div class="phone"><div class="inner">
+        <div class="topbar"><div class="brand"><i></i>Green<span>Qubes</span></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <div class="content">
+          <div class="pagehead"><h3>My Jobs</h3></div>
+          <div class="tabs"><span class="on">Today</span><span>Up next</span><span>This week</span><span>Completed</span></div>
+          <div class="job"><div class="bar strict"></div><div class="body">
+            <div class="top"><div class="title">ABC Project — Jurong Point</div><div class="time"><small>Job time</small><b>09:00 – 13:00</b></div></div>
+            <div class="meta"><span>1 Jurong West Central 2, #01-22</span></div>
+          </div></div>
+          <div class="job"><div class="bar flex"></div><div class="body">
+            <div class="top"><div class="title">ABC Project — VivoCity</div><div class="time"><small>Job time</small><b>09:00 – 13:00</b><small style="margin-top:3px">Day</small><b class="day">1 / 2</b></div></div>
+            <div class="meta"><span>1 HarbourFront Walk, #02-118</span></div>
+          </div></div>
+          <div class="job"><div class="bar flex"></div><div class="body">
+            <div class="top"><div class="title">Fossil pop-up counter</div><div class="time"><small>Job time</small><b>All day</b><small style="margin-top:3px">Day</small><b class="day">2 / 3</b></div></div>
+            <div class="meta"><span>ION Orchard, B2-14</span></div>
+          </div></div>
+        </div>
+      </div></div>
+      <p class="note">Unchanged: installers see every job they're on, one card each, project name in the title, their own tabs as today.</p>
+    </section>
+
+    <!-- ───────────── Screen 4: Month view (PC) ───────────── -->
+    <section class="screen wide">
+      <div>
+        <div class="who">Screen 4 · Office roles, PC / tablet</div>
+        <h2>Month view — Notion style, tap a project pill for its pop-out</h2>
+      </div>
+      <div class="monthwrap"><div class="month" id="monthPc"></div></div>
+      <p class="note">Project pills carry the green ring and a folder mark; their stripe splits red/blue when that day's nested jobs mix punctuality. <strong>Tap a project pill</strong> — a floating card pops out beside it; the calendar cell itself never grows. The pop-out <strong>always stays fully on screen</strong>: bottom rows open it upward (try ABC on the 23rd or 30th), edge columns shift it inward, and it never slips under the top bar, the bottom nav, or the floating assistant / bug buttons — it layers above them like every overlay in the app. Tap a job row inside → that job's details; "Open in list" → that day unfolded. Finished jobs turn grey with no colour stripe — no strike-through. Tap a single job pill → the job. Tap the day number → that day in the list.</p>
+    </section>
+
+    <!-- ───────────── Screen 5: Month view (phone) ───────────── -->
+    <section class="screen">
+      <div>
+        <div class="who">Screen 5 · The same month view on a phone</div>
+        <h2>Month view — phone</h2>
+      </div>
+      <div class="phone"><div class="inner">
+        <div class="topbar"><div class="brand"><i></i>Green<span>Qubes</span></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <div class="content" style="padding:8px 6px 12px">
+          <div class="month" id="monthPhone"></div>
+        </div>
+        <div class="scrim center" id="phonePop" data-open="false">
+          <div class="popmodal" role="dialog" aria-label="Project jobs">
+            <div id="phonePopBody"></div>
+            <button class="btn" type="button" data-close="phonePop" style="margin-top:10px;width:100%">Close</button>
+          </div>
+        </div>
+      </div></div>
+      <p class="note">On the phone the pop-up <strong>centres on the screen over a darkened background</strong> — same as the Design Load prompts. Tap a project pill ("ABC ×3") → the pop-up; tap a job row inside it → that job's details. Single job pills open the job directly.</p>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    // ── Screen 1 ──
+    var t = document.getElementById('storesToggle');
+    var body = document.getElementById('storesBody');
+    var heading = document.getElementById('heading');
+    var tabTeam = document.getElementById('tabTeam');
+    var tabChat = document.getElementById('tabChat');
+    t.addEventListener('click', function () {
+      var on = t.getAttribute('aria-checked') !== 'true';
+      t.setAttribute('aria-checked', on ? 'true' : 'false');
+      body.hidden = !on;
+      heading.textContent = on ? 'New Project' : 'New job';
+      tabTeam.classList.toggle('off', on);
+      tabChat.classList.toggle('off', on);
+    });
+    function openLayer(id) { document.getElementById(id).setAttribute('data-open', 'true'); }
+    function closeLayer(id) { document.getElementById(id).setAttribute('data-open', 'false'); }
+    document.getElementById('addJobBtn').addEventListener('click', function () { openLayer('picker'); });
+    document.getElementById('pushBtn').addEventListener('click', function () { openLayer('pushResult'); });
+    document.getElementById('promptAdd').addEventListener('click', function () { closeLayer('emptyPrompt'); openLayer('picker'); });
+    document.querySelectorAll('button[data-open]').forEach(function (b) { b.addEventListener('click', function () { openLayer(b.getAttribute('data-open')); }); });
+    document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', function () { closeLayer(b.getAttribute('data-close')); }); });
+    document.querySelectorAll('.scrim').forEach(function (s) { s.addEventListener('click', function (e) { if (e.target === s) s.setAttribute('data-open', 'false'); }); });
+    document.querySelectorAll('.match button:not(.done)').forEach(function (b) {
+      if (b.textContent.trim() === 'Nest') b.addEventListener('click', function () { b.textContent = 'Nested'; b.classList.add('done'); b.disabled = true; });
+    });
+
+    // ── Screen 2: fold + filter ──
+    document.querySelectorAll('.group > button.head').forEach(function (h) {
+      h.addEventListener('click', function () {
+        var g = h.parentElement;
+        var open = g.getAttribute('data-open') !== 'true';
+        g.setAttribute('data-open', open ? 'true' : 'false');
+        h.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+    var filters = document.getElementById('filters');
+    filters.addEventListener('click', function (e) {
+      var b = e.target.closest('.f'); if (!b) return;
+      filters.querySelectorAll('.f').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      var f = b.getAttribute('data-f');
+      document.querySelectorAll('#dayList > .job, #dayList .kids > .job').forEach(function (j) {
+        j.style.display = (f === 'all' || j.getAttribute('data-st') === f) ? '' : 'none';
+      });
+      document.querySelectorAll('#dayList > .group').forEach(function (g) {
+        var any = Array.prototype.some.call(g.querySelectorAll('.kids > .job'), function (j) { return j.style.display !== 'none'; });
+        g.style.display = any ? '' : 'none';
+        if (f !== 'all' && any) { g.setAttribute('data-open', 'true'); g.querySelector('.head').setAttribute('aria-expanded', 'true'); }
+      });
+    });
+
+    // ── Month view ──
+    var P = 'project', J = 'job';
+    var ev = {
+      '2026-09-02': [{k:J, t:'ASICS — VivoCity window', s:'ASICS', p:'strict', tm:'10:00'}],
+      '2026-09-08': [{k:J, t:'Luxottica — Ray-Ban Paragon', s:'Ray-Ban', p:'flex', tm:'All day'}],
+      '2026-09-10': [{k:J, t:'ABC Project — Westgate', s:'ABC Westgate', p:'strict', tm:'08:00', done:true}],
+      '2026-09-14': [{k:J, t:'Fossil pop-up counter', s:'Fossil', p:'flex', tm:'All day', d:'1/3'}],
+      '2026-09-15': [{k:P, t:'ABC Project', s:'ABC', n:3, p:'mixed', tm:'09:00', kids:[
+          {n:'Jurong Point', p:'strict', m:'09:00 – 13:00 · Ravi, Ali'},
+          {n:'VivoCity', p:'flex', m:'09:00 – 13:00 · Kai · Day 1/2'},
+          {n:'Westgate', p:'strict', m:'Completed 10:52', done:true}]},
+        {k:J, t:'Fossil pop-up counter', s:'Fossil', p:'flex', tm:'All day', d:'2/3'},
+        {k:P, t:'Onitsuka Tiger', s:'Onitsuka', n:1, p:'flex', tm:'All day', kids:[{n:'Paragon', p:'flex', m:'All day · NIL'}]}],
+      '2026-09-16': [{k:P, t:'ABC Project', s:'ABC', n:4, p:'strict', tm:'09:00', kids:[
+          {n:'VivoCity', p:'strict', m:'09:00 – 13:00 · Kai · Day 2/2'},{n:'Causeway Point', p:'strict', m:'09:00 – 13:00 · Ravi'},{n:'Northpoint', p:'strict', m:'09:00 – 13:00 · Ali'},{n:'AMK Hub', p:'strict', m:'14:00 – 18:00 · Ravi'}]},
+        {k:J, t:'Fossil pop-up counter', s:'Fossil', p:'flex', tm:'All day', d:'3/3'},
+        {k:P, t:'Onitsuka Tiger', s:'Onitsuka', n:1, p:'flex', tm:'All day', kids:[{n:'Wisma Atria', p:'flex', m:'All day · NIL'}]}],
+      '2026-09-17': [{k:P, t:'ABC Project', s:'ABC', n:2, p:'strict', tm:'09:00', kids:[{n:'Bedok Mall', p:'strict', m:'09:00 – 13:00 · Kai'},{n:'Tampines 1', p:'strict', m:'09:00 – 13:00 · Ali'}]},
+        {k:P, t:'Onitsuka Tiger', s:'Onitsuka', n:2, p:'flex', tm:'All day', kids:[{n:'Jewel', p:'flex', m:'All day'},{n:'Suntec', p:'flex', m:'All day'}]},
+        {k:J, t:'Aydan Co — signage', s:'Aydan', p:'strict', tm:'14:00'}, {k:J, t:'Fossil — counter check', s:'Fossil', p:'flex', tm:'16:00'}],
+      '2026-09-18': [{k:P, t:'ABC Project', s:'ABC', n:3, p:'strict', tm:'09:00', kids:[{n:'Compass One', p:'strict', m:'09:00 – 13:00'},{n:'Waterway Point', p:'strict', m:'09:00 – 13:00'},{n:'Hougang Mall', p:'strict', m:'14:00 – 18:00'}]}],
+      '2026-09-19': [{k:P, t:'ABC Project', s:'ABC', n:3, p:'strict', tm:'09:00', kids:[{n:'Plaza Singapura', p:'strict', m:'09:00 – 13:00'},{n:'Bugis+', p:'strict', m:'09:00 – 13:00'},{n:'City Square', p:'strict', m:'14:00 – 18:00'}]}],
+      '2026-09-21': [{k:J, t:'Fossil — counter removal', s:'Fossil', p:'flex', tm:'All day'}],
+      '2026-09-23': [{k:P, t:'ABC Project', s:'ABC', n:2, p:'strict', tm:'09:00', kids:[{n:'Tampines Mall', p:'strict', m:'09:00 – 13:00'},{n:'Century Square', p:'strict', m:'09:00 – 13:00'}]}],
+      '2026-09-24': [{k:P, t:'ABC Project', s:'ABC', n:2, p:'strict', tm:'09:00', kids:[{n:'Bugis Junction', p:'strict', m:'09:00 – 13:00'},{n:'Raffles City', p:'strict', m:'09:00 – 13:00'}]}, {k:J, t:'Aydan Co — signage', s:'Aydan', p:'strict', tm:'10:00'}],
+      '2026-09-25': [{k:P, t:'ABC Project', s:'ABC', n:2, p:'strict', tm:'09:00', kids:[{n:'Marina Square', p:'strict', m:'09:00 – 13:00'},{n:'Millenia Walk', p:'strict', m:'09:00 – 13:00'}]}],
+      '2026-09-26': [{k:P, t:'ABC Project', s:'ABC', n:2, p:'strict', tm:'09:00', kids:[{n:'Great World', p:'strict', m:'09:00 – 13:00'},{n:'Tiong Bahru Plaza', p:'strict', m:'09:00 – 13:00'}]}],
+      '2026-09-30': [{k:P, t:'ABC Project', s:'ABC', n:1, p:'strict', tm:'09:00', kids:[{n:'Westgate (re-do)', p:'strict', m:'09:00 – 13:00'}]}],
+      '2026-10-01': [{k:P, t:'ABC Project', s:'ABC', n:1, p:'strict', tm:'09:00', kids:[{n:'JEM', p:'strict', m:'09:00 – 13:00'}]}]
+    };
+    var folder = '<svg class="fold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>';
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function rows(e) {
+      var h = '';
+      (e.kids || []).forEach(function (k) {
+        h += '<div class="r link' + (k.done ? ' done' : '') + '" role="button" tabindex="0"><span class="n"><i style="background:' + (k.done ? 'var(--line)' : k.p === 'strict' ? 'var(--strict)' : 'var(--flex)') + '"></i>' + esc(k.n) + '</span><span class="m">' + esc(k.m) + '</span><span class="go">›</span></div>';
+      });
+      return h;
+    }
+    function popHtml(e, dayLabel, up) {
+      var h = '<div class="pop' + (up ? ' up' : '') + '" data-open="false"><h6>' + esc(e.t) + '</h6><div class="sub">' + e.n + ' job' + (e.n > 1 ? 's' : '') + ' on ' + dayLabel + ' · tap a job to open it</div>';
+      h += rows(e);
+      h += '<button class="open" type="button">Open in list</button></div>';
+      return h;
+    }
+    function renderMonth(el, compact) {
+      var max = compact ? 2 : 3;
+      var html = '<div class="mhead"><h3>September 2026</h3><div class="nav"><span>‹</span><span class="today">Today</span><span>›</span></div></div>';
+      html += '<div class="dow">' + ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function (d) { return '<div>' + (compact ? d[0] : d) + '</div>'; }).join('') + '</div>';
+      html += '<div class="grid">';
+      var start = new Date(2026, 7, 31);
+      for (var i = 0; i < 35; i++) {
+        var d = new Date(start); d.setDate(start.getDate() + i);
+        var key = iso(d);
+        var out = d.getMonth() !== 8;
+        var cls = 'cell' + (out ? ' out' : '') + (key === '2026-09-02' ? ' today' : '') + (key === '2026-09-15' ? ' sel' : '');
+        html += '<div class="' + cls + '"><span class="num">' + d.getDate() + '</span>';
+        var list = ev[key] || [];
+        var dayLabel = d.getDate() + '/' + (d.getMonth() + 1);
+        list.slice(0, max).forEach(function (e, idx) {
+          var label = compact ? e.s : e.t;
+          if (e.k === P) {
+            var pill = '<button class="ev proj ' + e.p + '" type="button" ' + (compact ? 'data-key="' + key + ':' + idx + '"' : 'data-pop="1"') + '>' + folder + '<span class="t">' + esc(label) + '</span><span class="cnt">×' + e.n + '</span>' + (e.tm ? '<span class="tm">' + e.tm + '</span>' : '') + '</button>';
+            html += pill + (compact ? '' : popHtml(e, dayLabel, Math.floor(i / 7) >= 3));
+          } else {
+            var c = 'ev ' + (e.done ? 'done' : e.p);
+            html += '<div class="' + c + '" title="' + esc(e.t) + '"><span class="t">' + esc(label) + '</span>' + (e.d ? '<span class="dy">' + e.d + '</span>' : '') + (e.tm && !e.d ? '<span class="tm">' + e.tm + '</span>' : '') + '</div>';
+          }
+        });
+        if (list.length > max) html += '<div class="more">+' + (list.length - max) + ' more</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+      el.querySelectorAll('[data-pop]').forEach(function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var pop = b.nextElementSibling;
+          var open = pop.getAttribute('data-open') === 'true';
+          el.querySelectorAll('.pop').forEach(function (p) { p.setAttribute('data-open', 'false'); });
+          pop.setAttribute('data-open', open ? 'false' : 'true');
+        });
+      });
+      el.querySelectorAll('[data-key]').forEach(function (b) {
+        b.addEventListener('click', function (evt) {
+          evt.stopPropagation();
+          var parts = b.getAttribute('data-key').split(':');
+          var e = ev[parts[0]][parseInt(parts[1], 10)];
+          var d = parts[0].split('-');
+          document.getElementById('phonePopBody').innerHTML =
+            '<h6>' + esc(e.t) + '</h6><div class="sub">' + e.n + ' job' + (e.n > 1 ? 's' : '') + ' on ' + parseInt(d[2], 10) + '/' + parseInt(d[1], 10) + ' · tap a job to open it</div>' + rows(e) +
+            '<button type="button" style="margin-top:8px;font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-soft);border:1px solid var(--accent);border-radius:999px;padding:4px 10px">Open in list</button>';
+          document.getElementById('phonePop').setAttribute('data-open', 'true');
+        });
+      });
+    }
+    renderMonth(document.getElementById('monthPc'), false);
+    renderMonth(document.getElementById('monthPhone'), true);
+    document.addEventListener('click', function () { document.querySelectorAll('.pop').forEach(function (p) { p.setAttribute('data-open', 'false'); }); });
+    document.querySelectorAll('.month').forEach(function (m) { m.addEventListener('click', function (e) { if (e.target.closest('.pop')) e.stopPropagation(); }); });
+  })();
+</script>
