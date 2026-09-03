@@ -33,6 +33,7 @@ gets corrected live at the team demo.
 | Dependencies | **None added.** Custom-built engine; stack stays locked |
 | Sign-up coverage | Out of scope — happens before login; stays with the rollout runbook + meeting |
 | Workflow V3 | Not covered — scripts get a small update when V3 merges (add to the V3 merge checklist) |
+| Language chooser (Nic 2026-09-03) | After **Start tour**, a "Choose your language" card (English / 中文 / বাংলা). The pick sets the person's **app** language via the existing `PATCH /api/user/lang` (the same call the account-menu switcher makes — the tour's only sanctioned write), then the tour runs in it. App-tour restarts skip the chooser. |
 
 ---
 
@@ -49,6 +50,11 @@ gets corrected live at the team demo.
   tour** / **Skip for now**"*.
 - Both buttons write `tour-seen:{userId}` — the offer never nags twice on the
   same device. Skipping still leaves the account-menu entry available.
+- **Start tour → "Choose your language"** (Nic 2026-09-03): the same card
+  swaps to three buttons — English / 中文 / বাংলা. The pick is saved as the
+  person's app language (existing `/api/user/lang` route), the app
+  re-renders in it, and the tour begins in it. Doubles as day-one language
+  setup for the whole team. Restarts from Account → App tour skip this.
 
 ### 2.2 The tour itself
 
