@@ -467,6 +467,20 @@ export const en = {
   tourFinish: 'Finish',
   tourExit: 'Exit tour',
   tourMenuLabel: 'App tour',
+  tourBellTitle: 'Notifications',
+  tourBellBody: 'The bell shows alerts about your jobs — overdue warnings and updates. Red means something needs a look.',
+  tourAccountTitle: 'Your account',
+  tourAccountBody: 'Your profile picture opens the account menu: language, dark mode, and Telegram.',
+  tourTelegramTitle: 'Connect Telegram — do this now',
+  tourTelegramBody: 'Two taps and every notification about your jobs also reaches your Telegram. Tap it as soon as the tour ends.',
+  tourDoneTitle: 'You\'re all set!',
+  tourDoneBody: 'That\'s the essentials. Reopen this tour anytime: profile picture → App tour.',
+  tourScheduleViewsTitle: 'Schedule views',
+  tourScheduleViewsBody: 'Switch between list, week and month. The list shows one day at a time.',
+  tourDateStripTitle: 'Moving between days',
+  tourDateStripBody: 'Tap a date, page with the arrows, or use the amber Today button to jump back.',
+  tourCompletedTitle: 'Completed jobs',
+  tourCompletedBody: 'Finished jobs live here, out of the way of the live schedule.',
 }
 
 export type Translations = typeof en
