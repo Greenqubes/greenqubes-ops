@@ -9,6 +9,7 @@ import { TOUR_SCRIPTS } from './index'
 import { bellStep, outroSteps } from './common'
 import { en } from '../../../lib/i18n/en'
 import { zh } from '../../../lib/i18n/zh'
+import { bn } from '../../../lib/i18n/bn'
 
 let failures = 0
 function assert(name: string, ok: boolean, detail = '') {
@@ -36,7 +37,17 @@ for (const [role, steps] of entries) {
     assert(`${role}/${s.id}: en has ${s.bodyKey}`, s.bodyKey in en)
     assert(`${role}/${s.id}: zh has ${s.titleKey}`, s.titleKey in zh)
     assert(`${role}/${s.id}: zh has ${s.bodyKey}`, s.bodyKey in zh)
+    assert(`${role}/${s.id}: bn has ${s.titleKey}`, s.titleKey in bn)
+    assert(`${role}/${s.id}: bn has ${s.bodyKey}`, s.bodyKey in bn)
   }
+}
+
+const CHROME_KEYS = ['tourWelcomeTitle', 'tourWelcomeBody', 'tourLangTitle', 'tourLangBody',
+  'tourStart', 'tourSkip', 'tourNext', 'tourBack', 'tourFinish', 'tourExit', 'tourMenuLabel'] as const
+for (const k of CHROME_KEYS) {
+  assert(`chrome ${k} in en`, k in en)
+  assert(`chrome ${k} in zh`, k in zh)
+  assert(`chrome ${k} in bn`, k in bn)
 }
 
 if (failures) { console.error(`\n${failures} check(s) FAILED`); process.exit(1) }
