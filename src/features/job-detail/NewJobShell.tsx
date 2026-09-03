@@ -46,6 +46,7 @@ interface Props {
     default_punctuality: Punctuality | null
     time_start: string | null; time_end: string | null
     hasScheduledJobs: boolean
+    nestedCount: number
   }
 }
 
@@ -145,7 +146,19 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           // scheduled and notifies schedulers when pushing.
           status: 'pending',
           sales_poc_id:            values.sales_poc_id || userId,
-          project_title:           values.project_title || null,
+          // Smoke feedback #5: a job created inside a project with nothing
+          // typed after the "{project} — " prefix gets a cheap "(Untitled X)"
+          // instead of a dangling "Name —" title.
+          project_title:           (() => {
+            let title = values.project_title || null
+            if (projectPrefill) {
+              const stripped = (title ?? '')
+                .replace(projectPrefill.name, '')
+                .replace(/[\s—–-]+/g, '')
+              if (!stripped) title = `${projectPrefill.name} — (Untitled ${projectPrefill.nestedCount + 1})`
+            }
+            return title
+          })(),
           date:                    values.date,
           date_end:                values.date_end || null,
           time_start:              values.time_start || null,

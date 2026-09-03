@@ -17,16 +17,17 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
   // Smoke feedback #3: the "part of project" notice only shows while the
   // project has nothing on the schedule yet — one cheap existence check.
   let projectHasScheduled = false
+  let projectNestedCount = 0
   if (projectPrefill) {
     // Own client — this runs before the page's `supabase` is declared.
     const sb = await createClient()
-    const { data: sched } = await sb
-      .from('jobs')
-      .select('id')
-      .eq('project_id', projectPrefill.id)
-      .eq('status', 'scheduled')
-      .limit(1)
+    const [{ data: sched }, { count }] = await Promise.all([
+      sb.from('jobs').select('id').eq('project_id', projectPrefill.id).eq('status', 'scheduled').limit(1),
+      // For the "(Untitled X)" fallback title (smoke feedback #5).
+      sb.from('jobs').select('id', { count: 'exact', head: true }).eq('project_id', projectPrefill.id),
+    ])
     projectHasScheduled = !!(sched && sched.length > 0)
+    projectNestedCount = count ?? 0
   }
 
   const supabase = await createClient()
@@ -85,6 +86,7 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
         time_start: projectPrefill.time_start,
         time_end: projectPrefill.time_end,
         hasScheduledJobs: projectHasScheduled,
+        nestedCount: projectNestedCount,
       } : undefined}
     />
   )

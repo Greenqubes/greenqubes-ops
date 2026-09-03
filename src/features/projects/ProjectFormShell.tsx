@@ -16,6 +16,8 @@ import { JobFormLayout } from '@/features/job-detail/JobFormLayout'
 import { CollapseCard } from '@/features/job-detail/CollapseCard'
 import { AttachmentBuckets } from '@/features/job-detail/AttachmentBuckets'
 import { AddJobPicker } from './AddJobPicker'
+import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
+import { timingOnJobTimeEdit } from '@/lib/utils/project-timing'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import type { JobProject, ProjectJobRow, NestableJob } from '@/lib/supabase/queries/projects'
@@ -90,6 +92,15 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
   const [emptyOpen,   setEmptyOpen]   = useState(false)
   const [deleteOpen,  setDeleteOpen]  = useState(false)
   const [pushResult,  setPushResult]  = useState<{ pushed: number; total: number; held: Held[] } | null>(null)
+  // Smoke feedback #4: clashing jobs get the SAME resolution modal the job
+  // form uses, one job at a time; everything then pushes in ONE route call
+  // (one scheduler Telegram). queue[0] is the job currently in the modal.
+  const [pushFlow, setPushFlow] = useState<{
+    queue:  { job: ProjectJobRow; data: ClashesResponse }[]
+    toPush: string[]
+    held:   Held[]
+    total:  number
+  } | null>(null)
 
   const nestedIds = useMemo(
     () => (mode === 'new' ? picks.map(p => p.id) : jobs.map(j => j.id)),
@@ -231,8 +242,9 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
   }
 
   // Edit mode only. Per-job clash checks run client-side (same GET the job
-  // form itself uses) so held jobs never reach the push route; that route
-  // then re-verifies ownership/status server-side and returns its own holds.
+  // form itself uses); clashing jobs queue into the job form's own
+  // ClashResolutionModal (smoke feedback #4) instead of being auto-held.
+  // The push route then re-verifies ownership/status server-side.
   async function handlePush() {
     const pending = jobs.filter(j => j.status === 'pending')
     if (jobs.length === 0) { setEmptyOpen(true); return }
@@ -241,23 +253,36 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
     setSaving(true)
     const clean: string[] = []
     const held: Held[] = []
+    const queue: { job: ProjectJobRow; data: ClashesResponse }[] = []
     for (const job of pending) {
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) { held.push({ id: job.id, title: job.project_title ?? job.client, reason: 'check failed' }); continue }
       const c: ClashesResponse = await res.json()
       if (c.clashes.length || c.softClashes.length || c.travelWarnings.length) {
-        const first = c.clashes[0] ?? c.softClashes[0] ?? c.travelWarnings[0]
-        held.push({ id: job.id, title: job.project_title ?? job.client, reason: `Clash: ${first.installer.name}` })
+        queue.push({ job, data: c })
       } else {
         clean.push(job.id)
       }
     }
 
+    if (queue.length === 0) {
+      await finishPush(clean, held, pending.length)
+      return
+    }
+    // Modal takes over; the push happens once the queue is worked through.
+    setPushFlow({ queue, toPush: clean, held, total: pending.length })
+    setSaving(false)
+  }
+
+  // One push-route call for clean + clash-resolved jobs together → exactly
+  // one scheduler Telegram per project push, resolutions included.
+  async function finishPush(toPush: string[], held: Held[], total: number) {
+    setSaving(true)
     let pushedCount = 0
-    if (clean.length) {
+    if (toPush.length) {
       const res = await fetch(`/api/projects/${project!.id}/push`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobIds: clean }),
+        body: JSON.stringify({ jobIds: toPush }),
       })
       if (res.ok) {
         const out = await res.json() as { pushed: string[]; held: { id: string; reason: string }[] }
@@ -277,9 +302,72 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
       }
     }
 
-    setPushResult({ pushed: pushedCount, total: pending.length, held })
+    setPushResult({ pushed: pushedCount, total, held })
     await refreshJobs()
     setSaving(false)
+  }
+
+  // Advance the clash queue: pushedId joins the final push; a heldEntry
+  // records a kept-pending outcome on the result sheet.
+  function advanceClash(pushedId: string | null, heldEntry?: Held) {
+    if (!pushFlow) return
+    const rest = pushFlow.queue.slice(1)
+    const toPush = pushedId ? [...pushFlow.toPush, pushedId] : pushFlow.toPush
+    const held = heldEntry ? [...pushFlow.held, heldEntry] : pushFlow.held
+    if (rest.length === 0) {
+      setPushFlow(null)
+      void finishPush(toPush, held, pushFlow.total)
+    } else {
+      setPushFlow({ queue: rest, toPush, held, total: pushFlow.total })
+    }
+  }
+
+  // Same resolution semantics as the job form (NewJobShell): substitutions
+  // honour the suggest-vs-assign role rule; a time change goes through
+  // timingOnJobTimeEdit so inheritance stays correct on nested jobs.
+  async function handleClashResolve(replacements: Record<string, string | 'keep'>, timeStart: string, timeEnd: string) {
+    if (!pushFlow) return
+    const current = pushFlow.queue[0].job
+    const supabase = createBrowserClient()
+    const suggestMode = role === 'sales' || role === 'coordinator'
+    try {
+      for (const [oldId, newId] of Object.entries(replacements)) {
+        if (newId === 'keep') continue
+        await supabase.from('job_assignees').delete().eq('job_id', current.id).eq('user_id', oldId)
+        await supabase.from('job_assignees').insert({
+          job_id: current.id, user_id: newId,
+          is_suggestion: suggestMode, suggested_by: suggestMode ? userId : null,
+        } as never)
+      }
+      const curStart = (current.time_start ?? '').slice(0, 5)
+      const curEnd   = (current.time_end ?? '').slice(0, 5)
+      if (timeStart !== curStart || timeEnd !== curEnd) {
+        const timing = timingOnJobTimeEdit(
+          timeStart || null, timeEnd || null, true,
+          { time_start: project!.time_start, time_end: project!.time_end },
+          { time_start: current.time_start, time_end: current.time_end, time_inherited: current.time_inherited },
+        )
+        await supabase.from('jobs').update({
+          time_start: timing.time_start, time_end: timing.time_end, time_inherited: timing.time_inherited,
+        } as never).eq('id', current.id)
+      }
+      advanceClash(current.id)
+    } catch {
+      showError(t(lang, 'saveError'))
+      advanceClash(null, { id: current.id, title: current.project_title ?? current.client, reason: 'check failed' })
+    }
+  }
+
+  async function handleClashNotify(clashNames: string[]) {
+    if (!pushFlow) return
+    const current = pushFlow.queue[0].job
+    try {
+      await fetch(`/api/jobs/${current.id}/notify-clash`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clashNames }),
+      })
+    } catch { /* job stays pending either way */ }
+    advanceClash(null, { id: current.id, title: current.project_title ?? current.client, reason: 'Scheduler notified — kept pending' })
   }
 
   const punctOptions: { v: Punctuality | null; label: string; activeCls: string; dot?: string }[] = [
@@ -532,6 +620,29 @@ export function ProjectFormShell({ mode, lang, role, userId, project, initialJob
       />
 
       {/* Empty-project prompt — pushing with zero nested jobs at all */}
+      {/* Smoke feedback #4: the job form's clash resolution, one clashing
+          job at a time, during a project push */}
+      {pushFlow && pushFlow.queue.length > 0 && (
+        <ClashResolutionModal
+          jobDate={pushFlow.queue[0].data.jobDate}
+          jobTimeStart={pushFlow.queue[0].data.jobTimeStart}
+          jobTimeEnd={pushFlow.queue[0].data.jobTimeEnd}
+          clashes={pushFlow.queue[0].data.clashes}
+          softClashes={pushFlow.queue[0].data.softClashes}
+          travelWarnings={pushFlow.queue[0].data.travelWarnings}
+          substitutes={pushFlow.queue[0].data.substitutes}
+          weekDays={pushFlow.queue[0].data.weekDays}
+          lang={lang}
+          onSendToScheduler={handleClashResolve}
+          onNotifyScheduler={handleClashNotify}
+          onCancel={() => advanceClash(null, {
+            id: pushFlow.queue[0].job.id,
+            title: pushFlow.queue[0].job.project_title ?? pushFlow.queue[0].job.client,
+            reason: 'Skipped — kept pending',
+          })}
+        />
+      )}
+
       <Modal isOpen={emptyOpen} onClose={() => setEmptyOpen(false)}>
         <div className="space-y-4 text-center">
           <p className="font-display text-lg font-medium text-ink">{t(lang, 'jpEmptyTitle')}</p>
