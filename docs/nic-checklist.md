@@ -7,9 +7,23 @@ _Last updated: 2026-09-04 (feat-tour — **Guided app tour LIVE on production**,
 _Last updated: 2026-09-04 (chore-workflow — **Workflow V3 (project containers) CANCELLED and archived**, your call after the demo. Round 1 stays exactly as built but was never merged, so nothing about projects ever reached production — no undo needed, nothing to check. Rounds 2 and 3 are dropped. The branch is kept forever as a record, the design documents are stamped "cancelled — do not build from this", and the guided-tour follow-up about Projects is void. **Two small decisions left for you** in the Workflow V3 section below: clearing two leftover test projects from the database, and removing the second copy of the code folder from this PC.)_
 _Last updated: 2026-09-04 (feat-installer — **installer completion flow LIVE on production.** Installers now finish their own jobs: the Completed button on the job page is grey until a completion photo is uploaded, green after, and Telegrams the sales person-in-charge when pressed. "Signed DO (Optional)" only appears once production ticks DO issued. Every installer can browse ALL past completed jobs from the Completed tab (photos, files, chat, tasks, crew) — pending/scheduled stay private, money stays invisible. Your "button not visible in daylight" catch also uncovered 30 colour classes across the app that had never worked — all restored. Refresh any open tabs before using the app.)_
 
+_Last updated: 2026-09-04 (feat-assistant — **Voice PA built, tested by you, and PARKED — nothing went live.** A big glowing mic button on every page opens a talk-to-it voice mode that creates jobs through the existing assistant. It works, but on your Android test it was choppy and misheard you, so the browser-based approach is set aside. **Next session designs the real thing: a realtime voice agent.** One decision is waiting for you there — it needs a new voice company added to the locked stack (Claude has no voice service of its own). Recommendation and costs are in the new Voice PA section below.)_
+
 ---
 
 ## Pending — Next Session
+
+### Voice PA — realtime voice agent (from 2026-09-04, feat-voice-pa — built, parked, NOT live)
+
+_You asked for a "big shiny button everywhere" that salespeople can just talk to, because the job form has too many fields to key. A browser-based version was built and you tested it the same day: it understood you and created jobs, but the speech was choppy and it misheard words, so we parked it. Nothing reached production — it lives only on a preview link._
+
+- [ ] **Your decision next session: allow a voice company into the locked stack.** Claude cannot listen or speak — Anthropic sells no voice service, so a proper realtime voice agent (the ChatGPT-voice-mode feel: half-second replies, natural voice, you can interrupt it) **must** use an outside voice provider. This is the one thing that unblocks the whole feature, and the stack rules say only you can approve it.
+  - **Recommended: LiveKit** — free plan covers this team (1,000 talking-minutes a month; about 1 cent a minute after). Claude stays the brain, and — importantly — the code stays ours, so each person still only sees what their login allows. All-in guess including the voice and listening services: **US$15–30/month**.
+  - Runner-up: **ElevenLabs** — the best-sounding voices and the least work, but about 8 cents a minute and the conversation runs on their servers, which makes our per-person privacy rules fiddlier to wire.
+  - Ruled out: **Deepgram** — its voices are English-only, so Mandarin would be lost.
+- [ ] **Optional: keep or bin the browser version.** It can stay as a free fallback for people whose phones can't do the new one, or be replaced outright. Your call during the design session.
+- [ ] **The parked preview** is on branch `feat-voice-pa` (never merged): https://greenqubes-ops-git-feat-voice-pa-greenqubes-projects.vercel.app — tick-through guide at `docs/voice-pa-smoke-test.md` if you want to poke it again. Known and accepted in that version: robotic voice, mishearings, a pause before it answers, no interrupting, and on iPhone it drops to "tap, then speak".
+- [ ] **Housekeeping — a third code folder now exists on this PC:** `C:\Greenqubes_GitHub\greenqubes-ops-voice-pa`. Same situation as the V3 folder below — the branch is safe on GitHub, the folder is just a second copy. Say the word and Claude removes either or both (only possible when no Claude session is running inside them).
 
 ### Guided tour (from 2026-09-04, feat-tour — live on production)
 
@@ -211,6 +225,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-04, feat-voice-pa — Voice PA Built, Tested, PARKED — nothing live)
+
+- [x] **[Nic] Idea → design → built in one session** — your brief: salespeople resist the job form ("too many insert steps"), so give them a personal PA they just talk to, on a big shiny button everywhere. Your four design calls: **talk → the PA creates the job** (never the form), **hands-free** conversation, **English + Mandarin**, and **full PA scope** for every role (asking questions as well as creating jobs, with job creation still blocked for installers/designers/production exactly as before).
+- [x] **[Nic] Answered your architecture question honestly** — what was built is a **"sandwich"**: your phone turns speech into text, the existing assistant thinks in text, your phone reads the answer aloud. It is **not** a realtime AI voice session (no interrupting, a pause before it replies, robotic voice). That answer led to your decision below.
+- [x] **[Nic] Your testing caught three real bugs, all fixed the same day** — (1) the voice screen was **see-through** (a colour trick this app's palette silently ignores — the same class of bug your "invisible button in daylight" catch uncovered in the other session); (2) Android **repeated your words** ("arrange arrange a job"), which was also why it misunderstood you — the code was re-adding earlier fragments; (3) it **suddenly replied in Chinese** to garbled English.
+- [x] **[Nic] Your verdict: park the sandwich, design the real thing next session.** Recorded, with the vendor research done and costed (see the new Voice PA section under Pending). Nothing was merged — production and dev are untouched by any of this.
+- [x] **Final polish pass done before parking** — an automatic code review (which ran out of AI usage partway, so it only half-finished — noted honestly) found and Claude fixed: a duplicate database lookup the voice button added to **every page load in the whole app**, Bengali users being forced into English replies, a voice instruction that contradicted your English-dates rule, and typing being blocked while muted. Ten tidiness items were deliberately left alone and written into the design doc, since that code gets replaced anyway.
+- Note: the browser version stays on its branch as a working stepping stone — the button, the voice screen and the whole brain survive into the realtime rebuild; only the listening and speaking parts get swapped.
 
 ---
 
