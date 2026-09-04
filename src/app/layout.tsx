@@ -5,6 +5,7 @@ import { ThemeProvider }       from '@/components/ThemeProvider'
 import { ToastProvider }       from '@/components/Toast'
 import { ErrorBoundary }       from '@/components/ErrorBoundary'
 import { FloatingChatWrapper } from '@/components/FloatingChatWrapper'
+import { FloatingVoiceWrapper } from '@/components/FloatingVoiceWrapper'
 import { BugReportButton }     from '@/components/BugReportButton'
 import './globals.css'
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </ToastProvider>
             <Suspense fallback={null}>
               <FloatingChatWrapper />
+              <FloatingVoiceWrapper />
             </Suspense>
           </ErrorBoundary>
         </ThemeProvider>
