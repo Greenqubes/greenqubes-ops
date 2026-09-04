@@ -31,6 +31,7 @@ import { EditClashModal, type CheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
+import { installerCompleteState } from '@/lib/utils/completion-rules'
 import { daysBetween, addDaysISO, todaySGT } from '@/lib/utils/design-urgency'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage, AttachmentBucket } from '@/lib/supabase/queries/jobs'
@@ -172,6 +173,8 @@ export function JobDetailShell({
   const [deleting,             setDeleting]            = useState(false)
   const [showRevertModal,      setShowRevertModal]     = useState(false)
   const [reverting,            setReverting]           = useState(false)
+  const [showInstallerCompleteModal, setShowInstallerCompleteModal] = useState(false)
+  const [completing,           setCompleting]          = useState(false)
   const [duplicating,          setDuplicating]         = useState(false)
   const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
@@ -611,6 +614,32 @@ export function JobDetailShell({
     }
   }
 
+  // Installer finishes their own job — server route enforces formal
+  // assignment + scheduled status + ≥1 completion photo, then Telegrams
+  // the sales POC. Installers cannot undo this themselves (office-only
+  // Revert), hence the confirm modal.
+  const handleInstallerComplete = async () => {
+    setCompleting(true)
+    bumpSuppression()
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/complete`, { method: 'POST' })
+      if (!res.ok) {
+        const code = await errorCodeOf(res)
+        showError(t(lang, code === 'no_completion_photo' ? 'installerCompleteNeedsPhoto' : 'saveError'))
+        setShowInstallerCompleteModal(false)
+        return
+      }
+      setStatus('completed')
+      setShowInstallerCompleteModal(false)
+      showSuccess(t(lang, 'savedSuccessfully'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   // Reads a JSON { error } body off a failed response, if there is one —
   // used to turn a 409 no-jo-file into the same hint text as the disabled
   // button, instead of the generic save-failed toast.
@@ -834,6 +863,14 @@ export function JobDetailShell({
   }
 
   const isInstaller        = role === 'installer'
+  // Installer Completed button (Nic, 2026-09-04): grey until a completion
+  // photo exists, green after. job.files refreshes via router.refresh() on
+  // every upload, so the colour flips live. Server route re-checks it all.
+  const installerCompleteBtn = installerCompleteState({
+    role,
+    status,
+    completionPhotoCount: job.files.filter(f => f.kind === 'completion').length,
+  })
   // Coordinator gains sales-level delete on pending jobs only (Addendum §2) —
   // scheduled-job behaviour for coordinator is unchanged (still no delete;
   // that's scheduler-only). NOTE: sales' delete likely silently no-ops today
@@ -1371,14 +1408,37 @@ export function JobDetailShell({
       <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
           {isInstaller ? (
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold"
-            >
-              <ArrowLeft size={14} />
-              Back to Jobs
-            </button>
+            <>
+              {installerCompleteBtn !== 'hidden' && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowInstallerCompleteModal(true)}
+                    disabled={installerCompleteBtn === 'disabled' || completing}
+                    className={cn(
+                      'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] text-sm font-semibold transition-colors',
+                      installerCompleteBtn === 'enabled'
+                        ? 'bg-green text-white'
+                        : 'bg-bg border border-line text-muted cursor-not-allowed',
+                    )}
+                  >
+                    <CheckCircle size={14} />
+                    {t(lang, 'installerCompletedBtn')}
+                  </button>
+                  {installerCompleteBtn === 'disabled' && (
+                    <p className="text-center text-xs text-muted mt-1.5">{t(lang, 'installerCompleteNeedsPhoto')}</p>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold"
+              >
+                <ArrowLeft size={14} />
+                Back to Jobs
+              </button>
+            </>
           ) : (
             <>
               <div className="flex gap-2">
@@ -1603,6 +1663,23 @@ export function JobDetailShell({
           <Btn variant="primary" size="sm" onClick={() => { setShowPushAnywaysModal(false); router.push('/schedule') }}>
             OK
           </Btn>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showInstallerCompleteModal} onClose={() => setShowInstallerCompleteModal(false)}>
+        <div className="space-y-4">
+          <h2 className="font-display text-lg font-medium text-ink">
+            {t(lang, 'installerCompleteConfirmTitle')}
+          </h2>
+          <p className="text-sm text-muted">{t(lang, 'installerCompleteConfirmBody')}</p>
+          <div className="flex gap-2 justify-end pt-1">
+            <Btn variant="secondary" size="sm" onClick={() => setShowInstallerCompleteModal(false)} disabled={completing}>
+              {t(lang, 'cancel')}
+            </Btn>
+            <Btn variant="primary" size="sm" onClick={handleInstallerComplete} disabled={completing}>
+              {completing ? t(lang, 'loading') : t(lang, 'installerCompletedBtn')}
+            </Btn>
+          </div>
         </div>
       </Modal>
 

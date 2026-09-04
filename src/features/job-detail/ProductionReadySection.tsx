@@ -15,6 +15,7 @@ import type { LangCode } from '@/lib/i18n'
 import type { JobFile } from '@/lib/supabase/queries/jobs'
 import type { FormValues } from './JobDetailShell'
 import type { Role } from '@/lib/supabase/types'
+import { showSignedDoSection } from '@/lib/utils/completion-rules'
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
@@ -204,17 +205,20 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         lang={lang}
       />
 
-      {/* Signed DO (Optional) */}
-      <UploadSection
-        label="Signed DO (Optional)"
-        kind="do"
-        files={signedDoFiles}
-        canUpload={canUploadDo}
-        jobId={jobId}
-        userId={userId}
-        lang={lang}
-        accept="image/*,.pdf"
-      />
+      {/* Signed DO — only once production ticks "DO issued" (no DO means
+          nothing to sign); an already-uploaded file always stays visible */}
+      {showSignedDoSection({ doIssued: !!watch?.('do_issued'), signedDoFileCount: signedDoFiles.length }) && (
+        <UploadSection
+          label="Signed DO (Optional)"
+          kind="do"
+          files={signedDoFiles}
+          canUpload={canUploadDo}
+          jobId={jobId}
+          userId={userId}
+          lang={lang}
+          accept="image/*,.pdf"
+        />
+      )}
 
       {/* Completion Photos */}
       <UploadSection
