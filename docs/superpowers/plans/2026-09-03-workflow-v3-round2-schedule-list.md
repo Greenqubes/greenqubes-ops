@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-02-workflow-v3-nesting-design.md` §6 (+ §12 gate, §13 round 2). Read it first. Nic's 2026-09-03 ruling amends §6: scheduler keeps DB-level pending SELECT for the Notify-Scheduler link; every scheduler *screen* still shows no pending.
 
+> **⚠️ STALE MIGRATION NUMBER + HR interplay (added 2026-09-04, hr-leave brainstorm):** This plan predates two things. (1) `dev`'s provisioning overhaul already took **0052** (applied to the shared DB) — renumber this plan's migration to the next free number at build time (0054 if `feat-hr-leave`'s 0053 has landed first). (2) The **HR/Finance role + leave** feature (`feat-hr-leave`, spec `2026-09-04-hr-leave-design.md`) may merge before this round: its `hr` role must be carried into the rewritten `jobs` SELECT policies below (hr = non-pending read-only, never pending), and its "On leave" / public-holiday lines on the schedule list must be **re-carried** into the rebuilt ListView during this round or the V3 merge.
+
 ## Global Constraints
 
 - Branch: `feat-workflow-v3` (worktree `c:\Greenqubes_GitHub\greenqubes-ops-workflow-v3`); never touch `feat-workflow-v2`, never push `origin dev`/`origin main`; pushing `feat-workflow-v3` is allowed. Commit after every task.
