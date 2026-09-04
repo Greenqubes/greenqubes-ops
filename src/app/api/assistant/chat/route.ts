@@ -98,10 +98,10 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  type Profile = { id: string; name: string; role: string }
+  type Profile = { id: string; name: string; role: string; lang: string }
   const { data: profile } = await supabase
     .from('users')
-    .select('id, name, role')
+    .select('id, name, role, lang')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: Profile | null; error: unknown }
   if (!profile) return new Response('Not provisioned', { status: 403 })
@@ -182,12 +182,19 @@ export async function POST(req: NextRequest) {
   // Voice mode (spec 2026-09-04-voice-pa): style instruction rides in the
   // volatile parts — NEVER in SYSTEM_PREFIX (cache prefix must stay
   // byte-stable). Works for both system-block-2 and last-user-message paths.
-  if (body.voice) volatileParts.push(
-    'Voice mode: the user is speaking to you and hears your reply read aloud. ' +
-    'Reply in the user\'s language, short and conversational — one to three sentences unless more is truly needed. ' +
-    'Never use markdown formatting, bullet lists, tables, or URLs. Say dates and times naturally. ' +
-    'When creating a job, read back a one-sentence summary and ask for a spoken yes before calling the tool.',
-  )
+  if (body.voice) {
+    // Anchor the reply language to the app setting — garbled speech-to-text
+    // once made the model "match" a language the user never spoke.
+    const voiceLang = profile.lang === 'zh' ? 'Chinese' : 'English'
+    volatileParts.push(
+      'Voice mode: the user is speaking to you and hears your reply read aloud. ' +
+      `The user's app language is ${voiceLang} — always reply in ${voiceLang}, even if their words look garbled. ` +
+      'Their words come from speech recognition, which garbles and repeats words; read through small errors, and if a message is too unclear to act on, ask one short clarifying question rather than guessing. ' +
+      'Reply short and conversational — one to three sentences unless more is truly needed. ' +
+      'Never use markdown formatting, bullet lists, tables, or URLs. Say dates and times naturally. ' +
+      'When creating a job, read back a one-sentence summary and ask for a spoken yes before calling the tool.',
+    )
+  }
   if (contextBlock) volatileParts.push(`\n${contextBlock}`)
 
   // System blocks. SYSTEM_PREFIX is the shared frozen prefix (byte-stable).

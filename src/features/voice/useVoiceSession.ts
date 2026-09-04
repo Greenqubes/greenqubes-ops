@@ -12,7 +12,7 @@ import type { LangCode } from '@/lib/i18n'
 // per result and the error code to tell permission problems from blips.
 
 interface RecognitionResultLike { 0: { transcript: string }; isFinal: boolean }
-interface RecognitionEventLike { results: ArrayLike<RecognitionResultLike> }
+interface RecognitionEventLike { resultIndex: number; results: ArrayLike<RecognitionResultLike> }
 interface RecognitionErrorLike { error?: string }
 interface SpeechRecognitionLike {
   lang:           string
@@ -221,13 +221,33 @@ export function useVoiceSession(lang: LangCode) {
     rec.continuous     = !oneShot
     rec.interimResults = true
 
+    // resultIndex-aware accumulation (the canonical Web Speech pattern).
+    // Rebuilding from the WHOLE results list — the first version — duplicates
+    // words on Android Chrome, which re-emits earlier fragments in later
+    // events ("arrange arrange a job"). Finals are appended exactly once;
+    // interims only ever replace the tail. Android also re-sends the same
+    // final segment verbatim sometimes, hence the lastFinal guard.
+    let finals    = ''
+    let lastFinal = ''
     rec.onresult = (e) => {
-      const results  = Array.from({ length: e.results.length }, (_, i) => e.results[i])
-      const combined = results.map(r => r[0].transcript).join(' ').replace(/\s+/g, ' ').trim()
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i]
+        const text = r[0].transcript.replace(/\s+/g, ' ').trim()
+        if (!text) continue
+        if (r.isFinal) {
+          if (text === lastFinal) continue
+          lastFinal = text
+          finals = finals ? `${finals} ${text}` : text
+        } else {
+          interim = interim ? `${interim} ${text}` : text
+        }
+      }
+      const combined = interim ? `${finals} ${interim}`.trim() : finals
       transcriptRef.current = combined
       setLiveTranscript(combined)
       clearSilenceTimer()
-      const last = results[results.length - 1]
+      const last = e.results[e.results.length - 1]
       if (!last?.isFinal) return
       if (oneShot) {
         sendUtterance(combined)
