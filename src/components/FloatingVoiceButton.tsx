@@ -47,8 +47,8 @@ export function FloatingVoiceButton({ lang }: Props) {
           isDragging && 'cursor-grabbing',
         )}
       >
-        {/* --lime is the reserved non-text highlight token — the glow ring */}
-        <span aria-hidden className="absolute -inset-1 rounded-full bg-[var(--lime)]/40 animate-pulse -z-10" />
+        {/* Logo-lime glow ring (rgba literal: var() colours don't take /alpha) */}
+        <span aria-hidden className="absolute -inset-1 rounded-full bg-[rgba(145,199,64,0.45)] animate-pulse -z-10" />
         <Mic size={26} />
       </button>
     </>
