@@ -1,5 +1,14 @@
 # Workflow V3 Round 2 — Schedule List Implementation Plan
 
+> ## ⛔ NEVER EXECUTED — CANCELLED 2026-09-04. ARCHIVE ONLY.
+>
+> This plan was written 2026-09-03 and cancelled the next day, before task 1.
+> Workflow V3 was dropped after the demo launch (Nic's call — the feedback and
+> forthcoming changes nullified the scope). **No code from this plan exists
+> anywhere.** Migration 0052 as described here was never written; the real
+> 0052 on the shared DB is the unrelated provisioning overhaul. Do not build
+> from this document.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn `/schedule` into the one job page: pending-is-personal RLS (migration 0052), filter chips + `/pending`/`/completed` retirement, project folding with folder headers, the completed veil, the sort & filter dropdown, "Day x / y" labels, and bulk bars that follow the active chip.

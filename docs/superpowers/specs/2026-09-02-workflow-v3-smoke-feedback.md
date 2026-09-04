@@ -1,5 +1,8 @@
 # Workflow V3 Round 1 — Smoke-Test Feedback Log
 
+> ⛔ **Workflow V3 was cancelled 2026-09-04** — archive only. All five items
+> below were fixed on this branch, which was never merged.
+
 > Nic's mid-test edits, logged as they come in (Design Load pattern). Each
 > item gets fixed, committed, and pushed for incremental re-test on the
 > `feat-workflow-v3` preview.
