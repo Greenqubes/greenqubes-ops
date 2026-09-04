@@ -1418,8 +1418,8 @@ export function JobDetailShell({
                     className={cn(
                       'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] text-sm font-semibold transition-colors',
                       installerCompleteBtn === 'enabled'
-                        ? 'bg-green text-white'
-                        : 'bg-bg border border-line text-muted cursor-not-allowed',
+                        ? 'bg-brand-green text-white'
+                        : 'bg-line text-muted cursor-not-allowed',
                     )}
                   >
                     <CheckCircle size={14} />
