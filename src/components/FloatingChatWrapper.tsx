@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { FloatingChatPanel } from './FloatingChatPanel'
+import { FloatingVoiceButton } from './FloatingVoiceButton'
 import type { LangCode } from '@/lib/i18n'
 
-// Server component — fetches user lang for the floating chat panel.
+// Server component — fetches user lang ONCE for both floating surfaces (the
+// chat panel and the voice button). A second wrapper would double the auth +
+// profile round-trip on every page render.
 // Returns null if unauthenticated (login page, etc.).
 export async function FloatingChatWrapper() {
   try {
@@ -18,7 +21,13 @@ export async function FloatingChatWrapper() {
 
     if (!profile) return null
 
-    return <FloatingChatPanel lang={profile.lang as LangCode} />
+    const lang = profile.lang as LangCode
+    return (
+      <>
+        <FloatingChatPanel lang={lang} />
+        <FloatingVoiceButton lang={lang} />
+      </>
+    )
   } catch {
     return null
   }

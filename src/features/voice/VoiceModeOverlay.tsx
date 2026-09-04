@@ -63,7 +63,7 @@ export function VoiceModeOverlay({ lang, onClose }: Props) {
 
   const sendTyped = () => {
     const text = typed.trim()
-    if (!text) return
+    if (!text || session.phase === 'responding') return
     setTyped('')
     session.sendTyped(text)
   }
@@ -171,7 +171,7 @@ export function VoiceModeOverlay({ lang, onClose }: Props) {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[rgba(145,199,64,0.5)] bg-[rgba(145,199,64,0.12)] text-sm hover:border-[#91C740] transition-colors"
             >
               <ClipboardList size={15} className="text-[#91C740] shrink-0" />
-              <span className="font-medium text-white truncate max-w-[200px]">{jobCard.title || 'Untitled job'}</span>
+              <span className="font-medium text-white truncate max-w-[200px]">{jobCard.title || t(lang, 'untitledJob')}</span>
               <span className="text-white/60 shrink-0">{t(lang, 'assistantJobCreated')}</span>
             </Link>
           </div>
@@ -191,11 +191,11 @@ export function VoiceModeOverlay({ lang, onClose }: Props) {
             />
             <button
               onClick={sendTyped}
-              disabled={!typed.trim()}
+              disabled={!typed.trim() || responding}
               aria-label={t(lang, 'sendMessage')}
               className={cn(
                 'shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
-                typed.trim() ? 'bg-terracotta text-white hover:opacity-90' : 'bg-white/10 text-white/40 cursor-not-allowed',
+                typed.trim() && !responding ? 'bg-terracotta text-white hover:opacity-90' : 'bg-white/10 text-white/40 cursor-not-allowed',
               )}
             >
               <Send size={16} />

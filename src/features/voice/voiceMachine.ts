@@ -37,7 +37,9 @@ function settle(s: VoiceState): VoiceState {
 export function voiceReducer(s: VoiceState, e: VoiceEvent): VoiceState {
   switch (e.type) {
     case 'utteranceReady':
-      if (s.phase !== 'listening' && s.phase !== 'tapToTalk') return s
+      // 'muted' is included for the keyboard path — a typed message may send
+      // while the mic is off; the reply plays, then home returns us to muted.
+      if (s.phase === 'responding') return s
       return { ...s, phase: 'responding', streamDone: false, speechDone: false, restarts: 0 }
     case 'streamEnded':
       return settle({ ...s, streamDone: true })

@@ -184,14 +184,16 @@ export async function POST(req: NextRequest) {
   // byte-stable). Works for both system-block-2 and last-user-message paths.
   if (body.voice) {
     // Anchor the reply language to the app setting — garbled speech-to-text
-    // once made the model "match" a language the user never spoke.
-    const voiceLang = profile.lang === 'zh' ? 'Chinese' : 'English'
+    // once made the model "match" a language the user never spoke. Only en/zh
+    // are pinned: bn has no voice support (its speech + UI fall back to
+    // English), so a bn user's own words decide, per SYSTEM_PREFIX.
+    const pinned = profile.lang === 'zh' ? 'Chinese' : profile.lang === 'en' ? 'English' : null
     volatileParts.push(
       'Voice mode: the user is speaking to you and hears your reply read aloud. ' +
-      `The user's app language is ${voiceLang} — always reply in ${voiceLang}, even if their words look garbled. ` +
-      'Their words come from speech recognition, which garbles and repeats words; read through small errors, and if a message is too unclear to act on, ask one short clarifying question rather than guessing. ' +
+      (pinned ? `The user's app language is ${pinned} — always reply in ${pinned}, even if their words look garbled. ` : '') +
+      'Spoken words reach you through speech recognition, which can garble or repeat them; read through small errors, and if a message is too unclear to act on, ask one short clarifying question rather than guessing. ' +
       'Reply short and conversational — one to three sentences unless more is truly needed. ' +
-      'Never use markdown formatting, bullet lists, tables, or URLs. Say dates and times naturally. ' +
+      'Never use markdown formatting, bullet lists, tables, or URLs; spell out anything that would normally be a link. ' +
       'When creating a job, read back a one-sentence summary and ask for a spoken yes before calling the tool.',
     )
   }

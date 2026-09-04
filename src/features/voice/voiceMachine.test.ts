@@ -46,6 +46,12 @@ check('unmute resets restarts', run(run(initialVoiceState, { type: 'recEnded' })
 check('mute while responding keeps reply going', run(responding, { type: 'mute' }).phase, 'responding')
 check('after reply, lands muted', run(responding, { type: 'mute' }, { type: 'streamEnded' }, { type: 'speechDrained' }).phase, 'muted')
 
+// Muted still allows a TYPED message (the keyboard path) — reply plays, then
+// back to muted with the mic still off.
+const mutedSend = run(initialVoiceState, { type: 'mute' }, { type: 'utteranceReady' })
+check('typed send allowed while muted', mutedSend.phase, 'responding')
+check('muted send returns to muted', run(mutedSend, { type: 'streamEnded' }, { type: 'speechDrained' }).phase, 'muted')
+
 // tapToTalk: an utterance still sends and returns to tapToTalk after the reply.
 const tapSend = run(s, { type: 'utteranceReady' })
 check('tapToTalk can send', tapSend.phase, 'responding')

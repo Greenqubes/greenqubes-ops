@@ -200,7 +200,7 @@ export function useVoiceSession(lang: LangCode) {
   const sendUtterance = useCallback((text: string) => {
     const clean = text.trim()
     if (!clean) return
-    if (phaseRef.current !== 'listening' && phaseRef.current !== 'tapToTalk') return
+    if (phaseRef.current === 'responding') return // never race an in-flight reply
     stopRecognition()
     setErrorKey(null)
     setLiveTranscript('')

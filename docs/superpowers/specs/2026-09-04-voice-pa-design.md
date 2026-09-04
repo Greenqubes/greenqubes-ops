@@ -88,6 +88,43 @@ Touched: `src/app/layout.tsx` (mount), `src/app/api/assistant/chat/route.ts` (vo
 
 Browser TTS voices are clear but robotic (natural voices = paid vendor = separate Nic decision). iPhone Safari likely lands in tap-to-talk mode. Open mic picks up site noise → mute button. Speech recognition on Chrome routes audio via Google's speech service (standard for all Chrome dictation — worth knowing, not storing anything ourselves).
 
+## 7b. Review findings PARKED at hand-off (2026-09-04)
+
+Nic's verdict after testing the browser build: too choppy, mishearings, robotic —
+**the sandwich model is parked; next session designs a realtime agentic voice
+mode (LiveKit + Claude, see the vendor comparison in that session's brainstorm).**
+A `/code-review` run over the branch completed 3 of 7 angles (the rest died on a
+model usage limit — **coverage is partial; bug-hunting angles never reported**).
+
+Fixed before parking: duplicate wrapper query (app-wide, every page render),
+Bengali users force-pinned to English replies, a voice instruction that
+contradicted the English-dates company rule, typed input being told it was
+garbled speech, hardcoded "Untitled job" ignoring the existing i18n key,
+typed-while-muted being silently swallowed, and send-while-replying.
+
+Deliberately NOT fixed (internal tidiness in code the realtime build replaces —
+re-evaluate then, do not treat as approved debt):
+- **Third copy of the SSE client loop** (`useVoiceSession.streamTurn` vs
+  `AssistantShell.tsx:432-480` vs `FloatingChatPanel.tsx:224-269`). Past the
+  extraction threshold; the copies already disagree (voice drops the `error`
+  frame's `message`). If the realtime build keeps an SSE path, extract
+  `streamAssistantChat()` first.
+- **Third copy of the save-conversation POST** (`shutdown()` vs the two chat
+  surfaces) — the spec's "saves exactly like floating-panel chats" promise is
+  held together by hand.
+- **Duplicated Web Speech typings + `getSpeechRecognition()`** (hook vs
+  `AssistantShell.tsx:52-76`), and `speechLangTag`'s mapping duplicated inline
+  at `AssistantShell.tsx:525`. Both vanish if the realtime vendor owns speech.
+- **Third private `uid()`**; **third job-chip copy** (extract `JobCardChip` with
+  a light/dark variant if the chip survives).
+- **Hook-internal redundancy:** `supported.tts` is dead state (`ttsOkRef` is the
+  real flag), `streamEndedRef` double-books the reducer's `streamDone`,
+  `turnsRef` is hand-mirrored at every write, the overlay's `startedRef` and
+  `mounted` guards are both redundant, `pickVoice` forces a map/re-find
+  round-trip, and `sendTyped` is a pass-through of `sendUtterance`.
+- **bn has no voice translations** (freeze holds — bn falls back to English
+  throughout). If the realtime build ships to bn users, that needs Nic's call.
+
 ## 8. Rollout
 
 `feat-voice-pa` → push → Vercel preview → Nic device smoke → merge to `dev` → dev preview → `main`. Independent of the V3 worktree/branch and its one-clean-cut rule.
