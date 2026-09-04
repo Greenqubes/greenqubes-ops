@@ -121,7 +121,11 @@ export function NavDrawer({ role, lang }: Props) {
             aria-modal="true"
             aria-label="Navigation"
             className={cn(
-              'lg:hidden fixed top-0 left-0 z-[70] h-full w-72 max-w-[80vw] bg-paper shadow-xl',
+              // h-dvh, not h-full: a fixed element's 100% resolves against the
+              // initial containing block, which mobile Chrome sizes to the
+              // URL-bar-HIDDEN height. The Account footer then sat below the
+              // visible screen until you scrolled. dvh tracks what's on screen.
+              'lg:hidden fixed top-0 left-0 z-[70] h-dvh w-72 max-w-[80vw] bg-paper shadow-xl',
               'flex flex-col transition-transform duration-200 ease-out focus:outline-none',
               open ? 'translate-x-0' : '-translate-x-full',
             )}

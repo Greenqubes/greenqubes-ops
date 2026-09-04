@@ -90,9 +90,12 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
             {selected && <Check size={11} className="text-white" strokeWidth={3} />}
           </button>
         )}
+        {/* min-w-0: a flex item's min-width defaults to its content, so a
+            long nowrap title inflates the whole card past the phone screen
+            (sideways scroll + pinch-zoom-out). Keeps the card at row width. */}
         <Link
           href={`/jobs/${job.id}`}
-          className="flex-1 block group"
+          className="flex-1 min-w-0 block group"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
