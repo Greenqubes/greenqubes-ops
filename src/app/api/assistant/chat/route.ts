@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as {
     messages: { role: 'user' | 'assistant'; content: string; attachments?: ChatAttachment[] }[]
     projectId?: string
+    voice?: boolean
   }
   const { messages } = body
 
@@ -178,6 +179,15 @@ export async function POST(req: NextRequest) {
     `Today: ${today} (Singapore time)`,
     `User: ${profile.name} (${profile.role})`,
   ]
+  // Voice mode (spec 2026-09-04-voice-pa): style instruction rides in the
+  // volatile parts — NEVER in SYSTEM_PREFIX (cache prefix must stay
+  // byte-stable). Works for both system-block-2 and last-user-message paths.
+  if (body.voice) volatileParts.push(
+    'Voice mode: the user is speaking to you and hears your reply read aloud. ' +
+    'Reply in the user\'s language, short and conversational — one to three sentences unless more is truly needed. ' +
+    'Never use markdown formatting, bullet lists, tables, or URLs. Say dates and times naturally. ' +
+    'When creating a job, read back a one-sentence summary and ask for a spoken yes before calling the tool.',
+  )
   if (contextBlock) volatileParts.push(`\n${contextBlock}`)
 
   // System blocks. SYSTEM_PREFIX is the shared frozen prefix (byte-stable).

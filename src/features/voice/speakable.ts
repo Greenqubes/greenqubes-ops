@@ -10,7 +10,7 @@ export function toSpeakable(text: string): string {
     .replace(/^#{1,6}\s+/gm, '')                      // heading markers
     .replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '')        // bullet / numbered markers
     .replace(/^(?:-{3,}|_{3,}|\*{3,})\s*$/gm, '')     // horizontal rules
-    .replace(/```[^`]*```/gs, '')                     // fenced code blocks
+    .replace(/```[^`]*```/g, '')                      // fenced code blocks ([^`] spans newlines)
     .replace(/`([^`]*)`/g, '$1')                      // inline code → contents
     .replace(/(\*\*|__)(.*?)\1/g, '$2')               // bold
     .replace(/(\*|_)(.*?)\1/g, '$2')                  // italic
