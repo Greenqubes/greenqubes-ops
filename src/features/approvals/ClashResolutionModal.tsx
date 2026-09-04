@@ -155,8 +155,8 @@ export function ClashResolutionModal({
 
             {/* Travel warning banner */}
             {travelWarnings.length > 0 && (
-              <div className="rounded-lg border border-amber bg-amber/10 px-4 py-3 space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+              <div className="rounded-lg border border-brand-amber bg-brand-amber/10 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-amber">
                   Travel time heads-up
                 </p>
                 {travelWarnings.map(w => {
@@ -176,8 +176,8 @@ export function ClashResolutionModal({
 
             {/* Soft heads-up — a whole-day / no-fixed-time floater. Non-blocking. */}
             {softClashes.length > 0 && (
-              <div className="rounded-lg border border-amber bg-amber/10 px-4 py-3 space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+              <div className="rounded-lg border border-brand-amber bg-brand-amber/10 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-amber">
                   Heads-up
                 </p>
                 {softClashes.map(w => (
@@ -215,7 +215,7 @@ export function ClashResolutionModal({
 
                   {/* Resolved by time shift — no substitute needed */}
                   {resolvedByTime && (
-                    <div className="px-4 py-2 bg-green/10 border-b border-line text-xs font-medium text-green">
+                    <div className="px-4 py-2 bg-brand-green/10 border-b border-line text-xs font-medium text-brand-green">
                       Resolved — the new time no longer overlaps this job.
                     </div>
                   )}
@@ -245,27 +245,27 @@ export function ClashResolutionModal({
                           onClick={() => setReplacements(prev => ({ ...prev, [clash.installer.id]: sub.id }))}
                           className={cn(
                             'w-full flex items-center gap-3 px-4 py-3 border-t border-line text-left transition-colors',
-                            isSelected ? 'bg-green/10' : 'hover:bg-line/30',
+                            isSelected ? 'bg-brand-green/10' : 'hover:bg-line/30',
                           )}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className={cn('text-sm font-medium', isSelected ? 'text-green' : 'text-ink')}>
+                              <p className={cn('text-sm font-medium', isSelected ? 'text-brand-green' : 'text-ink')}>
                                 Replace with: {sub.name}
                               </p>
                               {sub.hasConflict ? (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber bg-amber/10 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-amber bg-brand-amber/10 px-1.5 py-0.5 rounded">
                                   Conflict
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-green bg-green/10 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded">
                                   Free
                                 </span>
                               )}
                             </div>
                             <p className="text-xs text-muted mt-0.5 truncate">{meta}</p>
                           </div>
-                          <ChevronRight size={14} className={cn('shrink-0', isSelected ? 'text-green' : 'text-muted')} />
+                          <ChevronRight size={14} className={cn('shrink-0', isSelected ? 'text-brand-green' : 'text-muted')} />
                         </button>
                       )
                     })
@@ -325,7 +325,7 @@ export function ClashResolutionModal({
           {/* Footer */}
           <div className="border-t border-line px-5 py-4 space-y-3">
             {unresolvedCount > 0 && (
-              <p className="text-center text-xs font-medium text-amber">
+              <p className="text-center text-xs font-medium text-brand-amber">
                 {unresolvedCount} unresolved
               </p>
             )}
@@ -360,7 +360,7 @@ export function ClashResolutionModal({
                     size="sm"
                     onClick={handleNotifyScheduler}
                     disabled={submitting}
-                    className="flex-1 border-amber/40 text-amber-700"
+                    className="flex-1 border-brand-amber/40 text-amber-700"
                   >
                     Notify Scheduler
                   </Btn>

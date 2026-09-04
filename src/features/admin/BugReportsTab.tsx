@@ -82,7 +82,7 @@ function ScreenshotModal({ url, onClose }: { url: string; onClose: () => void })
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue underline underline-offset-2 hover:text-ink2"
+              className="text-xs text-brand-blue underline underline-offset-2 hover:text-ink2"
             >
               Open in new tab
             </a>
@@ -106,7 +106,7 @@ function ScreenshotModal({ url, onClose }: { url: string; onClose: () => void })
 
 const PRIORITY_PILL: Record<BugPriority, string> = {
   low:    'bg-muted/10 text-muted border-muted/30',
-  medium: 'bg-amber/10 text-amber border-amber/30',
+  medium: 'bg-brand-amber/10 text-brand-amber border-brand-amber/30',
   high:   'bg-terracotta/10 text-terracotta border-terracotta/30',
   urgent: 'bg-[var(--bad)]/10 text-[var(--bad)] border-[var(--bad)]/30',
 }
@@ -247,7 +247,7 @@ function BugCard({
           <button
             onClick={handleViewScreenshot}
             disabled={loadingUrl}
-            className="text-xs text-blue underline underline-offset-2 hover:text-ink2 disabled:opacity-50"
+            className="text-xs text-brand-blue underline underline-offset-2 hover:text-ink2 disabled:opacity-50"
           >
             {loadingUrl ? 'Loading…' : 'View screenshot'}
           </button>
@@ -258,7 +258,7 @@ function BugCard({
             disabled={fixing}
             className={cn(
               'text-xs underline underline-offset-2 ml-auto',
-              fixing ? 'text-muted cursor-not-allowed' : 'text-green hover:text-ink2',
+              fixing ? 'text-muted cursor-not-allowed' : 'text-brand-green hover:text-ink2',
             )}
           >
             {fixing ? 'Marking fixed…' : 'Mark Fixed'}

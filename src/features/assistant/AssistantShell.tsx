@@ -844,7 +844,7 @@ function MessageBubble({ msg, lang }: { msg: Message; lang: LangCode }) {
       <div className={cn(
         'shrink-0 w-7 h-7 rounded-full flex items-center justify-center border',
         isUser
-          ? 'bg-blue/10 border-blue/20 text-blue'
+          ? 'bg-brand-blue/10 border-brand-blue/20 text-brand-blue'
           : 'bg-terracotta/10 border-terracotta/20 text-terracotta',
       )}>
         {isUser ? <User size={13} /> : <Bot size={13} />}

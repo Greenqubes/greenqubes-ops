@@ -18,14 +18,14 @@ const PRIORITIES: { value: Priority; label: string }[] = [
 
 const PRIORITY_COLOURS: Record<Priority, string> = {
   low:    'border-muted text-muted',
-  medium: 'border-amber text-amber',
+  medium: 'border-brand-amber text-brand-amber',
   high:   'border-terracotta text-terracotta',
   urgent: 'border-[var(--bad)] text-[var(--bad)]',
 }
 
 const PRIORITY_SELECTED: Record<Priority, string> = {
   low:    'bg-muted/10 border-muted text-muted',
-  medium: 'bg-amber/10 border-amber text-amber',
+  medium: 'bg-brand-amber/10 border-brand-amber text-brand-amber',
   high:   'bg-terracotta/10 border-terracotta text-terracotta',
   urgent: 'bg-[var(--bad)]/10 border-[var(--bad)] text-[var(--bad)]',
 }

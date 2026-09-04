@@ -170,7 +170,7 @@ export function ChatRow({
 
         <div className={cn('flex flex-col gap-0.5 min-w-0 flex-1', !isSelecting && (!mobile ? 'pr-10' : 'pr-8'))}>
           <span className="text-sm font-medium text-ink line-clamp-2 leading-tight">
-            {chat.pinned && !isSelecting && <Pin size={11} className="inline mr-1 -mt-0.5 text-amber" fill="currentColor" />}
+            {chat.pinned && !isSelecting && <Pin size={11} className="inline mr-1 -mt-0.5 text-brand-amber" fill="currentColor" />}
             {topic}
           </span>
         </div>
@@ -184,7 +184,7 @@ export function ChatRow({
             title={chat.pinned ? 'Unpin' : 'Pin'}
             className={cn(
               'p-1 rounded-md hover:bg-line transition-colors',
-              chat.pinned ? 'text-amber' : 'text-muted hover:text-ink',
+              chat.pinned ? 'text-brand-amber' : 'text-muted hover:text-ink',
             )}
           >
             <Pin size={13} />
@@ -216,7 +216,7 @@ export function ChatRow({
               onClick={e => { e.stopPropagation(); onPin() }}
               className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-bg transition-colors flex items-center gap-2"
             >
-              <Pin size={13} className={chat.pinned ? 'text-amber' : 'text-muted'} />
+              <Pin size={13} className={chat.pinned ? 'text-brand-amber' : 'text-muted'} />
               {chat.pinned ? 'Unpin' : 'Pin'}
             </button>
           )}
