@@ -3,10 +3,18 @@
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
 _Last updated: 2026-09-04 (feat-provision — **provisioning overhaul LIVE on production for launch day.** Name cards without emails (attach later), link dots (red = no email / amber = waiting for sign-in / green = linked), subroles + Driver + licences on every card, admin filters + rename, and the Support crew bucket for dispatching production staff onto install teams. Shipped together with the guided tour (your test) in one dev → main merge; production probes green. Demo is today — refresh any open tabs before using them.)_
+_Last updated: 2026-09-04 (feat-tour — **Guided app tour LIVE on production**, all 6 roles in English/中文/বাংলা. First sign-in offers the walkthrough, "Start tour" leads to a language chooser that sets the person's whole app language, and it finishes on Connect Telegram. Both translations are unvetted (your call) — collect corrections at the demo. Your go-live merge also shipped the provisioning overhaul; its migration-0052 gate was verified applied by a live-DB probe before the merge and ticked below. New "Guided tour" section under Pending: demo corrections + post-demo polish.)_
 
 ---
 
 ## Pending — Next Session
+
+### Guided tour (from 2026-09-04, feat-tour — live on production)
+
+- [ ] **Collect 中文 + বাংলা corrections at the demo** — both are unvetted (your call). The tickable checklist page has a "Notes for Claude" box: https://claude.ai/code/artifact/8a1134df-9e73-4fec-b695-96894df61659 — paste whatever the team flags to Claude for a same-day wording pass.
+- [ ] **The full smoke checklist was skipped at go-live** (your call after your preview pass) — the tickable page above remembers whatever you or the team tick later, so it can be chipped away at any time.
+- [ ] **Post-demo polish, none urgent (parked from the final review):** keyboard Escape + screen-reader labels on the tour cards · browser Back during a tour is clunky (the tour pulls you forward again) · the bug-report window shares the tour's screen layer (works today, worth headroom) · a double-tap guard on the language chooser buttons.
+- [ ] **When Workflow V3 merges: add Projects steps to the tour scripts** — also recorded in the standing-maintenance note at the bottom of `docs/guided-tour-smoke-test.md`, together with the after-any-redesign rule (run the tour once per affected role; a centred card where a ring used to be means a tag needs re-homing).
 
 ### Provisioning overhaul (from 2026-09-04, feat-provision-organisation — launch-day build)
 
@@ -211,6 +219,19 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **[Nic] Migration 0052 applied by Claude at your request (you were remote)** — dry-run first, verified applied. Renumbered from 0051 after Claude caught that V3's unmerged branch had already used 0051 on the shared database (a same-number push would have been silently skipped).
 - [x] **[Nic] Preview checked by you on your phone → merged** — your provisioning work merged cleanly with the tour agent's dev work; you confirmed the tour was already tested; one dev → main merge; production probes green (login 200, pages bounce to login, admin API refuses strangers, Singapore region).
 - [x] Vercel lesson recorded: a branch name over 63 characters makes its preview web address impossible — branch renamed to `feat-provision`.
+
+---
+
+## Done This Session ✓ (2026-09-03 → 04, feat-tour — Guided App Tour LIVE + Go-Live Merge)
+
+- [x] **[Nic] Guided tour designed, previewed and approved** — an in-app spotlight walkthrough for all 6 roles: show-and-explain only (nothing underneath is tappable), auto-offer at first sign-in, finishing on Connect Telegram. Your calls along the way: reworded job-form copy (never say fields are optional), and the **language chooser after "Start tour"** — picking English / 中文 / বাংলা sets the person's whole app language, doubling as day-one language setup.
+- [x] **[Nic] Bengali added — your scoped exception to the August bn freeze** — tour text only (~84 strings); the freeze stays for everything else. Both 中文 and বাংলা are unvetted; the demo collects corrections.
+- [x] **[Nic] Interactive mockup approved before any code** — a phone-frame simulation of the sales tour with an EN/中文/বাংলা toggle; building it caught a real plan bug (the phone menu drawer had to open for the nav steps). Mockup: https://claude.ai/code/artifact/bed4ed5f-fb03-4f0c-a3c2-72e571a2fe08
+- [x] **[Nic] Subagent build authorised — then your new standing rule: "do it inline yourself from now"** — 12 tasks with a fresh worker + reviewer each; the final whole-branch review caught 1 critical and 4 important issues before you ever tested (headline: a stale tour state could trap the browser in an endless page bounce). All fixed and re-verified.
+- [x] **[Nic] Preview pass → merged to main (your call to skip the full checklist tick-through)** — before merging, Claude spotted your provisioning agent's work riding on dev with its migration-0052 gate still unticked, probed the live database, confirmed the columns were already applied, and only then merged. Production probes green after the deploy.
+- [x] **[Nic] Tickable checklist page published** — per role × phone/PC, ticks remembered on the device, "Notes for Claude" box for demo feedback: https://claude.ai/code/artifact/8a1134df-9e73-4fec-b695-96894df61659
+- [x] **[Nic] AI importance tagger — skipped, no changes (your call at session start).**
+- Note: the session opened with the small dev → main merge you asked for (the Admin → Health cron-warning fix).
 
 ---
 
