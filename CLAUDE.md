@@ -42,7 +42,9 @@ Before closing off:
 
 All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
 
-The `feat-job-form-redesign`, `feat-workflow-v2`, and `feat-live-updates` branches are kept for historical record only — do not push new changes to them.
+The `feat-job-form-redesign`, `feat-workflow-v2`, `feat-live-updates`, and `feat-workflow-v3` branches are kept for historical record only — do not push new changes to them.
+
+**Workflow V3 (project containers) was CANCELLED on 2026-09-04** (Nic's call after the demo launch — the feedback nullified the scope). Round 1 was built but never merged; rounds 2–3 were dropped. Do not build from the V3 spec or plans — they carry cancelled banners. Migration `0051_job_projects.sql` stays applied to the shared DB: additive, unused, and 0052+ are numbered on top of it — never renumber or drop it.
 
 ---
 

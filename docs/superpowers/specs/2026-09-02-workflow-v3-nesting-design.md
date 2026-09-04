@@ -1,5 +1,15 @@
 # Workflow V3 — Project Nesting (Multi-Store Jobs) — Design Spec
 
+> ## ⛔ CANCELLED 2026-09-04 — ARCHIVE ONLY. DO NOT BUILD FROM THIS.
+>
+> Nic's call after the demo launch: the demo raised enough feedback and
+> forthcoming changes that this scope no longer holds. Round 1 was built and
+> smoke-cleared on `feat-workflow-v3` but **never merged**; rounds 2–3 were
+> dropped before any code was written. The branch is kept for historical
+> record only. If project containers are ever revisited, start from a fresh
+> design session — this document records decisions made before that feedback
+> existed.
+
 _Date: 2026-09-02 · Approved by Nic through five mockup rounds (artifact + comments)._
 _Approved interactive mockup kept at `public/mockups/workflow-v3-nesting/index.html`._
 _Branch: `feat-workflow-v3` (from dev a79ce4f). `feat-workflow-v2` stays untouched as the historical archive._

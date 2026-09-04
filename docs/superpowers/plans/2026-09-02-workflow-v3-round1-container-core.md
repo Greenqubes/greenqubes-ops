@@ -1,5 +1,11 @@
 # Workflow V3 Round 1 — Container Core Implementation Plan
 
+> ## ⛔ CANCELLED 2026-09-04 — ARCHIVE ONLY. DO NOT EXECUTE THIS PLAN.
+>
+> Every task here was executed on `feat-workflow-v3` (round 1 built +
+> smoke-cleared 2026-09-02), but the work was **never merged** and Workflow V3
+> was cancelled after the demo launch. Kept as the record of what was built.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship the project container: migration 0051, project mode on the job form, the nest/un-nest picker, new-job-in-project, timing write-through, project files, the /projects list, push-from-project with one summary Telegram, and the assistant "Projects → Workspaces" rename.
