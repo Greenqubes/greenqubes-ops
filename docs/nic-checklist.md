@@ -4,6 +4,7 @@
 
 _Last updated: 2026-09-04 (feat-provision — **provisioning overhaul LIVE on production for launch day.** Name cards without emails (attach later), link dots (red = no email / amber = waiting for sign-in / green = linked), subroles + Driver + licences on every card, admin filters + rename, and the Support crew bucket for dispatching production staff onto install teams. Shipped together with the guided tour (your test) in one dev → main merge; production probes green. Demo is today — refresh any open tabs before using them.)_
 _Last updated: 2026-09-04 (feat-tour — **Guided app tour LIVE on production**, all 6 roles in English/中文/বাংলা. First sign-in offers the walkthrough, "Start tour" leads to a language chooser that sets the person's whole app language, and it finishes on Connect Telegram. Both translations are unvetted (your call) — collect corrections at the demo. Your go-live merge also shipped the provisioning overhaul; its migration-0052 gate was verified applied by a live-DB probe before the merge and ticked below. New "Guided tour" section under Pending: demo corrections + post-demo polish.)_
+_Last updated: 2026-09-04 (feat-installer — **installer completion flow LIVE on production.** Installers now finish their own jobs: the Completed button on the job page is grey until a completion photo is uploaded, green after, and Telegrams the sales person-in-charge when pressed. "Signed DO (Optional)" only appears once production ticks DO issued. Every installer can browse ALL past completed jobs from the Completed tab (photos, files, chat, tasks, crew) — pending/scheduled stay private, money stays invisible. Your "button not visible in daylight" catch also uncovered 30 colour classes across the app that had never worked — all restored. Refresh any open tabs before using the app.)_
 
 ---
 
@@ -206,6 +207,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-04, feat-installer — Installer Completion Flow LIVE on Production)
+
+- [x] **[Nic] Three asks built and shipped same day** — (1) the **Completed button** for installers: grey until a completion photo is uploaded, green after, confirm popup, and the sales person-in-charge gets a Telegram when it's pressed (the server re-checks everything — only a formally assigned installer on a scheduled job with a photo can complete, no matter how the app is accessed); (2) **"Signed DO (Optional)" hides** until production ticks "DO issued" — an already-uploaded file never disappears; (3) **every installer can open the Completed tab and see ALL past jobs** — details, photos, files, chat (your call), task list and who worked them — because real installers refer backwards. Pending and scheduled jobs stay as private as before; money figures stay invisible to installers; old jobs open read-only.
+- [x] **[Nic] Migration 0053 pushed by Claude at your request** — dry-run first (only 0053 pending), applied clean. The completed-jobs visibility lives at the database layer.
+- [x] **[Nic] Your "button not visible in daylight" catch → a real app-wide bug** — the button used a colour class that doesn't exist (`bg-green`; the app's token is `brand-green`), so it rendered white-on-white in light mode. Sweeping for the same typo found **30 spots in 9 files** that had NEVER shown their intended colours: the clash popup's green/amber badges, the workload popup's blue day circle (its number was invisible!), bug-report severity colours, the assistant's pinned-chat amber, your preview-as amber ring, and more — all fixed and verified against the compiled stylesheet.
+- [x] **[Nic] Tested as a real installer on the dev preview → your merge call** — dev → main (`edeaf62`), production probed green (new route guards itself 401, login 200, schedule bounces signed-out visitors 307).
+- [x] **[Nic] AI importance tagger — skipped; Bryan branch check — skipped (on leave); V3 worktree untouched (your calls at session start).**
+- Reminder: anyone with the app already open should refresh the tab before using it — old tabs keep the previous build.
 
 ---
 
