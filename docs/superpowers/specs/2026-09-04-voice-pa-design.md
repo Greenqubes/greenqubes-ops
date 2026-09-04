@@ -75,7 +75,7 @@ Touched: `src/app/layout.tsx` (mount), `src/app/api/assistant/chat/route.ts` (vo
 - No `SpeechRecognition` support → overlay opens in **type-to-talk** fallback (text input + spoken replies) with a plain-language note.
 - Mic permission denied → clear message with how to re-enable; overlay stays usable as type-to-talk.
 - Recognition `onerror` → surfaced (unlike dictation's silent swallow), one retry, then tap-to-talk.
-- SSE `error` frame / network failure → spoken + shown "Sorry, something went wrong — try again", back to listening.
+- SSE `error` frame / network failure → shown on screen ("Something went wrong — say that again?"), mic reopens so the user can simply repeat themselves. Errors are never spoken (keeps translation out of the hook).
 - `speechSynthesis` missing/voiceless → text-only replies + note (never blocks the conversation).
 
 ## 6. Testing & verification
