@@ -2,7 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
-_Last updated: 2026-09-03 (infra-perf — **page speed fixed, live on production.** The app's server had been answering from the USA (Vercel's default) while you and the database are in Singapore — one line in vercel.json moves it to Singapore, and the 10 main pages now show an instant grey skeleton on every tap. Verified from Singapore on preview, dev and production (~0.1s warm). Temp branch `perf-page-speed` deleted after the merge (your call — no archive). V3 round 2 and the guided tour continue on their own tracks.)_
+_Last updated: 2026-09-04 (feat-provision — **provisioning overhaul LIVE on production for launch day.** Name cards without emails (attach later), link dots (red = no email / amber = waiting for sign-in / green = linked), subroles + Driver + licences on every card, admin filters + rename, and the Support crew bucket for dispatching production staff onto install teams. Shipped together with the guided tour (your test) in one dev → main merge; production probes green. Demo is today — refresh any open tabs before using them.)_
 
 ---
 
@@ -13,6 +13,7 @@ _Last updated: 2026-09-03 (infra-perf — **page speed fixed, live on production
 - [x] **[Nic] Run `npx supabase db push` for migration 0052 BEFORE the code deploys** — VERIFIED APPLIED 2026-09-04 pre-merge (Claude probed the live DB: subrole / is_driver / qualifications columns all present, driver flag already in use). Gate satisfied before dev → main.
 - [ ] **Drop `users.years_experience` + `users.skills` columns** — hidden from every screen 2026-09-04 (your call: redundant); needs a small migration + type cleanup in a quiet session. Claude's memory also holds this reminder.
 - [ ] **Bengali note:** the Support crew bucket still shows the old "সাব-ইনস্টলার" (Sub-installer) label — bn is frozen (boss decision), so it was left untouched. Say the word if that one label should be updated as an exception.
+- [ ] **Delete the stale `feat-provision-organisation` branch on GitHub** — an identical duplicate left over from the rename (the original name was too long for a preview web address; work continued as `feat-provision`, now merged). One tap on GitHub → branches, or approve the delete command for Claude.
 
 ### Workflow V3 — project containers (from 2026-09-02, feat-workflow-v3)
 
@@ -197,6 +198,19 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-04, feat-provision — Provisioning Overhaul LIVE for Launch Day)
+
+- [x] **[Nic] Design approved through three feedback rounds** — mockup page + your 10 artifact comments (dots not tags, Driver beside the name, chips, Insert buttons) + the merged-bucket call all folded in before code.
+- [x] **[Nic] Card-only provisioning live** — add a person with just name + role; their card appears everywhere for assigning; attach their Google email later in Edit (no more delete-and-re-add). Red dot = no email, amber = waiting for first sign-in, green = linked.
+- [x] **[Nic] Subroles, Driver, qualifications live** — labels on every name card (admin, installer grid, designer grid; FCFS + clash rows get a text line; dropdown pickers untouched). Only admins can set them — self-editing is blocked at the database layer, same guard as the August security fix.
+- [x] **[Nic] Admin Users page: filter bar (role + subrole + "No subrole"), rename, email editing** — years of experience + skills removed from every screen (data kept; deletion reminder above).
+- [x] **[Nic] Support crew bucket live** — the "+ Sub-installer" button is now "+ Support crew" and offers every role, for night jobs / manpower shortage. Same rules and Telegram as sub-installers; never triggers double-booking warnings; zero new database structure.
+- [x] **[Nic] Migration 0052 applied by Claude at your request (you were remote)** — dry-run first, verified applied. Renumbered from 0051 after Claude caught that V3's unmerged branch had already used 0051 on the shared database (a same-number push would have been silently skipped).
+- [x] **[Nic] Preview checked by you on your phone → merged** — your provisioning work merged cleanly with the tour agent's dev work; you confirmed the tour was already tested; one dev → main merge; production probes green (login 200, pages bounce to login, admin API refuses strangers, Singapore region).
+- [x] Vercel lesson recorded: a branch name over 63 characters makes its preview web address impossible — branch renamed to `feat-provision`.
 
 ---
 
