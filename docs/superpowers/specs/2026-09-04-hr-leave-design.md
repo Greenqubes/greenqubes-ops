@@ -1,8 +1,8 @@
 # HR / Finance Role + Leave Tracking + Public Holidays — Design Spec
 
-**Date:** 2026-09-04 · **Status:** Approved design, awaiting Nic's spec review
-**Branch:** `feat-hr-leave` (worktree `c:\Greenqubes_GitHub\greenqubes-ops-hr-leave`, off `dev` — includes the provisioning overhaul + guided tour)
-**Migration:** 0053 (0052 is taken by the provisioning overhaul, applied to the shared DB)
+**Date:** 2026-09-04 · **Status:** Approved by Nic; plan written 2026-09-04; **build not started**
+**Branch:** `feat-hr-leave` (merged up to current `dev` on 2026-09-07 — carries the provisioning overhaul, guided tour, installer completion flow and mobile viewport fixes)
+**Migrations:** 0054 (role enum) + 0055 (tables + policies) — 0051, 0052 and 0053 are all taken on the shared DB; re-check the live DB for the next free number before writing them
 
 ## Why
 
@@ -22,19 +22,19 @@ requested by Nic, satisfying the CLAUDE.md roles rule.
 7. Leave entries carry a **type** (annual / medical / emergency / other) + optional note — **visible to HR + admin only**, enforced by the database. Everyone else sees just "On leave".
 8. Build approach: **one clash engine** — leave becomes a second conflict kind inside the existing clash logic; every consumer inherits it.
 9. **Public holidays: in scope** — Singapore public holidays, label-only (no scheduling warning), maintained yearly by HR in our own table. No external service.
-10. Timing: build now off `dev`; V3 continues in its own worktree.
+10. Timing: build now off `dev`. _(V3 was still live when this was decided; it was cancelled 2026-09-04, which only simplifies things — see §5.)_
 
 ## 1. The HR role
 
 - New `user_role` enum value **`hr`**. UI label **"HR / Finance"** (en + zh; bn frozen, falls back).
 - Provisioned from Admin → Users like any role (inherits the 0052 card layout; subrole/driver/qualification fields don't apply to `hr`).
 - **Can see:** the schedule (all non-pending jobs, view-only), the job form read-only — details, team, files, **and the financials card** — the Leave tab, and the AI assistant.
-- **Cannot:** create/edit/delete jobs, post in job chat (not a chat participant or notification recipient), see the FCFS board (`/fcfs` bounces to `/schedule`, same pattern as installers), access Admin, or see pending jobs (today's pending visibility rules simply don't include `hr`; V3's pending-is-personal keeps it that way).
+- **Cannot:** create/edit/delete jobs, post in job chat (not a chat participant or notification recipient), see the FCFS board (`/fcfs` bounces to `/schedule`, same pattern as installers), access Admin, or see pending jobs (the `hr` SELECT policy is scoped to non-pending statuses, and `/pending` bounces her to `/schedule`).
 - **RLS changes:** `hr` gets a `jobs` SELECT policy scoped to **non-pending statuses only** (read-only — no UPDATE/INSERT, never `pending`/`awaiting_approval`), plus read access to the `files` read policies the job form needs, and to `job_financials` **SELECT only** (currently sales + scheduler + admin; insert/update unchanged).
 - Admin "Preview as" gains HR. The guided tour gets a small HR variant (Schedule → Leave tab → assistant).
 - **Standing rule unchanged:** money figures never reach the AI assistant for anyone. Her screens show prices; her assistant does not.
 
-## 2. Data model (migration 0053 — additive, deploy-safe)
+## 2. Data model (migrations 0054 + 0055 — additive, deploy-safe)
 
 ```
 user_leaves         — id, user_id → users, date_start, date_end,
@@ -74,7 +74,7 @@ public_holidays     — id, holiday_date, name
 - **Hydration rules apply** (the /schedule #418 lesson): no `toLocale*` in render paths, localStorage only in mount effects, static English date labels.
 - **Installer pickers** (job form grid, assignment panel): "On leave" badge (grey/red-tinted) on anyone away for the job's date(s), alongside the existing suggested/assigned states.
 - **FCFS board:** leave marked on the person's bar + surfaced in the clash drawer.
-- ⚠️ **V3 interplay (accepted by Nic):** V3 round 2 rebuilds the schedule list. When V3 merges, the leave/holiday lines must be **re-carried** into the new list layout, and V3's pending-visibility migration (now 0054+) must include `hr` in its rewritten `jobs` SELECT policies. Both flagged in the V3 round-2 plan.
+- ~~⚠️ V3 interplay: the leave/holiday lines must be re-carried when V3 round 2 rebuilds the schedule list.~~ **Void — Workflow V3 was cancelled and archived unmerged on 2026-09-04.** The schedule list this feature edits is the final one, and no other branch is competing for the `jobs` SELECT policies.
 
 ## 6. Notifications
 
@@ -94,4 +94,4 @@ public_holidays     — id, holiday_date, name
 - **Leave balances + entitlement counting** (days remaining per person/year) — future session.
 - **Self-service leave requests/approval flow** (staff request → HR approves) — future session.
 - Leave for external contacts; designer due-date leave warnings; public-holiday scheduling warnings; leave shading in the team workload chart.
-- Schedule-list re-carry after V3 merges is follow-up work, not scope creep here.
+- (The old "schedule-list re-carry after V3 merges" item is void — V3 was cancelled 2026-09-04.)
