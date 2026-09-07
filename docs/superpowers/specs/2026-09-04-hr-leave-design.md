@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04 · **Status:** Approved by Nic; plan written 2026-09-04; **build not started**
 **Branch:** `feat-hr-leave` (merged up to current `dev` on 2026-09-07 — carries the provisioning overhaul, guided tour, installer completion flow and mobile viewport fixes)
-**Migrations:** 0054 (role enum) + 0055 (tables + policies) — 0051, 0052 and 0053 are all taken on the shared DB; re-check the live DB for the next free number before writing them
+**Migrations:** 0056 (role enum) + 0057 (tables + policies) — 0051, 0052 and 0053 are all taken on the shared DB; re-check the live DB for the next free number before writing them
 
 ## Why
 
@@ -34,7 +34,7 @@ requested by Nic, satisfying the CLAUDE.md roles rule.
 - Admin "Preview as" gains HR. The guided tour gets a small HR variant (Schedule → Leave tab → assistant).
 - **Standing rule unchanged:** money figures never reach the AI assistant for anyone. Her screens show prices; her assistant does not.
 
-## 2. Data model (migrations 0054 + 0055 — additive, deploy-safe)
+## 2. Data model (migrations 0056 + 0057 — additive, deploy-safe)
 
 ```
 user_leaves         — id, user_id → users, date_start, date_end,
