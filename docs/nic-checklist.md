@@ -17,6 +17,9 @@ _Last updated: 2026-09-07 (chore-config — **the Workflow V3 branch is now dele
 
 ## Pending — Next Session
 
+### Changelog wording — too long (from 2026-09-07, Nic)
+
+- [ ] **Tighten the changelog entries — they read too chatty (Nic, 2026-09-07).** He is right: the first entry runs 30–47 words per bullet, which is a paragraph where a line would do, in a popup people skim. Direction for the rewrite: **one line per item**, say what changed and who it affects, and stop. Spend extra words ONLY in `headsUp`, where someone has to actually do something differently — everywhere else, if it needs a second sentence it probably needs a shorter first one. Rewrite the 2026-09-07 entry as the worked example, then add a length guideline to the changelog rule in `CLAUDE.md` (session-end step 4) so future entries start short instead of being trimmed later.
 ### Support crew — role/subrole pill filter + the two missing buckets (from 2026-09-07, requested by the scheduler)
 
 - [ ] **Add selectable role/subrole pills under the Support crew title** — the scheduler says finding someone in a list of the whole company is a mess. Pills sit directly below the "Support crew" heading; tapping one narrows the grid. (Note for Claude: pills are right HERE, unlike the people-picker dropdown earlier today where they were rejected — that popup is a fixed 224px, this bucket is a full-width section with room.)
