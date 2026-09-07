@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-04 · **Status:** Approved by Nic; plan written 2026-09-04; **build not started**
 **Branch:** `feat-hr-leave` (merged up to current `dev` on 2026-09-07 — carries the provisioning overhaul, guided tour, installer completion flow and mobile viewport fixes)
-**Migrations:** 0057 (role enum) + 0058 (tables + policies) — 0051, 0052 and 0053 are all taken on the shared DB; re-check the live DB for the next free number before writing them
+**Migrations:** two, in order — role enum, then tables + policies. **Numbers are deliberately NOT reserved here**: pick the next two free numbers at implementation time by checking the live DB (`npx supabase migration list`). Reserved numbers went stale three times before this note was written.
 
 ## Why
 
@@ -34,7 +34,7 @@ requested by Nic, satisfying the CLAUDE.md roles rule.
 - Admin "Preview as" gains HR. The guided tour gets a small HR variant (Schedule → Leave tab → assistant).
 - **Standing rule unchanged:** money figures never reach the AI assistant for anyone. Her screens show prices; her assistant does not.
 
-## 2. Data model (migrations 0057 + 0058 — additive, deploy-safe)
+## 2. Data model (two migrations — additive, deploy-safe)
 
 ```
 user_leaves         — id, user_id → users, date_start, date_end,
