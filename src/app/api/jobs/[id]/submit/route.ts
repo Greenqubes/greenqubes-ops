@@ -35,15 +35,39 @@ export async function POST(
   const body = await req.json().catch(() => ({}))
   const newDate: string | undefined = typeof body.date === 'string' ? body.date : undefined
 
+  // A completed job is never pushed back onto the schedule (Nic, 2026-09-07):
+  // reopening is the Revert button's job (/revert-complete), which restores the
+  // FCFS rank too. Without this guard the button reported success on a finished
+  // job and Telegrammed every scheduler about a push that never happened.
+  type StatusRow = { status: string }
+  const { data: current } = await supabase
+    .from('jobs')
+    .select('status')
+    .eq('id', jobId)
+    .maybeSingle() as { data: StatusRow | null; error: unknown }
+  if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (current.status === 'completed') {
+    return NextResponse.json({ error: 'job_completed' }, { status: 409 })
+  }
+
   // Workflow V2: no approval step — sales pushes directly onto the schedule.
   const patch: Record<string, unknown> = { status: 'scheduled' }
   if (newDate) patch.date = newDate
 
-  await supabase
+  // .select('id') so an UPDATE that RLS filters out cannot pass as success:
+  // PostgREST returns 204 with no rows and NO error, so the bare
+  // .throwOnError() that used to be here reported ok, wrote nothing, and still
+  // fired the scheduler Telegrams below. Same trap as 0055/0056 fixed on the
+  // client side.
+  const { data: updated } = await supabase
     .from('jobs')
     .update(patch as never)
     .eq('id', jobId)
+    .select('id')
     .throwOnError()
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
+  }
 
   // Fetch after update so date reflects any change
   const job = await getJobNotifData(jobId)

@@ -124,8 +124,6 @@ export function JobDetailShell({
   const router   = useRouter()
   const supabase = createClient()
 
-  const completed = job.status === 'completed'
-
   // Formal assignments (green) vs sales suggestions (yellow). Sub-installers
   // (Phase 4) live in their own bucket — keep them out of the main grid sets.
   const initialAssigneeIds = job.job_assignees
@@ -163,6 +161,14 @@ export function JobDetailShell({
 
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
+
+  // Derived from the LIVE status, not job.status (Nic, 2026-09-07). It used to
+  // read the server prop, which is frozen at page load, so closing a job in
+  // this session left `completed` false while the pill already said Completed:
+  // the form stayed editable, the sales bar kept offering "Push to Schedule"
+  // on a finished job, and the Reopen button never appeared. handleStatusChange
+  // does not router.refresh(), so nothing corrected it until a manual reload.
+  const completed = status === 'completed'
 
   const readOnly  = completed
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
@@ -906,7 +912,17 @@ export function JobDetailShell({
   // photo-gated /api/jobs/[id]/complete route (installerCompleteBtn above),
   // which runs on the service client and shares nothing with this path.
   const isSalesPocOfJob    = isSales && (job.sales_poc_id ?? '') === userId
-  const showMarkComplete   = status === 'scheduled' && (role === 'scheduler' || isSalesPocOfJob)
+  // Coordinators assigned to THIS job close it too (Nic, 2026-09-07): the
+  // notification drawer shows them overdue jobs they coordinate
+  // (NotificationDrawer's job_coordinators arm), so they were being nagged with
+  // no way to act. Unlike the sales rule this is a UI-level scope, not an RLS
+  // one — 0037 grants coordinator (and production) blanket jobs UPDATE with no
+  // job or status limit, and narrowing it would cut off the 15 production staff
+  // who share that same policy. Consistent with every other coordinator limit,
+  // which 0037's own comment says is enforced in the form.
+  const isCoordinatorOfJob = isCoordinator && initialCoordinatorIds.includes(userId)
+  const showMarkComplete   = status === 'scheduled'
+    && (role === 'scheduler' || isSalesPocOfJob || isCoordinatorOfJob)
   const originalSalesPocId = job.sales_poc_id ?? ''
 
   // Lives on the SAVE row, not the row above (Nic, 2026-09-07): that top row is
