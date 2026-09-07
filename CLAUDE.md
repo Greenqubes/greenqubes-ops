@@ -56,3 +56,9 @@ Always explain in plain, everyday language. Avoid coding terms unless necessary.
 - zh/bn language settings are for UI text translation only. All date labels, day names, and month names are always English regardless of user language.
 - Stack is locked. Do not suggest Firebase, AWS S3, OpenAI embeddings, Pinecone, or any alternative to the chosen services. See `docs/context.md` for the full list.
 - Never add or remove roles without explicit user confirmation. Claude may suggest new roles but must not implement without approval.
+- **Before creating ANY new migration file, claim its number first — no exceptions.** This has gone wrong on six consecutive numbers, because a duplicate is **silently skipped** by `npx supabase db push` with no error at all: the file looks applied, its SQL never runs, and the failure only surfaces later as a missing table or policy. So, in this order, every time:
+  1. Run `npx supabase migration list` — the highest `remote` number is what the live DB actually has.
+  2. Check **every branch, not just this one** — `git branch -a` then `git ls-tree -r --name-only <branch> -- supabase/migrations/` — because an unmerged branch can have already applied its number to the shared DB.
+  3. Take the next number above **both**, and say in your response which number you took and what you checked.
+
+  Two things that follow from this: **never renumber, edit or delete a migration that is already applied** (0051 is the standing example — applied, unused, and later files count on it), and **never reserve numbers in a plan document for work that is not being built yet** — write `<N>` / `<N+1>` and pick the real numbers at implementation time. Reserved numbers go stale and are worse than none. (Nic, 2026-09-07.)
