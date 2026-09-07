@@ -89,7 +89,8 @@ Four near-copies, three incompatible payload shapes, nothing converting between 
 ## Session mechanics
 
 - Session start ran with the AI-importance-tagger question and the `dev-bryan` check **skipped** on Nic's instruction.
-- The V3 worktree (`greenqubes-ops-workflow-v3`) was this session's working directory. Nic asked whether an agent was inside it; it was this one. State was verified before removal — clean tree, everything pushed, stashes live in the shared repo — and he removed it mid-session. `feat-workflow-v3` is untouched on GitHub.
+- The V3 worktree (`greenqubes-ops-workflow-v3`) was this session's working directory. Nic asked whether an agent was inside it; it was this one. State was verified and cleared for deletion — clean tree, everything pushed, the three stashes belonging to the main checkout rather than this worktree. The harness twice reported the folder gone mid-session, but a direct check at session end found it **still fully present** (31 items, live worktree), so the deletion decision remains open in the checklist. `feat-workflow-v3` is untouched on GitHub either way.
+- **Correction made at session end:** the checklist and its summary line had briefly recorded the folder as removed, based on those harness messages rather than a direct check. Both were corrected once `test -d` and `git worktree list` showed otherwise. Lesson: verify a filesystem claim against the filesystem before writing it into Nic's checklist.
 - Execution was offered subagent-driven or inline; Nic chose **inline**, then said **"do not start"** before Task 1. Nothing was implemented.
 - On 2026-09-07 the branch was **merged up to current `dev`** (installer completion flow, mobile viewport fixes, `sin1` region, loading skeletons, V3 cancellation) so every file/line reference in the plan points at live code, and all cancelled-V3 coordination was stripped from both documents.
 
