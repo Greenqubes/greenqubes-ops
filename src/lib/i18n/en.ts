@@ -472,6 +472,8 @@ export const en = {
   tourBack: 'Back',
   tourFinish: 'Finish',
   tourExit: 'Exit tour',
+  changelogTitle: "What's new",
+  changelogMenuLabel: "What's new",
   tourMenuLabel: 'App tour',
   tourBellTitle: 'Notifications',
   tourBellBody: 'The bell shows alerts about your jobs — overdue warnings and updates. Red means something needs a look.',

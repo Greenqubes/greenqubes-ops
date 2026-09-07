@@ -363,6 +363,8 @@ export const zh: Partial<Translations> = {
   tourBack: '上一步',
   tourFinish: '完成',
   tourExit: '退出导览',
+  changelogTitle: '更新内容',
+  changelogMenuLabel: '更新内容',
   tourMenuLabel: '应用导览',
   tourBellTitle: '通知',
   tourBellBody: '铃铛显示与你的工作相关的提醒——逾期警告和更新。红色表示需要处理。',

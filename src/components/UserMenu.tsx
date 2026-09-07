@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { TOUR_RESTART_KEY } from '@/features/tour/engine'
+import { CHANGELOG_OPEN_EVENT } from '@/features/changelog/ChangelogModal'
 import type { Role } from '@/lib/supabase/types'
 
 const VALID_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production']
@@ -299,6 +300,19 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
           >
             <Compass size={14} strokeWidth={1.8} />
             {t(lang, 'tourMenuLabel')}
+          </button>
+
+          {/* What's new — reopens the changelog popup in place; no navigation
+              needed, unlike the tour which has to start from a role home. */}
+          <button
+            onClick={() => {
+              setOpen(false)
+              window.dispatchEvent(new Event(CHANGELOG_OPEN_EVENT))
+            }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+          >
+            <Sparkles size={14} strokeWidth={1.8} />
+            {t(lang, 'changelogMenuLabel')}
           </button>
 
           {/* Admin shortcuts */}
