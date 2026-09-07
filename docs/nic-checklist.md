@@ -17,6 +17,9 @@ _Last updated: 2026-09-07 (chore-config — **the Workflow V3 branch is now dele
 
 ## Pending — Next Session
 
+### Job changes after scheduling (from 2026-09-07, fix-jobs)
+
+- [ ] **Nobody is told when a scheduled job's date moves** — Claude found this while fixing your director's "says saved but doesn't save" bug. If a job is already on the schedule and someone changes its date, **the assigned crew get no Telegram and no alert at all**. That is true today for everyone — sales, scheduler, coordinator — not just the new sales permission. There is no message for it in the system. **You asked for this to be fixed next session.** It needs a short design first: who gets told (installers on the job? the person-in-charge? coordinators?), what the message says, and whether moving it a day matters as much as moving it a week.
 ### HR / Finance role + leave tracking (from 2026-09-07, chore-admin — designed + planned, NOT built)
 
 _Fully designed and broken into 14 build steps. **Nothing exists yet** — no database change, nothing on the website, nobody's screens have changed. Everything lives on the `feat-hr-leave` branch as documents: design [superpowers/specs/2026-09-04-hr-leave-design.md](superpowers/specs/2026-09-04-hr-leave-design.md), build plan [superpowers/plans/2026-09-04-hr-leave.md](superpowers/plans/2026-09-04-hr-leave.md)._
