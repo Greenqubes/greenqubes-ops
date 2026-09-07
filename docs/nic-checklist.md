@@ -9,6 +9,8 @@ _Last updated: 2026-09-04 (feat-installer — **installer completion flow LIVE o
 
 _Last updated: 2026-09-04 (feat-assistant — **Voice PA built, tested by you, and PARKED — nothing went live.** A big glowing mic button on every page opens a talk-to-it voice mode that creates jobs through the existing assistant. It works, but on your Android test it was choppy and misheard you, so the browser-based approach is set aside. **Next session designs the real thing: a realtime voice agent.** One decision is waiting for you there — it needs a new voice company added to the locked stack (Claude has no voice service of its own). Recommendation and costs are in the new Voice PA section below.)_
 
+_Last updated: 2026-09-07 (fix-schedule — **Mobile fixes LIVE on production.** Your phone report turned out to be two problems, not three: long job titles were stretching the schedule cards wider than the screen (that's the sideways sliding — and the reason you could suddenly pinch-zoom out), and both slide-out panels were being told to be "full screen height", which on Android means the height with the address bar hidden — so Account sat just below what you could see. Both fixed and merged to production on your say-so; probes green. Pinch-zoom was deliberately left switched on — see the note below. Anyone with the app open should refresh their tab.)_
+
 ---
 
 ## Pending — Next Session
@@ -225,6 +227,16 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **Sales tab: recall job** — when editing a job in awaiting_approval status, whole form locked + single amber "Recall" button; recalls to pending status, normal pending layout resumes automatically.
 - [x] **Sales tab: pre-send popup** — reimagined as full clash resolution system: installer double-booking detection (proper time-overlap logic), ClashResolutionModal with substitute selection (free/busy badges), keep-anyway flow, time-shift picker, travel-time warning for back-to-back jobs, team workload chart with week navigation.
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
+
+---
+
+## Done This Session ✓ (2026-09-04 → 07, fix-schedule — Mobile Viewport Fixed + LIVE on Production)
+
+- [x] **[Nic] Your three phone complaints were two bugs.** (1) The schedule sliding sideways: a long job title (like "Installation Fossil Westgate showcase counter cladding") was stretching its card wider than the phone screen, because nothing told the card it must never outgrow the row. Measured it precisely — the page came out 510 pixels wide inside a 500-pixel screen, with the long-title card at 494 against a correct 468 for the short one. Now every card stays exactly screen-width and long titles trim with "…" as intended. (2) The side menu needing a scroll to reach **Account** (and the same at the bottom of the notification panel): both panels were set to "full height of the screen", but on Android that phrase means *the height with the address bar hidden* — so the bottom slipped just out of sight until scrolling hid the bar. Both now measure against what's actually on screen.
+- [x] **[Nic] Being able to zoom out was a symptom, not a setting — and it was left switched on deliberately.** The app has never blocked pinch-zoom (checked against the live site). Your phone only lets you pinch out past "fits the screen" when something is genuinely hanging off the edge, so now that nothing does, zooming out snaps back on its own. Locking zoom would have hidden this whole class of bug from you in future, and it makes the app harder for anyone who needs to magnify text — say the word if you ever want it locked anyway.
+- [x] **[Nic] Checked on your dev preview, then merged to production on your go-ahead** — dev → main `5f64bc9`. Production probes green (login loads, signed-out visitors bounce to login, still served from Singapore), and the live stylesheet is byte-for-byte the same build you tested, so what you approved is exactly what went out. Three files changed, no database work, nothing that needs undoing.
+- [x] **[Nic] Housekeeping caught along the way** — Claude's memory index had quietly lost 6 of its 9 entries (two parallel sessions saving over each other); rebuilt so none of that knowledge goes missing at the next session start.
+- Reminder: anyone with the app already open should **refresh their tab** — old tabs keep serving the previous version. This has now caught you out three times.
 
 ---
 
