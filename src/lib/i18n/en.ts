@@ -317,6 +317,7 @@ export const en = {
 
   // ── Save feedback ──────────────────────────────────────────────────────────
   savedSuccessfully: 'Saved',
+  saveBlocked: "Couldn't save — you don't have permission to change this job. Ask the scheduler.",
   saveError: 'Save failed — try again',
 
   // ── Common actions ─────────────────────────────────────────────────────────

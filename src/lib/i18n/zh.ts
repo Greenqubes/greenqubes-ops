@@ -198,6 +198,7 @@ export const zh: Partial<Translations> = {
   messagePlaceholder: '输入消息…',
   noMessages: '暂无消息',
   savedSuccessfully: '已保存',
+  saveBlocked: '无法保存 — 您没有权限修改此工作。请联系排程人员。',
   saveError: '保存失败，请重试',
   notificationsNone: '一切正常 — 无逾期工作',
   overdueCount: '逾期',

@@ -62,11 +62,13 @@ export async function POST(
   // Used before saving an already-scheduled job so moving its time or installer
   // onto another booking warns first. Optional date/time/punctuality overrides
   // let the form check its UNSAVED values. Read-only — gated on its own
-  // (scheduler/coordinator/admin), separately from the write gate below,
-  // so a coordinator's time-change pre-flight can reach this report without
-  // gaining any write access.
+  // (scheduler/coordinator/admin/sales), separately from the write gate below,
+  // so a coordinator's or sales person's time-change pre-flight can reach this
+  // report without gaining any write access. Sales was added 2026-09-07 with
+  // migration 0055, which lets them edit their own SCHEDULED job — moving its
+  // date can double-book the crew exactly as a coordinator's edit can.
   if (new URL(req.url).searchParams.get('checkOnly') === 'true') {
-    if (!['scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
+    if (!['scheduler', 'coordinator', 'admin', 'sales'].includes(effectiveRole)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     type JobRow = { date: string; time_start: string | null; time_end: string | null; punctuality: string }

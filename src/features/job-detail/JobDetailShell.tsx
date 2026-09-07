@@ -86,6 +86,12 @@ const formValuesFromJob = (job: JobDetail): FormValues => ({
   margin_notes:            job.job_financials?.margin_notes ?? '',
 })
 
+// Thrown when a write is refused by RLS rather than failing outright, so
+// performSave can say "you don't have permission" instead of "try again".
+class SaveBlockedError extends Error {
+  constructor() { super('save blocked by row-level security'); this.name = 'SaveBlockedError' }
+}
+
 interface Props {
   job:             JobDetail
   role:            Role
@@ -290,8 +296,14 @@ export function JobDetailShell({
     defaultValues: formValuesFromJob(job),
   })
 
+  // .select('id') is load-bearing, not decoration: an UPDATE that RLS filters
+  // out is NOT an error — PostgREST answers 204, no rows, no error, so a bare
+  // .throwOnError() passes and the form would reset and toast "saved" having
+  // written nothing (Nic's director hit exactly this on a scheduled job,
+  // 2026-09-07). Asking for the row back turns a silently-refused write into a
+  // real failure the catch in performSave can report.
   const saveValues = async (values: FormValues) => {
-    await supabase.from('jobs').update({
+    const { data: saved } = await supabase.from('jobs').update({
       project_title:           values.project_title || null,
       date:                    values.date,
       date_end:                values.date_end || null,
@@ -308,7 +320,8 @@ export function JobDetailShell({
       production_instructions: values.production_instructions || null,
       notes:                   values.notes || null,
       sales_poc_id:            values.sales_poc_id || null,
-    } as never).eq('id', job.id).throwOnError()
+    } as never).eq('id', job.id).select('id').throwOnError()
+    if (!saved || saved.length === 0) throw new SaveBlockedError()
     reset(values)
   }
 
@@ -457,8 +470,8 @@ export function JobDetailShell({
 
       showSuccess(t(lang, 'savedSuccessfully'))
       router.refresh()
-    } catch {
-      showError(t(lang, 'saveError'))
+    } catch (err) {
+      showError(t(lang, err instanceof SaveBlockedError ? 'saveBlocked' : 'saveError'))
     } finally {
       setSaving(false)
     }
@@ -523,7 +536,7 @@ export function JobDetailShell({
     // see that route for the exact ordering.
     const needsCheck =
       status === 'scheduled' && selectedInstallerIds.length > 0 &&
-      ((canAssign && isInstallerDirty) || ((canAssign || isCoordinator) && timeChanged))
+      ((canAssign && isInstallerDirty) || ((canAssign || isCoordinator || isSales) && timeChanged))
 
     if (needsCheck) {
       setSaving(true)
