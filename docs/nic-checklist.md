@@ -255,6 +255,21 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 
 ---
 
+## Done This Session ✓ (2026-09-07, fix-jobs — Live-Issue Day: 7 Fixes on Production)
+
+- [x] **[Nic] Sales can add and remove coordinators again** — it had been failing with "Save failed" for every sales person on every job. A permissions rule from June had quietly dropped sales from the coordinator list while still letting them see it. You tested and confirmed.
+- [x] **[Nic] Your director's "it says saved but nothing saves"** — found and fixed. It was never about the date: **every field** a sales person edited on an already-scheduled job was being thrown away while the screen said "Saved successfully". Sales can now edit their own scheduled jobs, and get a clash warning if they move a date onto a booked crew.
+- [x] **[Nic] Sales can close off their own jobs**, and assigned coordinators can close theirs — the overdue reminders go to the sales person, so they were being nagged about jobs only the scheduler could finish.
+- [x] **[Nic] Drivers bucket** — the job form's Installers list now shows only people ticked as Driver; your other 4 installers moved to Support crew. Nobody lost a job: 17 existing assignments across 5 upcoming jobs were moved across with a dry run first, checked before and after.
+- [x] **[Nic] Filter people by role** when picking Person-in-Charge or Sub POC / Coordinators. You approved the mockup before it was built.
+- [x] **[Nic] A closed job no longer offers "Push to Schedule"** — you found this one. Pressing it had reported success, changed nothing, **and told your schedulers the job had been pushed**. It now shows "Reopen job" instead. Worth a glance at your scheduler chat for a stray notification from today.
+- [x] **[Nic] The buttons at the bottom of a job no longer run off the edge on a phone** — Cancel is reachable again, and Mark job complete moved next to Save.
+- [x] **Saves that get refused now say so** — this is the quiet one that matters most. Three separate bugs today were the same underlying trap, where the system reported success over a write that never happened. It is now guarded in all three places, which protects every screen going forward.
+- [x] **[Nic] Migration numbering rule** — Claude must now claim a number before writing a migration, and check every branch. Six consecutive numbers had collided. The HR/leave plan no longer reserves numbers at all.
+
+**Built but NOT live — waiting on your preview check:**
+
+- [ ] **The "What's new" changelog popup** — your director's request. Opens by itself once per person when there is something new, reopens any time from your profile picture → What's new, scrolls inside itself. Today's entry is already written. **Please read the wording** — it is what your whole team sees, and you know how they talk better than Claude does. Say the word and it goes live.
 ## Done This Session ✓ (2026-09-07, chore-config — Workflow V3 Branch Killed + Session Close)
 
 - [x] **[Nic] "Kill this v3 branch" — DONE.** `feat-workflow-v3` is deleted from this PC and from GitHub. This reverses the 4 Sept decision to keep it forever as a record (like Workflow V2), so **round 1's work is not retained** — roughly 3,700 lines across 39 files. It could only be recovered from GitHub's short grace period for deleted branches, and only if done soon.
