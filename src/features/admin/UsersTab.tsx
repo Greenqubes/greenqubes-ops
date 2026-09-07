@@ -7,10 +7,9 @@ import { Card }    from '@/components/Card'
 import { cn }      from '@/lib/utils/cn'
 import type { AdminUser } from '@/lib/supabase/queries/admin'
 import type { Role, LangCode } from '@/lib/supabase/types'
-import { linkStatus, filterUsers, subroleSuggestions, qualificationSuggestions } from '@/lib/utils/user-meta'
+import { ROLES, linkStatus, filterUsers, subroleSuggestions, qualificationSuggestions } from '@/lib/utils/user-meta'
 import { LinkDot, DriverChip } from '@/components/UserMetaLine'
 
-const ROLES: Role[]     = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'admin']
 const LANGS: LangCode[] = ['en', 'zh', 'bn']
 
 // ── Admin role confirmation modal ──────────────────────────────────────────

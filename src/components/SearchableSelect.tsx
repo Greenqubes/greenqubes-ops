@@ -3,10 +3,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Search, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { RoleFilter } from '@/components/RoleFilter'
+import { rolesPresent, filterPickerOptions } from '@/lib/utils/user-meta'
 
 export type SelectOption = {
   id:    string
   label: string
+  // Present only for people pickers; drives the role filter. Client and
+  // external-contact pickers pass none, which hides the filter entirely.
+  role?: string | null
 }
 
 interface Props {
@@ -27,6 +32,7 @@ export function SearchableSelect({
 }: Props) {
   const [open,    setOpen]    = useState(false)
   const [query,   setQuery]   = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
   const [loading, setLoading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -35,6 +41,7 @@ export function SearchableSelect({
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setOpen(false)
         setQuery('')
+        setRoleFilter('all')
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -43,15 +50,18 @@ export function SearchableSelect({
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setOpen(false); setQuery('') }
+      if (e.key === 'Escape') { setOpen(false); setQuery(''); setRoleFilter('all') }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [])
 
-  const filtered = options.filter(o =>
-    o.label.toLowerCase().includes(query.toLowerCase()),
-  )
+  // Role filter offers only roles the options actually carry, in canonical
+  // order — empty for the client and external-contact pickers, which hides it.
+  const roles = rolesPresent(options)
+
+  // Role and search applied together
+  const filtered = filterPickerOptions(options, roleFilter, query)
 
   async function handleAddNew() {
     if (!onAddNew || !query.trim()) return
@@ -85,7 +95,7 @@ export function SearchableSelect({
     <div ref={wrapRef} className="relative">
       {/* Trigger */}
       <div
-        onClick={() => { if (!disabled) { setOpen(o => !o); setQuery('') } }}
+        onClick={() => { if (!disabled) { setOpen(o => !o); setQuery(''); setRoleFilter('all') } }}
         className={cn(
           'flex items-center gap-2 w-full border rounded-lg px-3 py-2 text-sm min-h-[38px] transition-colors select-none',
           disabled
@@ -130,12 +140,15 @@ export function SearchableSelect({
             />
           </div>
 
+          {/* Role filter — hidden when the options carry no roles */}
+          <RoleFilter roles={roles} value={roleFilter} onChange={setRoleFilter} />
+
           {/* List */}
           <ul className="overflow-y-auto flex-1">
             {filtered.map(opt => (
               <li
                 key={opt.id}
-                onClick={() => { onChange(opt.label); setOpen(false); setQuery('') }}
+                onClick={() => { onChange(opt.label); setOpen(false); setQuery(''); setRoleFilter('all') }}
                 className="flex items-center gap-2 px-3 py-2.5 text-sm text-ink cursor-pointer hover:bg-bg group"
               >
                 <span className="flex-1">{opt.label}</span>

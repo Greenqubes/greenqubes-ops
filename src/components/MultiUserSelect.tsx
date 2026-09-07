@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { RoleFilter } from '@/components/RoleFilter'
+import { rolesPresent, filterPickerOptions } from '@/lib/utils/user-meta'
 
 interface Props {
-  options:      Array<{ id: string; label: string }>
+  options:      Array<{ id: string; label: string; role?: string | null }>
   value:        string[]
   onChange:     (ids: string[]) => void
   disabled?:    boolean
@@ -15,6 +17,7 @@ interface Props {
 export function MultiUserSelect({ options, value, onChange, disabled = false, placeholder = '+ Add coordinator' }: Props) {
   const [open,  setOpen]  = useState(false)
   const [query, setQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
   const wrapRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown on outside click
@@ -23,6 +26,7 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setOpen(false)
         setQuery('')
+        setRoleFilter('all')
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -32,7 +36,7 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
   // Close dropdown on Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setOpen(false); setQuery('') }
+      if (e.key === 'Escape') { setOpen(false); setQuery(''); setRoleFilter('all') }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
@@ -41,15 +45,19 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
   // Users not yet selected
   const unselected = options.filter(o => !value.includes(o.id))
 
-  // Apply search filter to unselected list
-  const filtered = unselected.filter(o =>
-    o.label.toLowerCase().includes(query.toLowerCase()),
-  )
+  // Role filter offers only roles the options actually carry, in canonical
+  // order. Derived from the full option list, not `unselected`, so the choices
+  // don't shift underneath you as you add people.
+  const roles = rolesPresent(options)
+
+  // Role and search applied together
+  const filtered = filterPickerOptions(unselected, roleFilter, query)
 
   function addUser(id: string) {
     onChange([...value, id])
     setOpen(false)
     setQuery('')
+    setRoleFilter('all')
   }
 
   function removeUser(id: string) {
@@ -98,7 +106,7 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
         {isEmpty && !disabled && (
           <button
             type="button"
-            onClick={() => { setOpen(o => !o); setQuery('') }}
+            onClick={() => { setOpen(o => !o); setQuery(''); setRoleFilter('all') }}
             className="text-xs text-muted hover:text-terracotta transition-colors"
           >
             {placeholder}
@@ -109,7 +117,7 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
         {!isEmpty && !disabled && (
           <button
             type="button"
-            onClick={() => { setOpen(o => !o); setQuery('') }}
+            onClick={() => { setOpen(o => !o); setQuery(''); setRoleFilter('all') }}
             aria-label="Add user"
             className="inline-flex items-center gap-0.5 text-terracotta text-xs font-medium hover:text-terracotta/70 transition-colors"
           >
@@ -135,6 +143,9 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
             />
           </div>
 
+          {/* Role filter — hidden when the options carry no roles */}
+          <RoleFilter roles={roles} value={roleFilter} onChange={setRoleFilter} />
+
           {/* User list */}
           <ul className="overflow-y-auto flex-1">
             {filtered.map(opt => (
@@ -149,7 +160,9 @@ export function MultiUserSelect({ options, value, onChange, disabled = false, pl
 
             {filtered.length === 0 && (
               <li className="px-3 py-2 text-sm text-muted select-none">
-                {query.trim().length > 0 ? 'No match' : 'No users to add'}
+                {query.trim().length > 0
+                  ? 'No match'
+                  : roleFilter !== 'all' ? 'Nobody with that role' : 'No users to add'}
               </li>
             )}
           </ul>

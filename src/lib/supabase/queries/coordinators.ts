@@ -11,6 +11,7 @@ type CoordinatorRow = {
 type UserRow = {
   id: string
   name: string
+  role: string
 }
 
 // â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -69,16 +70,16 @@ export async function setJobCoordinators(
   return { added }
 }
 
-export async function getAllProvisionedUsers(): Promise<Array<{ id: string; label: string }>> {
+export async function getAllProvisionedUsers(): Promise<Array<{ id: string; label: string; role: string }>> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
-    .select('id, name')
+    .select('id, name, role')
     .neq('role', 'installer')
     .is('deleted_at', null)
     .order('name', { ascending: true })
   if (error) throw error
   const rows = (data ?? []) as unknown as UserRow[]
-  return rows.map((row) => ({ id: row.id, label: row.name }))
+  return rows.map((row) => ({ id: row.id, label: row.name, role: row.role }))
 }
 
