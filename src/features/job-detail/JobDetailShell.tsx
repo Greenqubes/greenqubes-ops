@@ -909,6 +909,23 @@ export function JobDetailShell({
   const showMarkComplete   = status === 'scheduled' && (role === 'scheduler' || isSalesPocOfJob)
   const originalSalesPocId = job.sales_poc_id ?? ''
 
+  // Lives on the SAVE row, not the row above (Nic, 2026-09-07): that top row is
+  // a single non-wrapping flex and had grown to six buttons, pushing Cancel off
+  // the right edge of a phone screen. Moving the completion action down also
+  // reads better — it sits beside Save as the other "finish this" action.
+  // Rendered by both save branches below (sales' "Save Changes" and
+  // scheduler's "Save & notify"), which is why it is a variable, not inline.
+  const markCompleteBtn = showMarkComplete ? (
+    <button
+      type="button"
+      onClick={() => handleStatusChange('completed')}
+      className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-3 rounded-[10px] border border-line bg-paper text-sm font-medium text-ink2 hover:bg-bg transition-colors"
+    >
+      <CheckCircle size={14} />
+      Mark job complete
+    </button>
+  ) : null
+
   // Design-completed flow (Task 8). hasJoFile mirrors the route's own
   // `ilike '%designer jo%'` + files-count check, so the button's disabled
   // state and the server's 409 always agree.
@@ -1472,7 +1489,11 @@ export function JobDetailShell({
             </>
           ) : (
             <>
-              <div className="flex gap-2">
+              {/* flex-wrap so a long button set falls to a second line instead of
+                  running off the right edge of a phone (Nic, 2026-09-07 — Cancel
+                  was overflowing). Which buttons appear here varies by role and
+                  status, so this row has no fixed width to design against. */}
+              <div className="flex flex-wrap gap-2">
                 {showDelete && (
                   <button
                     type="button"
@@ -1481,16 +1502,6 @@ export function JobDetailShell({
                   >
                     <Trash2 size={12} />
                     Delete
-                  </button>
-                )}
-                {showMarkComplete && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange('completed')}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors"
-                  >
-                    <CheckCircle size={12} />
-                    Mark job complete
                   </button>
                 )}
                 {completed && (
@@ -1539,7 +1550,7 @@ export function JobDetailShell({
                   onClick={() => router.back()}
                   className={cn(
                     'flex items-center justify-center px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg transition-colors',
-                    !showDelete && !showMarkComplete && 'flex-1',
+                    !showDelete && 'flex-1',
                   )}
                 >
                   Cancel
@@ -1618,7 +1629,7 @@ export function JobDetailShell({
                     disabled={saving || (!isDirty && !isInstallerDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
                     className={cn(
                       'flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed',
-                      status === 'scheduled' ? 'w-full' : 'flex-1',
+                      status === 'scheduled' && !markCompleteBtn ? 'w-full' : 'flex-1',
                     )}
                   >
                     {saving ? 'Saving…' : 'Save Changes'}
@@ -1634,17 +1645,21 @@ export function JobDetailShell({
                       {saving ? t(lang, 'loading') : 'Push to Schedule'}
                     </button>
                   )}
+                  {markCompleteBtn}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit(onSubmit)}
-                  disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Bell size={14} />
-                  {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSubmit(onSubmit)}
+                    disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Bell size={14} />
+                    {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
+                  </button>
+                  {markCompleteBtn}
+                </div>
               )}
             </>
           )}
