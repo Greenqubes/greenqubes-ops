@@ -395,11 +395,12 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
               </Field>
             </div>
 
-            {/* Installers — same sub-section framing as the edit page */}
+            {/* Drivers — same sub-section framing as the edit page (Nic,
+                2026-09-07); everyone else is picked in Support crew. */}
             <div className="border-t border-line px-4 pt-3 pb-4">
-              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Installers</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Drivers</p>
               {allInstallers.length === 0 ? (
-                <p className="text-sm text-muted">No installers found.</p>
+                <p className="text-sm text-muted">No drivers found.</p>
               ) : (
                 <InstallerGrid
                   installers={allInstallers}

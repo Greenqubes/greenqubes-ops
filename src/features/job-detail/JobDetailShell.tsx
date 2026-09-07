@@ -1283,9 +1283,12 @@ export function JobDetailShell({
 
           </div>
 
-          {/* Installers sub-section */}
+          {/* Drivers sub-section — installers ticked as Driver in provisioning
+              (Nic, 2026-09-07). Drivers are the booking constraint and the only
+              people clash-checked; every other installer is picked in the
+              Support crew bucket below. */}
           <div className="border-t border-line px-4 pt-3 pb-4">
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Installers</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Drivers</p>
             {isInstaller ? (
               /* installer sees only the confirmed (formal) assignees, read-only */
               <InstallerGrid

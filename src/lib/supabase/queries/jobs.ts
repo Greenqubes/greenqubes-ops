@@ -290,27 +290,35 @@ function toCardUser({ email, auth_id, ...u }: RawCardUser): InstallerUser {
   return { ...u, link_status: linkStatus({ email, auth_id }) }
 }
 
+// Pool for the Drivers bucket (Nic, 2026-09-07): installers ticked as Driver
+// in provisioning. Drivers are the booking constraint, so these are the only
+// people clash-checked — everyone else works through the Support crew bucket
+// below, which is clash-exempt and Telegrams them instead.
 export async function getInstallerUsers(): Promise<InstallerUser[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
     .select('id, name, phone, role, subrole, is_driver, qualifications, email, auth_id')
     .eq('role', 'installer')
+    .eq('is_driver', true)
     .is('deleted_at', null)
     .order('name')
   if (error) throw error
   return ((data ?? []) as unknown as RawCardUser[]).map(toCardUser)
 }
 
-// Pool for the Support crew bucket (Nic 2026-09-04): everyone who is NOT an
-// installer — production, sales, etc. — dispatched onto install teams for
-// night jobs / manpower shortage. Same card shape as installers.
+// Pool for the Support crew bucket (Nic 2026-09-04, widened 2026-09-07):
+// everyone who is NOT a driver — non-driver installers plus production, sales
+// etc. — dispatched onto install teams for night jobs / manpower shortage.
+// Clash-exempt by design: only drivers constrain a booking. Newly added members
+// get tplSubInstallerAssigned on Telegram. Same card shape as drivers.
+// is_driver is NOT NULL DEFAULT false (0052), so this OR needs no null arm.
 export async function getSupportUsers(): Promise<InstallerUser[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('users')
     .select('id, name, phone, role, subrole, is_driver, qualifications, email, auth_id')
-    .neq('role', 'installer')
+    .or('role.neq.installer,is_driver.eq.false')
     .neq('name', 'GreenqubesAI')
     .is('deleted_at', null)
     .order('name')
