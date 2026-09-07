@@ -21,6 +21,15 @@ function formatDate(iso: string): string {
   return `${d} ${MONTHS[m - 1]} ${y}`
 }
 
+/** '20:56' -> '8:56 PM'. Midnight and noon land on 12, not 0. */
+function formatTime(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm
+  const suffix = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${suffix}`
+}
+
 /** One heading + its bullets. Renders nothing when the section is absent. */
 function Section({ title, items, tone = 'normal' }: {
   title: string
@@ -64,6 +73,11 @@ function Entry({ entry }: { entry: ChangelogEntry }) {
       {/* H2 — the date */}
       <h2 className="font-display text-lg font-semibold text-ink">
         {formatDate(entry.date)}
+        {entry.time && (
+          <span className="ml-2 align-middle text-sm font-normal text-muted">
+            {formatTime(entry.time)}
+          </span>
+        )}
       </h2>
       <div className="mt-3">
         <Section title="Heads up"     items={entry.headsUp} tone="headsUp" />

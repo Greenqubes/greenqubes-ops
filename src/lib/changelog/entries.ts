@@ -16,6 +16,13 @@
 export type ChangelogEntry = {
   /** ISO date, e.g. '2026-09-07'. Doubles as the "have they seen it" marker. */
   date: string
+  /**
+   * Release time, 24-hour 'HH:MM', Singapore time — shown beside the date as
+   * h:mm AM/PM. Stored 24-hour so the AM/PM formatting happens in one place
+   * instead of being hand-typed (and mistyped) per entry. Optional: older
+   * entries without one just show the date.
+   */
+  time?: string
   /** Only when something CHANGES HOW PEOPLE WORK — shown first, highlighted. */
   headsUp?: string[]
   added?: string[]
@@ -28,6 +35,7 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-07',
+    time: '20:56',
     headsUp: [
       'The Installers list on a job is now called Drivers, and it only shows people ticked as Driver in Admin. Everyone else — including your other installers — is picked in the Support crew bucket just below it. Nobody was removed and no job lost its crew; four installers simply moved bucket.',
       'The FCFS board now shows driver rows only, for the same reason: drivers are what a booking is limited by.',
