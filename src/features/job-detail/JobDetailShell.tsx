@@ -597,12 +597,19 @@ export function JobDetailShell({
       const patch: Record<string, unknown> = { status: newStatus }
       if (newStatus === 'completed') patch.completed_at = new Date().toISOString()
       if (newDate) patch.date = newDate
-      await supabase.from('jobs').update(patch as never).eq('id', job.id).throwOnError()
+      // .select('id') for the same reason as saveValues: an UPDATE refused by
+      // RLS returns 204 with no rows and NO error, so a bare .throwOnError()
+      // would toast "saved" over a status that never changed. Covers every
+      // transition through here — submit for approval, push to schedule,
+      // mark complete.
+      const { data: updated } = await supabase.from('jobs')
+        .update(patch as never).eq('id', job.id).select('id').throwOnError()
+      if (!updated || updated.length === 0) throw new SaveBlockedError()
       setStatus(newStatus)
       if (newDate) setValue('date', newDate)
       showSuccess(t(lang, 'savedSuccessfully'))
-    } catch {
-      showError(t(lang, 'saveError'))
+    } catch (err) {
+      showError(t(lang, err instanceof SaveBlockedError ? 'saveBlocked' : 'saveError'))
     }
   }
 
@@ -891,7 +898,15 @@ export function JobDetailShell({
   // zero rows affected rather than an error). Coordinator inherits that same
   // pre-existing gap by parity; not fixed here (out of scope, RLS-level).
   const showDelete         = (['sales', 'coordinator'].includes(role) && status === 'pending') || role === 'scheduler'
-  const showMarkComplete   = role === 'scheduler' && status === 'scheduled'
+  // Sales close their OWN job (Nic, 2026-09-07). The overdue alert is sent to
+  // the sales POC (api/notifications/overdue), so sales were being nagged about
+  // jobs only the scheduler could close. Scheduler still closes anything,
+  // anywhere. `role` is the EFFECTIVE role, so admin is already covered by the
+  // scheduler arm. Installers are deliberately absent: they complete through the
+  // photo-gated /api/jobs/[id]/complete route (installerCompleteBtn above),
+  // which runs on the service client and shares nothing with this path.
+  const isSalesPocOfJob    = isSales && (job.sales_poc_id ?? '') === userId
+  const showMarkComplete   = status === 'scheduled' && (role === 'scheduler' || isSalesPocOfJob)
   const originalSalesPocId = job.sales_poc_id ?? ''
 
   // Design-completed flow (Task 8). hasJoFile mirrors the route's own
