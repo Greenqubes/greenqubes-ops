@@ -148,7 +148,7 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
         {/* scheduler banner */}
         {schedulerNames.length > 0 && (
           <div className="flex items-center gap-3 rounded-lg border border-line bg-paper px-3 py-2">
-            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue text-[11px] font-semibold text-paper">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-blue text-[11px] font-semibold text-paper">
               {getInitials(schedulerNames[0])}
             </div>
             <div>
@@ -164,7 +164,7 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
 
         {/* busy warning */}
         {!loading && selectedDayCount >= BUSY_THRESHOLD && (
-          <div className="rounded-lg border border-amber bg-amber-soft px-3 py-2 text-xs text-amber">
+          <div className="rounded-lg border border-brand-amber bg-brand-amber-soft px-3 py-2 text-xs text-brand-amber">
             ⚠ {selectedDayCount} {t(lang, 'workloadBusyWarning')}
           </div>
         )}
@@ -231,7 +231,7 @@ export function WorkloadPreviewModal({ jobId, currentDate, lang, onConfirm, onCl
                   {day.jobCount > 0 ? (
                     <span className={cn(
                       'text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none',
-                      isSelected ? 'bg-white/20 text-white' : 'bg-amber-soft text-amber',
+                      isSelected ? 'bg-white/20 text-white' : 'bg-brand-amber-soft text-brand-amber',
                     )}>
                       {day.jobCount}
                     </span>

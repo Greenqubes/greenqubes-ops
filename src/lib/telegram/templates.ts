@@ -71,6 +71,30 @@ export function tplJobAssigned(p: {
   )
 }
 
+// Sent to the sales POC when an installer marks the job completed from the
+// field (installer Completed button, 2026-09-04). Requires ≥1 completion
+// photo — enforced by the /api/jobs/[id]/complete route.
+export function tplJobCompleted(p: {
+  projectTitle:  string | null
+  jobClient:     string
+  jobDate:       string
+  timeStart:     string | null
+  timeEnd:       string | null
+  location:      string
+  installerName: string
+  jobUrl:        string
+}): string {
+  return (
+    `✅ <b>Job Completed</b>\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n` +
+    `Completed by: ${p.installerName}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent to a newly-added DESIGNER when they're assigned to a job's design work.
 // `assignedBy` is the display name (fallback email) of whoever made the
 // assignment — any role can assign (R2-T2, Nic smoke-test edit 4).

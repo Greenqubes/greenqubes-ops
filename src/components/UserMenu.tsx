@@ -183,7 +183,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
       {/* Avatar button + override chip */}
       <div className="flex items-center gap-1.5">
         {isAdmin && roleOverride && (
-          <span className="text-[10px] font-medium text-amber-700 bg-amber/15 border border-amber/30 px-1.5 py-0.5 rounded-full leading-none capitalize">
+          <span className="text-[10px] font-medium text-amber-700 bg-brand-amber/15 border border-brand-amber/30 px-1.5 py-0.5 rounded-full leading-none capitalize">
             {roleOverride}
           </span>
         )}
@@ -196,7 +196,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
             'w-8 h-8 rounded-full flex items-center justify-center',
             'text-white text-[11px] font-semibold tracking-wide select-none',
             'transition-opacity hover:opacity-85',
-            isAdmin && roleOverride ? 'ring-2 ring-amber/60 ring-offset-1' : '',
+            isAdmin && roleOverride ? 'ring-2 ring-brand-amber/60 ring-offset-1' : '',
             bg,
           )}
         >
@@ -318,7 +318,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
                       className={cn(
                         'w-full py-1 rounded-md text-[11px] font-medium border transition-colors capitalize truncate',
                         roleOverride === role
-                          ? 'bg-amber/15 text-amber-700 border-amber/40'
+                          ? 'bg-brand-amber/15 text-amber-700 border-brand-amber/40'
                           : 'bg-bg border-line text-ink2 hover:border-ink2',
                       )}
                     >

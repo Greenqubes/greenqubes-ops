@@ -69,7 +69,7 @@ const DOC_ICON_CONFIG: Record<DocKind, { bg: string; color: string }> = {
   pdf:   { bg: 'bg-[#FDECEA]', color: 'text-[#C0392B]' },
   xls:   { bg: 'bg-[#E8F5E9]', color: 'text-[#2E7D32]' },
   doc:   { bg: 'bg-[#EEF2FB]', color: 'text-[#3D6FB5]' },
-  zip:   { bg: 'bg-[#FFF8E1]', color: 'text-amber' },
+  zip:   { bg: 'bg-[#FFF8E1]', color: 'text-brand-amber' },
   other: { bg: 'bg-[#EEF2FB]', color: 'text-ink2' },
 }
 

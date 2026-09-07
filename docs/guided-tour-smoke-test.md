@@ -342,4 +342,6 @@ whichever role is easiest to arrange a real login for.
 - After any big UI change or redesign, **run the tour once for every role it touches.** If a step
   shows a plain centred card where a glowing ring used to be, that button's `data-tour` tag needs to
   be moved onto whatever replaced it.
-- When **Workflow V3** merges, the tour scripts need a small update — new steps covering Projects.
+- ~~When **Workflow V3** merges, the tour scripts need a small update — new steps covering Projects.~~
+  **Void — Workflow V3 was cancelled 2026-09-04** (archived unmerged). No Projects steps are needed.
+  The rule above still applies to any future redesign.

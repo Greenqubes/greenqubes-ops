@@ -789,7 +789,10 @@ export function NotificationDrawer({ lang }: Props) {
       {/* ── Drawer ── */}
       <div
         className={cn(
-          'fixed top-0 right-0 z-50 h-full w-80 bg-paper shadow-xl flex flex-col transition-transform duration-200 ease-out',
+          // h-dvh, not h-full — see NavDrawer: on mobile Chrome a fixed
+          // element's 100% is the URL-bar-hidden height, pushing the bottom
+          // of this scrolling list below the visible screen.
+          'fixed top-0 right-0 z-50 h-dvh w-80 bg-paper shadow-xl flex flex-col transition-transform duration-200 ease-out',
           open ? 'translate-x-0' : 'translate-x-full',
         )}
       >
