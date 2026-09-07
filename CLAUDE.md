@@ -30,7 +30,15 @@ Before closing off:
 1. Update `docs/plan.md` — mark completed items with `[Nic]` tag, add any new sessions or notes
 2. Update `docs/context.md` — update the "Last updated" line and migration plan checkboxes
 3. Update `docs/nic-checklist.md` — tick off anything Nic completed this session, tag each item `[Nic]`, add any new pending items
-4. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
+4. **If anything reached `main` this session, write the changelog entry** — add it to `src/lib/changelog/entries.ts` (newest first), then commit and push it with everything else. It is what the team sees in the "What's new" popup, so:
+   - **One entry per date, not per push.** If today already has an entry, ADD to it and bump its `time` — never create a second entry for the same date. `date` is what decides whether the popup reopens for someone.
+   - `time` is 24-hour `HH:MM` Singapore time; the popup formats it to AM/PM.
+   - Sections in order, each optional and skipped when empty: `headsUp` (only when something changes how people WORK), `added`, `improved`, `fixed`, `known` (still-open problems).
+   - **English only** (Nic, 2026-09-07) — entries are prose and are not translated; the popup's own chrome is.
+   - Write from the reader's side of the screen: what changed for THEM, never the code. "Sales can close their own jobs" — not "widened the sales RLS policy". No file names, no migration numbers, no jargon.
+   - If a change would confuse someone who doesn't read it, it belongs in `headsUp`, not `improved`.
+   - Nothing reached `main`? Skip this step silently — do not write an entry for work that only sits on `dev`.
+5. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
 
