@@ -10,12 +10,12 @@
 
 ## 0. Before you start — the database (do this first)
 
-The two database files are written but **not applied**. They must go in
+The three database files are written but **not applied**. They must go in
 **before** the code goes live, or every page that touches leave crashes.
 
 - [ ] Say the word and Claude runs `npx supabase db push` (or you run it) —
-      it applies **0057** (the new role name) then **0058** (the leave and
-      holiday tables).
+      it applies **0057** (the new role name), **0058** (the leave and holiday
+      tables) and **0059** (company events), in that order.
 - [ ] Both are additive: nothing existing changes, and the site keeps working
       exactly as it does now while they sit there unused.
 - [ ] Check the Singapore holidays landed: Admin → the Leave page will show
@@ -121,17 +121,7 @@ On the Leave page, as HR:
       bell → account → Connect Telegram → done.
 - [ ] Chinese and Bengali wording — collect any corrections from the team.
 
----
-
-## When it all passes
-
-1. Claude merges `feat-hr-leave` → `dev`, you re-check the dev preview.
-2. Then `dev` → `main`, and it's live for the team.
-3. Claude writes the What's new entry so everyone sees what changed.
-
----
-
-## 10. Company events (added 2026-09-08)
+## 10. Company events
 
 - [ ] On the Leave page, HR adds an event with a **date range** — e.g.
       "Company retreat", 5–9 Aug.
@@ -142,3 +132,11 @@ On the Leave page, as HR:
 - [ ] Installers see it too, on My Jobs and in their week view.
 - [ ] It does **not** warn or block when a job is scheduled during it —
       label only, same as a public holiday. (Say if you want it to warn.)
+
+---
+
+## When it all passes
+
+1. Claude merges `feat-hr-leave` → `dev`, you re-check the dev preview.
+2. Then `dev` → `main`, and it's live for the team.
+3. Claude writes the What's new entry so everyone sees what changed.
