@@ -10,9 +10,17 @@ interface WeekViewProps {
   jobsByDate: Record<string, ScheduleJob[]>
   today:      string
   lang:       LangCode
+  /** Optional: only the live schedule passes these; InstallerShell shares
+   *  this component and renders unchanged without them. */
+  leaveNamesByDate?: Record<string, string[]>
+  holidayByDate?:    Record<string, string>
+  onLeaveLabel?:     string
 }
 
-export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
+export function WeekView({
+  weekDays, jobsByDate, today, lang,
+  leaveNamesByDate = {}, holidayByDate = {}, onLeaveLabel = 'On leave',
+}: WeekViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
   // InstallerShell, both lg-gate BottomNav the same way.
@@ -39,12 +47,24 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
                   {t(lang, 'filterToday')}
                 </span>
               )}
+              {holidayByDate[d] && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-brand-green-soft text-brand-green text-[10px] font-medium">
+                  {holidayByDate[d]}
+                </span>
+              )}
               {jobs.length > 0 && (
                 <span className="ml-auto text-xs text-muted">
                   {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'}
                 </span>
               )}
             </div>
+
+            {(leaveNamesByDate[d] ?? []).length > 0 && (
+              <p className="mb-1.5 text-[11px] text-muted">
+                <span className="font-medium text-ink2">{onLeaveLabel}:</span>{' '}
+                {[...new Set(leaveNamesByDate[d])].join(', ')}
+              </p>
+            )}
 
             {jobs.length === 0 ? (
               <p className="pl-3 text-xs text-muted italic">—</p>

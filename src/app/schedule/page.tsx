@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getScheduleJobs } from '@/lib/supabase/queries/jobs'
+import { getLeaveForSchedule, getHolidays } from '@/lib/supabase/queries/leave'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -23,11 +24,15 @@ export default async function SchedulePage() {
   const effectiveRole = await getEffectiveRole(profile.role)
   if (effectiveRole === 'installer') redirect('/installer')
 
-  const jobs = await getScheduleJobs()
+  const [jobs, leaves, holidays] = await Promise.all([
+    getScheduleJobs(), getLeaveForSchedule(), getHolidays(),
+  ])
 
   return (
     <ScheduleShell
       jobs={jobs}
+      leaves={leaves}
+      holidays={holidays}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
     />

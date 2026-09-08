@@ -73,6 +73,29 @@ export async function getAllLeaveRecords(): Promise<LeaveRecord[]> {
   return (data ?? []) as unknown as LeaveRecord[]
 }
 
+// Leave for the schedule views: names, never details. Every role calls this,
+// so the details table is deliberately absent from the select — the schedule
+// shows "On leave: Ali, Mei" and nothing more.
+export async function getLeaveForSchedule(): Promise<Array<LeaveRecord & { user_name: string }>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('user_leaves')
+    .select('id, user_id, date_start, date_end, start_portion, end_portion')
+    .order('date_start', { ascending: true })
+  if (error) throw error
+  const rows = (data ?? []) as unknown as LeaveRecord[]
+  // Follow-up names query — user_leaves has two FKs to users, so embedding
+  // would hit PGRST201 (the standing rule).
+  const ids = [...new Set(rows.map(r => r.user_id))]
+  const nameById = new Map<string, string>()
+  if (ids.length > 0) {
+    type NameRow = { id: string; name: string }
+    const { data: users } = await supabase.from('users').select('id, name').in('id', ids)
+    for (const u of (users ?? []) as NameRow[]) nameById.set(u.id, u.name)
+  }
+  return rows.map(r => ({ ...r, user_name: nameById.get(r.user_id) ?? '' }))
+}
+
 export async function getHolidays(): Promise<Holiday[]> {
   const supabase = await createClient()
   const { data, error } = await supabase

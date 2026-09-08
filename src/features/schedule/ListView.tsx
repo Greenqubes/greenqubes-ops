@@ -8,6 +8,8 @@ interface ListStrings {
   noJobs:         string
   strictOnTime:   string
   flexibleWindow: string
+  /** Optional so InstallerShell's own strings object still satisfies this. */
+  onLeave?:       string
 }
 
 interface ListViewProps {
@@ -16,6 +18,9 @@ interface ListViewProps {
   today:        string
   lang:         LangCode
   strings:      ListStrings
+  /** Optional: only the live schedule passes these; installer views don't. */
+  leaveNamesByDate?: Record<string, string[]>
+  holidayByDate?:    Record<string, string>
   onSelectDate: (date: string) => void
   selectable?:  boolean
   selectedIds?: Set<string>
@@ -24,10 +29,15 @@ interface ListViewProps {
 }
 
 export function ListView({
-  jobsByDate, selectedDate, today, lang, strings, onSelectDate,
+  jobsByDate, selectedDate, today, lang, strings,
+  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate,
   selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
-  const dayJobs = jobsByDate[selectedDate] ?? []
+  const dayJobs    = jobsByDate[selectedDate] ?? []
+  const dayHoliday = holidayByDate[selectedDate]
+  // De-duplicated: one person can hold two overlapping entries (a half day
+  // inside a longer one) and should still be named once.
+  const dayLeave   = [...new Set(leaveNamesByDate[selectedDate] ?? [])]
 
   return (
     <div>
@@ -36,6 +46,8 @@ export function ListView({
         selectedDate={selectedDate}
         today={today}
         lang={lang}
+        leaveNamesByDate={leaveNamesByDate}
+        holidayByDate={holidayByDate}
         onSelectDate={onSelectDate}
       />
 
@@ -44,6 +56,19 @@ export function ListView({
           F1). Shared by ScheduleShell and InstallerShell, both lg-gate
           BottomNav the same way. */}
       <div className="px-4 pb-8 lg:pb-24">
+        {/* Above the empty-day branch on purpose: a day with no jobs can
+            still be a public holiday or have people away. */}
+        {dayHoliday && (
+          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-green-soft text-brand-green text-[11px] font-medium">
+            {dayHoliday}
+          </div>
+        )}
+        {dayLeave.length > 0 && (
+          <p className="mb-2 text-[11px] text-muted">
+            <span className="font-medium text-ink2">{strings.onLeave ?? 'On leave'}:</span>{' '}
+            {dayLeave.join(', ')}
+          </p>
+        )}
         {dayJobs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">
             <Calendar size={28} strokeWidth={1.2} />
