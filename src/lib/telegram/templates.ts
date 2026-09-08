@@ -497,3 +497,32 @@ export function tplVoteStatusTimeout(p: {
     resultLine
   )
 }
+
+// ─── Leave ────────────────────────────────────────────────────────────────────
+
+// Sent to schedulers + the affected job's POC/coordinators when HR records
+// leave that lands on a job the person is already assigned to (support crew
+// included — a person on leave is away regardless of their role on the job).
+// NEVER includes the leave type: the reason for an absence is hr/admin-only
+// (spec §6), and it is not among this function's arguments so it cannot leak.
+export function tplLeaveClash(p: {
+  personName:   string
+  leaveDates:   string
+  projectTitle: string | null
+  jobClient:    string
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+  jobUrl:       string
+}): string {
+  return (
+    `🏖 <b>Leave Clash</b>\n` +
+    `${p.personName} is on leave ${p.leaveDates} but is on this job:\n` +
+    (p.projectTitle ? `<b>${p.projectTitle}</b>\n` : '') +
+    `Client: ${p.jobClient}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${p.location}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
