@@ -7,7 +7,7 @@ import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
 import { buildUserMeta } from '@/lib/utils/user-meta'
-import { EditClashModal, type CheckClash } from '@/features/job-detail/EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash } from '@/features/job-detail/EditClashModal'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
@@ -61,6 +61,7 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
   const [saving,         setSaving]         = useState(false)
   const [error,          setError]          = useState(false)
   const [clashPrompt,    setClashPrompt]    = useState<CheckClash[] | null>(null)
+  const [leavePrompt,    setLeavePrompt]    = useState<LeaveCheckClash[]>([])
 
   // Reset local edits whenever a different job is opened.
   useEffect(() => {
@@ -173,9 +174,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
         body:    JSON.stringify({ installer_ids: finalIds }),
       })
       if (!res.ok) throw new Error()
-      const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
+      const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
       if (data.hasClash) {
         setSaving(false)
+        setLeavePrompt(data.leaveClashes ?? [])
+        // clashPrompt is the modal's open/closed signal, so it is set last and
+        // may legitimately be an empty array when only leave is the problem.
         setClashPrompt(data.clashes)
         return
       }
@@ -449,11 +453,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
       <EditClashModal
         isOpen={clashPrompt !== null}
         clashes={clashPrompt ?? []}
+        leaveClashes={leavePrompt}
         role={role}
         lang={lang}
         onAlertScheduler={alertSchedulerAndSave}
-        onProceed={() => { setClashPrompt(null); doSave() }}
-        onClose={() => setClashPrompt(null)}
+        onProceed={() => { setClashPrompt(null); setLeavePrompt([]); doSave() }}
+        onClose={() => { setClashPrompt(null); setLeavePrompt([]) }}
       />
     </div>
   )

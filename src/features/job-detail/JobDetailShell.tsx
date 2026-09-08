@@ -29,7 +29,7 @@ import { SubInstallerBucket } from './SubInstallerBucket'
 import { TaskListSection } from './TaskListSection'
 import { ExternalPOCBucket } from './ExternalPOCBucket'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
-import { EditClashModal, type CheckClash } from './EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
@@ -183,6 +183,9 @@ export function JobDetailShell({
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
+  // Leave rides beside the booking clashes — the modal opens when EITHER is
+  // present, and editClashes stays the open/closed signal.
+  const [editLeaveClashes,     setEditLeaveClashes]    = useState<LeaveCheckClash[]>([])
   const pendingValuesRef = useRef<FormValues | null>(null)
   // Due-date-conflict decision made BEFORE the installer clash check (below)
   // ran — carried alongside pendingValuesRef so resumeSaveAfterClash can
@@ -562,17 +565,20 @@ export function JobDetailShell({
           body:    JSON.stringify({
             installer_ids: selectedInstallerIds,
             date:          values.date,
+            // Sent so the leave check spans the whole job, not just day one.
+            date_end:      values.date_end,
             time_start:    values.time_start,
             time_end:      values.time_end,
             punctuality:   values.punctuality,
           }),
         })
         if (res.ok) {
-          const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
+          const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
           if (data.hasClash) {
             pendingValuesRef.current = values
             pendingKeepManualDueRef.current = keepManualDue
             setEditClashes(data.clashes)
+            setEditLeaveClashes(data.leaveClashes ?? [])
             setSaving(false)
             return
           }
@@ -1709,11 +1715,12 @@ export function JobDetailShell({
       <EditClashModal
         isOpen={editClashes !== null}
         clashes={editClashes ?? []}
+        leaveClashes={editLeaveClashes}
         role={role}
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
       />
       {clashData && (
         <ClashResolutionModal

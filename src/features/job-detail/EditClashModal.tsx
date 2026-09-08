@@ -37,9 +37,20 @@ export interface CheckClash {
   }
 }
 
+// Leave has no second job to point at, so it rides ALONGSIDE CheckClash
+// rather than inside it — CheckClash requires a `conflict` job.
+export interface LeaveCheckClash {
+  installerId:   string
+  installerName: string
+  /** Pre-formatted range, e.g. "10 Sep 2026 (from PM) – 12 Sep 2026". */
+  dates:         string
+}
+
 interface EditClashModalProps {
   isOpen:           boolean
   clashes:          CheckClash[]
+  /** Optional so existing callers compile untouched. */
+  leaveClashes?:    LeaveCheckClash[]
   role:             Role
   lang:             LangCode
   onAlertScheduler: () => void
@@ -48,13 +59,29 @@ interface EditClashModalProps {
 }
 
 export function EditClashModal({
-  isOpen, clashes, role, lang, onAlertScheduler, onProceed, onClose,
+  isOpen, clashes, leaveClashes = [], role, lang, onAlertScheduler, onProceed, onClose,
 }: EditClashModalProps) {
   const isCoordinator = role === 'coordinator'
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t(lang, 'fcfsClashDetected')}>
       <div className="flex flex-col gap-2 mb-5">
+        {/* Leave first — the hardest of the red flags: a double-booking can be
+            argued about, an absent person cannot. The role-branched buttons
+            below are deliberately unchanged; a scheduler may still Save
+            Anyway, matching the existing convention. */}
+        {leaveClashes.map((lc, i) => (
+          <div key={`leave-${lc.installerId}-${i}`} className="border border-line rounded-[10px] p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={13} className="text-bad" />
+              <p className="text-sm font-semibold text-ink">{lc.installerName}</p>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full ml-auto bg-bad-soft text-bad">
+                {t(lang, 'fcfsOnLeaveChip')}
+              </span>
+            </div>
+            <p className="text-xs text-ink2 mt-1.5">{lc.dates}</p>
+          </div>
+        ))}
         {clashes.map((c, i) => (
           <div key={`${c.installerId}-${c.conflict.jobId}-${i}`} className="border border-line rounded-[10px] p-3">
             <div className="flex items-center gap-2">

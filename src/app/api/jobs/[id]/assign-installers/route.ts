@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { getJobNotifData, getJobRecipients } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
-import { tplJobAssigned, tplInstallerAssigned } from '@/lib/telegram/templates'
+import { tplJobAssigned, tplInstallerAssigned, formatDate } from '@/lib/telegram/templates'
 import { timesOverlap } from '@/lib/utils/clash-detection'
+import { onLeaveIds, leaveBlocksJob, leaveDatesLabel, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { CheckClash } from '@/features/job-detail/EditClashModal'
 import type { Role } from '@/lib/supabase/types'
 
@@ -71,15 +72,19 @@ export async function POST(
     if (!['scheduler', 'coordinator', 'admin', 'sales'].includes(effectiveRole)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    type JobRow = { date: string; time_start: string | null; time_end: string | null; punctuality: string }
+    type JobRow = {
+      date: string; date_end: string | null
+      time_start: string | null; time_end: string | null; punctuality: string
+    }
     const { data: currentJob } = await supabase
       .from('jobs')
-      .select('date, time_start, time_end, punctuality')
+      .select('date, date_end, time_start, time_end, punctuality')
       .eq('id', jobId)
       .maybeSingle() as { data: JobRow | null; error: unknown }
     if (!currentJob) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const date        = typeof body.date === 'string' && body.date ? body.date : currentJob.date
+    const dateEnd     = 'date_end'    in body ? ((body.date_end    as string) || null) : currentJob.date_end
     const timeStart   = 'time_start'  in body ? ((body.time_start  as string) || null) : currentJob.time_start
     const timeEnd     = 'time_end'    in body ? ((body.time_end    as string) || null) : currentJob.time_end
     const punctuality = typeof body.punctuality === 'string' && body.punctuality
@@ -137,7 +142,41 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ hasClash: clashes.length > 0, clashes })
+    // ── Leave ──────────────────────────────────────────────────────────────
+    // Same candidate list as the booking check above, but with no
+    // sub-installer carve-out: support crew are exempt from double-booking,
+    // never from leave. Uses the possibly-overridden date so the form checks
+    // the values the user is about to save, not the ones on disk.
+    const jobEndDate = dateEnd && dateEnd > date ? dateEnd : date
+    const { data: leaveRows } = installerIds.length === 0
+      ? { data: [] as LeaveRecord[] }
+      : await supabase
+          .from('user_leaves')
+          .select('id, user_id, date_start, date_end, start_portion, end_portion')
+          .in('user_id', installerIds)
+          .lte('date_start', jobEndDate)
+          .gte('date_end', date) as { data: LeaveRecord[] | null }
+    const leaves = (leaveRows ?? []) as LeaveRecord[]
+
+    const away = onLeaveIds(installerIds, date, dateEnd, timeStart, timeEnd, leaves)
+    const leaveClashes = installerIds
+      .filter(id => away.has(id))
+      .flatMap(id => {
+        const l = leaves.find(x =>
+          x.user_id === id && leaveBlocksJob(x, date, dateEnd, timeStart, timeEnd))
+        if (!l) return []
+        return [{
+          installerId:   id,
+          installerName: names.get(id) ?? '',
+          dates:         leaveDatesLabel(l, formatDate),
+        }]
+      })
+
+    return NextResponse.json({
+      hasClash: clashes.length > 0 || leaveClashes.length > 0,
+      clashes,
+      leaveClashes,
+    })
   }
 
   // ── Everything below here WRITES job_assignees — scheduler/admin only. ──

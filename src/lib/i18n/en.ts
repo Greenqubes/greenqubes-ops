@@ -386,6 +386,7 @@ export const en = {
   fcfsClashDetected: 'Installer Clash Detected',
   fcfsHardChip: 'Hard clash',
   fcfsSoftChip: 'Heads-up',
+  fcfsOnLeaveChip: 'On leave',
   fcfsAlreadyAssigned: 'Already assigned to',
   fcfsAlertScheduler: 'Alert Scheduler & Save',
   fcfsReassignOther: 'Re-assign a Different Installer',

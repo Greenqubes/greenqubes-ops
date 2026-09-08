@@ -277,6 +277,7 @@ export const zh: Partial<Translations> = {
   fcfsClashDetected: '检测到安装人员冲突',
   fcfsHardChip: '严重冲突',
   fcfsSoftChip: '提醒',
+  fcfsOnLeaveChip: '请假中',
   fcfsAlreadyAssigned: '已被指派到',
   fcfsAlertScheduler: '通知调度员并保存',
   fcfsReassignOther: '改派其他安装人员',
