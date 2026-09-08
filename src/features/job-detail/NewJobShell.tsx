@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
@@ -27,6 +27,7 @@ import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
+import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { Role } from '@/lib/supabase/types'
 
 interface Props {
@@ -35,12 +36,14 @@ interface Props {
   lang:            LangCode
   salesPocOptions:     SelectOption[]
   allInstallers:       InstallerUser[]
+  /** Every leave row (ids + dates), filtered client-side against the form. */
+  leaves?:             LeaveRecord[]
   role:                Role
   coordinatorOptions?: Array<{ id: string; label: string }>
   designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role, coordinatorOptions = [], designerOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leaves = [], role, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
@@ -96,6 +99,20 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
       sales_poc_id:            userId,
     },
   })
+
+  // Who is away for the dates currently in the form — recomputed as the user
+  // picks them, so the flag is right before the job even exists.
+  const watchedDate    = watch('date')
+  const watchedDateEnd = watch('date_end')
+  const watchedStart   = watch('time_start')
+  const watchedEnd     = watch('time_end')
+  const onLeaveSet = useMemo(
+    () => !watchedDate ? new Set<string>() : onLeaveIds(
+      leaves.map(l => l.user_id), watchedDate, watchedDateEnd || null,
+      watchedStart || null, watchedEnd || null, leaves,
+    ),
+    [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
+  )
 
   async function saveJob(mode: 'pending' | 'push_to_schedule') {
     const values = watch()
@@ -410,6 +427,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
                     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
                   )}
                   noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
+                  onLeaveOf={id => onLeaveSet.has(id)}
                 />
               )}
             </div>

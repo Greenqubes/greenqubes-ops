@@ -16,6 +16,7 @@ import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
 import { FinancialSection } from './FinancialSection'
 import { isReadOnlyOfficeRole, showsFinancialsCard } from '@/lib/auth/capabilities'
+import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import { AttachmentBuckets } from './AttachmentBuckets'
 import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
@@ -103,6 +104,9 @@ interface Props {
   installers:             InstallerUser[]
   /** Non-installer users for the Support crew bucket (Nic 2026-09-04). */
   supportUsers:           InstallerUser[]
+  /** Every leave row (ids + dates). Filtered client-side against the form's
+   *  live date, which can change without a page load. */
+  leaves?:                LeaveRecord[]
   initialMessages:        JobMessage[]
   salesPocOptions:        SelectOption[]
   initialCoordinatorIds?: string[]
@@ -117,7 +121,7 @@ interface Props {
 }
 
 export function JobDetailShell({
-  job, role, userId, userName, lang, installers, supportUsers, initialMessages, salesPocOptions,
+  job, role, userId, userName, lang, installers, supportUsers, leaves = [], initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
   backHref = '/schedule', initialTab,
@@ -313,6 +317,21 @@ export function JobDetailShell({
   } = useForm<FormValues>({
     defaultValues: formValuesFromJob(job),
   })
+
+  // Who is away for the dates currently IN THE FORM — recomputed as the user
+  // edits them, so moving a job's date re-flags the crew before they save.
+  const watchedDate    = watch('date')
+  const watchedDateEnd = watch('date_end')
+  const watchedStart   = watch('time_start')
+  const watchedEnd     = watch('time_end')
+  const onLeaveSet = useMemo(
+    () => !watchedDate ? new Set<string>() : onLeaveIds(
+      leaves.map(l => l.user_id), watchedDate, watchedDateEnd || null,
+      watchedStart || null, watchedEnd || null, leaves,
+    ),
+    [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
+  )
+  const isOnLeave = (id: string) => onLeaveSet.has(id)
 
   // .select('id') is load-bearing, not decoration: an UPDATE that RLS filters
   // out is NOT an error — PostgREST answers 204, no rows, no error, so a bare
@@ -1389,6 +1408,7 @@ export function JobDetailShell({
                 onToggle={installerOnToggle}
                 disabledOf={installerDisabledOf}
                 noteOf={installerNoteOf}
+                onLeaveOf={isOnLeave}
               />
             )}
           </div>
@@ -1423,6 +1443,7 @@ export function JobDetailShell({
               onToggle={subOnToggle}
               disabledOf={subDisabledOf}
               noteOf={subNoteOf}
+              onLeaveOf={isOnLeave}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
               canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}

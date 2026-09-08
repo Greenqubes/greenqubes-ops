@@ -60,6 +60,19 @@ export async function getLeaveInRange(from: string, to: string): Promise<LeaveRe
   return (data ?? []) as unknown as LeaveRecord[]
 }
 
+// Every leave row, ids + dates only — no names, no details. The job form's
+// grids are date-blind (the user can change the date without a reload), so
+// they need the whole set client-side and filter it as the date field moves.
+// Small table by nature: one row per absence, not per day.
+export async function getAllLeaveRecords(): Promise<LeaveRecord[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('user_leaves')
+    .select('id, user_id, date_start, date_end, start_portion, end_portion')
+  if (error) throw error
+  return (data ?? []) as unknown as LeaveRecord[]
+}
+
 export async function getHolidays(): Promise<Holiday[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
