@@ -14,6 +14,8 @@ import { SearchableSelect, SelectOption } from '@/components/SearchableSelect'
 import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
+import { FinancialSection } from './FinancialSection'
+import { isReadOnlyOfficeRole, showsFinancialsCard } from '@/lib/auth/capabilities'
 import { AttachmentBuckets } from './AttachmentBuckets'
 import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
@@ -171,6 +173,13 @@ export function JobDetailShell({
   const completed = status === 'completed'
 
   const readOnly  = completed
+  // HR / Finance (and any future read-only office role) sees the job form the
+  // way everyone sees a completed job: every card locked, no action bar, no
+  // chat. `readOnly` itself stays meaning "completed" — other logic below
+  // reads it that way (e.g. canAssign && !readOnly) — so the lock rides on a
+  // separate flag that only the display props consume.
+  const isReadOnlyRole = isReadOnlyOfficeRole(role)
+  const formReadOnly   = readOnly || isReadOnlyRole
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
@@ -1169,7 +1178,7 @@ export function JobDetailShell({
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
+    <div className={cn('min-h-screen bg-bg', isReadOnlyRole ? 'pb-8' : 'pb-28')}>
 
       <CompanyBar lang={lang} />
 
@@ -1196,7 +1205,7 @@ export function JobDetailShell({
         </button>
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="font-display text-xl font-semibold text-ink">
-            {isInstaller ? 'View job' : 'Edit job'}
+            {isInstaller || isReadOnlyRole ? 'View job' : 'Edit job'}
           </h1>
           <Pill variant={status} />
         </div>
@@ -1219,18 +1228,27 @@ export function JobDetailShell({
                 control={control}
                 watch={watch}
                 setValue={setValue}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 lang={lang}
                 role={role}
                 installerView={isInstaller}
               />
             </CollapseCard>
+            {/* Prices — the Finance half of the hr/finance role. Dead since
+                session 17.6 for everyone else and staying that way: sales
+                and scheduler lost this card on purpose and are not getting
+                it back. Read-only always — sales still enters the figures. */}
+            {showsFinancialsCard(role) && (
+              <CollapseCard title={t(lang, 'financials')} storageKey="gq-jobcard-financials">
+                <FinancialSection register={register} errors={errors} readOnly lang={lang} />
+              </CollapseCard>
+            )}
             {!isInstaller && (
               <DesignBriefSection
                 ref={briefCardRef}
                 jobId={job.id}
                 lang={lang}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 canManage={canEditCore}
                 userId={userId}
                 briefText={briefText}
@@ -1253,7 +1271,7 @@ export function JobDetailShell({
                 register={register}
                 watch={watch}
                 setValue={setValue}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 role={role}
                 lang={lang}
                 jobId={job.id}
@@ -1408,7 +1426,7 @@ export function JobDetailShell({
           {/* External installer bucket (Phase 4) — every office role sees it;
               managers assign, sales suggest, designer/production view-only */}
           {!isInstaller && (
-            <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={readOnly} />
+            <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={formReadOnly} />
           )}
         </CollapseCard>
 
@@ -1440,7 +1458,7 @@ export function JobDetailShell({
                 jobId={job.id}
                 userId={userId}
                 lang={lang}
-                readOnly={readOnly || isInstaller || isProduction}
+                readOnly={formReadOnly || isInstaller || isProduction}
                 refreshKey={bucketsRefreshKey}
                 onBucketsChange={setBuckets}
               />
@@ -1449,12 +1467,13 @@ export function JobDetailShell({
               jobId={job.id}
               role={role}
               lang={lang}
-              readOnly={readOnly}
+              readOnly={formReadOnly}
               refreshKey={tasksRefreshKey}
             />
           </div>
         }
-        chat={
+        hiddenTabs={isReadOnlyRole ? ['chat'] : []}
+        chat={isReadOnlyRole ? null : (
           <ChatSection
             jobId={job.id}
             userId={userId}
@@ -1465,10 +1484,13 @@ export function JobDetailShell({
             chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
             preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
           />
-        }
+        )}
       />
 
-      {/* ── Action bar (sticky bottom) ───────────────────────────── */}
+      {/* ── Action bar (sticky bottom) ─────────────────────────────
+          Read-only office roles (hr) get no bar at all: nothing in it is
+          something they may do, and an empty bar would just be a grey strip. */}
+      {!isReadOnlyRole && (
       <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
           {isInstaller ? (
@@ -1681,6 +1703,7 @@ export function JobDetailShell({
           )}
         </div>
       </div>
+      )}
 
       {/* ── Modals ──────────────────────────────────────────────── */}
       <EditClashModal

@@ -20,6 +20,10 @@ interface Props {
   lang:        LangCode
   initialTab?: JobTab     // e.g. 'chat' from the ?tab=chat deep link
   lockedTabs?: JobTab[]   // New job pre-save: ['files', 'chat']
+  /** Tabs this role never gets at all — the group is not rendered and the tab
+   *  is not shown (hr: 'chat'). Distinct from lockedTabs, which shows a
+   *  disabled tab for something that becomes available later. */
+  hiddenTabs?: JobTab[]
   /** Bump (any changing value) to force-switch to the details tab on phone —
    *  e.g. a validation error on a details-column card that's currently hidden
    *  behind another tab. There's no other imperative tab control here. */
@@ -35,10 +39,10 @@ interface Props {
 // Every group stays mounted at all times; tabs only toggle CSS visibility,
 // so form state, chat realtime, and uploads survive tab switches.
 export function JobFormLayout({
-  lang, initialTab = 'details', lockedTabs = [], jumpToDetails, details, team, files, chat,
+  lang, initialTab = 'details', lockedTabs = [], hiddenTabs = [], jumpToDetails, details, team, files, chat,
 }: Props) {
   const [active, setActive] = useState<JobTab>(
-    lockedTabs.includes(initialTab) ? 'details' : initialTab,
+    lockedTabs.includes(initialTab) || hiddenTabs.includes(initialTab) ? 'details' : initialTab,
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,7 +62,7 @@ export function JobFormLayout({
     <>
       {/* Tab bar — phone/narrow only; sticks below the CompanyBar (45px) */}
       <div data-tour="job-tabs" className="lg:hidden sticky top-[45px] z-20 bg-bg border-b border-line flex">
-        {TABS.map(tab => {
+        {TABS.filter(tab => !hiddenTabs.includes(tab)).map(tab => {
           const locked = lockedTabs.includes(tab)
           return (
             <button
@@ -89,8 +93,8 @@ export function JobFormLayout({
           <div data-tour="job-team" className={groupCn('team')}>{team}</div>
         </div>
         <div className="lg:flex-1 lg:min-w-0 flex flex-col gap-4">
-          <div className={groupCn('files')}>{files}</div>
-          <div className={groupCn('chat')}>{chat}</div>
+          {!hiddenTabs.includes('files') && <div className={groupCn('files')}>{files}</div>}
+          {!hiddenTabs.includes('chat')  && <div className={groupCn('chat')}>{chat}</div>}
         </div>
       </div>
     </>
