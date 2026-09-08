@@ -184,7 +184,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           return
         }
         const clash: ClashesResponse = await clashRes.json()
-        if (clash.clashes.length > 0 || clash.softClashes.length > 0 || clash.travelWarnings.length > 0) {
+        if (clash.clashes.length > 0 || clash.softClashes.length > 0 || clash.travelWarnings.length > 0 || clash.leaveClashes.length > 0) {
           // Hold the push and let the user resolve the clash. The job is
           // already saved as pending, so nothing is lost if they cancel.
           setPushJobId(job.id)
@@ -479,6 +479,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, role
           clashes={clashData.clashes}
           softClashes={clashData.softClashes}
           travelWarnings={clashData.travelWarnings}
+          leaveClashes={clashData.leaveClashes}
           substitutes={clashData.substitutes}
           weekDays={clashData.weekDays}
           lang={lang}

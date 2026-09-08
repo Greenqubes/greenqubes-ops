@@ -7,7 +7,7 @@ import { TimeSelect } from '@/features/job-detail/TimeSelect'
 import { WeekWorkloadChart } from './WeekWorkloadChart'
 import { cn } from '@/lib/utils/cn'
 import { buildUserMeta } from '@/lib/utils/user-meta'
-import type { Clash, Substitute, WeekDay } from '@/app/api/jobs/[id]/clashes/route'
+import type { Clash, Substitute, WeekDay, LeaveClashEntry } from '@/app/api/jobs/[id]/clashes/route'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
   clashes:           Clash[]
   softClashes:       Clash[]
   travelWarnings:    Clash[]
+  leaveClashes:      LeaveClashEntry[]
   substitutes:       Substitute[]
   weekDays:          WeekDay[]
   lang:              LangCode
@@ -64,7 +65,7 @@ function timesOverlap(
 
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
-  clashes, softClashes, travelWarnings, substitutes, weekDays,
+  clashes, softClashes, travelWarnings, leaveClashes, substitutes, weekDays,
   onSendToScheduler, onNotifyScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
@@ -77,11 +78,96 @@ export function ClashResolutionModal({
   // OR by shifting the job's time so it no longer overlaps the other job.
   const clashActive = (c: Clash) =>
     timesOverlap(timeStart || null, timeEnd || null, c.conflictingJob.timeStart, c.conflictingJob.timeEnd)
-  const unresolvedCount = clashes.filter(
-    c => clashActive(c) && replacements[c.installer.id] === undefined,
-  ).length
+
+  // A leave clash clears the same two ways — substitute the person, or shift
+  // the job clear of their on-leave hours. A null window means the leave also
+  // covers a later day of a multi-day job, so no time shift can help.
+  const leaveActive = (lc: LeaveClashEntry) =>
+    !lc.window || timesOverlap(timeStart || null, timeEnd || null, lc.window.start, lc.window.end)
+
+  const unresolvedCount =
+    clashes.filter(c => clashActive(c) && replacements[c.installer.id] === undefined).length +
+    leaveClashes.filter(lc => leaveActive(lc) && replacements[lc.person.id] === undefined).length
   const allResolved     = unresolvedCount === 0
   const hasKeeps        = Object.values(replacements).some(v => v === 'keep')
+
+  // Shared by the double-booking cards and the on-leave cards: both are
+  // resolved by swapping the person out or keeping them anyway, and both key
+  // their choice off the person's id.
+  function substitutePicker(personId: string, personName: string) {
+    const selected = replacements[personId]
+    return (
+      <>
+        <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+          Choose a substitute
+        </p>
+
+        {substitutes.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-muted">No available substitutes</p>
+        ) : (
+          substitutes.map(sub => {
+            const isSelected = selected === sub.id
+            const m = buildUserMeta({ role: sub.role, subrole: sub.subrole,
+              is_driver: sub.isDriver, qualifications: sub.qualifications })
+            const meta = [
+              m.subroleLine ? m.subroleLine.charAt(0).toUpperCase() + m.subroleLine.slice(1) : null,
+              m.isDriver ? 'Driver' : null,
+              ...m.qualifications,
+            ].filter(Boolean).join(' · ')
+
+            return (
+              <button
+                key={sub.id}
+                onClick={() => setReplacements(prev => ({ ...prev, [personId]: sub.id }))}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 border-t border-line text-left transition-colors',
+                  isSelected ? 'bg-brand-green/10' : 'hover:bg-line/30',
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={cn('text-sm font-medium', isSelected ? 'text-brand-green' : 'text-ink')}>
+                      Replace with: {sub.name}
+                    </p>
+                    {/* On leave outranks busy — swapping in someone who is away
+                        just moves the problem. */}
+                    {sub.onLeave ? (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-bad bg-bad/10 px-1.5 py-0.5 rounded">
+                        On leave
+                      </span>
+                    ) : sub.hasConflict ? (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-amber bg-brand-amber/10 px-1.5 py-0.5 rounded">
+                        Conflict
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded">
+                        Free
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted mt-0.5 truncate">{meta}</p>
+                </div>
+                <ChevronRight size={14} className={cn('shrink-0', isSelected ? 'text-brand-green' : 'text-muted')} />
+              </button>
+            )
+          })
+        )}
+
+        {/* Keep anyway — stages choice silently */}
+        <button
+          onClick={() => setReplacements(prev => ({ ...prev, [personId]: 'keep' }))}
+          className={cn(
+            'w-full px-4 py-3 border-t border-line text-sm text-left transition-colors',
+            replacements[personId] === 'keep'
+              ? 'text-ink font-medium bg-line/40'
+              : 'text-muted hover:text-ink',
+          )}
+        >
+          Keep anyway ({personName})
+        </button>
+      </>
+    )
+  }
 
   async function handleSend() {
     if (hasKeeps) { setShowWarning(true); return }
@@ -144,8 +230,11 @@ export function ClashResolutionModal({
             {/* Header */}
             <div>
               <h2 className="font-display text-lg font-semibold text-ink">
-                {clashes.length > 0
-                  ? `${clashes.length} clash${clashes.length !== 1 ? 'es' : ''} need attention`
+                {clashes.length + leaveClashes.filter(leaveActive).length > 0
+                  ? (() => {
+                      const n = clashes.length + leaveClashes.filter(leaveActive).length
+                      return `${n} clash${n !== 1 ? 'es' : ''} need attention`
+                    })()
                   : 'Review before sending'}
               </h2>
               <p className="mt-1 text-xs text-muted">
@@ -220,69 +309,33 @@ export function ClashResolutionModal({
                     </div>
                   )}
 
-                  {/* Substitute label */}
-                  <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
-                    Choose a substitute
-                  </p>
+                  {substitutePicker(clash.installer.id, clash.installer.name)}
+                </div>
+              )
+            })}
 
-                  {/* Substitute rows */}
-                  {substitutes.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-muted">No available substitutes</p>
-                  ) : (
-                    substitutes.map(sub => {
-                      const isSelected = selected === sub.id
-                      const m = buildUserMeta({ role: sub.role, subrole: sub.subrole,
-                        is_driver: sub.isDriver, qualifications: sub.qualifications })
-                      const meta = [
-                        m.subroleLine ? m.subroleLine.charAt(0).toUpperCase() + m.subroleLine.slice(1) : null,
-                        m.isDriver ? 'Driver' : null,
-                        ...m.qualifications,
-                      ].filter(Boolean).join(' · ')
+            {/* On-leave cards — same shape and severity as a double-booking
+                (Nic: leave is a hard red clash), resolved the same two ways. */}
+            {leaveClashes.map(lc => {
+              const resolvedByTime = !leaveActive(lc)
+              return (
+                <div key={`leave-${lc.person.id}`} className="rounded-lg border border-line bg-bg overflow-hidden">
+                  <div className="flex items-start gap-2 px-4 py-3 border-b border-line">
+                    <AlertCircle size={15} className="text-bad mt-0.5 shrink-0" />
+                    <p className="text-sm text-ink">
+                      <span className="font-semibold">{lc.person.name}</span>
+                      {' is on leave — '}
+                      <span className="font-semibold">{lc.dates}</span>.
+                    </p>
+                  </div>
 
-                      return (
-                        <button
-                          key={sub.id}
-                          onClick={() => setReplacements(prev => ({ ...prev, [clash.installer.id]: sub.id }))}
-                          className={cn(
-                            'w-full flex items-center gap-3 px-4 py-3 border-t border-line text-left transition-colors',
-                            isSelected ? 'bg-brand-green/10' : 'hover:bg-line/30',
-                          )}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className={cn('text-sm font-medium', isSelected ? 'text-brand-green' : 'text-ink')}>
-                                Replace with: {sub.name}
-                              </p>
-                              {sub.hasConflict ? (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-amber bg-brand-amber/10 px-1.5 py-0.5 rounded">
-                                  Conflict
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-green bg-brand-green/10 px-1.5 py-0.5 rounded">
-                                  Free
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted mt-0.5 truncate">{meta}</p>
-                          </div>
-                          <ChevronRight size={14} className={cn('shrink-0', isSelected ? 'text-brand-green' : 'text-muted')} />
-                        </button>
-                      )
-                    })
+                  {resolvedByTime && (
+                    <div className="px-4 py-2 bg-brand-green/10 border-b border-line text-xs font-medium text-brand-green">
+                      Resolved — the new time falls outside their leave.
+                    </div>
                   )}
 
-                  {/* Keep anyway — stages choice silently */}
-                  <button
-                    onClick={() => setReplacements(prev => ({ ...prev, [clash.installer.id]: 'keep' }))}
-                    className={cn(
-                      'w-full px-4 py-3 border-t border-line text-sm text-left transition-colors',
-                      replacements[clash.installer.id] === 'keep'
-                        ? 'text-ink font-medium bg-line/40'
-                        : 'text-muted hover:text-ink',
-                    )}
-                  >
-                    Keep anyway ({clash.installer.name})
-                  </button>
+                  {substitutePicker(lc.person.id, lc.person.name)}
                 </div>
               )
             })}

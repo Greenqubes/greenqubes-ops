@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { formatDate } from '@/lib/telegram/templates'
+import {
+  onLeaveIds, leaveBlocksJob, leaveWindowOnDate, leaveDatesLabel, addDays,
+  type LeaveRecord,
+} from '@/lib/utils/leave-overlap'
 import type { Role } from '@/lib/supabase/types'
 
 export interface ClashInstaller {
@@ -28,6 +33,20 @@ export interface Substitute {
   isDriver:       boolean
   qualifications: string[]
   hasConflict:    boolean
+  /** Away on the job's date(s) — a red state, not a busy one. */
+  onLeave:        boolean
+}
+
+export interface LeaveClashEntry {
+  person: ClashInstaller
+  /** Pre-formatted, e.g. "10 Sep 2026 (from PM) – 12 Sep 2026". */
+  dates:  string
+  /**
+   * The on-leave window on the job's FIRST day, so the modal can tell whether
+   * shifting the time clears it. Null when the leave also covers a later day
+   * of a multi-day job — then no time shift on day one can help.
+   */
+  window: { start: string; end: string } | null
 }
 
 export interface InstallerDayJob {
@@ -54,6 +73,7 @@ export interface ClashesResponse {
   clashes:        Clash[]
   softClashes:    Clash[]
   travelWarnings: Clash[]
+  leaveClashes:   LeaveClashEntry[]
   substitutes:    Substitute[]
   weekDays:       WeekDay[]
   jobDate:        string
@@ -120,12 +140,12 @@ export async function GET(
   }
 
   type JobRow = {
-    date: string; time_start: string | null; time_end: string | null
+    date: string; date_end: string | null; time_start: string | null; time_end: string | null
     job_assignees: Array<{ user_id: string; is_sub_installer: boolean; users: { id: string; name: string } | null }>
   }
   const { data: job } = await supabase
     .from('jobs')
-    .select('date, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
+    .select('date, date_end, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
@@ -138,6 +158,45 @@ export async function GET(
     .filter(a => a.name)
 
   const assigneeIds = assignees.map(a => a.id)
+
+  // ── Leave ────────────────────────────────────────────────────────────────
+  // Deliberately NOT the sub-filtered list above: support crew are exempt from
+  // BOOKING clashes (they can double up on jobs) but never from leave — a
+  // person who is away is away whatever their role on the job.
+  const allPeople = job.job_assignees
+    .map(a => ({ id: a.user_id, name: a.users?.name ?? '' }))
+    .filter(p => p.name)
+  const peopleIds = allPeople.map(p => p.id)
+  const jobEndDate = job.date_end && job.date_end > job.date ? job.date_end : job.date
+
+  const { data: leaveRows } = peopleIds.length === 0
+    ? { data: [] as LeaveRecord[] }
+    : await supabase
+        .from('user_leaves')
+        .select('id, user_id, date_start, date_end, start_portion, end_portion')
+        .in('user_id', peopleIds)
+        .lte('date_start', jobEndDate)
+        .gte('date_end', job.date) as { data: LeaveRecord[] | null }
+  const leaves = (leaveRows ?? []) as LeaveRecord[]
+
+  const onLeave = onLeaveIds(peopleIds, job.date, job.date_end ?? null, job.time_start, job.time_end, leaves)
+  const leaveClashes: LeaveClashEntry[] = allPeople
+    .filter(p => onLeave.has(p.id))
+    .flatMap(p => {
+      const l = leaves.find(x =>
+        x.user_id === p.id && leaveBlocksJob(x, job.date, job.date_end ?? null, job.time_start, job.time_end))
+      if (!l) return []
+      const win = leaveWindowOnDate(l, job.date)
+      // If the leave also blocks a later day of a multi-day job, no time shift
+      // on day one clears it — hand the modal a null window so it stays red.
+      const blocksOtherDays = !!(job.date_end && job.date_end > job.date) &&
+        leaveBlocksJob(l, addDays(job.date, 1), job.date_end, job.time_start, job.time_end)
+      return [{
+        person: { id: p.id, name: p.name },
+        dates:  leaveDatesLabel(l, formatDate),
+        window: blocksOtherDays ? null : win,
+      }]
+    })
 
   type ConflictRow = {
     id: string; client: string; time_start: string | null; time_end: string | null
@@ -210,16 +269,35 @@ export async function GET(
     .is('deleted_at', null) as { data: UserRow[] | null; error: unknown }
 
   const currentAssigneeIds = new Set(assigneeIds)
-  const substitutes: Substitute[] = (allInstallers ?? [])
-    .filter(u => !currentAssigneeIds.has(u.id))
+  const subPool = (allInstallers ?? []).filter(u => !currentAssigneeIds.has(u.id))
+
+  // Second leave query for the substitute pool — swapping someone in who is
+  // also away just moves the problem.
+  const subIds = subPool.map(u => u.id)
+  const { data: subLeaveRows } = subIds.length === 0
+    ? { data: [] as LeaveRecord[] }
+    : await supabase
+        .from('user_leaves')
+        .select('id, user_id, date_start, date_end, start_portion, end_portion')
+        .in('user_id', subIds)
+        .lte('date_start', jobEndDate)
+        .gte('date_end', job.date) as { data: LeaveRecord[] | null }
+  const subOnLeave = onLeaveIds(
+    subIds, job.date, job.date_end ?? null, job.time_start, job.time_end,
+    (subLeaveRows ?? []) as LeaveRecord[],
+  )
+
+  const substitutes: Substitute[] = subPool
     .map(u => ({
       id: u.id, name: u.name, role: u.role,
       subrole:        u.subrole,
       isDriver:       u.is_driver,
       qualifications: u.qualifications ?? [],
       hasConflict:    busyInstallerIds.has(u.id),
+      onLeave:        subOnLeave.has(u.id),
     }))
-    .sort((a, b) => Number(a.hasConflict) - Number(b.hasConflict))
+    // Free people first; busy and away both sink to the bottom.
+    .sort((a, b) => Number(a.hasConflict || a.onLeave) - Number(b.hasConflict || b.onLeave))
 
   // Week workload
   const weekStart = getWeekStart(job.date)
@@ -264,7 +342,7 @@ export async function GET(
   })
 
   return NextResponse.json({
-    clashes, softClashes, travelWarnings, substitutes, weekDays,
+    clashes, softClashes, travelWarnings, leaveClashes, substitutes, weekDays,
     jobDate:      job.date,
     jobTimeStart: job.time_start,
     jobTimeEnd:   job.time_end,
