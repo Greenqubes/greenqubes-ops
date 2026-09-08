@@ -87,28 +87,34 @@ export function EventsCard({ events, lang, onChanged }: Props) {
 
   function row(e: CompanyEvent, isPast: boolean) {
     return (
-      <li key={e.id} className={`py-2 flex items-center gap-2 ${isPast ? 'opacity-70' : ''}`}>
+      <li key={e.id} className={`py-2 ${isPast ? 'opacity-70' : ''}`}>
         {editingId === e.id ? (
-          <>
-            <input type="date" className={INPUT_CN} value={editStart}
-              onChange={ev => { setEditStart(ev.target.value); if (editEnd < ev.target.value) setEditEnd(ev.target.value) }} />
-            <input type="date" className={INPUT_CN} value={editEnd} min={editStart}
-              onChange={ev => setEditEnd(ev.target.value)} />
-            <input type="text" className={`${INPUT_CN} flex-1 min-w-[120px]`} value={editName}
+          /* Stacked, never a single row: two date pickers plus a name field
+             plus buttons cannot fit a phone's width on one line, and a flex
+             row that cannot fit pushes the whole page sideways (the JobRow
+             lesson, 2026-09-07). Every field is min-w-0 so nothing sets a
+             floor wider than its column. */
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input type="date" className={`${INPUT_CN} flex-1 min-w-0`} value={editStart}
+                onChange={ev => { setEditStart(ev.target.value); if (editEnd < ev.target.value) setEditEnd(ev.target.value) }} />
+              <input type="date" className={`${INPUT_CN} flex-1 min-w-0`} value={editEnd} min={editStart}
+                onChange={ev => setEditEnd(ev.target.value)} />
+            </div>
+            <input type="text" className={`${INPUT_CN} w-full min-w-0`} value={editName}
+              placeholder={t(lang, 'eventName')}
               onChange={ev => setEditName(ev.target.value)} />
-            <button type="button" onClick={() => handleSaveEdit(e.id)} disabled={busy}
-              className="p-1.5 rounded-md text-brand-green hover:bg-brand-green-soft transition-colors"
-              aria-label={t(lang, 'leaveSave')}>
-              <Check size={14} />
-            </button>
-            <button type="button" onClick={() => setEditingId(null)}
-              className="p-1.5 rounded-md text-muted hover:text-ink transition-colors"
-              aria-label={t(lang, 'leaveCancel')}>
-              <X size={14} />
-            </button>
-          </>
+            <div className="flex justify-end gap-2">
+              <Btn variant="ghost" size="sm" onClick={() => setEditingId(null)} disabled={busy}>
+                {t(lang, 'leaveCancel')}
+              </Btn>
+              <Btn variant="accent" size="sm" onClick={() => handleSaveEdit(e.id)} disabled={busy || editName.trim() === ''}>
+                {t(lang, 'leaveSave')}
+              </Btn>
+            </div>
+          </div>
         ) : (
-          <>
+          <div className="flex items-center gap-2">
             <span className="text-sm text-ink flex-1 min-w-0">
               <span className="font-medium">{e.name}</span>
               <span className="text-muted"> · </span>
@@ -134,7 +140,7 @@ export function EventsCard({ events, lang, onChanged }: Props) {
                 <Trash2 size={14} />
               </button>
             )}
-          </>
+          </div>
         )}
       </li>
     )
@@ -155,20 +161,24 @@ export function EventsCard({ events, lang, onChanged }: Props) {
       </div>
 
       {adding && (
-        <div className="flex flex-wrap items-center gap-2 mt-3 mb-1">
-          <input type="date" className={INPUT_CN} value={newStart}
-            onChange={e => { setNewStart(e.target.value); if (newEnd < e.target.value) setNewEnd(e.target.value) }} />
-          <input type="date" className={INPUT_CN} value={newEnd} min={newStart}
-            onChange={e => setNewEnd(e.target.value)} />
-          <input type="text" className={`${INPUT_CN} flex-1 min-w-[140px]`}
+        <div className="flex flex-col gap-2 mt-3 mb-1">
+          <div className="flex gap-2">
+            <input type="date" className={`${INPUT_CN} flex-1 min-w-0`} value={newStart}
+              onChange={e => { setNewStart(e.target.value); if (newEnd < e.target.value) setNewEnd(e.target.value) }} />
+            <input type="date" className={`${INPUT_CN} flex-1 min-w-0`} value={newEnd} min={newStart}
+              onChange={e => setNewEnd(e.target.value)} />
+          </div>
+          <input type="text" className={`${INPUT_CN} w-full min-w-0`}
             placeholder={t(lang, 'eventName')} value={newName}
             onChange={e => setNewName(e.target.value)} />
-          <Btn variant="accent" size="sm" onClick={handleAdd} disabled={busy || newName.trim() === ''}>
-            {t(lang, 'leaveSave')}
-          </Btn>
-          <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setNewName('') }} disabled={busy}>
-            {t(lang, 'leaveCancel')}
-          </Btn>
+          <div className="flex justify-end gap-2">
+            <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setNewName('') }} disabled={busy}>
+              {t(lang, 'leaveCancel')}
+            </Btn>
+            <Btn variant="accent" size="sm" onClick={handleAdd} disabled={busy || newName.trim() === ''}>
+              {t(lang, 'leaveSave')}
+            </Btn>
+          </div>
         </div>
       )}
 

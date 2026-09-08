@@ -140,7 +140,9 @@ export function LeaveFormModal({ isOpen, onClose, onSaved, lang, users, existing
           <Field label={t(lang, 'leaveFrom')}>
             <input
               type="date"
-              className={SELECT_CN}
+              /* min-w-0: a date input's intrinsic width can exceed a
+                 half-width column on a small phone and push the modal. */
+              className={`${SELECT_CN} min-w-0`}
               value={dateStart}
               onChange={e => onStartChange(e.target.value)}
             />
@@ -148,7 +150,9 @@ export function LeaveFormModal({ isOpen, onClose, onSaved, lang, users, existing
           <Field label={t(lang, 'leaveTo')}>
             <input
               type="date"
-              className={SELECT_CN}
+              /* min-w-0: a date input's intrinsic width can exceed a
+                 half-width column on a small phone and push the modal. */
+              className={`${SELECT_CN} min-w-0`}
               value={dateEnd}
               min={dateStart || undefined}
               onChange={e => { setDateEnd(e.target.value); setStartPortion('full'); setEndPortion('full') }}

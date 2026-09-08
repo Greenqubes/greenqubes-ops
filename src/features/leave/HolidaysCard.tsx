@@ -97,21 +97,23 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
       </div>
 
       {adding && (
-        <div className="flex flex-wrap items-center gap-2 mt-3 mb-1">
-          <input type="date" className={INPUT_CN} value={newDate} onChange={e => setNewDate(e.target.value)} />
+        <div className="flex flex-col gap-2 mt-3 mb-1">
+          <input type="date" className={`${INPUT_CN} w-full min-w-0`} value={newDate} onChange={e => setNewDate(e.target.value)} />
           <input
             type="text"
-            className={`${INPUT_CN} flex-1 min-w-[140px]`}
+            className={`${INPUT_CN} w-full min-w-0`}
             placeholder={t(lang, 'holidayName')}
             value={newName}
             onChange={e => setNewName(e.target.value)}
           />
-          <Btn variant="accent" size="sm" onClick={handleAdd} disabled={busy || newName.trim() === ''}>
-            {t(lang, 'leaveSave')}
-          </Btn>
-          <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setNewName('') }} disabled={busy}>
-            {t(lang, 'leaveCancel')}
-          </Btn>
+          <div className="flex justify-end gap-2">
+            <Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setNewName('') }} disabled={busy}>
+              {t(lang, 'leaveCancel')}
+            </Btn>
+            <Btn variant="accent" size="sm" onClick={handleAdd} disabled={busy || newName.trim() === ''}>
+              {t(lang, 'leaveSave')}
+            </Btn>
+          </div>
         </div>
       )}
 
@@ -126,36 +128,30 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
           <p className="text-[11px] text-muted uppercase tracking-widest mb-1.5">{year}</p>
           <ul className="divide-y divide-line">
             {(byYear.get(year) ?? []).map(h => (
-              <li key={h.id} className="py-2 flex items-center gap-2">
+              <li key={h.id} className="py-2">
                 {editingId === h.id ? (
-                  <>
-                    <input type="date" className={INPUT_CN} value={editDate} onChange={e => setEditDate(e.target.value)} />
+                  /* Stacked for the same reason as the events card: a date
+                     picker, a name field and two buttons do not fit one line
+                     on a phone, and a row that cannot fit pushes the page. */
+                  <div className="flex flex-col gap-2">
+                    <input type="date" className={`${INPUT_CN} w-full min-w-0`} value={editDate} onChange={e => setEditDate(e.target.value)} />
                     <input
                       type="text"
-                      className={`${INPUT_CN} flex-1 min-w-[120px]`}
+                      className={`${INPUT_CN} w-full min-w-0`}
                       value={editName}
                       onChange={e => setEditName(e.target.value)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleSaveEdit(h.id)}
-                      disabled={busy}
-                      className="p-1.5 rounded-md text-brand-green hover:bg-brand-green-soft transition-colors"
-                      aria-label={t(lang, 'leaveSave')}
-                    >
-                      <Check size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      className="p-1.5 rounded-md text-muted hover:text-ink transition-colors"
-                      aria-label={t(lang, 'leaveCancel')}
-                    >
-                      <X size={14} />
-                    </button>
-                  </>
+                    <div className="flex justify-end gap-2">
+                      <Btn variant="ghost" size="sm" onClick={() => setEditingId(null)} disabled={busy}>
+                        {t(lang, 'leaveCancel')}
+                      </Btn>
+                      <Btn variant="accent" size="sm" onClick={() => handleSaveEdit(h.id)} disabled={busy || editName.trim() === ''}>
+                        {t(lang, 'leaveSave')}
+                      </Btn>
+                    </div>
+                  </div>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-2">
                     <span className="text-sm text-ink flex-1 min-w-0">
                       <span className="text-ink2">{fmtDate(h.holiday_date)}</span>
                       <span className="text-muted"> — </span>
@@ -164,7 +160,7 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
                     <button
                       type="button"
                       onClick={() => { setEditingId(h.id); setEditDate(h.holiday_date); setEditName(h.name) }}
-                      className="p-1.5 rounded-md text-muted hover:text-ink transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-ink transition-colors shrink-0"
                       aria-label={t(lang, 'leaveEdit')}
                     >
                       <Pencil size={14} />
@@ -174,7 +170,7 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
                         type="button"
                         onClick={async () => { await send(`/api/holidays/${h.id}`, 'DELETE'); setConfirmId(null) }}
                         disabled={busy}
-                        className="px-2 py-1 rounded-md text-xs font-medium text-bad border border-bad/40 hover:bg-bad/10 transition-colors"
+                        className="px-2 py-1 rounded-md text-xs font-medium text-bad border border-bad/40 hover:bg-bad/10 transition-colors shrink-0"
                       >
                         {t(lang, 'leaveConfirmDelete')}
                       </button>
@@ -182,13 +178,13 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
                       <button
                         type="button"
                         onClick={() => setConfirmId(h.id)}
-                        className="p-1.5 rounded-md text-muted hover:text-bad transition-colors"
+                        className="p-1.5 rounded-md text-muted hover:text-bad transition-colors shrink-0"
                         aria-label={t(lang, 'leaveConfirmDelete')}
                       >
                         <Trash2 size={14} />
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
               </li>
             ))}
