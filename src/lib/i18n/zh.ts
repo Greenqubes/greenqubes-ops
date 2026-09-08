@@ -10,6 +10,7 @@ export const zh: Partial<Translations> = {
   roleSales: '销售',
   roleScheduler: '调度员',
   roleInstaller: '安装人员',
+  roleHr: '人事/财务',
   companySchedule: '公司排程',
   stripShowMonth: '显示整月',
   stripShowWeek: '显示单周',

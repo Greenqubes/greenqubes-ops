@@ -13,6 +13,7 @@ export const en = {
   roleSales: 'Sales',
   roleScheduler: 'Scheduler',
   roleInstaller: 'Installer',
+  roleHr: 'HR / Finance',
 
   // ── Schedule / job list ────────────────────────────────────────────────────
   companySchedule: 'Company schedule',

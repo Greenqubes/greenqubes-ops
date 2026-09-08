@@ -4,7 +4,10 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
+// 'hr' is the HR *and* Finance role — one person does both jobs (Nic,
+// 2026-09-04). If they are ever split, add 'finance' here and update
+// src/lib/auth/capabilities.ts; nothing else should test for 'hr' directly.
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production' | 'hr'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification' | 'design_brief'
 export type MessageKind = 'text' | 'voice'

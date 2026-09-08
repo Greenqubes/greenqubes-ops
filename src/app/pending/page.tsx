@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getPendingJobs } from '@/lib/supabase/queries/jobs'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -21,6 +22,10 @@ export default async function PendingPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  // hr never sees pending jobs. RLS already returns zero rows for her (the
+  // jobs SELECT policy is scoped to non-pending statuses); this keeps the UI
+  // honest rather than showing her an empty list.
+  if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
   const jobs = await getPendingJobs()
 
   return (

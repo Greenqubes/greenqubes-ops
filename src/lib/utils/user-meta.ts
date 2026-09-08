@@ -9,7 +9,7 @@ import type { Role } from '@/lib/supabase/types'
 // form's people pickers so a new role (HR is next) shows up in both at once.
 // It lives here rather than in supabase/types.ts because that file is
 // regenerated from the live DB and would drop a hand-written constant.
-export const ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'admin']
+export const ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'hr', 'admin']
 
 export type LinkStatus = 'none' | 'pending' | 'linked'
 

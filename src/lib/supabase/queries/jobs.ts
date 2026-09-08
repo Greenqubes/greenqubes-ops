@@ -319,6 +319,8 @@ export async function getSupportUsers(): Promise<InstallerUser[]> {
     .from('users')
     .select('id, name, phone, role, subrole, is_driver, qualifications, email, auth_id')
     .or('role.neq.installer,is_driver.eq.false')
+    // hr is never dispatched onto an install team — read-only role (spec §1).
+    .neq('role', 'hr')
     .neq('name', 'GreenqubesAI')
     .is('deleted_at', null)
     .order('name')

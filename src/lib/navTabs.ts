@@ -1,4 +1,4 @@
-import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool } from 'lucide-react'
+import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool, CalendarOff } from 'lucide-react'
 import type { Role } from '@/lib/supabase/types'
 
 export type NavTab = { href: string; label: string; Icon: typeof Calendar }
@@ -34,7 +34,16 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
+  ],
+  // HR / Finance: schedule view-only, the Leave tab she owns, and the
+  // assistant. No FCFS, no Pending, no Completed edits, no Admin — see
+  // src/lib/auth/capabilities.ts for the gates behind those.
+  hr: [
+    { href: '/schedule',  label: 'Schedule',  Icon: Calendar     },
+    { href: '/leave',     label: 'Leave',     Icon: CalendarOff  },
+    { href: '/assistant', label: 'Assistant', Icon: Bot          },
   ],
   coordinator: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import { getFCFSDay } from '@/lib/supabase/queries/fcfs'
 import { getInstallerUsers } from '@/lib/supabase/queries/jobs'
 import { FCFSShell } from '@/features/fcfs/FCFSShell'
@@ -31,6 +32,8 @@ export default async function FCFSPage() {
 
   const effectiveRole = await getEffectiveRole(profile.role)
   if (effectiveRole === 'installer') redirect('/installer')
+  // Read-only office roles (hr today) get no planning board — spec §1.
+  if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
 
   const date = todaySGT()
   const [jobs, installers] = await Promise.all([getFCFSDay(date), getInstallerUsers()])
