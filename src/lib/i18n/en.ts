@@ -550,6 +550,12 @@ export const en = {
   tourProductionFieldsBody: 'On any job you can edit: Production ready, DO issued, production instructions and production photos. Everything else is view-only.',
   tourProductionFilesTitle: 'Files',
   tourProductionFilesBody: 'You can open and read every job\'s files and drawings — you just can\'t change the attachment buckets.',
+  tourHrIntroTitle: 'Your role: HR / Finance',
+  tourHrIntroBody: 'You keep the leave calendar and can see every job\'s prices. The rest of the app is read-only for you — by design.',
+  tourHrLeaveTitle: 'The Leave tab',
+  tourHrLeaveBody: 'Record who\'s away and when — half days included — and keep the public holiday list current. Everyone sees who is away; only you and the admin see the reason.',
+  tourHrPricesTitle: 'Prices',
+  tourHrPricesBody: 'Open any job to see its quote and cost figures. They\'re view-only — sales still enters them.',
 
   // ── Leave (HR) ─────────────────────────────────────────────────────────────
   leaveTitle: 'Leave',

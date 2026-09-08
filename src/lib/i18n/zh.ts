@@ -441,6 +441,12 @@ export const zh: Partial<Translations> = {
   tourProductionFieldsBody: '在任何工作里你可以编辑：生产就绪、DO 已开、生产说明和生产照片。其余内容仅供查看。',
   tourProductionFilesTitle: '文件',
   tourProductionFilesBody: '你可以打开并查看每个工作的文件和图纸——只是不能更改附件分组。',
+  tourHrIntroTitle: '你的角色：人事/财务',
+  tourHrIntroBody: '你负责维护请假记录，并可查看每个工作的价格。应用的其余部分对你是只读的——这是有意设计。',
+  tourHrLeaveTitle: '请假页面',
+  tourHrLeaveBody: '记录谁请假、什么时候——包括半天——并每年更新公共假期名单。所有人都能看到谁请假；只有你和管理员看得到原因。',
+  tourHrPricesTitle: '价格',
+  tourHrPricesBody: '打开任何一个工作即可查看报价和成本。仅供查看——价格仍由销售填写。',
 
   // ── Leave (HR) ─────────────────────────────────────────────────────────────
   leaveTitle: '请假',
