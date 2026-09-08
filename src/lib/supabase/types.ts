@@ -549,6 +549,46 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['bug_reports']['Insert']>
         Relationships: []
       }
+      user_leaves: {
+        Row: {
+          id:            string
+          user_id:       string
+          date_start:    string
+          date_end:      string
+          start_portion: 'full' | 'am' | 'pm'
+          end_portion:   'full' | 'am' | 'pm'
+          created_by:    string | null
+          created_at:    string
+          updated_at:    string
+        }
+        Insert: Omit<Database['public']['Tables']['user_leaves']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['user_leaves']['Insert']>
+        Relationships: []
+      }
+      user_leave_details: {
+        Row: {
+          leave_id:   string
+          leave_type: 'annual' | 'medical' | 'emergency' | 'other'
+          note:       string | null
+        }
+        Insert: Database['public']['Tables']['user_leave_details']['Row']
+        Update: Partial<Database['public']['Tables']['user_leave_details']['Row']>
+        Relationships: []
+      }
+      public_holidays: {
+        Row: {
+          id:           string
+          holiday_date: string
+          name:         string
+        }
+        Insert: Omit<Database['public']['Tables']['public_holidays']['Row'], 'id'> & { id?: string }
+        Update: Partial<Database['public']['Tables']['public_holidays']['Insert']>
+        Relationships: []
+      }
     }
 
     Views: Record<string, never>
