@@ -589,6 +589,7 @@ export const en = {
   holidayName: 'Holiday name',
   holidayNone: 'No public holidays recorded',
   onLeaveLabel: 'On leave',
+  publicHolidayLabel: 'Public holiday',
 }
 
 export type Translations = typeof en

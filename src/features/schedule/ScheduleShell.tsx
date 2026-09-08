@@ -219,6 +219,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
     strictOnTime:  tr(lang, 'strictOnTime'),
     flexibleWindow: tr(lang, 'flexibleWindow'),
     onLeave:       tr(lang, 'onLeaveLabel'),
+    publicHoliday: tr(lang, 'publicHolidayLabel'),
   }
 
   return (
@@ -374,6 +375,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
           leaveNamesByDate={leaveNamesByDate}
           holidayByDate={holidayByDate}
           onLeaveLabel={listStrings.onLeave}
+          holidayLabel={listStrings.publicHoliday}
         />
       )}
       {viewMode === 'month' && (

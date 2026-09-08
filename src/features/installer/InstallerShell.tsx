@@ -13,11 +13,14 @@ import {
 } from '@/features/schedule/utils'
 import { WeekView  } from '@/features/schedule/WeekView'
 import { MonthView } from '@/features/schedule/MonthView'
+import { DayNotices } from '@/features/schedule/DayNotices'
 import { InstallerJobCard } from './InstallerJobCard'
 import { NowCard } from './NowCard'
 import { BottomNav } from '@/components/BottomNav'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { Holiday } from '@/lib/supabase/queries/leave'
+import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
 
 type Tab      = 'today' | 'next' | 'week'
@@ -35,9 +38,13 @@ interface Props {
   jobs:     InstallerJob[]
   lang:     LangCode
   userName: string
+  /** Company-wide: everyone sees who is away and every public holiday
+   *  (Nic, 2026-09-08). Names only — the reason is never fetched. */
+  leaves?:   Array<LeaveRecord & { user_name: string }>
+  holidays?: Holiday[]
 }
 
-export function InstallerShell({ jobs, lang, userName }: Props) {
+export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [] }: Props) {
   const router = useRouter()
 
   // A newly assigned job appears on its own. RLS scopes events to this
@@ -99,6 +106,26 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
       [j.client, j.description ?? '', j.location ?? ''].join(' ').toLowerCase().includes(q)
     )
   }, [baseJobs, query])
+
+  // Same expansion as the office schedule: a leave range covers every date
+  // in it. 62-day guard mirrors leave-overlap's, against bad data.
+  const leaveNamesByDate = useMemo(() => {
+    const acc: Record<string, string[]> = {}
+    for (const l of leaves) {
+      let cur = l.date_start
+      for (let i = 0; i < 62 && cur <= l.date_end; i++) {
+        ;(acc[cur] ??= []).push(l.user_name)
+        cur = shiftDate(cur, 1)
+      }
+    }
+    return acc
+  }, [leaves])
+
+  const holidayByDate = useMemo(() => {
+    const acc: Record<string, string> = {}
+    for (const h of holidays) acc[h.holiday_date] = h.name
+    return acc
+  }, [holidays])
 
   // ── Week / month views ──
   // Cast is safe: InstallerJob now has all fields JobRow reads
@@ -277,6 +304,15 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
           below lg now (nav drawer instead — R2-T5 / F1). */}
       {viewMode === 'list' && (
         <div className="px-4 space-y-3 pb-8 lg:pb-24">
+          {/* Today's notices, above the job list and above the empty state —
+              a day with no jobs is exactly when a holiday matters most. */}
+          <DayNotices
+            leaveNames={[...new Set(leaveNamesByDate[today] ?? [])]}
+            holiday={holidayByDate[today]}
+            onLeaveLabel={t(lang, 'onLeaveLabel')}
+            holidayLabel={t(lang, 'publicHolidayLabel')}
+            className="mb-0"
+          />
           {visibleJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
               <Briefcase size={32} className="text-muted" strokeWidth={1.5} />
@@ -301,6 +337,10 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
           jobsByDate={jobsByDate}
           today={today}
           lang={lang}
+          leaveNamesByDate={leaveNamesByDate}
+          holidayByDate={holidayByDate}
+          onLeaveLabel={t(lang, 'onLeaveLabel')}
+          holidayLabel={t(lang, 'publicHolidayLabel')}
         />
       )}
 
@@ -311,6 +351,8 @@ export function InstallerShell({ jobs, lang, userName }: Props) {
           selectedDate={selectedDate}
           today={today}
           lang={lang}
+          leaveNamesByDate={leaveNamesByDate}
+          holidayByDate={holidayByDate}
           onSelectDate={setSelectedDate}
           onDrillDown={drillDown}
         />

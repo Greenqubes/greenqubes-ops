@@ -480,4 +480,5 @@ export const zh: Partial<Translations> = {
   holidayName: '假期名称',
   holidayNone: '尚未记录公共假期',
   onLeaveLabel: '请假中',
+  publicHolidayLabel: '公共假期',
 }
