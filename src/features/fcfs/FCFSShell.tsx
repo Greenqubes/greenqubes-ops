@@ -12,6 +12,7 @@ import { BottomNav } from '@/components/BottomNav'
 import { FCFSTimeline } from './FCFSTimeline'
 import { AssignmentPanel } from './AssignmentPanel'
 import { ClashDrawer } from './ClashDrawer'
+import { leaveClashesForJobs, type LeaveConflict, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
@@ -38,16 +39,18 @@ const RANGE_STORAGE_KEY = 'fcfs-time-range'
 const clashKey = (c: InstallerClash) => `${c.installerId}-${c.jobA.id}-${c.jobB.id}`
 
 interface FCFSShellProps {
-  initialJobs: FCFSJob[]
-  initialDate: string
-  installers:  InstallerUser[]
-  role:        Role
-  lang:        LangCode
+  initialJobs:   FCFSJob[]
+  initialLeaves: LeaveRecord[]
+  initialDate:   string
+  installers:    InstallerUser[]
+  role:          Role
+  lang:          LangCode
 }
 
-export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: FCFSShellProps) {
+export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers, role, lang }: FCFSShellProps) {
   const [date, setDate]           = useState(initialDate)
   const [jobs, setJobs]           = useState<FCFSJob[]>(initialJobs)
+  const [leaves, setLeaves]       = useState<LeaveRecord[]>(initialLeaves)
   const [loading, setLoading]     = useState(false)
   const [range, setRange]         = useState<TimeRange>('ampm')
   const [panelJobId, setPanelJobId] = useState<string | null>(null)
@@ -73,8 +76,11 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
     try {
       const res = await fetch(`/api/fcfs?date=${target}`)
       if (!res.ok) return
-      const data: FCFSJob[] = await res.json()
-      if (dateRef.current === target) setJobs(data)
+      const data: { jobs: FCFSJob[]; leaves: LeaveRecord[] } = await res.json()
+      if (dateRef.current === target) {
+        setJobs(data.jobs)
+        setLeaves(data.leaves)
+      }
     } finally {
       if (showSpinner) setLoading(false)
     }
@@ -92,7 +98,7 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
   // 0043 adds the table to the realtime publication.
   useLiveChannel({
     name:    'fcfs-live',
-    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }],
+    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }, { table: 'user_leaves' }],
     onEvent: () => refetch(dateRef.current, false),
     poll:    { ms: 2 * 60 * 1000, fn: () => refetch(dateRef.current, false) },
   })
@@ -103,17 +109,35 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
     [allClashes, dismissed],
   )
 
+  // Leave for the day this board is showing. ALL assignees are checked, not
+  // just main crew: support crew are exempt from booking clashes, never from
+  // leave. date_end is null because the board is a single-day view.
+  const leaveClashes = useMemo<LeaveConflict[]>(() => leaveClashesForJobs(
+    jobs.map(j => ({
+      id: j.id, date: j.date, date_end: null,
+      time_start: j.time_start, time_end: j.time_end,
+      people: j.assignees.map(a => ({ id: a.user_id, name: a.name })),
+    })), leaves), [jobs, leaves])
+
   // One toolbar chip per installer with an active confirmed clash.
   const clashChips = useMemo(() => {
-    const byInstaller = new Map<string, { name: string; count: number; hard: boolean }>()
+    const byInstaller = new Map<string, { name: string; count: number; hard: boolean; leave: boolean }>()
     for (const c of boardClashes) {
-      const entry = byInstaller.get(c.installerId) ?? { name: c.installerName, count: 0, hard: false }
+      const entry = byInstaller.get(c.installerId) ?? { name: c.installerName, count: 0, hard: false, leave: false }
       entry.count += 1
       entry.hard ||= c.severity === 'hard'
       byInstaller.set(c.installerId, entry)
     }
+    // Leave folds into the same chip when the person already has one, so a
+    // person never gets two chips; otherwise it adds its own red chip.
+    for (const l of leaveClashes) {
+      const entry = byInstaller.get(l.personId) ?? { name: l.personName, count: 0, hard: false, leave: false }
+      entry.leave = true
+      entry.hard  = true
+      byInstaller.set(l.personId, entry)
+    }
     return [...byInstaller.values()]
-  }, [boardClashes])
+  }, [boardClashes, leaveClashes])
 
   const panelJob = panelJobId ? jobs.find(j => j.id === panelJobId) ?? null : null
   const cfg = RANGES[range]
@@ -164,7 +188,11 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
                   )}
                 >
                   <AlertTriangle size={12} />
-                  {chip.name} — {chip.count} {t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}
+                  {chip.name} — {chip.leave
+                    ? (chip.count > 0
+                        ? `${t(lang, 'fcfsOnLeaveChip')} · ${chip.count} ${t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}`
+                        : t(lang, 'fcfsOnLeaveChip'))
+                    : `${chip.count} ${t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}`}
                 </button>
               ))}
             </div>
@@ -201,6 +229,7 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
           <FCFSTimeline
             jobs={jobs}
             clashes={boardClashes}
+            leaveClashes={leaveClashes}
             startH={cfg.startH}
             endH={cfg.endH}
             lang={lang}
@@ -228,6 +257,8 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
       <AssignmentPanel
         job={panelJob}
         clashes={allClashes}
+        leaveClashes={leaveClashes}
+        leaves={leaves}
         installers={installers}
         role={role}
         lang={lang}
@@ -238,6 +269,8 @@ export function FCFSShell({ initialJobs, initialDate, installers, role, lang }: 
       <ClashDrawer
         isOpen={drawerOpen}
         clashes={boardClashes}
+        leaveClashes={leaveClashes}
+        jobs={jobs}
         lang={lang}
         onClose={() => setDrawerOpen(false)}
         onOpenJob={jobId => { setDrawerOpen(false); setPanelJobId(jobId) }}

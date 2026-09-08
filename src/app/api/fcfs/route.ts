@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
-import { getFCFSDay } from '@/lib/supabase/queries/fcfs'
+import { getFCFSDay, getLeaveForDate } from '@/lib/supabase/queries/fcfs'
 import type { Role } from '@/lib/supabase/types'
 
 // The board is a planning tool for every office role. Installers are the one
@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
   }
 
-  const jobs = await getFCFSDay(date)
-  return NextResponse.json(jobs)
+  // Shape changed from a bare array to { jobs, leaves } when leave landed on
+  // the board — the only caller is FCFSShell's refetch, updated with it.
+  const [jobs, leaves] = await Promise.all([getFCFSDay(date), getLeaveForDate(date)])
+  return NextResponse.json({ jobs, leaves })
 }

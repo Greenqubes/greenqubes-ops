@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { Punctuality } from '@/lib/supabase/types'
 
 // ── FCFS board ──────────────────────────────────────────────────────────────
@@ -107,4 +108,18 @@ export async function getFCFSDay(date: string): Promise<FCFSJob[]> {
         suggested_by_name: a.suggested_by ? suggesterNames.get(a.suggested_by) ?? null : null,
       })),
   }))
+}
+
+// The board is a day view, so only leave covering that one date matters.
+// Readable by every role (RLS): WHO is away is company-wide information —
+// WHY is not, and lives in user_leave_details, which this never touches.
+export async function getLeaveForDate(date: string): Promise<LeaveRecord[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('user_leaves')
+    .select('id, user_id, date_start, date_end, start_portion, end_portion')
+    .lte('date_start', date)
+    .gte('date_end', date)
+  if (error) throw error
+  return (data ?? []) as unknown as LeaveRecord[]
 }
