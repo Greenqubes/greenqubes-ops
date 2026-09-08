@@ -592,6 +592,24 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['public_holidays']['Insert']>
         Relationships: []
       }
+      company_events: {
+        Row: {
+          id:         string
+          name:       string
+          date_start: string
+          date_end:   string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['company_events']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['company_events']['Insert']>
+        Relationships: []
+      }
     }
 
     Views: Record<string, never>

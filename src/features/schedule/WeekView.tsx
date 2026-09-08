@@ -15,14 +15,16 @@ interface WeekViewProps {
    *  this component and renders unchanged without them. */
   leaveNamesByDate?: Record<string, string[]>
   holidayByDate?:    Record<string, string>
+  eventsByDate?:     Record<string, string[]>
   onLeaveLabel?:     string
   holidayLabel?:     string
+  eventLabel?:       string
 }
 
 export function WeekView({
   weekDays, jobsByDate, today, lang,
-  leaveNamesByDate = {}, holidayByDate = {},
-  onLeaveLabel = 'On leave', holidayLabel = 'Public holiday',
+  leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {},
+  onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', eventLabel = 'Company event',
 }: WeekViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
@@ -60,8 +62,10 @@ export function WeekView({
             <DayNotices
               leaveNames={[...new Set(leaveNamesByDate[d] ?? [])]}
               holiday={holidayByDate[d]}
+              events={eventsByDate[d] ?? []}
               onLeaveLabel={onLeaveLabel}
               holidayLabel={holidayLabel}
+              eventLabel={eventLabel}
               className="mb-2"
             />
 

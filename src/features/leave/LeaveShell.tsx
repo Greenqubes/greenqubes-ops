@@ -12,9 +12,10 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { leaveDatesLabel } from '@/lib/utils/leave-overlap'
-import type { LeaveWithName, Holiday } from '@/lib/supabase/queries/leave'
+import type { LeaveWithName, Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import { LeaveFormModal } from './LeaveFormModal'
 import { HolidaysCard } from './HolidaysCard'
+import { EventsCard } from './EventsCard'
 import { fmtDate, todayISO } from './format'
 
 type PersonOption = { id: string; name: string; role: string }
@@ -22,6 +23,7 @@ type PersonOption = { id: string; name: string; role: string }
 interface Props {
   initialLeave:    LeaveWithName[]
   initialHolidays: Holiday[]
+  initialEvents:   CompanyEvent[]
   users:           PersonOption[]
   lang:            LangCode
   role:            Role
@@ -31,9 +33,10 @@ const PAST_PREVIEW = 10
 
 // HR's own page. Only hr and real admins can reach it — the route guards it,
 // and RLS refuses every write from anyone else regardless.
-export function LeaveShell({ initialLeave, initialHolidays, users, lang, role }: Props) {
+export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users, lang, role }: Props) {
   const [leave,    setLeave]    = useState(initialLeave)
   const [holidays, setHolidays] = useState(initialHolidays)
+  const [events,   setEvents]   = useState(initialEvents)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState<LeaveWithName | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
@@ -46,9 +49,10 @@ export function LeaveShell({ initialLeave, initialHolidays, users, lang, role }:
     try {
       const res = await fetch('/api/leave')
       if (!res.ok) return
-      const data = await res.json() as { leave: LeaveWithName[]; holidays: Holiday[] }
+      const data = await res.json() as { leave: LeaveWithName[]; holidays: Holiday[]; events: CompanyEvent[] }
       setLeave(data.leave)
       setHolidays(data.holidays)
+      setEvents(data.events)
     } catch {
       // A failed refresh leaves the last good list on screen — harmless.
     }
@@ -58,7 +62,7 @@ export function LeaveShell({ initialLeave, initialHolidays, users, lang, role }:
   // without a reload. Same hook every live surface uses.
   useLiveChannel({
     name:    'leave-live',
-    tables:  [{ table: 'user_leaves' }, { table: 'public_holidays' }],
+    tables:  [{ table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' }],
     onEvent: refresh,
   })
 
@@ -179,6 +183,8 @@ export function LeaveShell({ initialLeave, initialHolidays, users, lang, role }:
               </>
             )}
         </Card>
+
+        <EventsCard events={events} lang={lang} onChanged={refresh} />
 
         <HolidaysCard holidays={holidays} lang={lang} onChanged={refresh} />
       </div>

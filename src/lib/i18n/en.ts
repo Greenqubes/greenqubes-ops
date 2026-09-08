@@ -594,6 +594,12 @@ export const en = {
   holidayAdd: 'Add holiday',
   holidayName: 'Holiday name',
   holidayNone: 'No public holidays recorded',
+  eventsTitle: 'Company events',
+  eventsSubtitle: 'Retreats, shutdowns, town halls. Shown on everyone\'s schedule across the whole range — they do not block scheduling.',
+  eventAdd: 'Add event',
+  eventName: 'Event name',
+  eventNone: 'No company events recorded',
+  companyEventLabel: 'Company event',
   onLeaveLabel: 'On leave',
   publicHolidayLabel: 'Public holiday',
 }

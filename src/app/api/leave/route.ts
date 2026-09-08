@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { guardHr } from '@/lib/utils/leave-guard'
-import { getLeave, getHolidays, getActiveUsers } from '@/lib/supabase/queries/leave'
+import { getLeave, getHolidays, getCompanyEvents, getActiveUsers } from '@/lib/supabase/queries/leave'
 import { notifyLeave } from '@/lib/utils/leave-notify'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 
@@ -15,8 +15,10 @@ const ISO_RE   = /^\d{4}-\d{2}-\d{2}$/
 export async function GET() {
   const { ok } = await guardHr()
   if (!ok) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const [leave, holidays, users] = await Promise.all([getLeave(), getHolidays(), getActiveUsers()])
-  return NextResponse.json({ leave, holidays, users })
+  const [leave, holidays, events, users] = await Promise.all([
+    getLeave(), getHolidays(), getCompanyEvents(), getActiveUsers(),
+  ])
+  return NextResponse.json({ leave, holidays, events, users })
 }
 
 export async function POST(req: NextRequest) {

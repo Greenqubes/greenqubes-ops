@@ -128,3 +128,17 @@ On the Leave page, as HR:
 1. Claude merges `feat-hr-leave` → `dev`, you re-check the dev preview.
 2. Then `dev` → `main`, and it's live for the team.
 3. Claude writes the What's new entry so everyone sees what changed.
+
+---
+
+## 10. Company events (added 2026-09-08)
+
+- [ ] On the Leave page, HR adds an event with a **date range** — e.g.
+      "Company retreat", 5–9 Aug.
+- [ ] It appears on the schedule on **all five days**, not just the first.
+- [ ] The panel is terracotta, separate from the green holiday panel and the
+      slate on-leave panel — all three can appear on the same day.
+- [ ] Edit the range and the name; delete it (two taps).
+- [ ] Installers see it too, on My Jobs and in their week view.
+- [ ] It does **not** warn or block when a job is scheduled during it —
+      label only, same as a public holiday. (Say if you want it to warn.)

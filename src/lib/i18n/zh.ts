@@ -485,6 +485,12 @@ export const zh: Partial<Translations> = {
   holidayAdd: '新增假期',
   holidayName: '假期名称',
   holidayNone: '尚未记录公共假期',
+  eventsTitle: '公司活动',
+  eventsSubtitle: '团建、停工、全员会议。整段日期都会显示在所有人的排程上，不会阻止安排工作。',
+  eventAdd: '新增活动',
+  eventName: '活动名称',
+  eventNone: '尚未记录公司活动',
+  companyEventLabel: '公司活动',
   onLeaveLabel: '请假中',
   publicHolidayLabel: '公共假期',
 }

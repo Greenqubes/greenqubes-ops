@@ -19,7 +19,7 @@ import { NowCard } from './NowCard'
 import { BottomNav } from '@/components/BottomNav'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
-import type { Holiday } from '@/lib/supabase/queries/leave'
+import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
 
@@ -42,9 +42,10 @@ interface Props {
    *  (Nic, 2026-09-08). Names only — the reason is never fetched. */
   leaves?:   Array<LeaveRecord & { user_name: string }>
   holidays?: Holiday[]
+  events?:   CompanyEvent[]
 }
 
-export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [] }: Props) {
+export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [], events = [] }: Props) {
   const router = useRouter()
 
   // A newly assigned job appears on its own. RLS scopes events to this
@@ -52,7 +53,8 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
   // (migration 0037), so suggested jobs stay hidden until formally assigned.
   useLiveChannel({
     name:    'installer-jobs-live',
-    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }],
+    tables:  [{ table: 'jobs' }, { table: 'job_assignees' },
+              { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' }],
     onEvent: () => router.refresh(),
     poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
   })
@@ -126,6 +128,19 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
     for (const h of holidays) acc[h.holiday_date] = h.name
     return acc
   }, [holidays])
+
+  // An event shows on every day it covers, not just its first.
+  const eventsByDate = useMemo(() => {
+    const acc: Record<string, string[]> = {}
+    for (const e of events) {
+      let cur = e.date_start
+      for (let i = 0; i < 62 && cur <= e.date_end; i++) {
+        ;(acc[cur] ??= []).push(e.name)
+        cur = shiftDate(cur, 1)
+      }
+    }
+    return acc
+  }, [events])
 
   // ── Week / month views ──
   // Cast is safe: InstallerJob now has all fields JobRow reads
@@ -309,8 +324,10 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
           <DayNotices
             leaveNames={[...new Set(leaveNamesByDate[today] ?? [])]}
             holiday={holidayByDate[today]}
+            events={eventsByDate[today] ?? []}
             onLeaveLabel={t(lang, 'onLeaveLabel')}
             holidayLabel={t(lang, 'publicHolidayLabel')}
+            eventLabel={t(lang, 'companyEventLabel')}
             className="mb-0"
           />
           {visibleJobs.length === 0 ? (
@@ -339,8 +356,10 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
           lang={lang}
           leaveNamesByDate={leaveNamesByDate}
           holidayByDate={holidayByDate}
+          eventsByDate={eventsByDate}
           onLeaveLabel={t(lang, 'onLeaveLabel')}
           holidayLabel={t(lang, 'publicHolidayLabel')}
+          eventLabel={t(lang, 'companyEventLabel')}
         />
       )}
 

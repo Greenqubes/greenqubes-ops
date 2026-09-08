@@ -11,6 +11,11 @@ export type LeaveWithName = LeaveRecord & {
 
 export type Holiday = { id: string; holiday_date: string; name: string }
 
+/** A multi-day company-wide event — retreat, shutdown, town hall. */
+export type CompanyEvent = {
+  id: string; name: string; date_start: string; date_end: string
+}
+
 type LeaveRow = LeaveRecord & {
   user_leave_details: { leave_type: string; note: string | null } | null
 }
@@ -116,6 +121,18 @@ export async function getHolidaysInRange(from: string, to: string): Promise<Holi
     .order('holiday_date', { ascending: true })
   if (error) throw error
   return (data ?? []) as unknown as Holiday[]
+}
+
+// Company events — read by every role, same as holidays. Label-only: nothing
+// here feeds the clash engine.
+export async function getCompanyEvents(): Promise<CompanyEvent[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('company_events')
+    .select('id, name, date_start, date_end')
+    .order('date_start', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as unknown as CompanyEvent[]
 }
 
 // The Leave form's person picker: every active internal user, ALL roles —

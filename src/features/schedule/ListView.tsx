@@ -12,6 +12,7 @@ interface ListStrings {
   /** Optional so callers with their own strings object still satisfy this. */
   onLeave?:       string
   publicHoliday?: string
+  companyEvent?:  string
 }
 
 interface ListViewProps {
@@ -23,6 +24,7 @@ interface ListViewProps {
   /** Optional: only the live schedule passes these; installer views don't. */
   leaveNamesByDate?: Record<string, string[]>
   holidayByDate?:    Record<string, string>
+  eventsByDate?:     Record<string, string[]>
   onSelectDate: (date: string) => void
   selectable?:  boolean
   selectedIds?: Set<string>
@@ -32,7 +34,7 @@ interface ListViewProps {
 
 export function ListView({
   jobsByDate, selectedDate, today, lang, strings,
-  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate,
+  leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {}, onSelectDate,
   selectable, selectedIds, onToggle, onDelete,
 }: ListViewProps) {
   const dayJobs    = jobsByDate[selectedDate] ?? []
@@ -63,8 +65,10 @@ export function ListView({
         <DayNotices
           leaveNames={dayLeave}
           holiday={dayHoliday}
+          events={eventsByDate[selectedDate] ?? []}
           onLeaveLabel={strings.onLeave}
           holidayLabel={strings.publicHoliday}
+          eventLabel={strings.companyEvent}
         />
         {dayJobs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">

@@ -1,4 +1,4 @@
-import { CalendarDays, UserMinus } from 'lucide-react'
+import { CalendarDays, UserMinus, Users } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 // Public holiday and who-is-away banners for one day.
@@ -16,20 +16,38 @@ interface Props {
   leaveNames?: string[]
   /** Public holiday name for that day, if any. */
   holiday?:    string
+  /** Company events running on that day (a retreat shows on all 5 of its days). */
+  events?:     string[]
   /** Translated "On leave" label. */
   onLeaveLabel?: string
   /** Translated "Public holiday" label. */
   holidayLabel?: string
+  /** Translated "Company event" label. */
+  eventLabel?:   string
   className?:  string
 }
 
 export function DayNotices({
-  leaveNames = [], holiday, onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', className,
+  leaveNames = [], holiday, events = [],
+  onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', eventLabel = 'Company event',
+  className,
 }: Props) {
-  if (!holiday && leaveNames.length === 0) return null
+  if (!holiday && leaveNames.length === 0 && events.length === 0) return null
 
   return (
     <div className={cn('flex flex-col gap-2 mb-3', className)}>
+      {events.map(name => (
+        <div key={name} className="flex items-center gap-2.5 rounded-[10px] border border-terracotta/30 bg-terracotta-soft px-3 py-2.5">
+          <Users size={16} className="text-terracotta shrink-0" strokeWidth={1.8} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-terracotta/80 leading-none">
+              {eventLabel}
+            </p>
+            <p className="text-sm font-semibold text-terracotta mt-1 truncate">{name}</p>
+          </div>
+        </div>
+      ))}
+
       {holiday && (
         <div className="flex items-center gap-2.5 rounded-[10px] border border-brand-green/30 bg-brand-green-soft px-3 py-2.5">
           <CalendarDays size={16} className="text-brand-green shrink-0" strokeWidth={1.8} />
