@@ -37,26 +37,26 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-07',
     time: '20:56',
     headsUp: [
-      'The Installers list on a job is now called Drivers, and it only shows people ticked as Driver in Admin. Everyone else — including your other installers — is picked in the Support crew bucket just below it. Nobody was removed and no job lost its crew; four installers simply moved bucket.',
-      'The FCFS board now shows driver rows only, for the same reason: drivers are what a booking is limited by.',
+      'The Installers list on a job is now Drivers, and shows only people ticked as Driver. Everyone else picks from Support crew just below it — nobody was removed and no job lost its crew.',
+      'The FCFS board now shows driver rows only.',
     ],
     added: [
-      'Sales can close off their own jobs — the ones they are Person-in-Charge for. The overdue reminders go to the sales person, so they no longer get nagged about a job they cannot finish.',
-      'Coordinators can close off jobs they are assigned to, for the same reason.',
-      'Filter people by role when picking Person-in-Charge or Sub POC / Coordinators. Open the picker and choose a role to narrow the list, then type to search within it.',
+      'Sales can close off jobs they are Person-in-Charge for.',
+      'Coordinators can close off jobs they are assigned to.',
+      'Filter by role when picking a Person-in-Charge or Sub POC.',
     ],
     improved: [
-      '"Mark job complete" now sits next to Save at the bottom of the job form.',
-      'The row of buttons on a job no longer runs off the edge of a phone screen — it wraps onto a second line instead. Cancel is reachable again.',
+      '"Mark job complete" now sits beside Save at the bottom of the job form.',
+      'The job button row wraps on a phone instead of running off the screen.',
     ],
     fixed: [
-      'Sales could not add or remove coordinators on a job. It failed every time with "Save failed — try again", for every sales person, on every job.',
-      'Sales edits to a job that was already on the schedule were thrown away silently while the screen said "Saved successfully". This affected every field, not only the date, and is why a changed date never appeared on the schedule.',
-      'A job you had just closed still offered "Push to Schedule". Pressing it reported success without changing anything, and told the schedulers the job had been pushed. It now shows "Reopen job" instead, and refuses to push a finished job.',
-      'When the system refuses a save, it now says so plainly instead of claiming the save worked. This one protects every screen, not just the ones above.',
+      'Sales can add and remove coordinators on a job again.',
+      'Sales edits to a job already on the schedule are no longer silently discarded.',
+      'A closed job now offers "Reopen job" instead of pushing it to the schedule again.',
+      'A save the system refuses now says so, instead of reporting success.',
     ],
     known: [
-      'Nobody is notified when a scheduled job’s date is moved. The crew and the person-in-charge find out only by looking. A fix is being designed next session.',
+      'Nobody is notified when a scheduled job’s date moves — a fix is being designed.',
     ],
   },
 ]
