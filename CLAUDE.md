@@ -32,7 +32,7 @@ Before closing off:
 3. Update `docs/nic-checklist.md` — tick off anything Nic completed this session, tag each item `[Nic]`, add any new pending items
 4. **If anything reached `main` this session, write the changelog entry** — add it to `src/lib/changelog/entries.ts` (newest first), then commit and push it with everything else. It is what the team sees in the "What's new" popup, so:
    - **One entry per date, not per push.** If today already has an entry, ADD to it and bump its `time` — never create a second entry for the same date. `date` is what decides whether the popup reopens for someone.
-   - `time` is 24-hour `HH:MM` Singapore time; the popup formats it to AM/PM.
+   - `time` is 24-hour `HH:MM` Singapore time; the popup formats it to AM/PM. **Set it to the actual clock time you merge to `main`, and re-check it right before that push** (`TZ=Asia/Singapore date '+%H:%M'`) — a time written earlier in the session is stale by the time it ships, and the team reads it as when the release landed. (Nic, 2026-09-09.)
    - Sections in order, each optional and skipped when empty: `headsUp` (only when something changes how people WORK), `added`, `improved`, `fixed`, `known` (still-open problems).
    - **English only** (Nic, 2026-09-07) — entries are prose and are not translated; the popup's own chrome is.
    - Write from the reader's side of the screen: what changed for THEM, never the code. "Sales can close their own jobs" — not "widened the sales RLS policy". No file names, no migration numbers, no jargon.

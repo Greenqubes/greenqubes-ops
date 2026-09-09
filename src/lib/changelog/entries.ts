@@ -36,8 +36,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-09',
     // Bumped, not duplicated — one entry per DATE, so the popup does not
-    // re-nag anyone who already read this morning's release.
-    time: '07:21',
+    // re-nag anyone who already read this morning's release. Set to the
+    // actual merge-to-main time, per the rule added 2026-09-09.
+    time: '07:33',
     headsUp: [
       'The schedule now shows who is on leave and every public holiday, to everyone.',
       'Everyone sees who is away — only HR and the admin can see the reason.',
