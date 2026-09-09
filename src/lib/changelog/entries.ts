@@ -34,6 +34,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-09',
+    time: '04:59',
+    headsUp: [
+      'The schedule now shows who is on leave and every public holiday, to everyone.',
+      'Everyone sees who is away — only HR and the admin can see the reason.',
+      'A new HR / Finance role can see every job\'s prices, view-only.',
+    ],
+    added: [
+      'HR / Finance role, with its own Leave page and read-only job pages.',
+      'Leave records with morning and afternoon half days, kept by HR.',
+      'Putting someone on a job while they are on leave now warns in red.',
+      'Company events like a retreat show across every day they run.',
+      'Singapore public holidays for 2026 appear on the schedule.',
+    ],
+  },
+  {
     date: '2026-09-07',
     time: '20:56',
     headsUp: [
