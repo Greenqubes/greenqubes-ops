@@ -5,7 +5,7 @@ import { Card } from '@/components/Card'
 import { Btn } from '@/components/Btn'
 import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { LangCode } from '@/lib/i18n'
@@ -31,6 +31,35 @@ interface Props {
 
 const PAST_PREVIEW = 10
 
+// A foldable section heading. The toggle and the action button are siblings,
+// never nested — a button inside a button is invalid and the inner one stops
+// responding. Count sits on the heading so a folded section still says how
+// much is inside.
+function SectionHead({ title, count, open, onToggle, lang, action }: {
+  title: string; count: number; open: boolean; onToggle: () => void
+  lang: LangCode; action?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex items-center gap-1.5 flex-1 min-w-0 text-left rounded-md -m-1 p-1 hover:bg-bg transition-colors"
+      >
+        <ChevronDown
+          size={14}
+          className={cn('shrink-0 text-muted transition-transform', !open && '-rotate-90')}
+        />
+        <h2 className="text-sm font-medium text-ink truncate">{title}</h2>
+        {count > 0 && <span className="text-xs text-muted shrink-0">({count})</span>}
+        <span className="sr-only">{open ? t(lang, 'leaveHide') : t(lang, 'leaveShow')}</span>
+      </button>
+      {action}
+    </div>
+  )
+}
+
 // HR's own page. Only hr and real admins can reach it — the route guards it,
 // and RLS refuses every write from anyone else regardless.
 export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users, lang, role }: Props) {
@@ -41,6 +70,11 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
   const [editing,   setEditing]   = useState<LeaveWithName | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [showAllPast, setShowAllPast] = useState(false)
+  // Upcoming is what HR opens the page for; past leave is reference, so it
+  // starts folded. No localStorage — a render-time read of it is the /schedule
+  // hydration bug.
+  const [openUpcoming, setOpenUpcoming] = useState(true)
+  const [openPast,     setOpenPast]     = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const today = todayISO()
@@ -144,49 +178,77 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
     <div className="min-h-screen bg-bg pb-24 lg:pb-28">
       <CompanyBar lang={lang} role={role} />
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'leaveTitle')}</h1>
-            <p className="text-[11px] text-muted mt-0.5">{t(lang, 'leaveSubtitle')}</p>
-          </div>
-          <Btn variant="accent" size="sm" onClick={openCreate} className="shrink-0">
-            <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'leaveAdd')}</span>
-          </Btn>
+      {/* Wider than the usual max-w-2xl: at lg this is two columns, with the
+          public-holiday list beside the leave records rather than a long
+          scroll beneath them (Nic, 2026-09-09). */}
+      <div className="max-w-2xl lg:max-w-5xl mx-auto px-4 pt-4">
+        <div className="mb-4">
+          <h1 className="font-display text-xl font-semibold text-ink">{t(lang, 'leaveTitle')}</h1>
+          <p className="text-[11px] text-muted mt-0.5">{t(lang, 'leaveSubtitle')}</p>
         </div>
 
-        {error && <p className="text-xs text-bad">{error}</p>}
+        {error && <p className="text-xs text-bad mb-3">{error}</p>}
 
-        <Card className="p-5">
-          <h2 className="text-sm font-medium text-ink mb-1">{t(lang, 'leaveUpcoming')}</h2>
-          {upcoming.length === 0
-            ? <p className="text-xs text-muted mt-2">{t(lang, 'leaveNone')}</p>
-            : <ul className="divide-y divide-line">{upcoming.map(l => row(l, false))}</ul>}
-        </Card>
+        {/* Phone: one column, holidays last. lg: equal halves with holidays
+            moved to the LEFT — the order classes only apply at lg, so the
+            DOM order below is the phone order. */}
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start">
+          <div className="flex flex-col gap-4 lg:order-2 min-w-0">
+            <Card className="p-5">
+              <SectionHead
+                title={t(lang, 'leaveUpcoming')}
+                count={upcoming.length}
+                open={openUpcoming}
+                onToggle={() => setOpenUpcoming(o => !o)}
+                lang={lang}
+                action={
+                  <Btn variant="accent" size="sm" onClick={openCreate} className="shrink-0">
+                    <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'leaveAdd')}</span>
+                  </Btn>
+                }
+              />
+              {openUpcoming && (
+                upcoming.length === 0
+                  ? <p className="text-xs text-muted mt-2">{t(lang, 'leaveNone')}</p>
+                  : <ul className="divide-y divide-line mt-1">{upcoming.map(l => row(l, false))}</ul>
+              )}
+            </Card>
 
-        <Card className="p-5">
-          <h2 className="text-sm font-medium text-ink mb-1">{t(lang, 'leavePast')}</h2>
-          {past.length === 0
-            ? <p className="text-xs text-muted mt-2">{t(lang, 'leavePastNone')}</p>
-            : (
-              <>
-                <ul className="divide-y divide-line">{pastShown.map(l => row(l, true))}</ul>
-                {!showAllPast && past.length > PAST_PREVIEW && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllPast(true)}
-                    className="text-xs text-terracotta hover:underline mt-3"
-                  >
-                    {t(lang, 'leaveShowAllPast')} ({past.length})
-                  </button>
-                )}
-              </>
-            )}
-        </Card>
+            <Card className="p-5">
+              <SectionHead
+                title={t(lang, 'leavePast')}
+                count={past.length}
+                open={openPast}
+                onToggle={() => setOpenPast(o => !o)}
+                lang={lang}
+              />
+              {openPast && (
+                past.length === 0
+                  ? <p className="text-xs text-muted mt-2">{t(lang, 'leavePastNone')}</p>
+                  : (
+                    <>
+                      <ul className="divide-y divide-line mt-1">{pastShown.map(l => row(l, true))}</ul>
+                      {!showAllPast && past.length > PAST_PREVIEW && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllPast(true)}
+                          className="text-xs text-terracotta hover:underline mt-3"
+                        >
+                          {t(lang, 'leaveShowAllPast')} ({past.length})
+                        </button>
+                      )}
+                    </>
+                  )
+              )}
+            </Card>
 
-        <EventsCard events={events} lang={lang} onChanged={refresh} />
+            <EventsCard events={events} lang={lang} onChanged={refresh} />
+          </div>
 
-        <HolidaysCard holidays={holidays} lang={lang} onChanged={refresh} />
+          <div className="lg:order-1 min-w-0">
+            <HolidaysCard holidays={holidays} lang={lang} onChanged={refresh} />
+          </div>
+        </div>
       </div>
 
       {/* Callers own the hidden lg:block wrapper — see BottomNav's own note. */}

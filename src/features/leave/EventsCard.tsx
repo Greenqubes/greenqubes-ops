@@ -154,7 +154,7 @@ export function EventsCard({ events, lang, onChanged }: Props) {
           <p className="text-[11px] text-muted mt-0.5">{t(lang, 'eventsSubtitle')}</p>
         </div>
         {!adding && (
-          <Btn variant="secondary" size="sm" onClick={() => setAdding(true)}>
+          <Btn variant="accent" size="sm" onClick={() => setAdding(true)} className="shrink-0">
             <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'eventAdd')}</span>
           </Btn>
         )}

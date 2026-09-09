@@ -83,18 +83,23 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
   }
 
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <div>
+    /* Heading and description sit ABOVE the card, matching the page's own
+       Leave header (Nic, 2026-09-09). Only this section does — the others
+       keep their heading inside, which is what he asked for. */
+    <div className="flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-sm font-medium text-ink">{t(lang, 'holidaysTitle')}</h2>
           <p className="text-[11px] text-muted mt-0.5">{t(lang, 'holidaysSubtitle')}</p>
         </div>
         {!adding && (
-          <Btn variant="secondary" size="sm" onClick={() => setAdding(true)}>
+          <Btn variant="accent" size="sm" onClick={() => setAdding(true)} className="shrink-0">
             <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'holidayAdd')}</span>
           </Btn>
         )}
       </div>
+
+      <Card className="p-5">
 
       {adding && (
         <div className="flex flex-col gap-2 mt-3 mb-1">
@@ -191,6 +196,7 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
           </ul>
         </div>
       ))}
-    </Card>
+      </Card>
+    </div>
   )
 }
