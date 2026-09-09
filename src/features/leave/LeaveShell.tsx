@@ -180,13 +180,7 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
   }
 
   return (
-    /* [&_button]:normal-case — the shared Btn hard-codes `lowercase` in its
-       base classes, which was overriding the capitalised labels no matter
-       what the strings said (Nic, 2026-09-09, third time of asking). This
-       descendant override beats it on specificity, so every button on this
-       page reads as written. The rest of the app keeps the lowercase button
-       style documented in CONTEXT.md until Nic says otherwise. */
-    <div className="min-h-screen bg-bg pb-24 lg:pb-28 [&_button]:normal-case">
+    <div className="min-h-screen bg-bg pb-24 lg:pb-28">
       <CompanyBar lang={lang} role={role} />
 
       {/* Wider than the usual max-w-2xl: at lg this is two columns, with the
