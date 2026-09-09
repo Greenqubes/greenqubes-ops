@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SignOutButton from '@/components/SignOutButton'
+import { roleLabel } from '@/components/Pill'
 import { en } from '@/lib/i18n/en'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { roleHome } from '@/lib/utils/roleHome'
@@ -56,13 +57,13 @@ export default async function Home() {
                 {profile.name}
               </p>
               <span
-                className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium lowercase"
+                className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${roleColor[profile.role]} 12%, transparent)`,
                   color: roleColor[profile.role],
                 }}
               >
-                {profile.role}
+                {roleLabel(profile.role)}
               </span>
             </div>
             <p className="text-sm" style={{ color: 'var(--muted)' }}>

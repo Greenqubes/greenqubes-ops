@@ -16,7 +16,7 @@ export default function SignOutButton() {
   return (
     <button
       onClick={handleSignOut}
-      className="text-sm font-medium lowercase tracking-wide px-4 py-2 rounded-lg transition-colors"
+      className="text-sm font-medium tracking-wide px-4 py-2 rounded-lg transition-colors"
       style={{
         border: '1px solid var(--line)',
         color: 'var(--ink2)',

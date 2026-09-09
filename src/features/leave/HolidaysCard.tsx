@@ -83,14 +83,17 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
   }
 
   return (
+    /* Heading stays INSIDE the card, like every other section. It was moved
+       outside on 2026-09-09 and moved straight back the same day — Nic's
+       call, it looked wrong detached from its list. */
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3 mb-1">
-        <div>
+        <div className="min-w-0">
           <h2 className="text-sm font-medium text-ink">{t(lang, 'holidaysTitle')}</h2>
           <p className="text-[11px] text-muted mt-0.5">{t(lang, 'holidaysSubtitle')}</p>
         </div>
         {!adding && (
-          <Btn variant="secondary" size="sm" onClick={() => setAdding(true)}>
+          <Btn variant="accent" size="sm" onClick={() => setAdding(true)} className="shrink-0">
             <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'holidayAdd')}</span>
           </Btn>
         )}

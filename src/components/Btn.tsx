@@ -31,7 +31,11 @@ export function Btn({ variant = 'primary', size = 'md', className, children, ...
       {...props}
       className={cn(
         'inline-flex items-center justify-center gap-1.5',
-        'rounded-[10px] font-medium lowercase tracking-wide',
+        // Buttons render exactly as their label is written (Nic, 2026-09-09).
+        // They were `lowercase` from the original design pass, which meant a
+        // capitalised string came out lowercase on screen no matter what the
+        // i18n file said — confusing to debug and not what he wanted.
+        'rounded-[10px] font-medium tracking-wide',
         'transition-colors duration-150',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         variantStyles[variant],
