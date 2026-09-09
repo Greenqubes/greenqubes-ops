@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { JobRow } from './JobRow'
 import { dayLabel } from './utils'
+import { DayNotices } from './DayNotices'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -10,9 +11,21 @@ interface WeekViewProps {
   jobsByDate: Record<string, ScheduleJob[]>
   today:      string
   lang:       LangCode
+  /** Optional: only the live schedule passes these; InstallerShell shares
+   *  this component and renders unchanged without them. */
+  leaveNamesByDate?: Record<string, string[]>
+  holidayByDate?:    Record<string, string>
+  eventsByDate?:     Record<string, string[]>
+  onLeaveLabel?:     string
+  holidayLabel?:     string
+  eventLabel?:       string
 }
 
-export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
+export function WeekView({
+  weekDays, jobsByDate, today, lang,
+  leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {},
+  onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', eventLabel = 'Company event',
+}: WeekViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
   // InstallerShell, both lg-gate BottomNav the same way.
@@ -45,6 +58,16 @@ export function WeekView({ weekDays, jobsByDate, today, lang }: WeekViewProps) {
                 </span>
               )}
             </div>
+
+            <DayNotices
+              leaveNames={[...new Set(leaveNamesByDate[d] ?? [])]}
+              holiday={holidayByDate[d]}
+              events={eventsByDate[d] ?? []}
+              onLeaveLabel={onLeaveLabel}
+              holidayLabel={holidayLabel}
+              eventLabel={eventLabel}
+              className="mb-2"
+            />
 
             {jobs.length === 0 ? (
               <p className="pl-3 text-xs text-muted italic">—</p>

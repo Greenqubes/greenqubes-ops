@@ -16,6 +16,7 @@ const styles: Record<PillVariant, string> = {
   designer:          'bg-brand-blue-soft  text-brand-blue',
   coordinator:       'bg-brand-amber-soft text-brand-amber',
   production:        'bg-brand-green-soft text-brand-green',
+  hr:                'bg-terracotta/10 text-terracotta',
 }
 
 const label: Record<PillVariant, string> = {
@@ -31,6 +32,14 @@ const label: Record<PillVariant, string> = {
   designer:          'Designer',
   coordinator:       'Coordinator',
   production:        'Production',
+  hr:                'HR / Finance',
+}
+
+// Role display name. 'hr' must never render as auto-capitalised "Hr" — the
+// four inline `charAt(0).toUpperCase()` calls in UsersTab all route here now.
+export function roleLabel(r: string): string {
+  if (r === 'hr') return 'HR / Finance'
+  return r.charAt(0).toUpperCase() + r.slice(1)
 }
 
 interface PillProps {

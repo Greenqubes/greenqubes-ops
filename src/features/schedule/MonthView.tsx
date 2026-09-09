@@ -11,12 +11,17 @@ interface MonthViewProps {
   selectedDate: string
   today:        string
   lang:         LangCode
+  /** Optional: only the live schedule passes these; InstallerShell shares
+   *  this component and renders unchanged without them. */
+  leaveNamesByDate?: Record<string, string[]>
+  holidayByDate?:    Record<string, string>
   onSelectDate: (date: string) => void
   onDrillDown:  (date: string) => void  // select date + switch to list view
 }
 
 export function MonthView({
-  monthCells, jobsByDate, selectedDate, today, lang, onSelectDate, onDrillDown,
+  monthCells, jobsByDate, selectedDate, today, lang,
+  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate, onDrillDown,
 }: MonthViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
@@ -48,7 +53,7 @@ export function MonthView({
               key={i}
               onClick={() => onDrillDown(d)}
               className={cn(
-                'aspect-square rounded-md border flex flex-col items-center justify-start pt-1 px-0.5',
+                'relative aspect-square rounded-md border flex flex-col items-center justify-start pt-1 px-0.5',
                 'text-xs transition-colors cursor-pointer',
                 isSelected
                   ? 'bg-ink border-ink text-paper'
@@ -58,6 +63,20 @@ export function MonthView({
               )}
             >
               <span className="leading-none">{dayNum}</span>
+              {/* Corner markers: blue top-left = someone away, green
+                  top-right = public holiday. Job dots stay under the number. */}
+              {(leaveNamesByDate[d] ?? []).length > 0 && (
+                <span className={cn(
+                  'absolute top-0.5 left-0.5 w-1 h-1 rounded-full',
+                  isSelected ? 'bg-white' : 'bg-brand-blue',
+                )} />
+              )}
+              {holidayByDate[d] && (
+                <span className={cn(
+                  'absolute top-0.5 right-0.5 w-1 h-1 rounded-full',
+                  isSelected ? 'bg-white' : 'bg-brand-green',
+                )} />
+              )}
               {dots.length > 0 && (
                 <div className="flex gap-0.5 mt-1">
                   {dots.map((job, idx) => (

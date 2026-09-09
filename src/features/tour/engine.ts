@@ -25,7 +25,7 @@ export const TOUR_STATE_KEY = 'tour-state'
 export const TOUR_RESTART_KEY = 'tour-restart'
 export const tourSeenKey = (userId: string) => `tour-seen:${userId}`
 
-export const TOUR_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production']
+export const TOUR_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'hr']
 
 export function serializeTourState(s: TourState): string {
   return JSON.stringify(s)

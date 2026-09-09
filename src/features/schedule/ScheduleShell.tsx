@@ -19,6 +19,8 @@ import {
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
+import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -29,9 +31,14 @@ interface ScheduleShellProps {
   lang:     LangCode
   role?:    Role
   pageMode?: 'schedule' | 'pending' | 'completed'
+  /** Optional so the pending/completed pages compile and render unchanged —
+   *  leave and holidays only belong on the live schedule. */
+  leaves?:   Array<LeaveRecord & { user_name: string }>
+  holidays?: Holiday[]
+  events?:   CompanyEvent[]
 }
 
-export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
 
@@ -40,7 +47,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
   // (selected date, view mode, filters) — no visible disruption to the user.
   useLiveChannel({
     name:    'schedule-jobs-live',
-    tables:  [{ table: 'jobs' }],
+    tables:  [{ table: 'jobs' }, { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' }],
     onEvent: () => router.refresh(),
     poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
   })
@@ -154,6 +161,40 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     [filtered]
   )
 
+  // A leave range expands to every date it covers, same as multi-day jobs.
+  // The 62-day guard mirrors leave-overlap's, against bad data.
+  const leaveNamesByDate = useMemo(() => {
+    const acc: Record<string, string[]> = {}
+    for (const l of leaves) {
+      let cur = l.date_start
+      for (let i = 0; i < 62 && cur <= l.date_end; i++) {
+        ;(acc[cur] ??= []).push(l.user_name)
+        cur = shiftDate(cur, 1)
+      }
+    }
+    return acc
+  }, [leaves])
+
+  const holidayByDate = useMemo(() => {
+    const acc: Record<string, string> = {}
+    for (const h of holidays) acc[h.holiday_date] = h.name
+    return acc
+  }, [holidays])
+
+  // An event shows on EVERY day it covers — a 5–9 Aug retreat appears on all
+  // five days, not just the first.
+  const eventsByDate = useMemo(() => {
+    const acc: Record<string, string[]> = {}
+    for (const e of events) {
+      let cur = e.date_start
+      for (let i = 0; i < 62 && cur <= e.date_end; i++) {
+        ;(acc[cur] ??= []).push(e.name)
+        cur = shiftDate(cur, 1)
+      }
+    }
+    return acc
+  }, [events])
+
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])
   const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate])
 
@@ -192,6 +233,9 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
     noJobs:        tr(lang, 'noJobs'),
     strictOnTime:  tr(lang, 'strictOnTime'),
     flexibleWindow: tr(lang, 'flexibleWindow'),
+    onLeave:       tr(lang, 'onLeaveLabel'),
+    publicHoliday: tr(lang, 'publicHolidayLabel'),
+    companyEvent:  tr(lang, 'companyEventLabel'),
   }
 
   return (
@@ -329,6 +373,9 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           today={today}
           lang={lang}
           strings={listStrings}
+          leaveNamesByDate={leaveNamesByDate}
+          holidayByDate={holidayByDate}
+          eventsByDate={eventsByDate}
           onSelectDate={setSelectedDate}
           selectable={canBulkDelete}
           selectedIds={selectedIds}
@@ -342,6 +389,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           jobsByDate={jobsByDate}
           today={today}
           lang={lang}
+          leaveNamesByDate={leaveNamesByDate}
+          holidayByDate={holidayByDate}
+          eventsByDate={eventsByDate}
+          onLeaveLabel={listStrings.onLeave}
+          holidayLabel={listStrings.publicHoliday}
+          eventLabel={listStrings.companyEvent}
         />
       )}
       {viewMode === 'month' && (
@@ -351,6 +404,8 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule' }: Sched
           selectedDate={selectedDate}
           today={today}
           lang={lang}
+          leaveNamesByDate={leaveNamesByDate}
+          holidayByDate={holidayByDate}
           onSelectDate={setSelectedDate}
           onDrillDown={drillDown}
         />

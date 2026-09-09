@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Pill }    from '@/components/Pill'
+import { Pill, roleLabel } from '@/components/Pill'
 import { Btn }     from '@/components/Btn'
 import { Card }    from '@/components/Card'
 import { cn }      from '@/lib/utils/cn'
@@ -166,7 +166,7 @@ function ProvisionForm({ onDone, allUsers }: { onDone: () => void; allUsers: Adm
               value={role}
               onChange={e => handleRoleChange(e.target.value as Role)}
             >
-              {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              {ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
             </select>
             <select
               className="w-24 border border-line rounded-lg px-3 py-2 text-sm text-ink bg-bg focus:outline-none focus:ring-2 focus:ring-terracotta/40"
@@ -518,7 +518,7 @@ function UserRow({ user, allUsers, onSaved }: { user: AdminUser; allUsers: Admin
             )}
             {user.name === 'GreenqubesAI' ? (
               <div className="w-full border border-line rounded-lg px-3 py-2 text-sm text-muted bg-bg opacity-60 cursor-not-allowed">
-                {role.charAt(0).toUpperCase() + role.slice(1)}
+                {roleLabel(role)}
               </div>
             ) : (
               <select
@@ -526,7 +526,7 @@ function UserRow({ user, allUsers, onSaved }: { user: AdminUser; allUsers: Admin
                 value={role}
                 onChange={e => handleRoleChange(e.target.value as Role)}
               >
-                {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                {ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
               </select>
             )}
 
@@ -738,7 +738,7 @@ export function UsersTab() {
                 : 'border-line text-muted hover:text-ink2',
             )}
           >
-            {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
+            {r === 'all' ? 'All' : roleLabel(r)}
           </button>
         ))}
         <select

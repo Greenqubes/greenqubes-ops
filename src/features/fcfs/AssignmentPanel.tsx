@@ -7,7 +7,8 @@ import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
 import { buildUserMeta } from '@/lib/utils/user-meta'
-import { EditClashModal, type CheckClash } from '@/features/job-detail/EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash } from '@/features/job-detail/EditClashModal'
+import { onLeaveIds, type LeaveConflict, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
@@ -37,16 +38,20 @@ const initials = (name: string) =>
   name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
 interface AssignmentPanelProps {
-  job:        FCFSJob | null
-  clashes:    InstallerClash[]
-  installers: InstallerUser[]
-  role:       Role
-  lang:       LangCode
-  onClose:    () => void
-  onSaved:    () => void
+  job:          FCFSJob | null
+  clashes:      InstallerClash[]
+  /** Already-assigned people who are away — computed once by the shell. */
+  leaveClashes: LeaveConflict[]
+  /** Raw rows, so the Add picker can flag people not yet on the job. */
+  leaves:       LeaveRecord[]
+  installers:   InstallerUser[]
+  role:         Role
+  lang:         LangCode
+  onClose:      () => void
+  onSaved:      () => void
 }
 
-export function AssignmentPanel({ job, clashes, installers, role, lang, onClose, onSaved }: AssignmentPanelProps) {
+export function AssignmentPanel({ job, clashes, leaveClashes, leaves, installers, role, lang, onClose, onSaved }: AssignmentPanelProps) {
   const canEdit      = EDIT_ROLES.includes(role)
   const isCoordinator = role === 'coordinator'
   // Coordinator can add/suggest + drop their own or others' suggestions, but
@@ -61,6 +66,7 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
   const [saving,         setSaving]         = useState(false)
   const [error,          setError]          = useState(false)
   const [clashPrompt,    setClashPrompt]    = useState<CheckClash[] | null>(null)
+  const [leavePrompt,    setLeavePrompt]    = useState<LeaveCheckClash[]>([])
 
   // Reset local edits whenever a different job is opened.
   useEffect(() => {
@@ -97,6 +103,16 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
   const hasClashToday = (installerId: string) =>
     clashesForInstaller(clashes, installerId)
       .some(c => c.jobA.id === job.id || c.jobB.id === job.id)
+
+  // Already on this job and away — the shell computed it against this job.
+  const onLeaveHere = (installerId: string) =>
+    leaveClashes.some(l => l.personId === installerId && l.jobId === job.id)
+
+  // Anyone in the Add picker who is away on this job's date. Computed here
+  // rather than by the shell because these people are not on the job yet.
+  const addableOnLeave = onLeaveIds(
+    addable.map(u => u.id), job.date, null, job.time_start, job.time_end, leaves,
+  )
 
   // Subrole · Driver · licenses line under each name (no link dot here —
   // Nic scoped dots to the admin page + job-form grids, 2026-09-04).
@@ -173,9 +189,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
         body:    JSON.stringify({ installer_ids: finalIds }),
       })
       if (!res.ok) throw new Error()
-      const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
+      const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
       if (data.hasClash) {
         setSaving(false)
+        setLeavePrompt(data.leaveClashes ?? [])
+        // clashPrompt is the modal's open/closed signal, so it is set last and
+        // may legitimately be an empty array when only leave is the problem.
         setClashPrompt(data.clashes)
         return
       }
@@ -265,7 +284,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                   <span className="w-7 h-7 rounded-full bg-muted text-white text-[9px] font-bold flex items-center justify-center shrink-0">
                     {initials(u.name)}
                   </span>
-                  <span className="text-xs font-medium text-ink">{u.name}</span>
+                  <span className="text-xs font-medium text-ink flex-1 min-w-0 truncate">{u.name}</span>
+                  {addableOnLeave.has(u.id) && (
+                    <span className="text-[10px] font-semibold text-bad bg-bad-soft border border-bad/20 rounded-full px-1.5 py-px shrink-0">
+                      {t(lang, 'fcfsOnLeaveChip')}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -287,6 +311,11 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                     {hasClashToday(a.user_id) && (
                       <p className="text-[10px] text-bad flex items-center gap-1">
                         <AlertTriangle size={9} /> {t(lang, 'fcfsHasClash')}
+                      </p>
+                    )}
+                    {onLeaveHere(a.user_id) && (
+                      <p className="text-[10px] text-bad flex items-center gap-1">
+                        <AlertTriangle size={9} /> {t(lang, 'fcfsOnLeaveChip')}
                       </p>
                     )}
                   </div>
@@ -326,6 +355,11 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                       <p className="text-xs font-semibold text-ink truncate">{a.name}</p>
                       {metaTextOf(a.user_id) && (
                         <p className="text-[10px] text-muted truncate">{metaTextOf(a.user_id)}</p>
+                      )}
+                      {onLeaveHere(a.user_id) && (
+                        <p className="text-[10px] text-bad flex items-center gap-1">
+                          <AlertTriangle size={9} /> {t(lang, 'fcfsOnLeaveChip')}
+                        </p>
                       )}
                       {hasClashToday(a.user_id) && (
                         <p className="text-[10px] text-bad flex items-center gap-1">
@@ -395,6 +429,11 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
                       {metaTextOf(id) && (
                         <p className="text-[10px] text-muted truncate">{metaTextOf(id)}</p>
                       )}
+                      {onLeaveHere(id) && (
+                        <p className="text-[10px] text-bad flex items-center gap-1">
+                          <AlertTriangle size={9} /> {t(lang, 'fcfsOnLeaveChip')}
+                        </p>
+                      )}
                       {hasClashToday(id) && (
                         <p className="text-[10px] text-bad flex items-center gap-1">
                           <AlertTriangle size={9} /> {t(lang, 'fcfsHasClash')}
@@ -449,11 +488,12 @@ export function AssignmentPanel({ job, clashes, installers, role, lang, onClose,
       <EditClashModal
         isOpen={clashPrompt !== null}
         clashes={clashPrompt ?? []}
+        leaveClashes={leavePrompt}
         role={role}
         lang={lang}
         onAlertScheduler={alertSchedulerAndSave}
-        onProceed={() => { setClashPrompt(null); doSave() }}
-        onClose={() => setClashPrompt(null)}
+        onProceed={() => { setClashPrompt(null); setLeavePrompt([]); doSave() }}
+        onClose={() => { setClashPrompt(null); setLeavePrompt([]) }}
       />
     </div>
   )

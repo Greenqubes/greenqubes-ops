@@ -4,7 +4,10 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production'
+// 'hr' is the HR *and* Finance role — one person does both jobs (Nic,
+// 2026-09-04). If they are ever split, add 'finance' here and update
+// src/lib/auth/capabilities.ts; nothing else should test for 'hr' directly.
+export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production' | 'hr'
 export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification' | 'design_brief'
 export type MessageKind = 'text' | 'voice'
@@ -547,6 +550,64 @@ export interface Database {
           github_issue_url?: string | null
         }
         Update: Partial<Database['public']['Tables']['bug_reports']['Insert']>
+        Relationships: []
+      }
+      user_leaves: {
+        Row: {
+          id:            string
+          user_id:       string
+          date_start:    string
+          date_end:      string
+          start_portion: 'full' | 'am' | 'pm'
+          end_portion:   'full' | 'am' | 'pm'
+          created_by:    string | null
+          created_at:    string
+          updated_at:    string
+        }
+        Insert: Omit<Database['public']['Tables']['user_leaves']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['user_leaves']['Insert']>
+        Relationships: []
+      }
+      user_leave_details: {
+        Row: {
+          leave_id:   string
+          leave_type: 'annual' | 'medical' | 'emergency' | 'other'
+          note:       string | null
+        }
+        Insert: Database['public']['Tables']['user_leave_details']['Row']
+        Update: Partial<Database['public']['Tables']['user_leave_details']['Row']>
+        Relationships: []
+      }
+      public_holidays: {
+        Row: {
+          id:           string
+          holiday_date: string
+          name:         string
+        }
+        Insert: Omit<Database['public']['Tables']['public_holidays']['Row'], 'id'> & { id?: string }
+        Update: Partial<Database['public']['Tables']['public_holidays']['Insert']>
+        Relationships: []
+      }
+      company_events: {
+        Row: {
+          id:         string
+          name:       string
+          date_start: string
+          date_end:   string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['company_events']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['company_events']['Insert']>
         Relationships: []
       }
     }

@@ -14,6 +14,9 @@ import { SearchableSelect, SelectOption } from '@/components/SearchableSelect'
 import { MultiUserSelect } from '@/components/MultiUserSelect'
 import { SuggestField } from '@/components/SuggestField'
 import { CoreSection } from './CoreSection'
+import { FinancialSection } from './FinancialSection'
+import { isReadOnlyOfficeRole, showsFinancialsCard } from '@/lib/auth/capabilities'
+import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import { AttachmentBuckets } from './AttachmentBuckets'
 import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
@@ -27,7 +30,7 @@ import { SubInstallerBucket } from './SubInstallerBucket'
 import { TaskListSection } from './TaskListSection'
 import { ExternalPOCBucket } from './ExternalPOCBucket'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
-import { EditClashModal, type CheckClash } from './EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
@@ -101,6 +104,9 @@ interface Props {
   installers:             InstallerUser[]
   /** Non-installer users for the Support crew bucket (Nic 2026-09-04). */
   supportUsers:           InstallerUser[]
+  /** Every leave row (ids + dates). Filtered client-side against the form's
+   *  live date, which can change without a page load. */
+  leaves?:                LeaveRecord[]
   initialMessages:        JobMessage[]
   salesPocOptions:        SelectOption[]
   initialCoordinatorIds?: string[]
@@ -115,7 +121,7 @@ interface Props {
 }
 
 export function JobDetailShell({
-  job, role, userId, userName, lang, installers, supportUsers, initialMessages, salesPocOptions,
+  job, role, userId, userName, lang, installers, supportUsers, leaves = [], initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
   backHref = '/schedule', initialTab,
@@ -171,9 +177,19 @@ export function JobDetailShell({
   const completed = status === 'completed'
 
   const readOnly  = completed
+  // HR / Finance (and any future read-only office role) sees the job form the
+  // way everyone sees a completed job: every card locked, no action bar, no
+  // chat. `readOnly` itself stays meaning "completed" — other logic below
+  // reads it that way (e.g. canAssign && !readOnly) — so the lock rides on a
+  // separate flag that only the display props consume.
+  const isReadOnlyRole = isReadOnlyOfficeRole(role)
+  const formReadOnly   = readOnly || isReadOnlyRole
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
+  // Leave rides beside the booking clashes — the modal opens when EITHER is
+  // present, and editClashes stays the open/closed signal.
+  const [editLeaveClashes,     setEditLeaveClashes]    = useState<LeaveCheckClash[]>([])
   const pendingValuesRef = useRef<FormValues | null>(null)
   // Due-date-conflict decision made BEFORE the installer clash check (below)
   // ran — carried alongside pendingValuesRef so resumeSaveAfterClash can
@@ -301,6 +317,21 @@ export function JobDetailShell({
   } = useForm<FormValues>({
     defaultValues: formValuesFromJob(job),
   })
+
+  // Who is away for the dates currently IN THE FORM — recomputed as the user
+  // edits them, so moving a job's date re-flags the crew before they save.
+  const watchedDate    = watch('date')
+  const watchedDateEnd = watch('date_end')
+  const watchedStart   = watch('time_start')
+  const watchedEnd     = watch('time_end')
+  const onLeaveSet = useMemo(
+    () => !watchedDate ? new Set<string>() : onLeaveIds(
+      leaves.map(l => l.user_id), watchedDate, watchedDateEnd || null,
+      watchedStart || null, watchedEnd || null, leaves,
+    ),
+    [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
+  )
+  const isOnLeave = (id: string) => onLeaveSet.has(id)
 
   // .select('id') is load-bearing, not decoration: an UPDATE that RLS filters
   // out is NOT an error — PostgREST answers 204, no rows, no error, so a bare
@@ -553,17 +584,20 @@ export function JobDetailShell({
           body:    JSON.stringify({
             installer_ids: selectedInstallerIds,
             date:          values.date,
+            // Sent so the leave check spans the whole job, not just day one.
+            date_end:      values.date_end,
             time_start:    values.time_start,
             time_end:      values.time_end,
             punctuality:   values.punctuality,
           }),
         })
         if (res.ok) {
-          const data: { hasClash: boolean; clashes: CheckClash[] } = await res.json()
+          const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
           if (data.hasClash) {
             pendingValuesRef.current = values
             pendingKeepManualDueRef.current = keepManualDue
             setEditClashes(data.clashes)
+            setEditLeaveClashes(data.leaveClashes ?? [])
             setSaving(false)
             return
           }
@@ -801,7 +835,7 @@ export function JobDetailShell({
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
-      if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0) {
+      if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0 && data.leaveClashes.length === 0) {
         const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -1169,7 +1203,7 @@ export function JobDetailShell({
   }
 
   return (
-    <div className="min-h-screen bg-bg pb-28">
+    <div className={cn('min-h-screen bg-bg', isReadOnlyRole ? 'pb-8' : 'pb-28')}>
 
       <CompanyBar lang={lang} />
 
@@ -1196,7 +1230,7 @@ export function JobDetailShell({
         </button>
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="font-display text-xl font-semibold text-ink">
-            {isInstaller ? 'View job' : 'Edit job'}
+            {isInstaller || isReadOnlyRole ? 'View job' : 'Edit job'}
           </h1>
           <Pill variant={status} />
         </div>
@@ -1219,18 +1253,27 @@ export function JobDetailShell({
                 control={control}
                 watch={watch}
                 setValue={setValue}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 lang={lang}
                 role={role}
                 installerView={isInstaller}
               />
             </CollapseCard>
+            {/* Prices — the Finance half of the hr/finance role. Dead since
+                session 17.6 for everyone else and staying that way: sales
+                and scheduler lost this card on purpose and are not getting
+                it back. Read-only always — sales still enters the figures. */}
+            {showsFinancialsCard(role) && (
+              <CollapseCard title={t(lang, 'financials')} storageKey="gq-jobcard-financials">
+                <FinancialSection register={register} errors={errors} readOnly lang={lang} />
+              </CollapseCard>
+            )}
             {!isInstaller && (
               <DesignBriefSection
                 ref={briefCardRef}
                 jobId={job.id}
                 lang={lang}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 canManage={canEditCore}
                 userId={userId}
                 briefText={briefText}
@@ -1253,7 +1296,7 @@ export function JobDetailShell({
                 register={register}
                 watch={watch}
                 setValue={setValue}
-                readOnly={readOnly}
+                readOnly={formReadOnly}
                 role={role}
                 lang={lang}
                 jobId={job.id}
@@ -1365,6 +1408,7 @@ export function JobDetailShell({
                 onToggle={installerOnToggle}
                 disabledOf={installerDisabledOf}
                 noteOf={installerNoteOf}
+                onLeaveOf={isOnLeave}
               />
             )}
           </div>
@@ -1399,6 +1443,7 @@ export function JobDetailShell({
               onToggle={subOnToggle}
               disabledOf={subDisabledOf}
               noteOf={subNoteOf}
+              onLeaveOf={isOnLeave}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
               canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}
@@ -1408,7 +1453,7 @@ export function JobDetailShell({
           {/* External installer bucket (Phase 4) — every office role sees it;
               managers assign, sales suggest, designer/production view-only */}
           {!isInstaller && (
-            <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={readOnly} />
+            <ExternalPOCBucket jobId={job.id} lang={lang} role={role} readOnly={formReadOnly} />
           )}
         </CollapseCard>
 
@@ -1440,7 +1485,7 @@ export function JobDetailShell({
                 jobId={job.id}
                 userId={userId}
                 lang={lang}
-                readOnly={readOnly || isInstaller || isProduction}
+                readOnly={formReadOnly || isInstaller || isProduction}
                 refreshKey={bucketsRefreshKey}
                 onBucketsChange={setBuckets}
               />
@@ -1449,12 +1494,13 @@ export function JobDetailShell({
               jobId={job.id}
               role={role}
               lang={lang}
-              readOnly={readOnly}
+              readOnly={formReadOnly}
               refreshKey={tasksRefreshKey}
             />
           </div>
         }
-        chat={
+        hiddenTabs={isReadOnlyRole ? ['chat'] : []}
+        chat={isReadOnlyRole ? null : (
           <ChatSection
             jobId={job.id}
             userId={userId}
@@ -1465,10 +1511,13 @@ export function JobDetailShell({
             chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
             preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
           />
-        }
+        )}
       />
 
-      {/* ── Action bar (sticky bottom) ───────────────────────────── */}
+      {/* ── Action bar (sticky bottom) ─────────────────────────────
+          Read-only office roles (hr) get no bar at all: nothing in it is
+          something they may do, and an empty bar would just be a grey strip. */}
+      {!isReadOnlyRole && (
       <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
           {isInstaller ? (
@@ -1681,16 +1730,18 @@ export function JobDetailShell({
           )}
         </div>
       </div>
+      )}
 
       {/* ── Modals ──────────────────────────────────────────────── */}
       <EditClashModal
         isOpen={editClashes !== null}
         clashes={editClashes ?? []}
+        leaveClashes={editLeaveClashes}
         role={role}
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
       />
       {clashData && (
         <ClashResolutionModal
@@ -1700,6 +1751,7 @@ export function JobDetailShell({
           clashes={clashData.clashes}
           softClashes={clashData.softClashes}
           travelWarnings={clashData.travelWarnings}
+          leaveClashes={clashData.leaveClashes}
           substitutes={clashData.substitutes}
           weekDays={clashData.weekDays}
           lang={lang}

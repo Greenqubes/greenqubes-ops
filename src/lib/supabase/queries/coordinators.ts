@@ -75,7 +75,9 @@ export async function getAllProvisionedUsers(): Promise<Array<{ id: string; labe
   const { data, error } = await supabase
     .from('users')
     .select('id, name, role')
-    .neq('role', 'installer')
+    // hr is excluded alongside installer: she is read-only and must never be
+    // offered as a Person-in-Charge or coordinator candidate (spec §1).
+    .not('role', 'in', '(installer,hr)')
     .is('deleted_at', null)
     .order('name', { ascending: true })
   if (error) throw error

@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
+import type { LeaveConflict } from '@/lib/utils/leave-overlap'
 import type { FCFSJob, FCFSAssignee } from '@/lib/supabase/queries/fcfs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -18,7 +19,7 @@ const BAR_H     = 22
 const BAR_GAP   = 3
 const ROW_PAD   = 4
 
-type BarVariant = 'flex' | 'strict' | 'strict-clash' | 'flex-warn' | 'sug'
+type BarVariant = 'flex' | 'strict' | 'strict-clash' | 'flex-warn' | 'sug' | 'leave'
 
 const BAR_CLASS: Record<BarVariant, string> = {
   flex:           'bg-punct-flex border border-punct-flex',
@@ -26,12 +27,20 @@ const BAR_CLASS: Record<BarVariant, string> = {
   'strict-clash': 'bg-bad border border-bad ring-1 ring-bad',
   'flex-warn':    'bg-punct-flex border-2 border-dashed border-brand-amber',
   sug:            'bg-brand-amber border border-brand-amber opacity-90',
+  // Leave IS red (Nic, spec decision 1) — same weight as a hard clash.
+  leave:          'bg-bad border border-bad ring-1 ring-bad',
 }
 
 // Colour rules from the approved mockup: a hard clash paints both bars bright
 // red; a soft clash paints only the flexible bar (blue + amber dashed) — the
 // strict side keeps its normal red. Suggestions are always amber.
-function barVariant(job: FCFSJob, assignee: FCFSAssignee, clashes: InstallerClash[]): BarVariant {
+function barVariant(
+  job: FCFSJob, assignee: FCFSAssignee,
+  clashes: InstallerClash[], leaveClashes: LeaveConflict[],
+): BarVariant {
+  // Ahead of the suggestion check on purpose: someone away is away whether
+  // they are suggested or formally assigned.
+  if (leaveClashes.some(l => l.personId === assignee.user_id && l.jobId === job.id)) return 'leave'
   if (assignee.is_suggestion) return 'sug'
   const mine = clashesForInstaller(clashes, assignee.user_id)
     .filter(c => !c.involvesSuggestion && (c.jobA.id === job.id || c.jobB.id === job.id))
@@ -79,21 +88,24 @@ function hourLabel(h: number): string {
 }
 
 interface FCFSTimelineProps {
-  jobs:       FCFSJob[]
-  clashes:    InstallerClash[]
-  startH:     number
-  endH:       number
-  lang:       LangCode
-  onJobClick: (job: FCFSJob) => void
+  jobs:         FCFSJob[]
+  clashes:      InstallerClash[]
+  leaveClashes: LeaveConflict[]
+  startH:       number
+  endH:         number
+  lang:         LangCode
+  onJobClick:   (job: FCFSJob) => void
 }
 
-export function FCFSTimeline({ jobs, clashes, startH, endH, lang, onJobClick }: FCFSTimelineProps) {
+export function FCFSTimeline({ jobs, clashes, leaveClashes, startH, endH, lang, onJobClick }: FCFSTimelineProps) {
   const hours    = Array.from({ length: endH - startH }, (_, i) => startH + i)
   const minWidth = JOB_COL_W + hours.length * HOUR_W
 
   const isHardClashJob = (job: FCFSJob) =>
     clashes.some(c => !c.involvesSuggestion && c.severity === 'hard' &&
-      (c.jobA.id === job.id || c.jobB.id === job.id))
+      (c.jobA.id === job.id || c.jobB.id === job.id)) ||
+    // Someone on the crew being away is a hard problem for the job too.
+    leaveClashes.some(l => l.jobId === job.id)
 
   return (
     <div className="overflow-x-auto">
@@ -181,7 +193,7 @@ export function FCFSTimeline({ jobs, clashes, startH, endH, lang, onJobClick }: 
                 {bars.map((a, idx) => {
                   const span = barSpan(a, job, startH, endH)
                   if (!span) return null
-                  const variant = barVariant(job, a, clashes)
+                  const variant = barVariant(job, a, clashes, leaveClashes)
                   const timeLabel = span.allDay
                     ? t(lang, 'fcfsAllDay')
                     : `${fmtTime(job.time_start)}${job.time_end ? `–${fmtTime(job.time_end)}` : ''}`

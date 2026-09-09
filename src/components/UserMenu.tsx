@@ -11,7 +11,7 @@ import { TOUR_RESTART_KEY } from '@/features/tour/engine'
 import { CHANGELOG_OPEN_EVENT } from '@/features/changelog/ChangelogModal'
 import type { Role } from '@/lib/supabase/types'
 
-const VALID_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production']
+const VALID_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'installer', 'designer', 'production', 'hr']
 
 function readRoleOverrideCookie(): Role | null {
   if (typeof document === 'undefined') return null
@@ -185,7 +185,9 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
       <div className="flex items-center gap-1.5">
         {isAdmin && roleOverride && (
           <span className="text-[10px] font-medium text-amber-700 bg-brand-amber/15 border border-brand-amber/30 px-1.5 py-0.5 rounded-full leading-none capitalize">
-            {roleOverride}
+            {/* 'HR' is already caps, so the CSS capitalize is a no-op on it —
+                without this it would render as "Hr". */}
+            {roleOverride === 'hr' ? 'HR' : roleOverride}
           </span>
         )}
         <button
@@ -336,7 +338,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
                           : 'bg-bg border-line text-ink2 hover:border-ink2',
                       )}
                     >
-                      {role}
+                      {role === 'hr' ? 'HR' : role}
                     </button>
                   ))}
                 </div>

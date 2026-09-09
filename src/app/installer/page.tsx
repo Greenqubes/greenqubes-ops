@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getInstallerJobs } from '@/lib/supabase/queries/installer'
+import { getLeaveForSchedule, getHolidays, getCompanyEvents } from '@/lib/supabase/queries/leave'
 import { InstallerShell } from '@/features/installer/InstallerShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -23,11 +24,19 @@ export default async function InstallerPage() {
   const effectiveRole = await getEffectiveRole(profile.role)
   if (effectiveRole !== 'installer') redirect('/schedule')
 
-  const jobs = await getInstallerJobs()
+  // Leave, holidays and company events are company-wide information shown to
+  // every role (Nic, 2026-09-08 — "my office culture shows everyone who's on
+  // leave and all public holidays"). Names only; the reason is never fetched.
+  const [jobs, leaves, holidays, events] = await Promise.all([
+    getInstallerJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(),
+  ])
 
   return (
     <InstallerShell
       jobs={jobs}
+      leaves={leaves}
+      holidays={holidays}
+      events={events}
       lang={(profile.lang as LangCode) ?? 'en'}
       userName={profile.name}
     />

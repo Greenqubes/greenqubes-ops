@@ -2,6 +2,7 @@ import type { Role } from '@/lib/supabase/types'
 import type { TourStep } from '../engine'
 import { coordinatorSteps } from './coordinator'
 import { designerSteps } from './designer'
+import { hrSteps } from './hr'
 import { installerSteps } from './installer'
 import { productionSteps } from './production'
 import { salesSteps } from './sales'
@@ -16,6 +17,7 @@ export const TOUR_SCRIPTS: Partial<Record<Role, TourStep[]>> = {
   designer: designerSteps,
   installer: installerSteps,
   production: productionSteps,
+  hr: hrSteps,
 }
 
 export function scriptForRole(role: Role): TourStep[] | null {

@@ -16,10 +16,16 @@ interface DateStripProps {
   selectedDate: string
   today:        string
   lang:         LangCode
+  /** Optional: only the live schedule passes these; installer views don't. */
+  leaveNamesByDate?: Record<string, string[]>
+  holidayByDate?:    Record<string, string>
   onSelectDate: (date: string) => void
 }
 
-export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate }: DateStripProps) {
+export function DateStrip({
+  jobsByDate, selectedDate, today, lang,
+  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate,
+}: DateStripProps) {
   const [mode,   setMode]   = useState<StripMode>('week')
   const [anchor, setAnchor] = useState(selectedDate)
   const stripRef    = useRef<HTMLDivElement>(null)
@@ -144,6 +150,22 @@ export function DateStrip({ jobsByDate, selectedDate, today, lang, onSelectDate 
                 ) : (
                   <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-punct-strict" />
                 )
+              )}
+
+              {/* Bottom-LEFT markers, mirroring the job dots top-right so the
+                  two never collide: blue = someone away, green = holiday. */}
+              {(leaveNamesByDate[d] ?? []).length > 0 && (
+                <span className={cn(
+                  'absolute bottom-1.5 w-1.5 h-1.5 rounded-full',
+                  holidayByDate[d] ? 'left-[9px]' : 'left-1.5',
+                  active ? 'bg-white' : 'bg-brand-blue',
+                )} />
+              )}
+              {holidayByDate[d] && (
+                <span className={cn(
+                  'absolute bottom-1.5 left-1.5 w-1.5 h-1.5 rounded-full',
+                  active ? 'bg-white' : 'bg-brand-green',
+                )} />
               )}
             </button>
           )

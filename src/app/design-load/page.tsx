@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import { getDesignLoad } from '@/lib/supabase/queries/design-load'
 import { DesignLoadShell } from '@/features/design-load/DesignLoadShell'
 import type { LangCode } from '@/lib/i18n'
@@ -26,6 +27,7 @@ export default async function DesignLoadPage() {
   // load. (Same split as the FCFS board, plus the production exclusion.)
   if (effectiveRole === 'installer') redirect('/installer')
   if (effectiveRole === 'production') redirect('/schedule')
+  if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
 
   const data = await getDesignLoad()
 

@@ -285,4 +285,13 @@ export const bn: Partial<Translations> = {
   tourProductionFieldsBody: 'যেকোনো কাজে আপনি বদলাতে পারেন: Production ready, DO issued, প্রোডাকশন নির্দেশনা ও প্রোডাকশন ছবি। বাকি সব শুধু দেখার।',
   tourProductionFilesTitle: 'ফাইল',
   tourProductionFilesBody: 'প্রতিটি কাজের ফাইল ও নকশা খুলে দেখতে পারবেন — শুধু অ্যাটাচমেন্ট গোছানো বদলাতে পারবেন না।',
+  // Tour keys need bn as well — the scripts gate requires en+zh+bn for every
+  // tour key, and the tour is Nic's scoped exception to the bn freeze.
+  // Unvetted like the rest of the tour's bn copy, pending native corrections.
+  tourHrIntroTitle: 'আপনার ভূমিকা: এইচআর / ফিন্যান্স',
+  tourHrIntroBody: 'ছুটির হিসাব আপনি রাখেন এবং প্রতিটি কাজের দাম দেখতে পারেন। অ্যাপের বাকি অংশ আপনার জন্য শুধু দেখার — ইচ্ছা করেই।',
+  tourHrLeaveTitle: 'ছুটির পাতা',
+  tourHrLeaveBody: 'কে কখন ছুটিতে তা লিখে রাখুন — আধা দিনসহ — এবং সরকারি ছুটির তালিকা হালনাগাদ রাখুন। কে ছুটিতে তা সবাই দেখে; কারণটা শুধু আপনি ও অ্যাডমিন দেখেন।',
+  tourHrPricesTitle: 'দাম',
+  tourHrPricesBody: 'যেকোনো কাজ খুলে তার কোটেশন ও খরচ দেখতে পারবেন। শুধু দেখার — দাম সেলসই বসায়।',
 }

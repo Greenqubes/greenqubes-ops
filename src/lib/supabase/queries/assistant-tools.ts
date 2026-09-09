@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { timesOverlap } from '@/lib/utils/clash-detection'
+import { leaveBlocksJob, type LeaveRecord } from '@/lib/utils/leave-overlap'
 
 // Read-only lookups behind the assistant's tools (Phase 2). Every function
 // runs on the user-scoped client so RLS filters what the asker may see —
@@ -189,6 +190,15 @@ export type ClashCheck =
         time_start: string | null; time_end: string | null
         punctuality: string; suggestion_only: boolean
       }>
+      /**
+       * Recorded leave blocking that date, or null. Dates and half-day
+       * portions ONLY — the leave TYPE is never included, and cannot be:
+       * user_leave_details is RLS-locked to hr/admin and is not queried here.
+       */
+      on_leave: {
+        date_start: string; date_end: string
+        start_portion: string; end_portion: string
+      } | null
     }
 
 export async function checkInstallerClashes(
@@ -225,5 +235,28 @@ export async function checkInstallerClashes(
       time_start: j.time_start, time_end: j.time_end,
       punctuality: j.punctuality, suggestion_only: a.is_suggestion,
     }))
-  return { installer: person.name, overlaps }
+
+  // Leave for that date. Runs on the user-scoped client like everything else
+  // here — every role may read WHO is away; the reason lives in a different,
+  // RLS-locked table this never touches.
+  const { data: leaveRows } = await supabase.from('user_leaves')
+    .select('id, user_id, date_start, date_end, start_portion, end_portion')
+    .eq('user_id', person.id)
+    .lte('date_start', date)
+    .gte('date_end', date)
+  const leaves = (leaveRows ?? []) as unknown as LeaveRecord[]
+  const blocking = leaves.find(l => leaveBlocksJob(l, date, null, timeStart, timeEnd))
+
+  return {
+    installer: person.name,
+    overlaps,
+    on_leave: blocking
+      ? {
+          date_start:    blocking.date_start,
+          date_end:      blocking.date_end,
+          start_portion: blocking.start_portion,
+          end_portion:   blocking.end_portion,
+        }
+      : null,
+  }
 }

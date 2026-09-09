@@ -26,6 +26,17 @@ export function DriverChip({ label }: { label: string }) {
   )
 }
 
+// On-leave chip — red, because leave is a hard clash everywhere it appears
+// (Nic, spec decision 1). Says only "On leave": the reason is HR-only and is
+// never fetched by any surface that renders this.
+export function LeaveChip({ label }: { label: string }) {
+  return (
+    <span className="text-[10px] font-medium bg-bad-soft text-bad border border-bad/20 rounded-full px-1.5 py-px shrink-0">
+      {label}
+    </span>
+  )
+}
+
 // Chip rows under the name: subrole chip, then qualification chips on their
 // own row (Nic's card layout, 2026-09-04). Falls back to the role name as the
 // subrole chip when a caller passes `role` and no subrole is set.
