@@ -22,7 +22,7 @@ const styles: Record<PillVariant, string> = {
 const label: Record<PillVariant, string> = {
   scheduled:         'Scheduled',
   pending:           'Pending',
-  awaiting_approval: 'Awaiting approval',
+  awaiting_approval: 'Awaiting Approval',
   completed:         'Completed',
   overdue:           'Overdue',
   sales:             'Sales',
