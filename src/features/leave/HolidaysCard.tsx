@@ -83,11 +83,11 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
   }
 
   return (
-    /* Heading and description sit ABOVE the card, matching the page's own
-       Leave header (Nic, 2026-09-09). Only this section does — the others
-       keep their heading inside, which is what he asked for. */
-    <div className="flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
+    /* Heading stays INSIDE the card, like every other section. It was moved
+       outside on 2026-09-09 and moved straight back the same day — Nic's
+       call, it looked wrong detached from its list. */
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-3 mb-1">
         <div className="min-w-0">
           <h2 className="text-sm font-medium text-ink">{t(lang, 'holidaysTitle')}</h2>
           <p className="text-[11px] text-muted mt-0.5">{t(lang, 'holidaysSubtitle')}</p>
@@ -98,8 +98,6 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
           </Btn>
         )}
       </div>
-
-      <Card className="p-5">
 
       {adding && (
         <div className="flex flex-col gap-2 mt-3 mb-1">
@@ -196,7 +194,6 @@ export function HolidaysCard({ holidays, lang, onChanged }: Props) {
           </ul>
         </div>
       ))}
-      </Card>
-    </div>
+    </Card>
   )
 }
