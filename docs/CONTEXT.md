@@ -131,7 +131,7 @@ Plus: i18n in EN/ZH/BN, AI smart textarea (suggest from attachments / improve te
 
 **Fonts:** Fraunces (display, weights 400–600, optical sizing) + IBM Plex Sans (body, 400–600). Bengali fallback: Noto Sans Bengali. Chinese fallback: Noto Sans SC.
 
-**Aesthetic:** warm editorial. Cards with 14px radius. 1px borders in `--line`. No drop shadows except on toasts and modals. Pills, not badges. Lowercase weight-500 buttons. Generous whitespace — never cramped.
+**Aesthetic:** warm editorial. Cards with 14px radius. 1px borders in `--line`. No drop shadows except on toasts and modals. Pills, not badges. Weight-500 buttons **rendered as written** — `Btn` used to force `lowercase`, which silently overrode capitalised labels and cost three rounds of "capitalise this" before the cause was found; removed app-wide on Nic's call, 2026-09-09. Status **pills** stay deliberately lowercase (different component, different decision). Generous whitespace — never cramped.
 
 ---
 
