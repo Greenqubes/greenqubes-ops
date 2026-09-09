@@ -34,6 +34,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-10',
+    // 04:36 = the Vercel PRODUCTION deployment time for this release, taken
+    // from Vercel's own clock (the x-vercel-id timestamp, converted to UTC+8)
+    // because the dashboard was not to hand. See CLAUDE.md session-end step 4.
+    time: '04:36',
+    improved: [
+      'The Monday digest now flags genuinely new knowledge, not repeated questions.',
+    ],
+  },
+  {
     date: '2026-09-09',
     // Bumped, not duplicated — one entry per DATE, so the popup does not
     // re-nag anyone who already read today's release.
