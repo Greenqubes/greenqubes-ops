@@ -36,9 +36,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-09',
     // Bumped, not duplicated — one entry per DATE, so the popup does not
-    // re-nag anyone who already read this morning's release. Set to the
-    // actual merge-to-main time, per the rule added 2026-09-09.
-    time: '07:33',
+    // re-nag anyone who already read today's release.
+    // 15:24 = the Vercel PRODUCTION deployment time for this release, read
+    // off the deployment itself. Do NOT compute it with
+    // `TZ=Asia/Singapore date` — that silently returns UTC in this shell and
+    // put 07:33 here first (see CLAUDE.md session-end step 4).
+    time: '15:24',
     headsUp: [
       'The schedule now shows who is on leave and every public holiday, to everyone.',
       'Everyone sees who is away — only HR and the admin can see the reason.',
