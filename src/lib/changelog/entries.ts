@@ -35,7 +35,9 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-09',
-    time: '04:59',
+    // Bumped, not duplicated — one entry per DATE, so the popup does not
+    // re-nag anyone who already read this morning's release.
+    time: '07:21',
     headsUp: [
       'The schedule now shows who is on leave and every public holiday, to everyone.',
       'Everyone sees who is away — only HR and the admin can see the reason.',
@@ -47,6 +49,10 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Putting someone on a job while they are on leave now warns in red.',
       'Company events like a retreat show across every day they run.',
       'Singapore public holidays for 2026 appear on the schedule.',
+    ],
+    improved: [
+      'Buttons and status labels now read properly instead of all lowercase.',
+      'The Leave page fits a phone screen when adding or editing an entry.',
     ],
   },
   {
