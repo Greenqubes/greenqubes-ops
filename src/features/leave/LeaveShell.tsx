@@ -29,7 +29,11 @@ interface Props {
   role:            Role
 }
 
+// Past leave grows forever, so it is never rendered whole: 10 rows to start,
+// then 20 more per tap. "Show all" used to dump the lot, which is the flood
+// Nic asked about (2026-09-09).
 const PAST_PREVIEW = 10
+const PAST_STEP    = 20
 
 // A foldable section heading. The toggle and the action button are siblings,
 // never nested — a button inside a button is invalid and the inner one stops
@@ -69,7 +73,7 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
   const [modalOpen, setModalOpen] = useState(false)
   const [editing,   setEditing]   = useState<LeaveWithName | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
-  const [showAllPast, setShowAllPast] = useState(false)
+  const [pastLimit, setPastLimit] = useState(PAST_PREVIEW)
   // Upcoming is what HR opens the page for; past leave is reference, so it
   // starts folded. No localStorage — a render-time read of it is the /schedule
   // hydration bug.
@@ -102,7 +106,8 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
 
   const upcoming = leave.filter(l => l.date_end >= today)
   const past     = leave.filter(l => l.date_end <  today).reverse()   // most recent first
-  const pastShown = showAllPast ? past : past.slice(0, PAST_PREVIEW)
+  const pastShown = past.slice(0, pastLimit)
+  const pastRemaining = past.length - pastShown.length
 
   async function handleDelete(id: string) {
     setError(null)
@@ -203,7 +208,7 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
                 lang={lang}
                 action={
                   <Btn variant="accent" size="sm" onClick={openCreate} className="shrink-0">
-                    <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'leaveAdd')}</span>
+                    <span className="flex items-center gap-1.5"><Plus size={12} />{t(lang, 'leaveAddShort')}</span>
                   </Btn>
                 }
               />
@@ -228,13 +233,13 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
                   : (
                     <>
                       <ul className="divide-y divide-line mt-1">{pastShown.map(l => row(l, true))}</ul>
-                      {!showAllPast && past.length > PAST_PREVIEW && (
+                      {pastRemaining > 0 && (
                         <button
                           type="button"
-                          onClick={() => setShowAllPast(true)}
+                          onClick={() => setPastLimit(n => n + PAST_STEP)}
                           className="text-xs text-terracotta hover:underline mt-3"
                         >
-                          {t(lang, 'leaveShowAllPast')} ({past.length})
+                          {t(lang, 'leaveShowMore')} ({pastRemaining})
                         </button>
                       )}
                     </>
