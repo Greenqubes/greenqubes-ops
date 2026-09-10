@@ -19,12 +19,16 @@ const PLACES_ENDPOINT = 'https://places.googleapis.com/v1/places:autocomplete'
 const MIN_QUERY_LENGTH = 3
 
 export interface PlaceSuggestion {
-  /** Full address text, what goes into the Location box when tapped. */
+  /** The suggestion's own text — used as-is if the details lookup fails. */
   full:      string
   /** Place name or street line — the bold half of the row. */
   main:      string
   /** Town / postcode line beneath it. */
   secondary: string
+  /** Looked up for the detailed address (unit number, postcode) on tap. */
+  placeId:   string
+  /** Google's labels — an establishment keeps its name in front (composeAddress). */
+  types:     string[]
 }
 
 export interface AutocompleteResponse {
@@ -34,6 +38,8 @@ export interface AutocompleteResponse {
 
 type GooglePrediction = {
   placePrediction?: {
+    placeId?: string
+    types?:   string[]
     text?: { text?: string }
     structuredFormat?: {
       mainText?:      { text?: string }
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json<AutocompleteResponse>({ configured: false, suggestions: [] })
   }
 
-  const { input } = await req.json() as { input?: string }
+  const { input, sessionToken } = await req.json() as { input?: string; sessionToken?: string }
   const query = (input ?? '').trim()
   if (query.length < MIN_QUERY_LENGTH) {
     return NextResponse.json<AutocompleteResponse>({ configured: true, suggestions: [] })
@@ -66,8 +72,14 @@ export async function POST(req: NextRequest) {
         'X-Goog-Api-Key': apiKey,
       },
       // Singapore only — the whole team installs here, and it keeps the list
-      // short enough to be useful on a phone.
-      body: JSON.stringify({ input: query, includedRegionCodes: ['sg'] }),
+      // short enough to be useful on a phone. The session token ties this
+      // typing to the details lookup that follows, so Google bills the pair
+      // as one session rather than a request each.
+      body: JSON.stringify({
+        input:               query,
+        includedRegionCodes: ['sg'],
+        ...(sessionToken ? { sessionToken } : {}),
+      }),
     })
 
     if (!res.ok) {
@@ -89,7 +101,11 @@ export async function POST(req: NextRequest) {
         const full      = s.placePrediction?.text?.text ?? ''
         const main      = s.placePrediction?.structuredFormat?.mainText?.text ?? full
         const secondary = s.placePrediction?.structuredFormat?.secondaryText?.text ?? ''
-        return { full, main, secondary }
+        return {
+          full, main, secondary,
+          placeId: s.placePrediction?.placeId ?? '',
+          types:   s.placePrediction?.types ?? [],
+        }
       })
       .filter(s => s.full)
       .slice(0, 5)

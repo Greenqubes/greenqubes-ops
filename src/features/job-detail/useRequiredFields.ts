@@ -1,7 +1,11 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { missingRequiredJobFields, type RequiredJobField } from '@/lib/utils/job-form-rules'
+import {
+  missingRequiredJobFields,
+  clearedRequiredFields,
+  type RequiredJobField,
+} from '@/lib/utils/job-form-rules'
 
 /**
  * The required-field gate on Push to Schedule, shared by the new-job and edit
@@ -27,15 +31,13 @@ function focusField(field: RequiredJobField) {
   control?.focus({ preventScroll: true })
 }
 
+type FormLike = Partial<Record<RequiredJobField, string | null | undefined>>
+
 export function useRequiredFields(reveal: () => void) {
   const [missingFields, setMissingFields] = useState<RequiredJobField[]>([])
 
-  /** True when every required field is filled. False marks the gaps, reveals
-   *  the Details card and lands the cursor on the first empty one. */
-  const checkRequired = useCallback((
-    values: Partial<Record<RequiredJobField, string | null | undefined>>,
-  ): boolean => {
-    const gaps = missingRequiredJobFields(values)
+  // Mark the gaps, reveal the Details card, land the cursor on the first one.
+  const flag = useCallback((gaps: RequiredJobField[]): boolean => {
     setMissingFields(gaps)
     if (gaps.length === 0) return true
 
@@ -44,7 +46,22 @@ export function useRequiredFields(reveal: () => void) {
     return false
   }, [reveal])
 
+  /** Push to Schedule: every required field must be filled. */
+  const checkRequired = useCallback(
+    (values: FormLike): boolean => flag(missingRequiredJobFields(values)),
+    [flag],
+  )
+
+  /** Save on the edit form: what was already there may be replaced, never
+   *  emptied. A field that was blank when the form loaded is not the rule's
+   *  business, so a parked draft still saves. */
+  const checkNotCleared = useCallback(
+    (original: FormLike, values: FormLike): boolean =>
+      flag(clearedRequiredFields(original, values)),
+    [flag],
+  )
+
   const clearMissing = useCallback(() => setMissingFields([]), [])
 
-  return { missingFields, checkRequired, clearMissing }
+  return { missingFields, checkRequired, checkNotCleared, clearMissing }
 }

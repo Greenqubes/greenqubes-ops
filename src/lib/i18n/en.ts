@@ -82,6 +82,7 @@ export const en = {
   callContact: 'Call',
   requiredField: '* This field is required',
   requiredFieldsMissing: 'Fill in the required fields before pushing to schedule',
+  requiredFieldCleared: 'This field cannot be left empty — replace it instead',
   endDateBeforeStart: '* End date is before the job date',
   punctualityNeedsStart: 'Set a start time to choose strict on-time.',
   timeStart: 'Time start',

@@ -227,7 +227,7 @@ export function JobDetailShell({
   const [jumpToDetails, setJumpToDetails] = useState(0)
   // Required-field gate on Push to Schedule (Nic, 2026-09-10). Saving stays
   // ungated — only putting a job on the schedule demands the six fields.
-  const { missingFields, checkRequired } = useRequiredFields(
+  const { missingFields, checkRequired, checkNotCleared } = useRequiredFields(
     () => setJumpToDetails(n => n + 1),
   )
   const briefCardRef = useRef<HTMLDivElement>(null)
@@ -319,7 +319,9 @@ export function JobDetailShell({
 
   const {
     register, handleSubmit, getValues, setValue, reset, control, watch,
-    formState: { isDirty, errors },
+    // defaultValues is what the job holds right now: every successful save
+    // ends in reset(values), so it re-baselines with the job (see saveValues).
+    formState: { isDirty, errors, defaultValues },
   } = useForm<FormValues>({
     defaultValues: formValuesFromJob(job),
   })
@@ -529,6 +531,15 @@ export function JobDetailShell({
   // assigned them. Coordinator can alert the schedulers via the modal;
   // scheduler can save anyway.
   const onSubmit = async (values: FormValues) => {
+    // Details already on the job may be replaced but not deleted (Nic,
+    // 2026-09-10) — an emptied field leaves the job incomplete for whoever
+    // works it. A field that was already blank (a parked draft) is not the
+    // rule's business, so those still save and can be finished later.
+    if (!checkNotCleared(defaultValues ?? {}, values)) {
+      showError(t(lang, 'requiredFieldCleared'))
+      return
+    }
+
     // Smoke feedback edit 1 (Nic, 2026-08-27): scheduler bypasses the brief-
     // required rule entirely — the habit nudge is aimed at sales/coordinator,
     // who stay forced. `role` is already the effective role (getEffectiveRole

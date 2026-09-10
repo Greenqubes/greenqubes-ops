@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/Input'
+import { composeAddress } from '@/lib/utils/job-form-rules'
 import type { AutocompleteResponse, PlaceSuggestion } from '@/app/api/places/autocomplete/route'
+import type { PlaceDetailsResponse } from '@/app/api/places/details/route'
 
 /**
  * Location box with Singapore address suggestions.
@@ -16,6 +18,14 @@ import type { AutocompleteResponse, PlaceSuggestion } from '@/app/api/places/aut
 const MIN_QUERY_LENGTH = 3
 // Long enough that a normal typist makes one call per address, not per letter.
 const DEBOUNCE_MS = 350
+
+function newSessionToken(): string {
+  // randomUUID needs a secure context; older phone browsers get a plain
+  // random string, which is all Google asks of a session token.
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `s-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+}
 
 interface Props {
   value:        string
@@ -32,6 +42,10 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   // Set when the value changed because a suggestion was tapped, so picking an
   // address doesn't immediately re-query it and re-open the list.
   const justPicked = useRef(false)
+  // One token per address the person is looking up: it ties the typing and the
+  // final details lookup together so Google charges one session, not one call
+  // per keystroke. Reset after each pick.
+  const session = useRef<string>(newSessionToken())
 
   useEffect(() => {
     if (disabled) return
@@ -48,7 +62,7 @@ export function LocationInput({ value, onChange, disabled = false, error = false
       fetch('/api/places/autocomplete', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ input: query }),
+        body:    JSON.stringify({ input: query, sessionToken: session.current }),
       })
         .then(r => r.ok ? r.json() as Promise<AutocompleteResponse> : null)
         .then(data => {
@@ -75,11 +89,40 @@ export function LocationInput({ value, onChange, disabled = false, error = false
     }
   }, [open])
 
+  /**
+   * Tapping a suggestion puts its label in the box straight away — the list
+   * closes and nothing feels laggy — then swaps in the detailed address
+   * (unit number, postcode) as soon as Google answers. If that lookup fails
+   * the label simply stays, which is what the box used to hold anyway.
+   */
   function pick(suggestion: PlaceSuggestion) {
     justPicked.current = true
     onChange(suggestion.full)
     setOpen(false)
     setSuggestions([])
+
+    const token = session.current
+    session.current = newSessionToken()   // this lookup ends the session
+
+    if (!suggestion.placeId) return
+
+    fetch('/api/places/details', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ placeId: suggestion.placeId, sessionToken: token }),
+    })
+      .then(r => r.ok ? r.json() as Promise<PlaceDetailsResponse> : null)
+      .then(data => {
+        if (!data?.formattedAddress) return
+        justPicked.current = true   // the swap must not re-open the list
+        onChange(composeAddress({
+          name:     suggestion.main,
+          fallback: suggestion.full,
+          detailed: data.formattedAddress,
+          types:    suggestion.types,
+        }))
+      })
+      .catch(() => {}) // the label stays; the address is still usable
   }
 
   return (

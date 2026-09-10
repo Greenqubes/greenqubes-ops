@@ -63,6 +63,7 @@ export const zh: Partial<Translations> = {
   callContact: '拨打',
   requiredField: '* 此栏必填',
   requiredFieldsMissing: '推送到日程前请填写必填栏位',
+  requiredFieldCleared: '此栏不可留空，请填入新内容',
   endDateBeforeStart: '* 结束日期早于工作日期',
   punctualityNeedsStart: '设置开始时间后才能选择准时。',
   timeStart: '开始时间',

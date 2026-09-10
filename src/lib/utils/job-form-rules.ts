@@ -37,6 +37,23 @@ export function missingRequiredJobFields(
   return REQUIRED_JOB_FIELDS.filter(field => !(values[field] ?? '').trim())
 }
 
+/**
+ * Required fields that HAD something and are now empty — the edit form's rule
+ * (Nic, 2026-09-10): details already on a job may be replaced but not deleted,
+ * because an emptied field leaves the job incomplete for whoever works it.
+ *
+ * A field that was empty when the form loaded is left alone, so a half-filled
+ * draft can still be saved and finished later.
+ */
+export function clearedRequiredFields(
+  original: Partial<Record<RequiredJobField, MaybeText>>,
+  current:  Partial<Record<RequiredJobField, MaybeText>>,
+): RequiredJobField[] {
+  return REQUIRED_JOB_FIELDS.filter(field =>
+    (original[field] ?? '').trim() !== '' && (current[field] ?? '').trim() === '',
+  )
+}
+
 // A phone number inside free text: starts on a digit (or +), may carry
 // spaces, dashes and brackets, ends on a digit.
 const PHONE_CANDIDATE = /\+?\d[\d\s\-()]*\d/g
@@ -77,6 +94,39 @@ export function punctualityFor(timeStart: MaybeText, current: Punctuality): Punc
 export function endDateBeforeStart(date: MaybeText, dateEnd: MaybeText): boolean {
   if (!date || !dateEnd) return false
   return dateEnd < date
+}
+
+// Google's own labels for "this is a business", as opposed to a road or a
+// building. Only a business is worth naming in front of its address.
+const BUSINESS_TYPES = ['establishment', 'point_of_interest', 'store']
+
+/**
+ * What goes into the Location box when a suggestion is tapped.
+ *
+ * The list shows a short label ("Capitol Optical (Great World City)"), but a
+ * driver needs the unit number and postcode, so the detailed address from
+ * Place Details wins — with the shop name in front, since knowing which shop
+ * still matters at a mall (Nic, 2026-09-10). A plain street address is never
+ * prefixed with itself, and a failed lookup falls back to the label.
+ */
+export function composeAddress(input: {
+  name:      string
+  /** The suggestion's own text, used when the detailed lookup gives nothing. */
+  fallback:  string
+  /** formattedAddress from Place Details; '' when the lookup failed. */
+  detailed:  string
+  types:     string[]
+}): string {
+  const { name, fallback, detailed, types } = input
+  if (!detailed) return fallback
+
+  const isBusiness = types.some(type => BUSINESS_TYPES.includes(type))
+  if (!name || !isBusiness) return detailed
+
+  // Google sometimes leads the address with the place name already.
+  if (detailed.toLowerCase().includes(name.toLowerCase())) return detailed
+
+  return `${name}, ${detailed}`
 }
 
 /** Google Maps search link for whatever address is in the box; null when empty. */
