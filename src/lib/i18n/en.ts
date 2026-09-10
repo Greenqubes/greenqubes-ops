@@ -69,6 +69,8 @@ export const en = {
   duplicateSuccess: 'Job duplicated — set the new location',
   jobUpdatedBanner: 'This job was updated by someone else',
   jobUpdatedReload: 'Tap to reload',
+  newVersionAvailable: 'A new version of the app is ready',
+  newVersionReload: 'Tap to update',
   createJob: 'Create Job',
   projectTitle: 'Project Title',
   date: 'Date',

@@ -12,6 +12,7 @@ import {
   FileSpreadsheet, FileArchive,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -396,6 +397,10 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
   const [chatLocked,     setChatLocked]     = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting')
   const [fullscreen,     setFullscreen]     = useState(false)
+
+  // Sending, uploading or mid-recording all count as work in progress, so the
+  // post-deploy auto-refresh waits instead of cutting them off.
+  useUnsavedWork('chat', sending || uploading || recordState !== 'idle')
 
   const cutoff = completedAt ? chatCutoff(completedAt) : null
 

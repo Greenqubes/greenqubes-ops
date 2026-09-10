@@ -9,6 +9,7 @@ import {
   FileText, FileSpreadsheet, FileArchive, Download, FolderInput,
 } from 'lucide-react'
 import { MoveFileModal } from './MoveFileModal'
+import { holdUnsavedWork } from '@/features/app-version/unsaved-work'
 import { cn } from '@/lib/utils/cn'
 import type { AttachmentBucket, BucketFile } from '@/lib/supabase/queries/jobs'
 import { t } from '@/lib/i18n'
@@ -114,7 +115,14 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
     showSuccess('Bucket deleted.')
   }
 
+  // An upload in flight counts as unsaved work, so the app's auto-refresh
+  // after a deploy waits rather than killing the transfer.
   async function uploadFile(bucket: AttachmentBucket, file: File, isImage: boolean) {
+    const release = holdUnsavedWork(`upload:${bucket.id}:${file.name}`)
+    try { await sendFile(bucket, file, isImage) } finally { release() }
+  }
+
+  async function sendFile(bucket: AttachmentBucket, file: File, isImage: boolean) {
     if (!userId) { showError('Not signed in.'); return }
 
     const contentType = file.type || 'application/octet-stream'

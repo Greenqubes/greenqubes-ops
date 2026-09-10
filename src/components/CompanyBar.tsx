@@ -6,6 +6,7 @@ import { UserMenu } from '@/components/UserMenu'
 import { NavDrawer } from '@/components/NavDrawer'
 import { TourProvider } from '@/features/tour/TourProvider'
 import { ChangelogModal } from '@/features/changelog/ChangelogModal'
+import { VersionWatcher } from '@/features/app-version/VersionWatcher'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -21,24 +22,32 @@ interface Props {
 }
 
 export function CompanyBar({ lang = 'en', role }: Props) {
+  // VersionWatcher sits AFTER the bar, not inside it: its "new version" bar is
+  // a sibling that parks itself at sticky top-[45px], the same slot the job
+  // form's "this job was updated" bar uses. Inside the bar's flex row it would
+  // become a flex item and land beside the logo.
   if (!role) {
     return (
-      <div className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
-        <TourProvider lang={lang} />
-        <ChangelogModal lang={lang} />
-        <Link href="/schedule" aria-label="Go to schedule">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/greenqubes-logo.png" alt="GreenQubes" className="brand-logo h-5 w-auto" />
-        </Link>
-        <div className="flex items-center gap-2">
-          <NotificationDrawer lang={lang} />
-          <UserMenu lang={lang} />
+      <>
+        <div className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
+          <TourProvider lang={lang} />
+          <ChangelogModal lang={lang} />
+          <Link href="/schedule" aria-label="Go to schedule">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/greenqubes-logo.png" alt="GreenQubes" className="brand-logo h-5 w-auto" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationDrawer lang={lang} />
+            <UserMenu lang={lang} />
+          </div>
         </div>
-      </div>
+        <VersionWatcher lang={lang} />
+      </>
     )
   }
 
   return (
+    <>
     <div className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
       <TourProvider lang={lang} role={role} />
       <ChangelogModal lang={lang} />
@@ -66,5 +75,7 @@ export function CompanyBar({ lang = 'en', role }: Props) {
         <UserMenu lang={lang} />
       </div>
     </div>
+    <VersionWatcher lang={lang} />
+    </>
   )
 }

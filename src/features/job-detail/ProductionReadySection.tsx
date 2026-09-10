@@ -16,6 +16,7 @@ import type { JobFile } from '@/lib/supabase/queries/jobs'
 import type { FormValues } from './JobDetailShell'
 import type { Role } from '@/lib/supabase/types'
 import { showSignedDoSection } from '@/lib/utils/completion-rules'
+import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
@@ -85,6 +86,9 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
   const router   = useRouter()
   const fileRef  = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  // Photos still going up count as unsaved work, so a post-deploy auto-refresh
+  // waits rather than cutting the transfer off.
+  useUnsavedWork('production-upload', uploading)
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? [])

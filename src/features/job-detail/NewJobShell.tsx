@@ -16,6 +16,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
+import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { Lock, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
@@ -83,7 +84,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   // canEditCore gate on the Team card (JobDetailShell).
   const canEditDesigners = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
 
-  const { register, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, control, watch, setValue, formState: { errors, isDirty } } = useForm<FormValues>({
     defaultValues: {
       project_title:           '',
       date:                    today,
@@ -106,6 +107,14 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
       sales_poc_id:            userId,
     },
   })
+
+  // A part-written new job is the worst thing a post-deploy refresh could
+  // take, since nothing has been saved anywhere yet — anything typed, briefed
+  // or picked holds the refresh back to a tappable bar (Nic, 2026-09-10).
+  useUnsavedWork('new-job',
+    isDirty || saving || briefText.trim().length > 0 ||
+    selectedIds.length > 0 || selectedCoordIds.length > 0 || selectedDesignerIds.length > 0,
+  )
 
   // Who is away for the dates currently in the form — recomputed as the user
   // picks them, so the flag is right before the job even exists.

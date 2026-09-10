@@ -23,6 +23,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
+import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
@@ -1052,6 +1053,11 @@ export function JobDetailShell({
 
   const isAnyDirty = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty || isBriefDirty
   dirtyRef.current = isAnyDirty
+
+  // Same rule the leave guard below uses, told to the auto-refresh watcher:
+  // unsaved edits turn a post-deploy refresh into a bar the person taps when
+  // they are ready (Nic, 2026-09-10).
+  useUnsavedWork('job-form', isAnyDirty || saving)
 
   // Leave guard (Task 6): native "leave page?" prompt on refresh/close while
   // anything is unsaved. The in-app back arrow already goes through

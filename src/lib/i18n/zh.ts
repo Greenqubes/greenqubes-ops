@@ -50,6 +50,8 @@ export const zh: Partial<Translations> = {
   duplicateSuccess: '工作已复制 — 请填写新地点',
   jobUpdatedBanner: '此工作已被他人更新',
   jobUpdatedReload: '点击重新载入',
+  newVersionAvailable: '应用有新版本',
+  newVersionReload: '点击更新',
   newJob: '新工作',
   createJob: '创建工作',
   projectTitle: '项目名称',
