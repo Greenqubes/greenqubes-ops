@@ -35,10 +35,12 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-10',
-    // 18:46 SGT — decoded from the production deployment's own x-vercel-id
-    // epoch (UTC+8), probed after it landed. Never from a shell clock: this
-    // machine reports MPST and `TZ=Asia/Singapore date` silently returns UTC.
-    time: '18:46',
+    // 19:35 SGT — bumped from 18:46 when the second release of the day landed
+    // (auto-refresh + the assistant scoring lines), per the one-entry-per-date
+    // rule. Decoded from the production deployment's own x-vercel-id epoch
+    // (UTC+8), probed after it landed. Never from a shell clock: this machine
+    // reports MPST and `TZ=Asia/Singapore date` silently returns UTC.
+    time: '19:35',
     headsUp: [
       'A job cannot go on the schedule until title, date, company, client, contact number and address are filled.',
       'Those details can be changed later, but not left empty.',
