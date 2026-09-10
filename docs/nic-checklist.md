@@ -2,6 +2,7 @@
 
 > Claude handles the coding. This file tracks every manual action, setup step, or decision that needs a human. Read this at the start of every session.
 
+_Last updated: 2026-09-10 (fix-assistant — **the AI's importance scoring is fixed and live.** It was marking the wrong things important: every conversation it rated highly was about supplier prices, and two of those were just someone ASKING a price the system already knew — so your Monday digest was offering to save notes the vault had already written. It now judges whether something NEW arrived that nobody had written down. Your 14 saved conversations were re-scored: **the Monday digest now offers 1 conversation instead of 3**, and it's the right one — the lightbox pricing you told it to capture. Also fixed quietly: the AI could only file knowledge under 4 of your 8 roles, so anything for HR, designers, production or coordinators had nowhere to go — and an HR chat mentioning why someone was on leave would have defaulted to "everyone can read this". Both test notes are cleared out of your knowledge base. **Nothing for you to test** — there's no screen to look at, and it was checked against your real conversations four times. **I raised one false alarm and want it on the record: I said your vault sync looked broken since August. It isn't — it has run every single night without a miss.** A note looked missing because you had already deleted it on 18 August and my copy was out of date.)_
 _Last updated: 2026-09-09 (feat-admin — **HR / Finance role + leave + company events LIVE and fully tested on production.** Built and shipped in one day: the role, the Leave page, half-day leave, red on-leave warnings everywhere crew get assigned, company events across a date range, and the 2026 Singapore public holidays. You verified the privacy yourself from a sales login — the reason for an absence never leaves the database. Three database changes applied first, on your go. Also app-wide: buttons and status labels now read properly instead of all-lowercase. **Next:** provision the HR account, and check the 11 holiday dates against MOM.)_
 _Last updated: 2026-09-04 (feat-provision — **provisioning overhaul LIVE on production for launch day.** Name cards without emails (attach later), link dots (red = no email / amber = waiting for sign-in / green = linked), subroles + Driver + licences on every card, admin filters + rename, and the Support crew bucket for dispatching production staff onto install teams. Shipped together with the guided tour (your test) in one dev → main merge; production probes green. Demo is today — refresh any open tabs before using them.)_
 _Last updated: 2026-09-04 (feat-tour — **Guided app tour LIVE on production**, all 6 roles in English/中文/বাংলা. First sign-in offers the walkthrough, "Start tour" leads to a language chooser that sets the person's whole app language, and it finishes on Connect Telegram. Both translations are unvetted (your call) — collect corrections at the demo. Your go-live merge also shipped the provisioning overhaul; its migration-0052 gate was verified applied by a live-DB probe before the merge and ticked below. New "Guided tour" section under Pending: demo corrections + post-demo polish.)_
@@ -17,6 +18,20 @@ _Last updated: 2026-09-07 (chore-config — **the Workflow V3 branch is now dele
 ---
 
 ## Pending — Next Session
+
+### AI importance scoring — keep revising it (from 2026-09-10, Nic)
+
+_You said you'll keep revising this "because it's still early phase", and asked to keep being asked about it at every session start. That question is in `CLAUDE.md` and stays there — and from now on it comes with the live data and a recommendation, not just the question._
+
+- [ ] **Watch what the Monday digest actually offers you over the next few weeks.** That is the real test of the new scoring, and it can only happen with time and real conversations. If it offers something you don't care about, or misses something you do, tell Claude the example — it's a one-line change to the AI's instructions, no database work.
+- [ ] **One judgement call worth revisiting:** the AI is now told that anything it answered out of the knowledge base or from job data can never rate above a 2. That is what stopped your digest recycling notes it already had. But it also means a conversation where someone asks a question AND adds something new gets held down. Worth watching for.
+- [ ] **Awareness, not a task:** the tagger is also what decides who may ever read a promoted note. It can now file under all 8 roles (it could only manage 4 before), and anything naming a person's leave, medical situation, pay or discipline is locked to HR and never remembered.
+
+### Vault housekeeping (from 2026-09-10)
+
+- [x] **[Nic] Both test notes deleted from the knowledge base — DONE 2026-09-10 (your call).** The 2026-05-25 greeting note (whose own text read "no information was exchanged") and the 2026-08-18 plywood weight note. Both removed from the vault and pushed; the Digest folder is now empty and the Table of Contents no longer links them.
+- [ ] **Nothing to do — just confirming:** the greeting note still has one leftover row in the searchable database. You chose to let the 2:30am sync clear it, which is exactly what that clean-up step is for. Worth a glance at Admin → Health after tonight if you want certainty.
+- [x] **[Nic] Vault sync confirmed healthy 2026-09-10** — Claude wrongly flagged it as broken and then checked properly: it has run every night at 02:30 without a miss, most recently that morning. No action needed. (The standing offer of a Telegram watchdog for silent failures is still in the Backup section below — that was never about this.)
 
 ### Auto-refresh everyone after an update (from 2026-09-08, Nic — PARKED for a future build)
 
@@ -275,6 +290,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-09-10, fix-assistant — AI Importance Scoring Fixed + LIVE)
+
+- [x] **[Nic] You asked for a recommendation instead of a checklist question** — so the answer came from your live data, not from opinion: all 14 saved conversations pulled and read. **Every conversation the AI rated highly was about supplier prices**, because "supplier prices" was the only example it had ever been given. Two of those three were people ASKING a price the vault already held — so the Monday digest was offering to write notes that duplicated notes you already had.
+- [x] **[Nic] Scoring rewritten and approved by you** — it now asks whether something NEW arrived that nobody had written down, with a firm rule that anything the AI answered from the knowledge base or from job data can't rate above a 2.
+- [x] **[Nic] Your 14 conversations re-scored — DONE 2026-09-10 (your instruction).** The Monday digest now offers **1 conversation instead of 3**, and it's the lightbox pricing you explicitly told the assistant to capture. Checked straight from the live database afterwards, not taken on trust. Each person's private memory was deliberately left alone — that's a separate question from what the whole company should see.
+- [x] **[Nic] Merged to production without a preview — your call, and correct.** There is no screen to look at, and preview and production share the same database, so a preview would have been the same code on the same data. It was instead run against your real conversations four times.
+- [x] **[Nic] Both test notes deleted from the vault — DONE 2026-09-10 (your call).** Digest folder now empty.
+- [x] **[Nic] "What's new" popup pulled — DONE 2026-09-10 (your call).** The entry was written because the rule says anything reaching production gets one, then removed because you judged it too small to interrupt the team with. Nobody gets a popup.
+- [x] **[Nic] Clock problem found and fixed in the instructions.** This PC's clock reports the wrong timezone, so release times in the changelog could have been stamped hours out — the same mistake that once put 07:33 on a release that went live at 15:24. Future sessions now read the time from the deployment itself.
+- [x] **Correction logged:** Claude wrongly told you the vault sync had been broken since August. It hasn't — it runs nightly without fail. The note that looked missing had been deleted by you on 18 August.
 
 ## Done This Session ✓ (2026-09-07, fix-jobs — Live-Issue Day: 7 Fixes on Production)
 
