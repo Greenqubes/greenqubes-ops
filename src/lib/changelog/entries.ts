@@ -34,6 +34,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-10',
+    // 18:46 SGT — decoded from the production deployment's own x-vercel-id
+    // epoch (UTC+8), probed after it landed. Never from a shell clock: this
+    // machine reports MPST and `TZ=Asia/Singapore date` silently returns UTC.
+    time: '18:46',
+    headsUp: [
+      'A job cannot go on the schedule until title, date, company, client, contact number and address are filled.',
+      'Those details can be changed later, but not left empty.',
+    ],
+    added: [
+      'Start typing an address and pick it from the list — unit number and postcode fill in.',
+      'Open Maps button beside the address.',
+      'Call button beside the client contact number.',
+      'End Date on a job, so it shows on every day it runs.',
+    ],
+    improved: [
+      'Duplicating a job now copies the address too.',
+      'Jobs with no start time are always a flexible window.',
+      'Error messages sit beside the field name, in red.',
+    ],
+  },
+  {
     date: '2026-09-09',
     // Bumped, not duplicated — one entry per DATE, so the popup does not
     // re-nag anyone who already read today's release.
