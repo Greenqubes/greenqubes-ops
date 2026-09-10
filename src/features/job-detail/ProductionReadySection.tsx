@@ -171,28 +171,29 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         <h3 className="text-sm font-medium text-ink">{t(lang, 'productionReadyInstructions')}</h3>
       )}
 
-      {/* Production Instructions */}
-      <Field label={t(lang, 'productionInstructions')}>
-        {isInstaller ? (
+      {/* Production Instructions — label shares its row with the Suggest button */}
+      {isInstaller ? (
+        <Field label={t(lang, 'productionInstructions')}>
           <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2 min-h-[3rem] leading-relaxed">
             {watch?.('production_instructions') || <span className="italic text-muted">None</span>}
           </div>
-        ) : (
-          <SuggestField
-            value={watch?.('production_instructions') ?? ''}
-            onAccept={s => setValue?.('production_instructions', s, { shouldDirty: true })}
-            readOnly={instructionsLocked}
-            field="Production Instructions"
-          >
-            <textarea
-              {...register('production_instructions')}
-              disabled={instructionsLocked}
-              rows={2}
-              className={TEXTAREA}
-            />
-          </SuggestField>
-        )}
-      </Field>
+        </Field>
+      ) : (
+        <SuggestField
+          label={t(lang, 'productionInstructions')}
+          value={watch?.('production_instructions') ?? ''}
+          onAccept={s => setValue?.('production_instructions', s, { shouldDirty: true })}
+          readOnly={instructionsLocked}
+          field="Production Instructions"
+        >
+          <textarea
+            {...register('production_instructions')}
+            disabled={instructionsLocked}
+            rows={2}
+            className={TEXTAREA}
+          />
+        </SuggestField>
+      )}
 
       {/* Production Photos (kind='production_instructions' — existing kind reused for backwards compat) */}
       <UploadSection

@@ -43,15 +43,18 @@ export async function POST(
     do_issued: boolean; punctuality: string
     production_instructions: string | null
     design_brief: string | null
+    location: string
   }
   const { data: source } = await service
     .from('jobs')
-    .select('project_title, date, date_end, time_start, time_end, client, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions, design_brief')
+    .select('project_title, date, date_end, time_start, time_end, client, location, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions, design_brief')
     .eq('id', jobId)
     .maybeSingle() as { data: SourceJob | null; error: unknown }
   if (!source) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // ── New pending job — location blanked, POC = duplicator ────────────────────
+  // ── New pending job — every Job Details field copied, POC = duplicator ─────
+  // Location copies too since 2026-09-10 (Nic): a duplicate is nearly always
+  // the same site again, so blanking it made people retype what they had.
   const { data: newJob, error: insertError } = await service
     .from('jobs')
     .insert({
@@ -62,7 +65,7 @@ export async function POST(
       time_start:              source.time_start,
       time_end:                source.time_end,
       client:                  source.client,
-      location:                '',
+      location:                source.location,
       description:             source.description,
       client_poc_name:         source.client_poc_name,
       client_poc_phone:        source.client_poc_phone,

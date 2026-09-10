@@ -22,6 +22,7 @@ import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
+import { useRequiredFields } from './useRequiredFields'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
@@ -224,6 +225,11 @@ export function JobDetailShell({
   const [dueManual,  setDueManual]  = useState(job.design_due_manual ?? false)
   const [briefError, setBriefError] = useState(false)
   const [jumpToDetails, setJumpToDetails] = useState(0)
+  // Required-field gate on Push to Schedule (Nic, 2026-09-10). Saving stays
+  // ungated — only putting a job on the schedule demands the six fields.
+  const { missingFields, checkRequired } = useRequiredFields(
+    () => setJumpToDetails(n => n + 1),
+  )
   const briefCardRef = useRef<HTMLDivElement>(null)
   // What isBriefDirty's due-date half diffs against. Normally mirrors
   // job.design_due_date, but the server-side auto-shift can compute a
@@ -818,6 +824,13 @@ export function JobDetailShell({
   }
 
   const handlePushToSchedule = async () => {
+    // Required fields first — before any write, so a refused push leaves the
+    // job exactly as it was.
+    if (!checkRequired(getValues())) {
+      showError(t(lang, 'requiredFieldsMissing'))
+      return
+    }
+
     // Same due-date-conflict detection as onSubmit, before touching saving
     // state — this path shares saveDesignBriefFields (Task 14 addendum §1).
     const pushDate       = getValues().date
@@ -1242,7 +1255,7 @@ export function JobDetailShell({
         jumpToDetails={jumpToDetails}
         details={
           <div className="flex flex-col gap-4">
-            <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+            <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details" openSignal={jumpToDetails}>
               {createdByName && (
                 <p className="text-xs text-muted mb-3">{t(lang, 'createdByLabel')} {createdByName}</p>
               )}
@@ -1256,6 +1269,7 @@ export function JobDetailShell({
                 readOnly={formReadOnly}
                 lang={lang}
                 role={role}
+                missingFields={missingFields}
                 installerView={isInstaller}
               />
             </CollapseCard>
@@ -1362,14 +1376,16 @@ export function JobDetailShell({
               />
             </Field>
 
-            {/* Notes */}
-            <Field label={t(lang, 'notes')}>
-              {isInstaller ? (
+            {/* Notes — label shares its row with the Suggest button */}
+            {isInstaller ? (
+              <Field label={t(lang, 'notes')}>
                 <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2 min-h-[3rem] leading-relaxed">
                   {watch('notes') || <span className="italic text-muted">No notes</span>}
                 </div>
-              ) : (
+              </Field>
+            ) : (
                 <SuggestField
+                  label={t(lang, 'notes')}
                   value={watch('notes')}
                   onAccept={s => setValue('notes', s, { shouldDirty: true })}
                   readOnly={readOnly || !canEditCore}
@@ -1382,8 +1398,7 @@ export function JobDetailShell({
                     className={TEXTAREA}
                   />
                 </SuggestField>
-              )}
-            </Field>
+            )}
 
           </div>
 

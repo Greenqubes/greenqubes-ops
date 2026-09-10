@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { Phone, MapPin } from 'lucide-react'
 import { UseFormRegister, FieldErrors, Control, Controller, UseFormWatch, UseFormSetValue } from 'react-hook-form'
 import { Card } from '@/components/Card'
 import { Field } from '@/components/Field'
@@ -10,8 +11,10 @@ import { SearchableSelect, SelectOption } from '@/components/SearchableSelect'
 import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
 import { TimeSelect } from './TimeSelect'
+import { LocationInput } from './LocationInput'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
+import { extractDialNumber, mapsSearchUrl, endDateBeforeStart, type RequiredJobField } from '@/lib/utils/job-form-rules'
 import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 import type { Role } from '@/lib/supabase/types'
@@ -20,8 +23,6 @@ import type { Role } from '@/lib/supabase/types'
 const CORE_EDIT_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
 // Roles that may tick "Production ready" / "DO issued"
 const PRODUCTION_FLAG_ROLES: Role[] = ['scheduler', 'coordinator', 'admin', 'production']
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
@@ -34,7 +35,9 @@ interface Props {
   readOnly:          boolean
   lang:              LangCode
   role:              Role
-  validateRequired?: boolean
+  /** Fields the last Push to Schedule found empty — each shows a red
+   *  "* This field is required" beside its title until it is filled. */
+  missingFields?:    RequiredJobField[]
   installerView?:    boolean
   bare?:             boolean
 }
@@ -50,9 +53,14 @@ function CoreFrame({ bare, children }: { bare: boolean; children: React.ReactNod
 
 export function CoreSection({
   register, errors, control, watch, setValue,
-  readOnly, lang, role, validateRequired = false, installerView = false, bare = false,
+  readOnly, lang, role, missingFields = [], installerView = false, bare = false,
 }: Props) {
-  const req = validateRequired ? { required: 'Required' } : {}
+  // A field's red message clears the moment it is filled, without waiting for
+  // another push — so the form stops nagging as soon as it is satisfied.
+  const isMissing = (field: RequiredJobField) =>
+    missingFields.includes(field) && !(watch(field) ?? '').trim()
+  const requiredMsg = (field: RequiredJobField) =>
+    isMissing(field) ? t(lang, 'requiredField') : undefined
 
   // Designer / production see the core fields but cannot edit them.
   const coreLocked       = readOnly || !CORE_EDIT_ROLES.includes(role)
@@ -66,11 +74,40 @@ export function CoreSection({
   const [deleteLoading,    setDeleteLoading]    = useState(false)
   const pendingResolve = useRef<((v: boolean) => void) | null>(null)
 
-  const dateValue = watch('date')
-  const dayLabel  = dateValue ? DAYS[new Date(dateValue + 'T00:00:00').getDay()] : '—'
+  const dateValue    = watch('date')
+  const dateEndValue = watch('date_end')
+  const timeStart    = watch('time_start')
+  const phoneValue   = watch('client_poc_phone')
   const dateDisplay = dateValue
     ? new Date(dateValue + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : '—'
+  const dateEndDisplay = dateEndValue
+    ? new Date(dateEndValue + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—'
+
+  const endDateError = endDateBeforeStart(dateValue, dateEndValue)
+    ? t(lang, 'endDateBeforeStart')
+    : undefined
+
+  // The call button dials whatever number is inside the free-text field, so
+  // "Marvin 9123 4567 (site)" still works.
+  const dialNumber = extractDialNumber(phoneValue)
+  const mapsUrl    = mapsSearchUrl(watch('location'))
+
+  // Punctuality only means something once there is a start time. Correcting a
+  // legacy row on open must NOT dirty the form (it would light up Save on a
+  // job nobody edited), but a person clearing the time themselves should see
+  // the change as an edit — hence the first-run flag.
+  const seenStart = useRef<string | null>(null)
+  useEffect(() => {
+    const first = seenStart.current === null
+    seenStart.current = timeStart ?? ''
+    if (!timeStart && watch('punctuality') !== 'flexible') {
+      setValue('punctuality', 'flexible', { shouldDirty: !first })
+    }
+    // watch/setValue are stable; re-run only when the start time changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeStart])
 
   useEffect(() => {
     fetch('/api/clients')
@@ -177,46 +214,62 @@ export function CoreSection({
 
       <CoreFrame bare={bare}>
 
-        {/* Project Title */}
-        <Field label={t(lang, 'projectTitle')} error={errors.project_title?.message}>
-          {installerView ? roBox(watch('project_title')) : (
+        {/* Project Title — the label shares its row with the Suggest button
+            (Nic, 2026-09-10), so SuggestField draws its own label here. */}
+        {installerView ? (
+          <Field label={t(lang, 'projectTitle')}>{roBox(watch('project_title'))}</Field>
+        ) : (
+          <div data-required-field="project_title">
             <SuggestField
+              label={t(lang, 'projectTitle')}
+              error={requiredMsg('project_title')}
               value={watch('project_title')}
               onAccept={s => setValue('project_title', s, { shouldDirty: true })}
               readOnly={coreLocked}
               field="Project Title"
             >
               <Input
-                {...register('project_title', req)}
+                {...register('project_title')}
                 placeholder="e.g. Vivienne Westwood Installation"
                 disabled={coreLocked}
-                error={!!errors.project_title}
+                error={isMissing('project_title')}
               />
             </SuggestField>
-          )}
-        </Field>
+          </div>
+        )}
 
-        {/* Date + Day */}
+        {/* Date + End Date. The old read-only "Day" box was dropped for the
+            end date (Nic, 2026-09-10) — jobs.date_end already existed and the
+            schedule already spreads a job across its range. */}
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t(lang, 'date')} error={errors.date?.message}>
-            {installerView ? roBox(dateDisplay, true) : (
+          <div data-required-field="date">
+            <Field label={t(lang, 'date')} error={errors.date?.message ?? requiredMsg('date')}>
+              {installerView ? roBox(dateDisplay, true) : (
+                <Input
+                  type="date"
+                  {...register('date', { required: t(lang, 'requiredField') })}
+                  error={!!errors.date || isMissing('date')}
+                  disabled={coreLocked}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label={t(lang, 'dateEnd')} error={endDateError}>
+            {installerView ? roBox(dateEndDisplay, true) : (
               <Input
                 type="date"
-                {...register('date', { required: true })}
-                error={!!errors.date}
+                {...register('date_end')}
+                min={dateValue || undefined}
+                error={!!endDateError}
                 disabled={coreLocked}
               />
             )}
           </Field>
-          <Field label={t(lang, 'day')}>
-            <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm font-semibold text-amber-600 text-center">
-              {dayLabel}
-            </div>
-          </Field>
         </div>
 
         {/* Company */}
-        <Field label={t(lang, 'company')} error={errors.client?.message}>
+        <div data-required-field="client">
+        <Field label={t(lang, 'company')} error={errors.client?.message ?? requiredMsg('client')}>
           {installerView ? roBox(watch('client')) : (
             <SearchableSelect
               value={watch('client')}
@@ -236,9 +289,11 @@ export function CoreSection({
             />
           )}
         </Field>
+        </div>
 
         {/* Contact Person */}
-        <Field label={t(lang, 'clientPOCName')} error={errors.client_poc_name?.message}>
+        <div data-required-field="client_poc_name">
+        <Field label={t(lang, 'clientPOCName')} error={errors.client_poc_name?.message ?? requiredMsg('client_poc_name')}>
           {installerView ? roBox(watch('client_poc_name')) : (
             <SearchableSelect
               value={watch('client_poc_name')}
@@ -252,43 +307,101 @@ export function CoreSection({
             />
           )}
         </Field>
+        </div>
 
-        {/* Client Phone */}
-        <Field label={t(lang, 'clientPOCPhone')} error={errors.client_poc_phone?.message}>
-          {installerView ? roBox(watch('client_poc_phone')) : (
-            <Input
-              type="tel"
-              {...register('client_poc_phone')}
-              disabled={coreLocked}
-              error={!!errors.client_poc_phone}
+        {/* Client Phone — free text with a call button that dials the number
+            it finds inside it (Nic, 2026-09-10). Installers get the same
+            button: they are the ones standing outside a locked shop. */}
+        <div data-required-field="client_poc_phone">
+        <Field label={t(lang, 'clientPOCPhone')} error={errors.client_poc_phone?.message ?? requiredMsg('client_poc_phone')}>
+          <div className="flex gap-2">
+            <div className="flex-1 min-w-0">
+              {installerView ? roBox(watch('client_poc_phone')) : (
+                <Input
+                  type="tel"
+                  {...register('client_poc_phone')}
+                  disabled={coreLocked}
+                  error={!!errors.client_poc_phone || isMissing('client_poc_phone')}
+                />
+              )}
+            </div>
+            <a
+              href={dialNumber ? `tel:${dialNumber}` : undefined}
+              aria-label={t(lang, 'callContact')}
+              aria-disabled={!dialNumber}
+              className={cn(
+                'shrink-0 flex items-center justify-center gap-1.5 px-3 rounded-lg border text-sm font-medium transition-colors',
+                dialNumber
+                  ? 'border-line bg-paper text-ink2 hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5'
+                  : 'border-line bg-bg text-muted opacity-40 pointer-events-none',
+              )}
+            >
+              <Phone size={15} />
+              <span className="hidden sm:inline">{t(lang, 'callContact')}</span>
+            </a>
+          </div>
+        </Field>
+        </div>
+
+        {/* Location — Open Maps on the label row, address suggestions in the
+            box (both Nic, 2026-09-10). Suggestions need GOOGLE_MAPS_API_KEY;
+            without it LocationInput is an ordinary text box. */}
+        <div data-required-field="location">
+        <Field
+          label={t(lang, 'locationAddress')}
+          error={errors.location?.message ?? requiredMsg('location')}
+          action={
+            <a
+              href={mapsUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'text-xs font-medium border border-line bg-paper px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 shrink-0',
+                mapsUrl
+                  ? 'text-muted hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5'
+                  : 'text-muted opacity-40 pointer-events-none',
+              )}
+            >
+              <MapPin size={12} />
+              {t(lang, 'openMaps')}
+            </a>
+          }
+        >
+          {installerView ? roBox(watch('location')) : (
+            <Controller
+              control={control}
+              name="location"
+              render={({ field }) => (
+                <LocationInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={coreLocked}
+                  error={!!errors.location || isMissing('location')}
+                />
+              )}
             />
           )}
         </Field>
+        </div>
 
-        {/* Location */}
-        <Field label={t(lang, 'locationAddress')} error={errors.location?.message}>
-          {installerView ? roBox(watch('location')) : (
-            <Input {...register('location', req)} disabled={coreLocked} error={!!errors.location} />
-          )}
-        </Field>
-
-        {/* Description */}
-        <Field label={t(lang, 'jobDescription')}>
-          {installerView ? (
+        {/* Description — label shares its row with the Suggest button */}
+        {installerView ? (
+          <Field label={t(lang, 'jobDescription')}>
             <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2 min-h-[4.5rem] leading-relaxed">
               {watch('description') || '—'}
             </div>
-          ) : (
-            <SuggestField
-              value={watch('description')}
-              onAccept={s => setValue('description', s, { shouldDirty: true })}
-              readOnly={coreLocked}
-              field="Job Description"
-            >
-              <textarea {...register('description')} disabled={coreLocked} rows={3} className={TEXTAREA} />
-            </SuggestField>
-          )}
-        </Field>
+          </Field>
+        ) : (
+          <SuggestField
+            label={t(lang, 'jobDescription')}
+            value={watch('description')}
+            onAccept={s => setValue('description', s, { shouldDirty: true })}
+            readOnly={coreLocked}
+            field="Job Description"
+          >
+            <textarea {...register('description')} disabled={coreLocked} rows={3} className={TEXTAREA} />
+          </SuggestField>
+        )}
 
         {/* Times */}
         <div className="grid grid-cols-2 gap-4">
@@ -297,7 +410,6 @@ export function CoreSection({
               <Controller
                 control={control}
                 name="time_start"
-                rules={req}
                 render={({ field }) => (
                   <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked} error={!!errors.time_start} />
                 )}
@@ -317,8 +429,10 @@ export function CoreSection({
           </Field>
         </div>
 
-        {/* Punctuality */}
-        <Field label={t(lang, 'punctuality')}>
+        {/* Punctuality — strict is meaningless with no start time to be on
+            time for, so it greys out and the choice sits on Flexible
+            (Nic, 2026-09-10). The value itself is corrected in the effect above. */}
+        <Field label={t(lang, 'punctuality')} hint={!timeStart && !installerView ? t(lang, 'punctualityNeedsStart') : undefined}>
           <Controller
             control={control}
             name="punctuality"
@@ -331,7 +445,7 @@ export function CoreSection({
                   <button
                     key={opt.v}
                     type="button"
-                    disabled={coreLocked || installerView}
+                    disabled={coreLocked || installerView || (opt.v === 'strict' && !timeStart)}
                     onClick={() => field.onChange(opt.v)}
                     className={cn(
                       'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors',

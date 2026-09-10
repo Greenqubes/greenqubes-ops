@@ -19,8 +19,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         'disabled:opacity-50 disabled:cursor-not-allowed',
         'transition-colors duration-150',
         error
-          ? 'border-terracotta focus:ring-terracotta/20'
-          : 'border-line     focus:border-terracotta focus:ring-terracotta/20',
+          ? 'border-bad focus:ring-bad/20'
+          : 'border-line focus:border-terracotta focus:ring-terracotta/20',
         className
       )}
     />

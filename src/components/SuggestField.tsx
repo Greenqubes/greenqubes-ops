@@ -8,10 +8,15 @@ interface Props {
   onAccept: (suggestion: string) => void
   readOnly?: boolean
   field?:   string
+  /** Field title. Given one, SuggestField draws its own label row and the
+   *  caller should NOT wrap it in <Field> — the label shares the row with the
+   *  Suggest button instead of sitting on a line of its own (Nic, 2026-09-10). */
+  label?:   string
+  error?:   string
   children: ReactNode
 }
 
-export function SuggestField({ value, onAccept, readOnly = false, field, children }: Props) {
+export function SuggestField({ value, onAccept, readOnly = false, field, label, error, children }: Props) {
   const [loading,    setLoading]    = useState(false)
   const [suggestion, setSuggestion] = useState<string | null>(null)
 
@@ -34,23 +39,37 @@ export function SuggestField({ value, onAccept, readOnly = false, field, childre
 
   const showButton = !readOnly && value.trim().length > 0 && !loading && !suggestion
 
+  const suggestButton = (
+    <>
+      {showButton && (
+        <button
+          type="button"
+          onClick={handleImprove}
+          className="text-xs font-medium text-muted border border-line bg-paper hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 shrink-0"
+        >
+          ✦ Suggest
+        </button>
+      )}
+      {loading && <span className="text-xs text-muted shrink-0">Suggesting…</span>}
+    </>
+  )
+
   return (
-    <div>
-      {(showButton || loading) && (
-        <div className="flex justify-end mb-1">
-          {showButton && (
-            <button
-              type="button"
-              onClick={handleImprove}
-              className="text-xs font-medium text-muted border border-line bg-paper hover:text-terracotta hover:border-terracotta hover:bg-terracotta/5 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
-            >
-              ✦ Suggest
-            </button>
-          )}
-          {loading && (
-            <span className="text-xs text-muted">Suggesting…</span>
-          )}
+    <div className={cn(label && 'flex flex-col gap-1.5')}>
+      {label ? (
+        // Label + Suggest button share one row: min-h holds the row steady so
+        // the box never jumps as the button appears and disappears.
+        <div className="flex items-center justify-between gap-2 min-h-[1.75rem]">
+          <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+            <span className="text-sm font-medium text-ink2">{label}</span>
+            {error && <span className="text-xs font-medium text-bad">{error}</span>}
+          </div>
+          {suggestButton}
         </div>
+      ) : (
+        (showButton || loading) && (
+          <div className="flex justify-end mb-1">{suggestButton}</div>
+        )
       )}
       {children}
       {suggestion && (

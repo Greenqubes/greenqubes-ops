@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Card } from '@/components/Card'
 import { cn } from '@/lib/utils/cn'
@@ -10,13 +11,18 @@ interface Props {
   storageKey:     string
   collapsible?:   boolean   // default true; chevron + fold apply on lg+ only
   bodyClassName?: string    // default 'p-4'; pass 'p-0' when children bring their own padding
+  /** Bump (any changing number) to force a folded card open — e.g. a required
+   *  field inside it failed on Push to Schedule and has to be seen. */
+  openSignal?:    number
   children:       React.ReactNode
 }
 
 export function CollapseCard({
-  title, storageKey, collapsible = true, bodyClassName = 'p-4', children,
+  title, storageKey, collapsible = true, bodyClassName = 'p-4', openSignal, children,
 }: Props) {
-  const { open, toggle } = useCardCollapse(storageKey)
+  const { open, toggle, forceOpen } = useCardCollapse(storageKey)
+
+  useEffect(() => { if (openSignal) forceOpen() }, [openSignal, forceOpen])
 
   return (
     <Card className="overflow-hidden">

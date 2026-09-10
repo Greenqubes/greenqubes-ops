@@ -9,6 +9,16 @@ import { useCallback, useEffect, useState } from 'react'
 export function useCardCollapse(storageKey: string) {
   const [open, setOpen] = useState(true)
 
+  // Force the card open — for a validation error inside a card the person has
+  // folded away on PC. Remembered like any other open, so it stays open.
+  const forceOpen = useCallback(() => {
+    setOpen(prev => {
+      if (prev) return prev
+      try { localStorage.setItem(storageKey, 'open') } catch { /* ignore */ }
+      return true
+    })
+  }, [storageKey])
+
   useEffect(() => {
     try {
       if (localStorage.getItem(storageKey) === 'closed') setOpen(false)
@@ -22,5 +32,5 @@ export function useCardCollapse(storageKey: string) {
     })
   }, [storageKey])
 
-  return { open, toggle }
+  return { open, toggle, forceOpen }
 }

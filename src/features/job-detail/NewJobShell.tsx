@@ -15,6 +15,7 @@ import { InstallerGrid } from './InstallerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
+import { useRequiredFields } from './useRequiredFields'
 import { Lock, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { FormValues } from './JobDetailShell'
@@ -62,6 +63,12 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   const [showPushedModal,       setShowPushedModal]      = useState(false)
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
+  // Bumped when Push to Schedule is refused: switches the phone to the Details
+  // tab and opens the Job Details card if it was folded away on PC.
+  const [revealDetails,         setRevealDetails]        = useState(0)
+  const { missingFields, checkRequired } = useRequiredFields(
+    () => setRevealDetails(n => n + 1),
+  )
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -116,6 +123,17 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
 
   async function saveJob(mode: 'pending' | 'push_to_schedule') {
     const values = watch()
+
+    // The six required fields are enforced here and only here (Nic,
+    // 2026-09-10): a draft may be saved half-filled, but a job going onto the
+    // schedule may not. This form calls saveJob directly rather than through
+    // handleSubmit, so react-hook-form's own rules never ran — that is why an
+    // empty New Job form used to push straight through.
+    if (mode === 'push_to_schedule' && !checkRequired(values)) {
+      showError(t(lang, 'requiredFieldsMissing'))
+      return
+    }
+
     setSaving(true)
     const supabase = createClient()
     try {
@@ -307,10 +325,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
       <JobFormLayout
         lang={lang}
         lockedTabs={['files', 'chat']}
+        jumpToDetails={revealDetails}
         details={
           <div className="flex flex-col gap-4">
             <div data-tour="job-details">
-              <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details">
+              <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details" openSignal={revealDetails}>
                 <CoreSection
                   bare
                   register={register}
@@ -321,7 +340,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
                   readOnly={false}
                   lang={lang}
                   role={role}
-                  validateRequired
+                  missingFields={missingFields}
                 />
               </CollapseCard>
             </div>
@@ -349,19 +368,18 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
             {/* Production — instructions now, photos/DO after the job is saved */}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
               <div className="space-y-3">
-                <Field label={t(lang, 'productionInstructions')}>
-                  <SuggestField
-                    value={watch('production_instructions')}
-                    onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
-                    field="Production Instructions"
-                  >
-                    <textarea
-                      {...register('production_instructions')}
-                      rows={2}
-                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
-                    />
-                  </SuggestField>
-                </Field>
+                <SuggestField
+                  label={t(lang, 'productionInstructions')}
+                  value={watch('production_instructions')}
+                  onAccept={s => setValue('production_instructions', s, { shouldDirty: true })}
+                  field="Production Instructions"
+                >
+                  <textarea
+                    {...register('production_instructions')}
+                    rows={2}
+                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+                  />
+                </SuggestField>
                 <div className="flex items-center gap-2 text-muted text-xs">
                   <Lock size={12} />
                   Save the job first to add production photos and DO.
@@ -397,19 +415,18 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
                   onChange={setSelectedCoordIds}
                 />
               </Field>
-              <Field label="Notes">
-                <SuggestField
-                  value={watch('notes')}
-                  onAccept={s => setValue('notes', s, { shouldDirty: true })}
-                  field="Notes"
-                >
-                  <textarea
-                    {...register('notes')}
-                    rows={2}
-                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
-                  />
-                </SuggestField>
-              </Field>
+              <SuggestField
+                label={t(lang, 'notes')}
+                value={watch('notes')}
+                onAccept={s => setValue('notes', s, { shouldDirty: true })}
+                field="Notes"
+              >
+                <textarea
+                  {...register('notes')}
+                  rows={2}
+                  className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 transition-colors duration-150 resize-none"
+                />
+              </SuggestField>
             </div>
 
             {/* Drivers — same sub-section framing as the edit page (Nic,
