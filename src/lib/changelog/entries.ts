@@ -42,6 +42,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     headsUp: [
       'A job cannot go on the schedule until title, date, company, client, contact number and address are filled.',
       'Those details can be changed later, but not left empty.',
+      'The app now updates itself — if you are mid-typing it waits and shows a bar to tap.',
     ],
     added: [
       'Start typing an address and pick it from the list — unit number and postcode fill in.',
@@ -53,6 +54,11 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Duplicating a job now copies the address too.',
       'Jobs with no start time are always a flexible window.',
       'Error messages sit beside the field name, in red.',
+      'Knowledge saved from the assistant can now be filed for every role, not four.',
+      'Anything about a person\'s leave, pay or medical matters stays with HR.',
+    ],
+    fixed: [
+      'The Monday digest no longer offers to save answers the knowledge base already had.',
     ],
   },
   {
