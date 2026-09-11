@@ -38,7 +38,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     // Its own entry rather than added to the 10th on purpose: the popup only
     // reopens when the newest DATE is one the reader has not seen, and the
     // whole point of this entry is that everyone reads the log-in line.
-    time: '00:00',
+    // 11:26 given by Nic from his own clock at merge time (2026-09-11).
+    time: '11:26',
     headsUp: [
       '**LOG OUT AND LOG IN AGAIN** once, to switch on automatic updates.',
       'After that the app updates itself — if you are mid-typing it waits and shows a bar to tap.',
