@@ -38,8 +38,13 @@ export const CHANGELOG: ChangelogEntry[] = [
     // Its own entry rather than added to the 10th on purpose: the popup only
     // reopens when the newest DATE is one the reader has not seen, and the
     // whole point of this entry is that everyone reads the log-in line.
-    // 11:26 given by Nic from his own clock at merge time (2026-09-11).
-    time: '11:26',
+    // 12:35 SGT — the production deployment's own clock, which is the rule
+    // (Nic: "follow deployment time"). 11:26 was written here first from a
+    // human reading and was an hour+ out. The decode was checked three ways
+    // that afternoon and all three agreed to the second: this machine's UTC
+    // epoch, Vercel's `Date` response header, and the x-vercel-id epoch. It is
+    // only the shell's local-time LABEL that lies here (it says MPST).
+    time: '12:35',
     headsUp: [
       '**LOG OUT AND LOG IN AGAIN** once, to switch on automatic updates.',
       'After that the app updates itself — if you are mid-typing it waits and shows a bar to tap.',

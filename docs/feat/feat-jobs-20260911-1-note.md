@@ -177,11 +177,16 @@ while its value changed underneath**. Errors now use `--bad`.
 
 ## ⚠️ Next session
 
-- **The changelog timestamp needs settling.** Nic gave 11:26 for the final
-  release; decoding the production deployment's `x-vercel-id` epoch gave 12:35.
-  One of the two is an hour+ out, and CLAUDE.md currently instructs the decode.
-  Check a deployment against the Vercel dashboard (which shows GMT+8 directly)
-  and fix whichever is wrong.
+- ~~The changelog timestamp needs settling.~~ **Settled the same day.** Nic gave
+  11:26 for the final release and the `x-vercel-id` decode gave 12:35. Three
+  clocks were then compared in one shot — this machine's UTC epoch, Vercel's
+  `Date` response header, and the `x-vercel-id` epoch — and **all three agreed
+  to the second**. The decode is correct; 11:26 was the outlier, and the entry
+  now reads 12:35 on Nic's word ("follow deployment time"). Worth knowing what
+  is actually broken here: **only the shell's local-time LABEL lies** (it calls
+  itself MPST). Its absolute epoch is fine, so
+  `date -u -d @$(( $(date +%s) + 28800 ))` is a valid sanity check — the
+  deployment stays the source of truth, but a second opinion is one line away.
 - **Watch whether the six required fields annoy anyone** — dropping any of them
   is a one-line edit to `REQUIRED_JOB_FIELDS`.
 - **Still open from before:** the Support crew pill filter and the two buckets
