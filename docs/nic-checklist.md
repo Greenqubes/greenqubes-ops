@@ -17,6 +17,8 @@ _Last updated: 2026-09-07 (chore-config — **the Workflow V3 branch is now dele
 
 ---
 
+_Last updated: 2026-09-11 (feat-jobs — **your job form screenshot is built and live, and the app now updates itself.** Six fields must be filled before a job can go on the schedule (title, date, company, client, contact number, address) — a half-filled draft still saves, and on an existing job those details can be changed but not emptied. Typing an address now suggests real Singapore places and fills in **the unit number and postcode**, there is a call button beside the contact number and an Open Maps button beside the address, the Day box became End Date, and duplicating a job brings the address along. **Two things I found while in there that had been wrong for a while:** nothing on the New Job form had ever actually been checked — the rules existed but the buttons walked past them, so an empty form could go straight onto the schedule; and every error message in the app had been showing in green instead of red since the August rebrand. **The refresh problem is solved**: after a deploy, a tab notices within about three minutes, or the instant someone comes back to it, and refreshes itself — unless they are mid-typing, in which case it waits and shows a bar. You tested all three cases live. **One last shout to the team:** the popup now asks everyone to log out and log in once, because today's copy of the app is too old to know how to check.)_
+
 ## Pending — Next Session
 
 ### AI importance scoring — keep revising it (from 2026-09-10, Nic)
@@ -33,14 +35,24 @@ _You said you'll keep revising this "because it's still early phase", and asked 
 - [ ] **Nothing to do — just confirming:** the greeting note still has one leftover row in the searchable database. You chose to let the 2:30am sync clear it, which is exactly what that clean-up step is for. Worth a glance at Admin → Health after tonight if you want certainty.
 - [x] **[Nic] Vault sync confirmed healthy 2026-09-10** — Claude wrongly flagged it as broken and then checked properly: it has run every night at 02:30 without a miss, most recently that morning. No action needed. (The standing offer of a Telegram watchdog for silent failures is still in the Backup section below — that was never about this.)
 
-### Auto-refresh everyone after an update (from 2026-09-08, Nic — PARKED for a future build)
+### Job form — your marked-up screenshot (from 2026-09-10, DONE and LIVE)
+
+- [x] **[Nic] Everything on the screenshot built and tested by you on the preview, 2026-09-10 → 11.** Required fields, End Date replacing the Day box, the call button, Open Maps, address suggestions, flexible-window rule, labels moved up, and Duplicate copying the address.
+- [x] **[Nic] Google account set up and the key added to Vercel — DONE 2026-09-10.** Billing on, Places API (New) enabled, key restricted to that one service, and a $5 monthly budget alert created.
+- [ ] **Worth a glance at some point: Admin → Health shows every address lookup.** Your budget alert emails you long before money is involved, so this is curiosity, not a task.
+- [ ] **Tell Claude if the six required fields start annoying anyone.** If sales regularly pushes a job before they have the client's number, any one of the six can be dropped in a minute — it is one list in one file.
+- [ ] **The "log out and log in again" notice is in the popup, not a message from you.** Anyone who does not read it still gets the new version the ordinary way; they just keep needing a manual refresh until they do a full reload once.
+
+### Auto-refresh everyone after an update (from 2026-09-08 — BUILT AND LIVE 2026-09-11)
 
 _You asked whether a command can be sent to Vercel after each merge to `main` to hard-refresh everyone's browser. **It can't** — a deploy never reaches out to tabs that are already open, so a phone keeps running the copy it downloaded when the person first opened the page. There is no such button at Vercel or anywhere else; that is exactly why this checklist keeps saying "refresh your tabs after a deploy". **The app can be built to notice a new version itself**, though — a small build, no database change._
 
-- [ ] **Your decision: what happens when the app spots a new version.** (a) **A banner they tap** — "New version available — Reload", nothing happens until they tap it. *Recommended.* (b) **Refresh automatically** — no tap, but it wipes a half-typed job form the moment it fires. (c) **The middle one** — auto-refresh only when nothing is typed, banner when there is. A bit more work, best of both.
-- [ ] **A short design session before any code** — how often it checks, the banner wording in English + Chinese, and whether to use the live connection we already have (the one that makes the schedule update by itself) so people are told the instant a merge lands instead of at the next check.
-- [ ] **Known limit, not a task:** this only helps someone who has the app open. A tab that has been closed or asleep for days picks up the new version when it next opens — which is already what happens today.
-- _Two things already in our favour: the job form has this exact banner pattern ("This job was updated — tap to reload"), so it would be nothing new to learn; and a reload now lands people straight on the What's new popup._
+- [x] **[Nic] Your decision — (c), the middle one, chosen 2026-09-10 and built.** The app refreshes itself when nothing is half-written, and shows a bar to tap when something is. Nobody has to be told to refresh any more.
+- [x] **[Nic] Tested live by you on the preview, 2026-09-11.** Three deploys were fired while you watched a real tab: it refreshed itself, it held off and showed the amber bar while a job form had typing in it, and it refreshed on its own once the work was saved.
+- [x] **Instant-the-second-it-deploys was ruled out** — that needs Vercel to call us on every deploy, which is a paid-plan feature. It checks every 3 minutes and, more importantly, the moment a tab or app comes back to the front — which on a phone is indistinguishable from instant.
+- [ ] **One last refresh shout, and then never again.** Everyone on production today is running the code from BEFORE this, which does not know how to check. The popup asks them to log out and back in once; after that their app looks after itself.
+- [ ] **Known limit, not a task:** this only helps someone who has the app open. A tab closed for days picks up the new version when it next opens — which is what already happened before.
+- [ ] **For Claude, not you:** anything new that holds unsaved work (a new form, a new upload path) has to say so, or it can be refreshed away mid-typing. The two job forms, job chat and every upload already do.
 
 ### Changelog wording — too long (from 2026-09-07, Nic)
 
