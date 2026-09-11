@@ -34,6 +34,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-11',
+    // Its own entry rather than added to the 10th on purpose: the popup only
+    // reopens when the newest DATE is one the reader has not seen, and the
+    // whole point of this entry is that everyone reads the log-in line.
+    time: '00:00',
+    headsUp: [
+      '**LOG OUT AND LOG IN AGAIN** once, to switch on automatic updates.',
+      'After that the app updates itself — if you are mid-typing it waits and shows a bar to tap.',
+    ],
+    improved: [
+      'What\'s new is twice as wide on a computer.',
+      'Older releases fold away here — tap a date to open it.',
+    ],
+  },
+  {
     date: '2026-09-10',
     // 19:35 SGT — bumped from 18:46 when the second release of the day landed
     // (auto-refresh + the assistant scoring lines), per the one-entry-per-date
