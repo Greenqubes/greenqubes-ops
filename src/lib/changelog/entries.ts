@@ -34,6 +34,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-14',
+    // 19:11 SGT, decoded from the production deployment's x-vercel-id epoch
+    // after the deploy landed, per the CLAUDE.md rule. Cross-checked against
+    // this machine's UTC epoch + 8h — both agreed to the minute.
+    time: '19:11',
+    added: [
+      'Attach **videos** to completion photos, up to 100MB.',
+      'Production can delete wrongly attached photos and videos.',
+      'Installers can delete a completion photo they uploaded themselves.',
+    ],
+    improved: [
+      'Failed uploads now say what went wrong instead of just "try again".',
+      'Oversized videos are refused straight away, not after the upload.',
+    ],
+    fixed: [
+      'The time picker is no longer cut off, and scrolls through the whole day.',
+      'Address suggestions no longer pop open when you open a job.',
+      'The chat window now opens beside its button after you move it.',
+      'Error messages show in red. They had been green since August.',
+    ],
+  },
+  {
     date: '2026-09-11',
     // Its own entry rather than added to the 10th on purpose: the popup only
     // reopens when the newest DATE is one the reader has not seen, and the
