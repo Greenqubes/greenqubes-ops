@@ -96,6 +96,30 @@ tapped dozens of times a week.
 **Note:** 3b may or may not resolve 3a — the new control still has to open over
 the card. Whichever is built must handle both.
 
+### 3a — FIXED 2026-09-14 (and a regression, also fixed)
+
+Cause: `CollapseCard` wraps every job-form card in `overflow-hidden` (for its
+14px corners), which scissors any absolutely-positioned child. The list now
+portals to `<body>` via `anchored-dropdown.ts` / `useAnchoredDropdown.ts`. The
+address box had the identical bug and only escaped it by sitting higher in the
+card; it was fixed at the same time.
+
+**Regression, same day:** the portalled list re-measured on scroll, and the
+capture-phase listener caught scrolls from inside the list itself — each one
+produced a new position object, re-ran the centre-the-selected-time effect and
+snapped the list back. Nic: *"why is it getting locked? i need to be able to
+scroll thru the whole timing"*. Fixed in `bef8127` by ignoring scrolls that
+originate inside the list, and by centring once per opening.
+
+### 3b — Nic's clarification, 2026-09-14
+
+> "i need to be able to scroll thru the whole timing. i just want it to change
+> to am/pm clicker instead"
+
+**Scrolling the full range is not to be taken away.** The redesign adds a
+faster way in (hour / minute / AM-PM), it does not replace browsing all 96
+options with something narrower. Both have to work in the same control.
+
 ---
 
 ## 4 — Floating assistant panel does not sit above its button (bug)
