@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn'
 import { useDraggableFab } from '@/lib/utils/useDraggableFab'
 import { t } from '@/lib/i18n'
 import { MarkdownMessage } from '@/components/MarkdownMessage'
+import { computeBubbleAnchor } from '@/components/bubble-anchor'
 import { statusLabelKey } from '@/features/assistant/statusLabels'
 import type { LangCode } from '@/lib/i18n'
 
@@ -30,42 +31,9 @@ function uid() {
   return Math.random().toString(36).slice(2)
 }
 
-// Gap kept between the dragged bubble and the panel it opens, matching the
-// 12px gap baked into the default (never-dragged) anchor below.
-const PANEL_GAP = 12
-// Screen-edge margin the anchored panel is kept clear of.
-const PANEL_MARGIN = 8
-
-// Where to open the panel when the bubble has been dragged off its default
-// spot. Vertically: opens above the bubble if the bubble's centre sits in
-// the lower half of the viewport, below it otherwise. Horizontally: aligns
-// to whichever side of the bubble has more room (so the panel grows into
-// open space rather than off-screen), then clamps the resulting corner
-// fully inside the viewport using the same box-size formulas as the
-// default CSS (`min(340px, 100vw - 2rem)` wide, `min(520px, 100vh - 160px)`
-// tall) so it can never spill past an edge even when neither side has much
-// room.
-function computeBubbleAnchor(bubbleRect: DOMRect): { top: number; left: number } {
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const panelWidth  = Math.min(340, vw - 32)
-  const panelHeight = Math.min(520, vh - 160)
-
-  const bubbleCenterY = bubbleRect.top + bubbleRect.height / 2
-  const openAbove     = bubbleCenterY > vh / 2
-
-  const leftSpace  = bubbleRect.left
-  const rightSpace = vw - bubbleRect.right
-  const alignToLeftEdge = rightSpace >= leftSpace // more room to the right → grow rightward from the bubble's left edge
-
-  const rawTop  = openAbove ? bubbleRect.top - PANEL_GAP - panelHeight : bubbleRect.bottom + PANEL_GAP
-  const rawLeft = alignToLeftEdge ? bubbleRect.left : bubbleRect.right - panelWidth
-
-  return {
-    top:  Math.min(Math.max(rawTop,  PANEL_MARGIN), vh - panelHeight - PANEL_MARGIN),
-    left: Math.min(Math.max(rawLeft, PANEL_MARGIN), vw - panelWidth  - PANEL_MARGIN),
-  }
-}
+// Anchor maths lives in ./bubble-anchor so it can be tested without a
+// browser — see bubble-anchor.test.ts, which also keeps the old (buggy)
+// formula around to prove the tests detect it.
 
 export function FloatingChatPanel({ lang }: Props) {
   const pathname    = usePathname()
@@ -108,8 +76,21 @@ export function FloatingChatPanel({ lang }: Props) {
       setAnchorStyle(null)
       return
     }
-    const anchor = computeBubbleAnchor(bubbleRef.current.getBoundingClientRect())
-    setAnchorStyle({ left: anchor.left, top: anchor.top, right: 'auto', bottom: 'auto' })
+    const r = bubbleRef.current.getBoundingClientRect()
+    const a = computeBubbleAnchor(
+      { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height },
+      { width: window.innerWidth, height: window.innerHeight },
+    )
+    // Anchored by the edge facing the bubble, so the panel's own height can
+    // never push it away from the bubble; maxHeight caps it to the room on
+    // that side and overrides the max-h class below.
+    setAnchorStyle({
+      left:      a.left,
+      right:     'auto',
+      top:       a.top    ?? 'auto',
+      bottom:    a.bottom ?? 'auto',
+      maxHeight: a.maxHeight,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 

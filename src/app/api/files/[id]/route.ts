@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { deleteObject } from '@/lib/storage/r2'
-import { canManageJobFiles } from '@/lib/storage/job-file-permissions'
+import { canManageJobFiles, canDeleteJobFile } from '@/lib/storage/job-file-permissions'
 import type { Role } from '@/lib/supabase/types'
 
 // Move one attachment to another bucket on the same job. The R2 object never
@@ -104,10 +104,12 @@ export async function DELETE(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  type FileRow = { id: string; job_id: string | null; r2_key: string }
+  // kind + uploader_id are read because an installer may delete a COMPLETION
+  // file they uploaded themselves (Nic, 2026-09-14) — see canDeleteJobFile.
+  type FileRow = { id: string; job_id: string | null; r2_key: string; kind: string | null; uploader_id: string | null }
   const { data: file } = await service
     .from('files')
-    .select('id, job_id, r2_key')
+    .select('id, job_id, r2_key, kind, uploader_id')
     .eq('id', fileId)
     .maybeSingle() as { data: FileRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
@@ -123,10 +125,20 @@ export async function DELETE(
     jobStatus = job?.status ?? null
   }
 
-  const decision = canManageJobFiles(role, jobStatus)
+  const decision = canDeleteJobFile({
+    role,
+    jobStatus,
+    fileKind:   file.kind,
+    uploaderId: file.uploader_id,
+    userId:     profile.id,
+  })
   if (!decision.allowed) {
     return NextResponse.json(
-      { error: decision.reason === 'completed' ? 'Job is completed' : 'Forbidden' },
+      {
+        error: decision.reason === 'completed' ? 'Job is completed'
+             : decision.reason === 'not-owner' ? 'You can only delete files you uploaded'
+             : 'Forbidden',
+      },
       { status: 403 },
     )
   }

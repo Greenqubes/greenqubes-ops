@@ -16,7 +16,7 @@ import type { JobFile } from '@/lib/supabase/queries/jobs'
 
 const FIELD_BASE = 'w-full rounded-lg border bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150'
 const fieldBorder = (error?: boolean) =>
-  error ? 'border-terracotta focus:border-terracotta' : 'border-line focus:border-terracotta'
+  error ? 'border-bad focus:border-bad' : 'border-line focus:border-terracotta'
 
 // Interfaces per the Task 6 brief list `jobId/lang/readOnly/briefText/onBriefText/
 // dueDate/dueManual/onDueDate/briefError`; `canManage`, `userId` and `files` were

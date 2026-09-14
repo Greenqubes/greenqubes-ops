@@ -29,7 +29,12 @@
   --amber: #A9852F;
   --amber-soft: #F5EDD8;
 
-  --bad: #A83D3D;
+  /* Errors. Brightened from #A83D3D on 2026-09-14 (Nic wanted error text to
+     read as clearly red as the strict-on-time signal). Deliberately NOT the
+     same value as --punct-strict: the FCFS legend shows "Strict on-time"
+     and "Strict clash — fix required" side by side, and they must stay
+     distinguishable. Keep these two tokens independent. */
+  --bad: #C13B3B;
   --bad-soft: #F5E0E0;
 
   /* ── Scheduling signal colors (Nic 2026-08-18) ──

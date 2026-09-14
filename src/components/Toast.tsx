@@ -25,7 +25,7 @@ const DURATION_MS = 4000
 const variantStyles: Record<ToastVariant, string> = {
   success: 'bg-brand-green-soft text-brand-green',
   warning: 'bg-brand-amber-soft text-brand-amber',
-  error:   'bg-terracotta-soft  text-terracotta',
+  error:   'bg-bad-soft text-bad',
 }
 
 function ToastBubble({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {

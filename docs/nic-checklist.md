@@ -43,16 +43,16 @@ _You said you'll keep revising this "because it's still early phase", and asked 
 - [ ] **Tell Claude if the six required fields start annoying anyone.** If sales regularly pushes a job before they have the client's number, any one of the six can be dropped in a minute — it is one list in one file.
 - [ ] **The "log out and log in again" notice is in the popup, not a message from you.** Anyone who does not read it still gets the new version the ordinary way; they just keep needing a manual refresh until they do a full reload once.
 
-### Auto-refresh everyone after an update (from 2026-09-08 — BUILT AND LIVE 2026-09-11)
+### Auto-refresh everyone after an update — ✅ CLOSED 2026-09-14 (from 2026-09-08)
 
 _You asked whether a command can be sent to Vercel after each merge to `main` to hard-refresh everyone's browser. **It can't** — a deploy never reaches out to tabs that are already open, so a phone keeps running the copy it downloaded when the person first opened the page. There is no such button at Vercel or anywhere else; that is exactly why this checklist keeps saying "refresh your tabs after a deploy". **The app can be built to notice a new version itself**, though — a small build, no database change._
 
 - [x] **[Nic] Your decision — (c), the middle one, chosen 2026-09-10 and built.** The app refreshes itself when nothing is half-written, and shows a bar to tap when something is. Nobody has to be told to refresh any more.
 - [x] **[Nic] Tested live by you on the preview, 2026-09-11.** Three deploys were fired while you watched a real tab: it refreshed itself, it held off and showed the amber bar while a job form had typing in it, and it refreshed on its own once the work was saved.
 - [x] **Instant-the-second-it-deploys was ruled out** — that needs Vercel to call us on every deploy, which is a paid-plan feature. It checks every 3 minutes and, more importantly, the moment a tab or app comes back to the front — which on a phone is indistinguishable from instant.
-- [ ] **One last refresh shout, and then never again.** Everyone on production today is running the code from BEFORE this, which does not know how to check. The popup asks them to log out and back in once; after that their app looks after itself.
-- [ ] **Known limit, not a task:** this only helps someone who has the app open. A tab closed for days picks up the new version when it next opens — which is what already happened before.
-- [ ] **For Claude, not you:** anything new that holds unsaved work (a new form, a new upload path) has to say so, or it can be refreshed away mid-typing. The two job forms, job chat and every upload already do.
+- [x] **[Nic] The one last refresh shout is done with — CLOSED 2026-09-14.** Anyone still on the pre-auto-refresh code needed one manual reload; three days on, any tab that has been closed and reopened has already picked it up by itself. Verified live the same day: production reports build `46b55d8f34ce`, which matches the current production commit, so the check every tab makes is answering correctly.
+- [x] **Known limit, noted not fixed:** this only helps someone who has the app open. A tab closed for days picks up the new version when it next opens — which is what already happened before.
+- [x] **Recorded for Claude, not a task for you:** anything new that holds unsaved work (a new form, a new upload path) has to say so, or it can be refreshed away mid-typing. The two job forms, job chat and every upload already do. This is written into `docs/context.md` and the 2026-09-11 session note so it survives.
 
 ### Changelog wording — too long (from 2026-09-07, Nic)
 

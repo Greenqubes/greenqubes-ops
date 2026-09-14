@@ -65,7 +65,7 @@ function CrashCard({ log, onDismiss }: { log: CrashLog; onDismiss: (id: string) 
               <span className="text-[11px] text-muted">{log.user_email}</span>
             )}
           </div>
-          <p className="text-sm font-medium text-terracotta truncate">{log.error_message}</p>
+          <p className="text-sm font-medium text-bad truncate">{log.error_message}</p>
         </div>
         <button
           onClick={() => setExpanded(v => !v)}

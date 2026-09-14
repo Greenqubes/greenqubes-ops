@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils/cn'
+import { useAnchoredDropdown, dropdownStyle } from '@/components/useAnchoredDropdown'
 
 export const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
   const h      = Math.floor(i / 4)
@@ -38,30 +40,53 @@ export function TimeSelect({
   const [open,         setOpen]         = useState(false)
   const [rollingOpts,  setRollingOpts]  = useState(getRollingOptions)
   const ref     = useRef<HTMLDivElement>(null)
+  const btnRef  = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const selected = TIME_OPTIONS.find(o => o.value === value?.slice(0, 5))
+
+  // The list is portalled to <body> so the card's overflow-hidden cannot clip
+  // it (Nic, 2026-09-14) — which also means it is no longer a DOM descendant
+  // of `ref`, so the outside-click check below has to test it separately.
+  const pos = useAnchoredDropdown(open && !disabled, btnRef, 192)
 
   // Close on outside click
   useEffect(() => {
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (ref.current?.contains(target))     return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
-  // Recalculate rolling order and scroll selected into view when opening
+  // Recalculate the rolling order each time it opens
   useEffect(() => {
     if (!open) return
     setRollingOpts(getRollingOptions())
-    if (!listRef.current) return
-    const active = listRef.current.querySelector('[data-selected="true"]') as HTMLElement | null
-    if (active) active.scrollIntoView({ block: 'center' })
   }, [open])
+
+  // Bring the selected time into view. Waits on `pos` because the list is
+  // portalled and does not exist until it has been positioned — on [open]
+  // alone this ran while listRef was still null and silently did nothing.
+  //
+  // Sets scrollTop by hand rather than calling scrollIntoView: the list is
+  // position:fixed now, and scrollIntoView would scroll the PAGE behind it to
+  // chase an element that never moves.
+  useEffect(() => {
+    if (!open || !pos) return
+    const list = listRef.current
+    if (!list) return
+    const active = list.querySelector('[data-selected="true"]') as HTMLElement | null
+    if (!active) return
+    list.scrollTop = active.offsetTop - list.clientHeight / 2 + active.offsetHeight / 2
+  }, [open, pos, rollingOpts])
 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
         onClick={() => setOpen(o => !o)}
@@ -69,8 +94,10 @@ export function TimeSelect({
           'w-full flex items-center justify-between rounded-lg border bg-paper px-3 py-2 text-sm text-left',
           'focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors duration-150',
           'disabled:opacity-50 disabled:cursor-not-allowed',
+          // Errors are --bad. This read moss green from the 2026-08-18 rebrand
+          // until 2026-09-14 — same cause as Field/Input.
           error
-            ? 'border-terracotta focus:ring-terracotta/20'
+            ? 'border-bad focus:ring-bad/20'
             : 'border-line focus:border-terracotta focus:ring-terracotta/20',
           !selected && 'text-muted'
         )}
@@ -87,10 +114,13 @@ export function TimeSelect({
         </svg>
       </button>
 
-      {open && !disabled && (
+      {open && !disabled && pos && typeof document !== 'undefined' && createPortal(
         <div
           ref={listRef}
-          className="absolute z-50 w-full mt-1 rounded-lg border border-line bg-paper shadow-lg overflow-y-auto max-h-48"
+          style={dropdownStyle(pos)}
+          // z-[80] clears the bottom nav (z-50) and every drawer/modal layer
+          // (z-[60]–z-[70]) — a time field inside a modal must still open on top.
+          className="z-[80] rounded-lg border border-line bg-paper shadow-lg overflow-y-auto"
         >
           <button
             type="button"
@@ -115,7 +145,8 @@ export function TimeSelect({
               {o.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

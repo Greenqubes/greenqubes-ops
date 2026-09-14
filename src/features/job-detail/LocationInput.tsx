@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Input } from '@/components/Input'
+import { useAnchoredDropdown, dropdownStyle } from '@/components/useAnchoredDropdown'
 import { composeAddress } from '@/lib/utils/job-form-rules'
 import type { AutocompleteResponse, PlaceSuggestion } from '@/app/api/places/autocomplete/route'
 import type { PlaceDetailsResponse } from '@/app/api/places/details/route'
@@ -39,6 +41,7 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [open,        setOpen]        = useState(false)
   const wrapRef  = useRef<HTMLDivElement>(null)
+  const listRef  = useRef<HTMLDivElement>(null)
   // Set when the value changed because a suggestion was tapped, so picking an
   // address doesn't immediately re-query it and re-open the list.
   const justPicked = useRef(false)
@@ -46,6 +49,10 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   // final details lookup together so Google charges one session, not one call
   // per keystroke. Reset after each pick.
   const session = useRef<string>(newSessionToken())
+
+  // Suggestions are two lines each, so ~5 of them fit in 260px. The list is
+  // portalled to <body> (see below) and positioned against the box.
+  const pos = useAnchoredDropdown(open && suggestions.length > 0, wrapRef, 260)
 
   useEffect(() => {
     if (disabled) return
@@ -79,7 +86,13 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   useEffect(() => {
     if (!open) return
     function onPointerDown(e: MouseEvent | TouchEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      // The list is portalled, so it is NOT inside wrapRef any more — without
+      // this second check, tapping a suggestion closed the list before the
+      // click landed and nothing was picked.
+      if (wrapRef.current?.contains(target)) return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('touchstart', onPointerDown)
@@ -138,8 +151,15 @@ export function LocationInput({ value, onChange, disabled = false, error = false
         autoComplete="off"
       />
 
-      {open && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 bg-paper border border-line rounded-lg shadow-lg overflow-hidden">
+      {/* Portalled for the same reason as TimeSelect: the card's
+          overflow-hidden would clip these suggestions. This one usually sat
+          high enough in the card to escape it, which is why only the time
+          picker was reported (Nic, 2026-09-14). */}
+      {open && suggestions.length > 0 && pos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={listRef}
+          style={dropdownStyle(pos)}
+          className="z-[80] bg-paper border border-line rounded-lg shadow-lg overflow-y-auto">
           {suggestions.map((s, i) => (
             <button
               key={`${s.full}-${i}`}
@@ -153,7 +173,8 @@ export function LocationInput({ value, onChange, disabled = false, error = false
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

@@ -42,7 +42,7 @@ function StatusDot({ status }: { status: HealthCheck['status'] }) {
   const colours = {
     ok:      'bg-brand-green',
     warn:    'bg-brand-amber',
-    error:   'bg-terracotta',
+    error:   'bg-bad',
     unknown: 'bg-muted',
   }
   return (
@@ -68,7 +68,7 @@ function SystemChecks({ checks }: { checks: HealthCheck[] }) {
               'text-xs font-medium shrink-0',
               c.status === 'ok'      ? 'text-brand-green'  :
               c.status === 'warn'    ? 'text-brand-amber'  :
-              c.status === 'error'   ? 'text-terracotta'   : 'text-muted',
+              c.status === 'error'   ? 'text-bad'          : 'text-muted',
             )}>
               {c.status}
             </span>

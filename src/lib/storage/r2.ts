@@ -35,16 +35,10 @@ export function generateKey(folder: string, kind: FileKind, originalName: string
   return `jobs/${folder}/${KIND_FOLDER[kind]}/${name}`
 }
 
-export function isImageKind(kind: FileKind): boolean {
-  return kind === 'photo' || kind === 'completion'
-}
-
-// photos/completion → image/*, voice → audio/*, do+attachment → any
-export function validateContentType(kind: FileKind, contentType: string): boolean {
-  if (isImageKind(kind)) return contentType.startsWith('image/')
-  if (kind === 'voice')   return contentType.startsWith('audio/')
-  return true
-}
+// The upload gate lives in ./upload-rules — pure, and tested standalone
+// (this file builds an S3 client at module load, which a test can't).
+// Re-exported here so existing callers keep importing from '@/lib/storage/r2'.
+export { isImageKind, validateContentType, checkUpload, MAX_VIDEO_BYTES } from './upload-rules'
 
 export async function getUploadUrlForKind(
   folder: string,
