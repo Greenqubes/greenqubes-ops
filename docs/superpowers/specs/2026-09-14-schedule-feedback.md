@@ -8,6 +8,20 @@
 **Source:** Nic, relaying the scheduler's and his own observations, with
 screenshots, two hand sketches and the team's old Google Sheets jobsheet.
 
+## Status at 2026-09-14 19:11 SGT
+
+**LIVE on production** (`dev` → `main` `790df22`, changelog `a7178d3`; probes
+green, `sin1`): **3a** (time picker clipped, plus the scroll regression it
+caused), **4** (chat panel gap), **10** (video uploads + the 100MB cap + real
+error messages + failed uploads no longer recorded as successes), **12**
+(delete buttons for production and installers), the **app-wide green errors**,
+and the **address list opening unasked** — a pre-existing bug from 28ef578 that
+the portal fix made visible.
+
+**7** was investigated and reclassified as NOT a bug; it joins the design pile.
+
+**Still open:** 1, 2, 3b, 5, 6, 8, 9, 11, 13.
+
 ---
 
 ## 1 — Job card: the right-hand block is too far right (PC)
