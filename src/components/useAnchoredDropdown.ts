@@ -20,6 +20,11 @@ export function useAnchoredDropdown(
   open: boolean,
   triggerRef: RefObject<HTMLElement | null>,
   preferredMaxHeight = 192,
+  /** The list itself. Scrolling INSIDE the list must not re-measure: the list
+   *  has not moved, and re-measuring on every scroll frame produced a new
+   *  position object that re-ran consumers' effects and made a long list
+   *  impossible to scroll (Nic, 2026-09-14). */
+  listRef?: RefObject<HTMLElement | null>,
 ): DropdownPosition | null {
   const [pos, setPos] = useState<DropdownPosition | null>(null)
 
@@ -37,13 +42,18 @@ export function useAnchoredDropdown(
   useLayoutEffect(() => {
     if (!open) { setPos(null); return }
     measure()
-    window.addEventListener('scroll', measure, true)
+    const onScroll = (e: Event) => {
+      const target = e.target as Node | null
+      if (target && listRef?.current?.contains(target)) return
+      measure()
+    }
+    window.addEventListener('scroll', onScroll, true)
     window.addEventListener('resize', measure)
     return () => {
-      window.removeEventListener('scroll', measure, true)
+      window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', measure)
     }
-  }, [open, measure])
+  }, [open, measure, listRef])
 
   return pos
 }

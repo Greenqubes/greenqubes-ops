@@ -52,7 +52,7 @@ export function LocationInput({ value, onChange, disabled = false, error = false
 
   // Suggestions are two lines each, so ~5 of them fit in 260px. The list is
   // portalled to <body> (see below) and positioned against the box.
-  const pos = useAnchoredDropdown(open && suggestions.length > 0, wrapRef, 260)
+  const pos = useAnchoredDropdown(open && suggestions.length > 0, wrapRef, 260, listRef)
 
   useEffect(() => {
     if (disabled) return

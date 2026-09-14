@@ -47,7 +47,7 @@ export function TimeSelect({
   // The list is portalled to <body> so the card's overflow-hidden cannot clip
   // it (Nic, 2026-09-14) — which also means it is no longer a DOM descendant
   // of `ref`, so the outside-click check below has to test it separately.
-  const pos = useAnchoredDropdown(open && !disabled, btnRef, 192)
+  const pos = useAnchoredDropdown(open && !disabled, btnRef, 192, listRef)
 
   // Close on outside click
   useEffect(() => {
@@ -67,21 +67,29 @@ export function TimeSelect({
     setRollingOpts(getRollingOptions())
   }, [open])
 
-  // Bring the selected time into view. Waits on `pos` because the list is
-  // portalled and does not exist until it has been positioned — on [open]
-  // alone this ran while listRef was still null and silently did nothing.
+  // Bring the selected time into view — ONCE per opening.
   //
-  // Sets scrollTop by hand rather than calling scrollIntoView: the list is
-  // position:fixed now, and scrollIntoView would scroll the PAGE behind it to
+  // `pos` has to be a dependency (the list is portalled, so it does not exist
+  // until it has been positioned), but `pos` is a fresh object on every
+  // re-measure, and re-measures happen on scroll. Without the ref guard this
+  // effect re-ran on every scroll and yanked the list back to the selected
+  // time, so it could not be scrolled at all (Nic, 2026-09-14: "why is it
+  // getting locked? i need to be able to scroll thru the whole timing").
+  //
+  // scrollTop is set by hand rather than via scrollIntoView: the list is
+  // position:fixed, and scrollIntoView would scroll the PAGE behind it to
   // chase an element that never moves.
+  const centredRef = useRef(false)
   useEffect(() => {
-    if (!open || !pos) return
+    if (!open) { centredRef.current = false; return }
+    if (centredRef.current || !pos) return
     const list = listRef.current
     if (!list) return
     const active = list.querySelector('[data-selected="true"]') as HTMLElement | null
+    centredRef.current = true
     if (!active) return
     list.scrollTop = active.offsetTop - list.clientHeight / 2 + active.offsetHeight / 2
-  }, [open, pos, rollingOpts])
+  }, [open, pos])
 
   return (
     <div ref={ref} className="relative">
