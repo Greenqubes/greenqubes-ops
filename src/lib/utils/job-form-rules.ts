@@ -135,3 +135,30 @@ export function mapsSearchUrl(location: MaybeText): string | null {
   if (!query) return null
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
+
+/** Below this, an address is too short to be worth asking Google about. */
+export const MIN_ADDRESS_QUERY_LENGTH = 3
+
+/**
+ * Whether the Location box should be asking Google for suggestions right now.
+ *
+ * The one that matters is `userEdited`. Opening a saved job puts its address
+ * straight into the box, and treating that as a search made the suggestion
+ * list drop open the moment the form loaded, over the fields underneath
+ * (Nic, 2026-09-14). A person opening a job has not asked for suggestions —
+ * only typing is a request.
+ *
+ * `justPicked` covers the two programmatic writes that follow a tap: the
+ * label going in immediately, and the detailed address replacing it when
+ * Google answers. Neither should re-open the list the pick just closed.
+ */
+export function shouldSuggestAddresses(input: {
+  value:      string
+  disabled:   boolean
+  userEdited: boolean
+  justPicked: boolean
+}): boolean {
+  const { value, disabled, userEdited, justPicked } = input
+  if (disabled || justPicked || !userEdited) return false
+  return value.trim().length >= MIN_ADDRESS_QUERY_LENGTH
+}

@@ -10,6 +10,7 @@ import {
   clearedRequiredFields,
   extractDialNumber,
   punctualityFor,
+  shouldSuggestAddresses,
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
@@ -192,6 +193,24 @@ check('no name → the detailed address alone',
 check('no types → treated as an address, not a shop',
   composeAddress({ name: 'Somewhere', fallback: 'Somewhere', detailed: '1 Kim Seng Promenade', types: [] }),
   '1 Kim Seng Promenade')
+
+// ── shouldSuggestAddresses (Nic, 2026-09-14) ──
+// The suggestion list dropped open the moment a saved job was opened, because
+// loading an address into the box looked identical to typing one.
+const suggest = (over: Partial<Parameters<typeof shouldSuggestAddresses>[0]> = {}) =>
+  shouldSuggestAddresses({ value: 'Tampines Street 81', disabled: false, userEdited: true, justPicked: false, ...over })
+
+check('the reported bug: a saved address on form load does NOT suggest',
+  suggest({ userEdited: false }), false)
+check('typing does suggest', suggest(), true)
+check('a short entry does not suggest', suggest({ value: 'te' }), false)
+check('three characters is enough', suggest({ value: 'tes' }), true)
+check('whitespace does not count towards the minimum', suggest({ value: '  a  ' }), false)
+check('an empty box does not suggest', suggest({ value: '' }), false)
+check('a read-only form never suggests', suggest({ disabled: true }), false)
+check('the write straight after a pick does not re-open', suggest({ justPicked: true }), false)
+check('the detailed-address swap does not re-open', suggest({ justPicked: true, value: '#02-110, 1 Kim Seng Promenade' }), false)
+check('disabled beats everything', suggest({ disabled: true, userEdited: true, justPicked: false }), false)
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Input } from '@/components/Input'
 import { useAnchoredDropdown, dropdownStyle } from '@/components/useAnchoredDropdown'
-import { composeAddress } from '@/lib/utils/job-form-rules'
+import { composeAddress, shouldSuggestAddresses } from '@/lib/utils/job-form-rules'
 import type { AutocompleteResponse, PlaceSuggestion } from '@/app/api/places/autocomplete/route'
 import type { PlaceDetailsResponse } from '@/app/api/places/details/route'
 
@@ -45,6 +45,9 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   // Set when the value changed because a suggestion was tapped, so picking an
   // address doesn't immediately re-query it and re-open the list.
   const justPicked = useRef(false)
+  // True once this person has typed in the box. A value that merely arrived
+  // in the field never counts — see shouldSuggestAddresses.
+  const userEdited = useRef(false)
   // One token per address the person is looking up: it ties the typing and the
   // final details lookup together so Google charges one session, not one call
   // per keystroke. Reset after each pick.
@@ -55,16 +58,21 @@ export function LocationInput({ value, onChange, disabled = false, error = false
   const pos = useAnchoredDropdown(open && suggestions.length > 0, wrapRef, 260, listRef)
 
   useEffect(() => {
-    if (disabled) return
-    if (justPicked.current) { justPicked.current = false; return }
-
-    const query = value.trim()
-    if (query.length < MIN_QUERY_LENGTH) {
-      setSuggestions([])
-      setOpen(false)
+    // A value arriving from anywhere other than the keyboard — the form
+    // loading a saved job, a duplicate prefilling, the detailed-address swap
+    // after a pick — is not a request for suggestions. Without this the list
+    // dropped open the instant a job with an address was opened, over the
+    // fields beneath it (Nic, 2026-09-14).
+    if (!shouldSuggestAddresses({ value, disabled, userEdited: userEdited.current, justPicked: justPicked.current })) {
+      if (justPicked.current) justPicked.current = false
+      if (value.trim().length < MIN_QUERY_LENGTH) {
+        setSuggestions([])
+        setOpen(false)
+      }
       return
     }
 
+    const query = value.trim()
     const timer = setTimeout(() => {
       fetch('/api/places/autocomplete', {
         method:  'POST',
@@ -142,7 +150,7 @@ export function LocationInput({ value, onChange, disabled = false, error = false
     <div ref={wrapRef} className="relative">
       <Input
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => { userEdited.current = true; onChange(e.target.value) }}
         onFocus={() => { if (suggestions.length) setOpen(true) }}
         onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
         disabled={disabled}
