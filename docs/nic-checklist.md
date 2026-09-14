@@ -17,9 +17,40 @@ _Last updated: 2026-09-07 (chore-config — **the Workflow V3 branch is now dele
 
 ---
 
+_Last updated: 2026-09-14 (fix-jobs — **six of your thirteen are live; nine are waiting for tomorrow.** You went through the list one at a time and every item is written down in your own words — nothing depends on either of us remembering it. Fixed tonight: the time picker is no longer cut off and scrolls properly, videos attach to completion photos (up to 100MB), production and installers can delete photos they attached by mistake, the chat window opens beside its button after you move it, address suggestions stopped popping up every time a job is opened, and error messages are red again — they had been green since August, **including a broken cron showing green on the Health page**. **Two of those you caught yourself while testing**, and one of them was a fault I introduced an hour earlier — that back-and-forth is what found them. **The FCFS "out of bound" is not a bug** — you confirmed only the board slides, which is it working as built; the real problem is it's too wide for a phone, so it moves to the design session with your driver containers sketch. Nine items and their open questions are at the top of Pending, in the order I'd suggest.)_
+
 _Last updated: 2026-09-11 (feat-jobs — **your job form screenshot is built and live, and the app now updates itself.** Six fields must be filled before a job can go on the schedule (title, date, company, client, contact number, address) — a half-filled draft still saves, and on an existing job those details can be changed but not emptied. Typing an address now suggests real Singapore places and fills in **the unit number and postcode**, there is a call button beside the contact number and an Open Maps button beside the address, the Day box became End Date, and duplicating a job brings the address along. **Two things I found while in there that had been wrong for a while:** nothing on the New Job form had ever actually been checked — the rules existed but the buttons walked past them, so an empty form could go straight onto the schedule; and every error message in the app had been showing in green instead of red since the August rebrand. **The refresh problem is solved**: after a deploy, a tab notices within about three minutes, or the instant someone comes back to it, and refreshes itself — unless they are mid-typing, in which case it waits and shows a bar. You tested all three cases live. **One last shout to the team:** the popup now asks everyone to log out and log in once, because today's copy of the app is too old to know how to check.)_
 
 ## Pending — Next Session
+
+### Your feedback list — 9 of 13 still to do (from 2026-09-14)
+
+_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). These nine are tomorrow's work, in the order I'd suggest. Everything is written down in full — nothing depends on either of us remembering it._
+
+**Two that only need your answer, then they're quick:**
+
+- [ ] **Sales gets "DO issued" and "Production ready"** — one question first: **all jobs, or only jobs where they're the Person-in-Charge?** Own jobs is a screen change and quick. Any job needs a database rule change.
+- [ ] **Lock Job Details for coordinators** — and something you should see before deciding: coordinators **and production** share one blanket permission to edit jobs (migration 0037). Locking it properly in the database would cut off about 15 production staff, which is exactly why coordinator limits were kept to the screen only back on 7 Sept. So this can be done on screen, but the database will still allow it. Also, "unless they created it and assigned sales as PIC" reads two ways — **any job they created**, or only ones they handed to a sales person? I've assumed the first.
+
+**Two I'll mock up for you before building:**
+
+- [ ] **Job card — time / sales / coordinator too far right on PC.** The wider the screen the further your eye travels. Two very different answers (stop the card getting wider, or pull everything left and leave space), so I'll show you both rather than guess. You said you don't want the old jobsheet's density.
+- [ ] **Time picker — AM/PM clicker, and make it less ugly.** Noted properly: **scrolling through the whole day stays**, the clicker is a faster way in on top of it, not a replacement.
+
+**Four that need decisions, then building:**
+
+- [ ] **Support crew pills** (your 7 Sept item, raised again) — still undecided: is "Carpentry" one pill matching all three job titles, or do you tidy the data? Plus excluding Sales/Designer/Coordinator partly reverses the 4 Sept decision to open that bucket to everyone. And **Support crew + External installers are still missing from the New Job form**.
+- [ ] **Tickable attachment buckets** — Job Order rename, ticks locking the name, ticks showing on the job card. **One thing to settle:** for Permit-to-Work and BCA a tick means "still to do", but Job Order only appears once a file is attached, which means "done". Opposite signals on one card — I'll bring you a way to show both. Needs a database change.
+- [ ] **External installer page — job chat + read-only files.** Two calls needed: that page has **no login** (the link is the key), so letting it write into your job chat is a bigger step than letting it read; and **which** attachments should an outside contractor see — all of them, or only ones you tick for them? That links to the buckets item above.
+- [ ] **End-of-day Telegram summary on a new bot.** Your format is captured exactly. Queries you invited: what time does it send · who receives it · "jobs added" means added today or happening today · is the name list fixed or whoever was active. **One practical step:** everyone who should receive it has to message the new bot once first — Telegram blocks bots from messaging people who haven't started them. That's what caught the digest bot in August.
+
+**One that's a design session of its own:**
+
+- [ ] **Driver containers + drag-to-reassign, and FCFS on a phone.** Your sketch: a coloured container per driver, unassigned jobs loose at the bottom, a drag handle for the scheduler, and dragging between containers swapping the crew. This changes how the schedule is *organised*, not how it looks. Open questions I'll walk you through: support crew is attached to the *job* not the driver, so what moves with a card · does a drag fire Telegram immediately or stay quiet while you shuffle · dropping onto an already-booked driver is a clash — warn or refuse · what does a hand-sorted order mean when the list is ranked first-come-first-served · do sales and coordinators see containers too. **FCFS joins this**: it isn't a bug (it scrolls in its own box, as you confirmed) — the problem is the board is 2,282px wide at the AM/PM zoom, so a phone shows two hours.
+
+### Focus rings have never been the brand colour (found 2026-09-14)
+
+- [ ] **Not urgent, and not something you reported — but worth knowing.** Every box in the app is written to show a soft green ring when you tap into it. That instruction has **never worked** — the way the colours are defined, see-through versions of them don't exist — so every field has shown Chrome's default blue ring since the app was built. It's the fourth thing of this exact kind after the invisible buttons, the lowercase labels and the green errors. Small job whenever you want it; say the word.
 
 ### AI importance scoring — keep revising it (from 2026-09-10, Nic)
 
@@ -302,6 +333,17 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-09-14, fix-jobs — Your Feedback Pass: 6 Fixed and LIVE)
+
+- [x] **[Nic] You went through 13 things one at a time and I wrote every one down** — in your words, with screenshots and your two sketches. Six are live on production tonight; the other nine are at the top of Pending, each with the question it still needs from you. Nothing is relying on memory.
+- [x] **[Nic] Time picker fixed, then fixed again after you caught it.** It was being cut off because every card on the job form is set to keep its contents inside its rounded corners — which also chops anything that pops open. It now draws on top of the page. **Your "why is it getting locked?" was a fault I'd introduced with that fix** — it was re-checking its position every time you scrolled and snapping you back. Both fixed; the full list of times still scrolls end to end.
+- [x] **[Nic] Address suggestions no longer pop up when you open a job.** This one had been happening since the feature shipped last session — you simply couldn't see it, because the list was hidden inside the card. It was also spending a Google lookup **every time anyone opened a job with an address**, for nothing. Now suggestions only appear when someone actually types.
+- [x] **[Nic] Videos upload to completion photos, up to 100MB** (your call). The app was already built for video — the file picker offered it and the list had a video icon ready — but the server was quietly refusing it. Oversized videos are now refused **straight away** rather than after a long upload on site, and failed uploads say what went wrong instead of "Save failed — try again". Also fixed underneath: a failed upload used to be recorded as a success, leaving a file that opened to nothing.
+- [x] **[Nic] Production and installers can delete wrongly attached photos/videos.** Production could already do it — the button was simply missing. Installers are a deliberate exception to the rule written on 19 Aug ("installers never"), flagged to you before building: **their own uploads only, and not once the job is completed**, both your calls.
+- [x] **[Nic] Error messages are red again, everywhere.** The fix on 11 Sept only covered the job form. Five more places were still green — including **every error message in the app**, and Admin → Health, where a **broken cron was showing green**. Red brightened at your request, but kept separate from the strict-on-time red so the FCFS legend still reads.
+- [x] **[Nic] FCFS "extending out of bound" — checked, and it is not a bug.** You confirmed the header stays put while only the board slides, which is it working as designed. The real problem is that the board is about 2,282px wide at the AM/PM zoom, so a phone shows roughly two hours. Moved to the design session with the driver containers.
+- [x] **Live on production 19:11 SGT**, `dev` → `main`, probes green. Changelog written and dated today. **Your auto-refresh did its first real job** — anyone with a tab open got this without being told.
 
 ## Done This Session ✓ (2026-09-10, fix-assistant — AI Importance Scoring Fixed + LIVE)
 
