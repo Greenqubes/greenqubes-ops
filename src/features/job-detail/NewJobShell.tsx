@@ -367,30 +367,6 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
               </CollapseCard>
             </div>
 
-            <DesignBriefSection
-              jobId={null}
-              lang={lang}
-              /* Nothing to brief against yet, and a designer attached before
-                 the job reaches the schedule cannot see it (migration 0060).
-                 Unlocks on the edit form once the job is pushed. */
-              readOnly
-              lockedNote={t(lang, 'briefLockedUntilScheduled')}
-              canManage={canEditDesigners}
-              userId={userId}
-              briefText={briefText}
-              onBriefText={setBriefText}
-              dueDate={dueDate}
-              dueManual={dueManual}
-              onDueDate={handleDueDate}
-              briefError={false}
-              files={[]}
-              designerOptions={designerOptions}
-              selectedDesignerIds={selectedDesignerIds}
-              onToggleDesigner={id => setSelectedDesignerIds(prev =>
-                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
-              )}
-            />
-
             {/* Production — instructions now, photos/DO after the job is saved */}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
               <div className="space-y-3">
@@ -415,6 +391,30 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
           </div>
         }
         team={
+          <div className="flex flex-col gap-4">
+          {/* Design brief leads the Team group (Nic, 2026-09-15) — on a phone
+              that is the Team tab, above Team. Locked here because the job
+              does not exist yet; it unlocks on the edit form once pushed. */}
+          <DesignBriefSection
+            jobId={null}
+            lang={lang}
+            readOnly
+            lockedNote={t(lang, 'briefLockedUntilScheduled')}
+            canManage={canEditDesigners}
+            userId={userId}
+            briefText={briefText}
+            onBriefText={setBriefText}
+            dueDate={dueDate}
+            dueManual={dueManual}
+            onDueDate={handleDueDate}
+            briefError={false}
+            files={[]}
+            designerOptions={designerOptions}
+            selectedDesignerIds={selectedDesignerIds}
+            onToggleDesigner={id => setSelectedDesignerIds(prev =>
+              prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+            )}
+          />
           <CollapseCard title={t(lang, 'tabTeam')} storageKey="gq-jobcard-team" bodyClassName="p-0">
             <div className="p-4 space-y-4">
               <Field label="Person-in-Charge">
@@ -481,6 +481,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
                 here; it still rides into the post-create designers-assign
                 call in saveJob above, unchanged. */}
           </CollapseCard>
+          </div>
         }
         files={
           <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">

@@ -1336,34 +1336,6 @@ export function JobDetailShell({
                 <FinancialSection register={register} errors={errors} readOnly lang={lang} />
               </CollapseCard>
             )}
-            {!isInstaller && (
-              <DesignBriefSection
-                ref={briefCardRef}
-                jobId={job.id}
-                lang={lang}
-                /* Locked until the job is ON the schedule (Nic, 2026-09-15):
-                   migration 0060 stops designers seeing pending jobs, so a
-                   brief written on one would be invisible to its designer. */
-                readOnly={!designBriefEditable({ status, readOnly: formReadOnly })}
-                lockedNote={designBriefEditable({ status, readOnly: formReadOnly }) || formReadOnly
-                  ? undefined
-                  : t(lang, 'briefLockedUntilScheduled')}
-                canManage={canEditCore}
-                userId={userId}
-                briefText={briefText}
-                onBriefText={handleBriefText}
-                dueDate={dueDate}
-                dueManual={dueManual}
-                onDueDate={handleDueDate}
-                briefError={briefError}
-                files={job.files.filter(f => f.kind === 'design_brief')}
-                designerOptions={designerOptions}
-                selectedDesignerIds={selectedDesignerIds}
-                onToggleDesigner={id => setSelectedDesignerIds(prev =>
-                  prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
-                )}
-              />
-            )}
             <CollapseCard title={t(lang, 'productionReadyInstructions')} storageKey="gq-jobcard-production">
               <ProductionReadySection
                 bare
@@ -1384,6 +1356,38 @@ export function JobDetailShell({
         }
         team={
           <div className="flex flex-col gap-4">
+        {/* Design brief leads the Team group (Nic, 2026-09-15): on a phone
+            that puts it on the Team tab above Team, which is where the people
+            who do the design work already live. Rendered ONCE, not copied per
+            breakpoint — a second mount would duplicate its uploads and state. */}
+        {!isInstaller && (
+          <DesignBriefSection
+            ref={briefCardRef}
+            jobId={job.id}
+            lang={lang}
+            /* Locked until the job is ON the schedule (Nic, 2026-09-15):
+               migration 0060 stops designers seeing pending jobs, so a
+               brief written on one would be invisible to its designer. */
+            readOnly={!designBriefEditable({ status, readOnly: formReadOnly })}
+            lockedNote={designBriefEditable({ status, readOnly: formReadOnly }) || formReadOnly
+              ? undefined
+              : t(lang, 'briefLockedUntilScheduled')}
+            canManage={canEditCore}
+            userId={userId}
+            briefText={briefText}
+            onBriefText={handleBriefText}
+            dueDate={dueDate}
+            dueManual={dueManual}
+            onDueDate={handleDueDate}
+            briefError={briefError}
+            files={job.files.filter(f => f.kind === 'design_brief')}
+            designerOptions={designerOptions}
+            selectedDesignerIds={selectedDesignerIds}
+            onToggleDesigner={id => setSelectedDesignerIds(prev =>
+              prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+            )}
+          />
+        )}
         {/* ── Team card ───────────────────────────────────────────── */}
         <CollapseCard title={t(lang, 'tabTeam')} storageKey="gq-jobcard-team" bodyClassName="p-0">
           <div className="p-4 space-y-4">
