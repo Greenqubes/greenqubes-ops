@@ -7,11 +7,16 @@ export type NavTab = { href: string; label: string; Icon: typeof Calendar }
 // NavDrawer (mobile, <lg — R2-T5 / F1). Keep both in sync by editing here
 // only; neither component should ever define its own copy.
 export const NAV_TABS: Record<Role, NavTab[]> = {
+  // Pending added 2026-09-15 (Nic): a scheduler can create jobs — the INSERT
+  // policy allows it and the New Job form offers "Save as pending" to every
+  // role that can reach it — so without this tab a scheduler saved a draft
+  // and had no way back to it. The job was never lost, just unreachable.
   scheduler: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   sales: [
