@@ -12,6 +12,7 @@ import {
   punctualityFor,
   shouldSuggestAddresses,
   shouldOfferPreviousLocation,
+  canTickProductionFlags,
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
@@ -248,6 +249,30 @@ check('a copy that arrives pre-filled is the bug — no offer', offer({ current:
 // Safety property this change buys: a blank copy cannot reach the schedule,
 // because Location is one of the six fields required on Push to Schedule.
 check('a blank copy cannot be pushed until its address is filled', REQUIRED_JOB_FIELDS.includes('location'), true)
+
+// ── Who may tick "Production ready" / "DO issued" (Nic, 2026-09-15) ──────────
+// Sales joins the roles that can tick these, but ONLY on jobs where they are
+// the Person-in-Charge (his call: own jobs, not everyone's). That matches the
+// permission sales already holds in the database on their own jobs (0055/0056),
+// so this stays a screen change with no migration — and a sales person who
+// somehow tried it on a colleague's job would be refused by the database and
+// told so, rather than the tick silently doing nothing.
+console.log('\ncanTickProductionFlags:')
+
+const tick = (over: Partial<Parameters<typeof canTickProductionFlags>[0]> = {}) =>
+  canTickProductionFlags({ role: 'sales', isSalesPoc: true, readOnly: false, ...over })
+
+check('sales may tick on their own job', tick(), true)
+check('sales may NOT tick on a colleague\'s job', tick({ isSalesPoc: false }), false)
+check('production still ticks any job', tick({ role: 'production', isSalesPoc: false }), true)
+check('scheduler still ticks any job', tick({ role: 'scheduler', isSalesPoc: false }), true)
+check('coordinator still ticks any job', tick({ role: 'coordinator', isSalesPoc: false }), true)
+check('admin still ticks any job', tick({ role: 'admin', isSalesPoc: false }), true)
+check('designer never ticks', tick({ role: 'designer', isSalesPoc: true }), false)
+check('installer never ticks', tick({ role: 'installer', isSalesPoc: true }), false)
+check('hr never ticks', tick({ role: 'hr', isSalesPoc: true }), false)
+check('a read-only form beats every role', tick({ role: 'scheduler', readOnly: true }), false)
+check('read-only beats sales on their own job', tick({ readOnly: true }), false)
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

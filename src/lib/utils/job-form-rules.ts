@@ -191,3 +191,32 @@ export function shouldOfferPreviousLocation(input: {
   if (!(previous ?? '').trim()) return false
   return !(current ?? '').trim()
 }
+
+/** Roles that may tick "Production ready" / "DO issued" on ANY job. */
+const PRODUCTION_FLAG_ROLES = ['scheduler', 'coordinator', 'admin', 'production']
+
+/**
+ * Whether this person may tick "Production ready" / "DO issued".
+ *
+ * Sales joined these two ticks on 2026-09-15 (Nic), but **only on jobs where
+ * they are the Person-in-Charge** — his call when asked whether it should be
+ * every job. That boundary is not decoration: "Production ✓" also shows on the
+ * schedule card everyone sees, so "any job" would let one sales person change
+ * what the whole team reads about a colleague's job.
+ *
+ * Scoping it to their own jobs also keeps this a screen change with no
+ * migration, because sales already holds the database permission on their own
+ * jobs (0055/0056). A sales person who somehow reached a colleague's job would
+ * be refused by the database and told so — `saveValues` asks for the row back,
+ * so a write RLS filters out is a visible failure, not a silent one.
+ */
+export function canTickProductionFlags(input: {
+  role:       string
+  isSalesPoc: boolean
+  readOnly:   boolean
+}): boolean {
+  const { role, isSalesPoc, readOnly } = input
+  if (readOnly) return false
+  if (role === 'sales') return isSalesPoc
+  return PRODUCTION_FLAG_ROLES.includes(role)
+}

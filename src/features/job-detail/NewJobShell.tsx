@@ -350,6 +350,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
                   lang={lang}
                   role={role}
                   missingFields={missingFields}
+                  /* On a NEW job the person filling the form is its
+                     Person-in-Charge by default (sales_poc_id defaults to
+                     them), so sales may tick the production flags here. */
+                  isSalesPoc={watch('sales_poc_id') === userId}
                 />
               </CollapseCard>
             </div>

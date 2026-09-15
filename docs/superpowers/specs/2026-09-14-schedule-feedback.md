@@ -68,10 +68,20 @@ there.
 **Today:** those two ticks belong to the production role, which edits only
 production-ready / DO issued / production instructions / production photos.
 
-**Open — decides the size of the job:** all jobs, or only jobs where sales is
-the Person-in-Charge? Sales already holds DB-level UPDATE on their own jobs
-(0036 / 0055), so "own jobs" is UI-only. "Any job" needs a policy change and a
-migration.
+**DECIDED 2026-09-15 (Nic): own jobs only** — sales may tick these where they
+are the Person-in-Charge, not on a colleague's job. The boundary earns itself:
+"Production ✓" also shows on the schedule card everyone reads, so "any job"
+would let one sales person change what the team sees about someone else's work.
+
+**BUILT 2026-09-15, on `dev`, not yet on production.** UI-only, no migration —
+sales already holds DB UPDATE on their own jobs (0055/0056), so the database
+agrees with the screen. `canTickProductionFlags` in `job-form-rules.ts`, TDD'd
+(11 checks), wired through `CoreSection` on both the new and edit forms via a
+new `isSalesPoc` prop.
+
+**Verified, per the note above:** these ticks go through `saveValues`, which has
+asked for the row back with `.select('id')` since 2026-09-07 — so a write RLS
+filters out is a visible failure, not a "Saved successfully" over nothing.
 
 **To verify:** that these two ticks travel the guarded save path. An UPDATE that
 RLS filters out is not an error — PostgREST answers 204 and the UI toasts
@@ -440,6 +450,49 @@ assign sales as PIC" reads two ways —
 
 **(a) is the likely intent** and is what `jobs.created_by` (migration 0050)
 already supports without any new column.
+
+### Decided 2026-09-15 — and a constraint found while scoping it
+
+**Nic's answers:**
+
+- **Meaning: (a)** — any job the coordinator created stays editable; everyone
+  else's Job Details locks.
+- **Depth: split the permission.** He rejected screen-only and asked for "a new
+  database permission solely for coordinator, separated from production db".
+- **The two production ticks stay available to coordinators on EVERY job.**
+  They sit inside the Job Details card but are a different permission, and
+  locking them was explicitly not wanted.
+
+**The constraint, which changes how this must be built:** RLS policies are
+row-level. A policy can say *may this person update this job at all* — it
+cannot say *may they change the address but not the team*. "Job Details" is a
+set of COLUMNS, so splitting 0037 into a coordinator policy and a production
+policy gets an all-or-nothing switch: turn it off and coordinators lose
+installer assignment, push-to-schedule and completion, which is their actual
+job.
+
+**The mechanism that does work is already in this codebase.** Migration 0044
+guards privileged `users` columns with a BEFORE UPDATE trigger that compares
+OLD and NEW and raises. The same shape applies here: a trigger on `jobs` that
+rejects a change to the Job-Details columns when `get_my_role() = 'coordinator'`
+AND `created_by <> get_my_id()`.
+
+**So the migration is two parts:** (1) split "jobs: coordinator and production
+can update" into separate coordinator and production policies — production's
+behaviour unchanged, which is what Nic asked for; (2) the column guard, which
+is what actually makes the lock real.
+
+**Columns in scope** (the Details card, minus the two ticks): `project_title`,
+`date`, `date_end`, `time_start`, `time_end`, `client`, `location`,
+`description`, `client_poc_name`, `client_poc_phone`, `punctuality`.
+Deliberately OUT: `production_ready`, `do_issued` (Nic's call above), and
+everything Team/status/design, which coordinators keep on every job.
+
+**⚠ HELD 2026-09-15 at Nic's call** — designed, nothing written, nothing
+applied. **Take the migration number at implementation time, not from this
+document** (CLAUDE.md rule — reserved numbers go stale; this one was already
+checked once and would be wrong by the time it is built). Re-run
+`npx supabase migration list` AND the all-branches check before writing it.
 
 ---
 

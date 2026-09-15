@@ -14,15 +14,16 @@ import { TimeSelect } from './TimeSelect'
 import { LocationInput } from './LocationInput'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
-import { extractDialNumber, mapsSearchUrl, endDateBeforeStart, type RequiredJobField } from '@/lib/utils/job-form-rules'
+import { extractDialNumber, mapsSearchUrl, endDateBeforeStart, canTickProductionFlags, type RequiredJobField } from '@/lib/utils/job-form-rules'
 import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 import type { Role } from '@/lib/supabase/types'
 
 // Roles that may edit the core job fields (title, date, client, location, times, punctuality)
 const CORE_EDIT_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
-// Roles that may tick "Production ready" / "DO issued"
-const PRODUCTION_FLAG_ROLES: Role[] = ['scheduler', 'coordinator', 'admin', 'production']
+// Who may tick "Production ready" / "DO issued" now lives in job-form-rules
+// as canTickProductionFlags — sales joined on 2026-09-15, but only on jobs
+// where they are the Person-in-Charge, so the answer needs more than the role.
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
@@ -45,6 +46,10 @@ interface Props {
   previousLocation?:          string | null
   onUsePreviousLocation?:     () => void
   onDismissPreviousLocation?: () => void
+  /** Is the signed-in person this job's Person-in-Charge? Sales may tick
+   *  "Production ready" / "DO issued" only on their own jobs (Nic,
+   *  2026-09-15). Every other role ignores it. */
+  isSalesPoc?:       boolean
 }
 
 // Frame for the section body: the page's CollapseCard supplies the card
@@ -60,6 +65,7 @@ export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
   previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
+  isSalesPoc = false,
 }: Props) {
   // A field's red message clears the moment it is filled, without waiting for
   // another push — so the form stops nagging as soon as it is satisfied.
@@ -70,8 +76,9 @@ export function CoreSection({
 
   // Designer / production see the core fields but cannot edit them.
   const coreLocked       = readOnly || !CORE_EDIT_ROLES.includes(role)
-  // Production may still tick production-ready / DO even though the rest of core is locked for them.
-  const flagsLocked      = readOnly || !PRODUCTION_FLAG_ROLES.includes(role)
+  // Production may still tick production-ready / DO even though the rest of
+  // core is locked for them; sales may tick only on their own jobs.
+  const flagsLocked      = !canTickProductionFlags({ role, isSalesPoc, readOnly })
 
   const [companies,        setCompanies]        = useState<SelectOption[]>([])
   const [contacts,         setContacts]         = useState<SelectOption[]>([])
