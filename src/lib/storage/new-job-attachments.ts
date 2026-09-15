@@ -46,3 +46,29 @@ export function ownsNewJobScratchKey(userId: string, key: string): boolean {
   const rest = key.slice(prefix.length)
   return rest.length > 0 && !rest.includes('/')
 }
+
+/**
+ * The four buckets every job is created with, in creation order.
+ *
+ * The New Job form offers these same four rather than one flat "Attachments"
+ * list (Nic, 2026-09-15): filing something and then finding it under OTHERS
+ * reads as though the file moved on its own.
+ *
+ * Bucket IDs do not exist until the job is created, so a pending upload
+ * carries the bucket's NAME and is matched to the real bucket afterwards.
+ * That makes this list a contract between three places — the form's picker,
+ * the create step that inserts the buckets, and the attach route that looks
+ * them up — which is why it lives here instead of being retyped in each.
+ */
+export const DEFAULT_BUCKET_NAMES = ['PERMIT-TO-WORK', 'BCA', 'DESIGNER JO', 'OTHERS'] as const
+
+export type DefaultBucketName = typeof DEFAULT_BUCKET_NAMES[number]
+
+/**
+ * Exact match only. A name that is not one of the four would file the upload
+ * into no visible bucket — the precise confusion this change removes — so the
+ * attach route refuses it rather than guessing.
+ */
+export function isDefaultBucketName(name: string): name is DefaultBucketName {
+  return (DEFAULT_BUCKET_NAMES as readonly string[]).includes(name)
+}

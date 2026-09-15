@@ -14,6 +14,7 @@ import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
 import { NewJobAttachments, type PendingAttachment } from './NewJobAttachments'
+import { DEFAULT_BUCKET_NAMES } from '@/lib/storage/new-job-attachments'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
@@ -190,13 +191,12 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
 
       if (insertError || !job) throw insertError
 
-      // Create default attachment buckets
-      await supabase.from('attachment_buckets').insert([
-        { job_id: job.id, name: 'PERMIT-TO-WORK', position: 0 },
-        { job_id: job.id, name: 'BCA',            position: 1 },
-        { job_id: job.id, name: 'DESIGNER JO',    position: 2 },
-        { job_id: job.id, name: 'OTHERS',         position: 3 },
-      ] as never)
+      // Create default attachment buckets. Names come from the shared list so
+      // the form's picker, this insert and the attach route cannot drift —
+      // a mismatch would file an upload into no visible bucket.
+      await supabase.from('attachment_buckets').insert(
+        DEFAULT_BUCKET_NAMES.map((name, position) => ({ job_id: job.id, name, position })) as never,
+      )
 
       // Move anything uploaded before the job existed onto it. After the
       // buckets, because they are where the files land.

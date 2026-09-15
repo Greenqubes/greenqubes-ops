@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { copyObject, deleteObject, generateKey } from '@/lib/storage/r2'
-import { ownsNewJobScratchKey } from '@/lib/storage/new-job-attachments'
+import { ownsNewJobScratchKey, isDefaultBucketName } from '@/lib/storage/new-job-attachments'
 
 // Moves files from the New Job form's holding area onto the job that was just
 // created (Nic, 2026-09-15). Called by NewJobShell straight after the insert.
@@ -40,24 +40,24 @@ export async function POST(
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json().catch(() => ({})) as {
-    files?: Array<{ key?: string; name?: string }>
+    files?: Array<{ key?: string; name?: string; bucket?: string }>
   }
   const incoming = Array.isArray(body.files) ? body.files : []
   if (incoming.length === 0) return NextResponse.json({ attached: 0, skipped: 0 })
 
   const service = createServiceClient()
 
-  // Everything lands in OTHERS; the job form's existing Move-to-bucket picker
-  // is how anything gets filed elsewhere. Creating buckets is the caller's job
-  // (it happens moments earlier), so a missing one means something went wrong
-  // and the files are better left in the holding area than orphaned.
-  type BucketRow = { id: string }
-  const { data: bucket } = await service
+  // Each file carries the NAME of the bucket it was filed into on the form —
+  // IDs did not exist then. Matching them up here is what makes a permit
+  // filed under PERMIT-TO-WORK still be there after the job is saved, rather
+  // than reappearing under OTHERS as if it had moved (Nic, 2026-09-15).
+  type BucketRow = { id: string; name: string }
+  const { data: buckets } = await service
     .from('attachment_buckets')
-    .select('id')
-    .eq('job_id', jobId)
-    .eq('name', 'OTHERS')
-    .maybeSingle() as { data: BucketRow | null; error: unknown }
+    .select('id, name')
+    .eq('job_id', jobId) as { data: BucketRow[] | null; error: unknown }
+
+  const bucketIdByName = new Map((buckets ?? []).map(b => [b.name, b.id]))
 
   let attached = 0
   let skipped  = 0
@@ -67,6 +67,14 @@ export async function POST(
     const name = typeof item?.name === 'string' && item.name ? item.name : 'file'
 
     if (!ownsNewJobScratchKey(profile.id, key)) { skipped++; continue }
+
+    // An unknown bucket name would file the upload nowhere visible, which is
+    // the confusion this whole change exists to remove — so fall back to
+    // OTHERS rather than leaving the file with no bucket at all.
+    const wanted   = typeof item?.bucket === 'string' && isDefaultBucketName(item.bucket)
+      ? item.bucket
+      : 'OTHERS'
+    const bucketId = bucketIdByName.get(wanted) ?? bucketIdByName.get('OTHERS') ?? null
 
     const destKey = generateKey(job.r2_folder ?? job.id, 'attachment', name)
     try {
@@ -78,7 +86,7 @@ export async function POST(
 
     const { error: fileError } = await service.from('files').insert({
       job_id:      jobId,
-      bucket_id:   bucket?.id ?? null,
+      bucket_id:   bucketId,
       kind:        'attachment',
       r2_key:      destKey,
       name,
