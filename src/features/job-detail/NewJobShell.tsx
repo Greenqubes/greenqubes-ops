@@ -13,6 +13,7 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
+import { NewJobAttachments, type PendingAttachment } from './NewJobAttachments'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
@@ -67,6 +68,9 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
   const [pushSilent,            setPushSilent]           = useState(false)
+  // Files uploaded to the holding area before the job exists; copied onto it
+  // the moment it is created (Nic, 2026-09-15).
+  const [pendingFiles,          setPendingFiles]         = useState<PendingAttachment[]>([])
   // Bumped when Push to Schedule is refused: switches the phone to the Details
   // tab and opens the Job Details card if it was folded away on PC.
   const [revealDetails,         setRevealDetails]        = useState(0)
@@ -116,7 +120,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   // or picked holds the refresh back to a tappable bar (Nic, 2026-09-10).
   useUnsavedWork('new-job',
     isDirty || saving || briefText.trim().length > 0 ||
-    selectedIds.length > 0 || selectedCoordIds.length > 0 || selectedDesignerIds.length > 0,
+    selectedIds.length > 0 || selectedCoordIds.length > 0 || selectedDesignerIds.length > 0 ||
+    pendingFiles.length > 0,
   )
 
   // Who is away for the dates currently in the form — recomputed as the user
@@ -192,6 +197,15 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
         { job_id: job.id, name: 'DESIGNER JO',    position: 2 },
         { job_id: job.id, name: 'OTHERS',         position: 3 },
       ] as never)
+
+      // Move anything uploaded before the job existed onto it. After the
+      // buckets, because they are where the files land.
+      if (pendingFiles.length > 0) {
+        await fetch(`/api/jobs/${job.id}/attach-pending-files`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: pendingFiles }),
+        }).catch(() => {})
+      }
 
       // Insert selected installers — suggestions for sales, formal otherwise
       if (selectedIds.length > 0) {
@@ -342,7 +356,9 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
 
       <JobFormLayout
         lang={lang}
-        lockedTabs={['files', 'chat']}
+        /* Files is no longer locked: attachments upload to a holding area
+           before the job exists (Nic, 2026-09-15). Chat still needs a job. */
+        lockedTabs={['chat']}
         jumpToDetails={revealDetails}
         details={
           <div className="flex flex-col gap-4">
@@ -484,13 +500,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
           </div>
         }
         files={
-          <Card className="p-5 space-y-2 opacity-60 pointer-events-none select-none">
-            <h3 className="text-sm font-medium text-ink">{t(lang, 'attachments')}</h3>
-            <div className="flex items-center gap-2 py-4 text-muted text-sm justify-center">
-              <Lock size={14} />
-              Save the job first to add attachments.
-            </div>
-          </Card>
+          /* Attachments now work before the job exists (Nic, 2026-09-15):
+             uploads go to the person's own holding area and are copied onto
+             the job the moment it is created. */
+          <NewJobAttachments lang={lang} files={pendingFiles} onChange={setPendingFiles} />
         }
         chat={
           <Card className="p-5 space-y-3 opacity-60 pointer-events-none select-none">

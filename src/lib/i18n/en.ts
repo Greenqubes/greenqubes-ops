@@ -43,6 +43,8 @@ export const en = {
   tabChat: 'Chat',
   jobDetails: 'Job details',
   attachments: 'Attachments',
+  addAttachment: 'Add attachment',
+  newJobAttachmentNote: 'Files are attached to the job when you save it. Discard the job and they go too.',
   designBriefTitle: 'Design brief',
   designBriefPlaceholder: 'What exactly does the designer need to produce? Which area / items?',
   designBriefRequired: 'Design brief is required once a designer is assigned',

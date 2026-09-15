@@ -39,6 +39,7 @@ export function generateKey(folder: string, kind: FileKind, originalName: string
 // (this file builds an S3 client at module load, which a test can't).
 // Re-exported here so existing callers keep importing from '@/lib/storage/r2'.
 export { isImageKind, validateContentType, checkUpload, MAX_VIDEO_BYTES } from './upload-rules'
+import { newJobScratchPrefix } from './new-job-attachments'
 
 export async function getUploadUrlForKind(
   folder: string,
@@ -176,6 +177,27 @@ export async function getBugScreenshotUploadUrl(
 ): Promise<{ url: string; key: string }> {
   const ext = filename.includes('.') ? filename.split('.').pop() : 'jpg'
   const key = `bug-reports/${randomUUID()}.${ext}`
+  const url = await getSignedUrl(
+    r2,
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn: 300 },
+  )
+  void logApiUsage({ service: 'r2', endpoint: 'put', estimated_cost: 0 })
+  return { url, key }
+}
+
+/**
+ * Signed PUT for a file attached on the New Job form, before the job exists
+ * (Nic, 2026-09-15). Lands in the person's own holding area; copied onto the
+ * job when it is created, and swept by the cleanup cron if it never is.
+ */
+export async function getNewJobUploadUrl(
+  userId: string,
+  filename: string,
+  contentType: string,
+): Promise<{ url: string; key: string }> {
+  const ext = filename.includes('.') ? filename.split('.').pop() : undefined
+  const key = `${newJobScratchPrefix(userId)}${randomUUID()}${ext ? `.${ext}` : ''}`
   const url = await getSignedUrl(
     r2,
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),

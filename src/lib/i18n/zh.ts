@@ -28,6 +28,8 @@ export const zh: Partial<Translations> = {
   tabChat: '聊天',
   jobDetails: '工作详情',
   attachments: '附件',
+  addAttachment: '添加附件',
+  newJobAttachmentNote: '保存任务时文件才会附加上去。放弃任务，文件也会一并删除。',
   designBriefTitle: '设计简报',
   designBriefPlaceholder: '设计师具体需要做什么？哪个区域/哪些项目？',
   designBriefRequired: '已分配设计师后，必须填写设计简报',
