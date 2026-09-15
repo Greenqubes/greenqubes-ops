@@ -13,7 +13,7 @@ import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
 import { DesignBriefSection } from './DesignBriefSection'
-import { NewJobAttachments, type PendingAttachment } from './NewJobAttachments'
+import { NewJobAttachments, discardPendingUploads, type PendingAttachment } from './NewJobAttachments'
 import { DEFAULT_BUCKET_NAMES } from '@/lib/storage/new-job-attachments'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
@@ -521,7 +521,15 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
         <div className="max-w-2xl lg:max-w-6xl mx-auto flex gap-2">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              // "Discard the job and they go too" (the note on the card), and
+              // it should be true NOW rather than at the next nightly sweep —
+              // the person just said they are abandoning this. Fire-and-forget
+              // so a slow or failing delete can never trap someone on the
+              // form; the cleanup cron still backs it up.
+              discardPendingUploads(pendingFiles.map(f => f.key))
+              router.back()
+            }}
             disabled={saving}
             className="flex items-center justify-center px-3 py-2 rounded-[10px] border border-line bg-paper text-xs font-medium text-ink2 hover:bg-bg disabled:opacity-50 transition-colors"
           >

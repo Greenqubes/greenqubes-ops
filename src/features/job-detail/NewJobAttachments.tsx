@@ -11,6 +11,25 @@ import type { LangCode } from '@/lib/i18n'
 /** A file waiting in the holding area, and the bucket it is destined for. */
 export type PendingAttachment = { key: string; name: string; bucket: DefaultBucketName }
 
+/**
+ * Throw away holding-area uploads immediately, rather than leaving them for
+ * the nightly sweep (Nic, 2026-09-15). `keepalive` so it still completes if
+ * the page is navigating away — which is exactly the Cancel case.
+ *
+ * Deliberately fire-and-forget: discarding a file must never be able to block
+ * someone leaving the form, and a failure here costs nothing — the cleanup
+ * cron is still behind it.
+ */
+export function discardPendingUploads(keys: string[]): void {
+  if (keys.length === 0) return
+  void fetch('/api/jobs/new-attachment/discard', {
+    method:    'POST',
+    headers:   { 'Content-Type': 'application/json' },
+    body:      JSON.stringify({ keys }),
+    keepalive: true,
+  }).catch(() => {})
+}
+
 interface Props {
   lang:     LangCode
   files:    PendingAttachment[]
@@ -97,7 +116,12 @@ export function NewJobAttachments({ lang, files, onChange }: Props) {
                     <span className="flex-1 min-w-0 truncate text-[13px] text-ink2">{f.name}</span>
                     <button
                       type="button"
-                      onClick={() => onChange(files.filter(x => x.key !== f.key))}
+                      onClick={() => {
+                        // Gone from the list AND gone from storage — the bin
+                        // used to leave the upload for the 7-day sweep.
+                        discardPendingUploads([f.key])
+                        onChange(files.filter(x => x.key !== f.key))
+                      }}
                       aria-label={t(lang, 'delete')}
                       className="shrink-0 rounded p-1 text-muted transition-colors hover:bg-bad-soft hover:text-bad"
                     >
