@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getEffectiveRole } from '@/lib/utils/role-override'
+import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import { getFCFSDay, getLeaveForDate } from '@/lib/supabase/queries/fcfs'
 import { getInstallerUsers } from '@/lib/supabase/queries/jobs'
@@ -31,6 +31,9 @@ export default async function FCFSPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  // Nav only: a plain admin navigates with their own tabs. Permissions below
+  // keep using effectiveRole exactly as before.
+  const navRole      = await getNavRole(profile.role)
   if (effectiveRole === 'installer') redirect('/installer')
   // Read-only office roles (hr today) get no planning board — spec §1.
   if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
@@ -47,6 +50,7 @@ export default async function FCFSPage() {
       initialDate={date}
       installers={installers}
       role={effectiveRole}
+      navRole={navRole}
       lang={(profile.lang as LangCode) ?? 'en'}
     />
   )

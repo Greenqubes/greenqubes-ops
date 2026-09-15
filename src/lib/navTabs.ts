@@ -29,11 +29,17 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
+  // Reached via getNavRole, NOT getEffectiveRole — that returns 'scheduler'
+  // for a plain admin, so this list was dead configuration until 2026-09-15
+  // and every admin navigated with the scheduler's tabs. The Admin screens
+  // stay in the profile menu on purpose (Nic's call): a tab for them would be
+  // clutter for the one person who knows where they are.
   admin: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],

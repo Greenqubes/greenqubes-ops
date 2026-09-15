@@ -44,10 +44,13 @@ interface FCFSShellProps {
   initialDate:   string
   installers:    InstallerUser[]
   role:          Role
+  /** Nav-only role (getNavRole): an admin who is not previewing gets their
+   *  own tabs. Defaults to `role`, so nothing changes for anyone else. */
+  navRole?: Role
   lang:          LangCode
 }
 
-export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers, role, lang }: FCFSShellProps) {
+export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers, role, navRole, lang }: FCFSShellProps) {
   const [date, setDate]           = useState(initialDate)
   const [jobs, setJobs]           = useState<FCFSJob[]>(initialJobs)
   const [leaves, setLeaves]       = useState<LeaveRecord[]>(initialLeaves)
@@ -145,7 +148,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
 
   return (
     <div className="min-h-screen bg-bg">
-      <CompanyBar lang={lang} role={role} />
+      <CompanyBar lang={lang} role={role} navRole={navRole} />
 
       {/* Toolbar */}
       <div className="bg-paper border-b border-line px-4 pt-3 pb-2 flex flex-col gap-2">
@@ -279,7 +282,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
 
       {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
       <div className="hidden lg:block">
-        <BottomNav role={role} />
+        <BottomNav role={navRole ?? role} />
       </div>
     </div>
   )

@@ -30,10 +30,13 @@ type Tab = 'board' | 'myJobs'
 interface Props {
   initialData: DesignLoadData
   role:        Role
+  /** Nav-only role (getNavRole): an admin who is not previewing gets their
+   *  own tabs. Defaults to `role`, so nothing changes for anyone else. */
+  navRole?: Role
   lang:        LangCode
 }
 
-export function DesignLoadShell({ initialData, role, lang }: Props) {
+export function DesignLoadShell({ initialData, role, navRole, lang }: Props) {
   // Covers real designers and admins previewing as designer — getEffectiveRole
   // already resolves the preview cookie server-side before `role` is passed in.
   const isDesigner = role === 'designer'
@@ -107,7 +110,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
 
   return (
     <div className="min-h-screen bg-bg">
-      <CompanyBar lang={lang} role={role} />
+      <CompanyBar lang={lang} role={role} navRole={navRole} />
 
       <div className="bg-paper border-b border-line px-4 pt-3 pb-2">
         <h1 className="font-display text-[15px] font-semibold text-ink">
@@ -201,7 +204,7 @@ export function DesignLoadShell({ initialData, role, lang }: Props) {
 
       {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
       <div className="hidden lg:block">
-        <BottomNav role={role} />
+        <BottomNav role={navRole ?? role} />
       </div>
     </div>
   )

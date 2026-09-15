@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPendingJobs } from '@/lib/supabase/queries/jobs'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
-import { getEffectiveRole } from '@/lib/utils/role-override'
+import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
@@ -22,6 +22,9 @@ export default async function PendingPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  // Nav only: a plain admin navigates with their own tabs. Permissions below
+  // keep using effectiveRole exactly as before.
+  const navRole      = await getNavRole(profile.role)
   // hr never sees pending jobs. RLS already returns zero rows for her (the
   // jobs SELECT policy is scoped to non-pending statuses); this keeps the UI
   // honest rather than showing her an empty list.
@@ -33,6 +36,7 @@ export default async function PendingPage() {
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
+      navRole={navRole}
       pageMode="pending"
     />
   )

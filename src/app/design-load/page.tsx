@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getEffectiveRole } from '@/lib/utils/role-override'
+import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import { getDesignLoad } from '@/lib/supabase/queries/design-load'
 import { DesignLoadShell } from '@/features/design-load/DesignLoadShell'
@@ -23,6 +23,9 @@ export default async function DesignLoadPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  // Nav only: a plain admin navigates with their own tabs. Permissions below
+  // keep using effectiveRole exactly as before.
+  const navRole      = await getNavRole(profile.role)
   // Installers only need their own jobs; production has no stake in design
   // load. (Same split as the FCFS board, plus the production exclusion.)
   if (effectiveRole === 'installer') redirect('/installer')
@@ -35,6 +38,7 @@ export default async function DesignLoadPage() {
     <DesignLoadShell
       initialData={data}
       role={effectiveRole}
+      navRole={navRole}
       lang={(profile.lang as LangCode) ?? 'en'}
     />
   )

@@ -19,9 +19,11 @@ interface Props {
   // their own, never rendered BottomNav) to keep the original single-layout
   // top bar untouched at every breakpoint.
   role?: Role
+  /** Nav-only role (see getNavRole). Defaults to . */
+  navRole?: Role
 }
 
-export function CompanyBar({ lang = 'en', role }: Props) {
+export function CompanyBar({ lang = 'en', role, navRole }: Props) {
   // VersionWatcher sits AFTER the bar, not inside it: its "new version" bar is
   // a sibling that parks itself at sticky top-[45px], the same slot the job
   // form's "this job was updated" bar uses. Inside the bar's flex row it would
@@ -55,7 +57,7 @@ export function CompanyBar({ lang = 'en', role }: Props) {
           slots keep the logo perfectly centered regardless of how wide the
           hamburger/bell each render. */}
       <div className="lg:hidden flex flex-1 items-center">
-        <NavDrawer role={role} lang={lang} />
+        <NavDrawer role={navRole ?? role} lang={lang} />
       </div>
       <Link href="/schedule" aria-label="Go to schedule" className="lg:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}

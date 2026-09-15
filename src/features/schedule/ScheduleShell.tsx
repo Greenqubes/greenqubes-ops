@@ -34,6 +34,9 @@ interface ScheduleShellProps {
   jobs:     ScheduleJob[]
   lang:     LangCode
   role?:    Role
+  /** Nav-only role (getNavRole): an admin who is not previewing gets their
+   *  own tabs. Defaults to `role` — unchanged for everyone else. */
+  navRole?: Role
   pageMode?: 'schedule' | 'pending' | 'completed'
   /** Optional so the pending/completed pages compile and render unchanged —
    *  leave and holidays only belong on the live schedule. */
@@ -42,7 +45,7 @@ interface ScheduleShellProps {
   events?:   CompanyEvent[]
 }
 
-export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
 
@@ -258,7 +261,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
   return (
     <div className="min-h-screen bg-bg">
 
-      <CompanyBar lang={lang} role={role ?? 'sales'} />
+      <CompanyBar lang={lang} role={role ?? 'sales'} navRole={navRole} />
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
@@ -519,7 +522,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
 
       {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
       <div className="hidden lg:block">
-        <BottomNav role={role ?? 'sales'} />
+        <BottomNav role={navRole ?? role ?? 'sales'} />
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCompletedJobs } from '@/lib/supabase/queries/jobs'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
-import { getEffectiveRole } from '@/lib/utils/role-override'
+import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -21,6 +21,9 @@ export default async function CompletedPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
+  // Nav only: a plain admin navigates with their own tabs. Permissions below
+  // keep using effectiveRole exactly as before.
+  const navRole      = await getNavRole(profile.role)
   const jobs = await getCompletedJobs()
 
   return (
@@ -28,6 +31,7 @@ export default async function CompletedPage() {
       jobs={jobs}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
+      navRole={navRole}
       pageMode="completed"
     />
   )

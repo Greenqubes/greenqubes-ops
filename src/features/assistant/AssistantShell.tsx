@@ -39,6 +39,9 @@ export interface Message {
 interface Props {
   userName: string
   role:     Role
+  /** Nav-only role (getNavRole): an admin who is not previewing gets their
+   *  own tabs. Defaults to `role`, so nothing changes for anyone else. */
+  navRole?: Role
   lang:     LangCode
   backHref: string
 }
@@ -75,7 +78,7 @@ function getSpeechRecognition(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
-export function AssistantShell({ userName, lang, backHref, role }: Props) {
+export function AssistantShell({ userName, lang, backHref, role, navRole }: Props) {
   const [messages,       setMessages]       = useState<Message[]>([])
   const [input,          setInput]          = useState('')
   const [isStreaming,    setIsStreaming]    = useState(false)
@@ -571,7 +574,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
 
       {/* ── Company bar + sub-header (desktop only — phone gets the slim bar) ── */}
       <div className="hidden md:block">
-        <CompanyBar lang={lang} role={role} />
+        <CompanyBar lang={lang} role={role} navRole={navRole} />
       </div>
 
       <div className="hidden shrink-0 border-b border-line bg-paper px-4 py-3 md:flex items-center gap-3">
@@ -623,7 +626,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
           <History size={18} />
         </button>
         <div className="flex items-center gap-1">
-          <NavDrawer role={role} lang={lang} />
+          <NavDrawer role={navRole ?? role} lang={lang} />
           <Link
             href={backHref}
             className="p-2 rounded-lg text-ink2 hover:text-ink hover:bg-bg transition-colors"
@@ -816,7 +819,7 @@ export function AssistantShell({ userName, lang, backHref, role }: Props) {
 
         {/* Nav drawer (CompanyBar/slim bar above) replaces this below lg — R2-T5 / F1 */}
         <div className="hidden lg:block">
-          <BottomNav role={role} />
+          <BottomNav role={navRole ?? role} />
         </div>
       </div>
       </div>

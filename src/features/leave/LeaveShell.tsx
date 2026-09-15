@@ -27,6 +27,9 @@ interface Props {
   users:           PersonOption[]
   lang:            LangCode
   role:            Role
+  /** Nav-only role (getNavRole): an admin who is not previewing gets their
+   *  own tabs. Defaults to `role`, so nothing changes for anyone else. */
+  navRole?: Role
 }
 
 // Past leave grows forever, so it is never rendered whole: 10 rows to start,
@@ -66,7 +69,7 @@ function SectionHead({ title, count, open, onToggle, lang, action }: {
 
 // HR's own page. Only hr and real admins can reach it — the route guards it,
 // and RLS refuses every write from anyone else regardless.
-export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users, lang, role }: Props) {
+export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users, lang, role, navRole }: Props) {
   const [leave,    setLeave]    = useState(initialLeave)
   const [holidays, setHolidays] = useState(initialHolidays)
   const [events,   setEvents]   = useState(initialEvents)
@@ -181,7 +184,7 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
 
   return (
     <div className="min-h-screen bg-bg pb-24 lg:pb-28">
-      <CompanyBar lang={lang} role={role} />
+      <CompanyBar lang={lang} role={role} navRole={navRole} />
 
       {/* Wider than the usual max-w-2xl: at lg this is two columns, with the
           public-holiday list beside the leave records rather than a long
@@ -257,7 +260,7 @@ export function LeaveShell({ initialLeave, initialHolidays, initialEvents, users
       </div>
 
       {/* Callers own the hidden lg:block wrapper — see BottomNav's own note. */}
-      <div className="hidden lg:block"><BottomNav role={role} /></div>
+      <div className="hidden lg:block"><BottomNav role={navRole ?? role} /></div>
 
       <LeaveFormModal
         isOpen={modalOpen}
