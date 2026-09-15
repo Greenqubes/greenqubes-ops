@@ -200,11 +200,32 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
 
       // Move anything uploaded before the job existed onto it. After the
       // buckets, because they are where the files land.
+      //
+      // The result is CHECKED. This call used to be `.catch(() => {})` with no
+      // look at the response, so when it failed on 2026-09-15 the job saved,
+      // the files did not, and nothing anywhere said so — the exact silent-
+      // failure trap this codebase keeps relearning. The file is still safe in
+      // the holding area either way, so the message says to re-attach rather
+      // than implying the file is lost.
       if (pendingFiles.length > 0) {
-        await fetch(`/api/jobs/${job.id}/attach-pending-files`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: pendingFiles }),
-        }).catch(() => {})
+        try {
+          const res = await fetch(`/api/jobs/${job.id}/attach-pending-files`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: pendingFiles }),
+          })
+          const data = await res.json().catch(() => ({})) as {
+            attached?: number; skipped?: number; error?: string
+          }
+          if (!res.ok || (data.skipped ?? 0) > 0 || (data.attached ?? 0) < pendingFiles.length) {
+            showError(
+              data.error
+                ? `${t(lang, 'attachmentsNotSaved')} (${data.error})`
+                : t(lang, 'attachmentsNotSaved'),
+            )
+          }
+        } catch {
+          showError(t(lang, 'attachmentsNotSaved'))
+        }
       }
 
       // Insert selected installers — suggestions for sales, formal otherwise

@@ -61,12 +61,22 @@ export async function POST(
 
   let attached = 0
   let skipped  = 0
+  // Why each file was skipped, in the response AND in the Vercel log. Counting
+  // silently is what made the 2026-09-15 failure undiagnosable: the job saved,
+  // the files did not, and nothing recorded the reason. Same `[route] …`
+  // logging the design-brief PATCH added for the same lesson.
+  const reasons: string[] = []
+  const skip = (why: string) => {
+    skipped++
+    if (!reasons.includes(why)) reasons.push(why)
+    console.error(`[attach-pending-files] job=${jobId} skipped: ${why}`)
+  }
 
   for (const item of incoming) {
     const key  = typeof item?.key === 'string' ? item.key : ''
     const name = typeof item?.name === 'string' && item.name ? item.name : 'file'
 
-    if (!ownsNewJobScratchKey(profile.id, key)) { skipped++; continue }
+    if (!ownsNewJobScratchKey(profile.id, key)) { skip('key not in your holding area'); continue }
 
     // An unknown bucket name would file the upload nowhere visible, which is
     // the confusion this whole change exists to remove — so fall back to
@@ -79,8 +89,8 @@ export async function POST(
     const destKey = generateKey(job.r2_folder ?? job.id, 'attachment', name)
     try {
       await copyObject(key, destKey)
-    } catch {
-      skipped++
+    } catch (e) {
+      skip('copy failed: ' + (e instanceof Error ? e.message : 'unknown'))
       continue
     }
 
@@ -98,7 +108,7 @@ export async function POST(
       // The copy landed but the row did not — remove the orphan rather than
       // leave a file in the job's folder that nothing points at.
       await deleteObject(destKey).catch(() => {})
-      skipped++
+      skip('could not record the file: ' + (fileError.message ?? 'unknown'))
       continue
     }
 
@@ -108,5 +118,6 @@ export async function POST(
     await deleteObject(key).catch(() => {})
   }
 
-  return NextResponse.json({ attached, skipped })
+  console.error(`[attach-pending-files] job=${jobId} sent=${incoming.length} attached=${attached} skipped=${skipped}`)
+  return NextResponse.json({ attached, skipped, error: reasons.join('; ') || undefined })
 }

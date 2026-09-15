@@ -43,6 +43,7 @@ export const en = {
   tabChat: 'Chat',
   jobDetails: 'Job details',
   attachments: 'Attachments',
+  attachmentsNotSaved: 'The job saved, but the attachments did not — please add them again from the job.',
   addAttachment: 'Add attachment',
   newJobAttachmentNote: 'Files are attached to the job when you save it. Discard the job and they go too.',
   designBriefTitle: 'Design brief',

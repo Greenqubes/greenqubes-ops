@@ -28,6 +28,7 @@ export const zh: Partial<Translations> = {
   tabChat: '聊天',
   jobDetails: '工作详情',
   attachments: '附件',
+  attachmentsNotSaved: '任务已保存，但附件未能附上 — 请在任务中重新添加。',
   addAttachment: '添加附件',
   newJobAttachmentNote: '保存任务时文件才会附加上去。放弃任务，文件也会一并删除。',
   designBriefTitle: '设计简报',
