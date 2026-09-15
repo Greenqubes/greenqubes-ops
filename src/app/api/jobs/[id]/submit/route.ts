@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
+import { shouldNotifyOnPush } from '@/lib/utils/job-form-rules'
 import { getSchedulers, getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplNewJobCreated } from '@/lib/telegram/templates'
@@ -34,6 +35,16 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}))
   const newDate: string | undefined = typeof body.date === 'string' ? body.date : undefined
+
+  // Quiet push — admin only, and decided HERE from the real role, never from
+  // the flag alone (Nic, 2026-09-15). The client can ask; only the server may
+  // agree. `profile.role` and not getEffectiveRole: that never returns 'admin',
+  // so an admin previewing as another role is still an admin, and a genuine
+  // sales user can never become one by sending an extra field.
+  const notify = shouldNotifyOnPush({
+    realRole:        profile.role,
+    silentRequested: body.silent === true,
+  })
 
   // A completed job is never pushed back onto the schedule (Nic, 2026-09-07):
   // reopening is the Revert button's job (/revert-complete), which restores the
@@ -69,6 +80,10 @@ export async function POST(
     return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
   }
 
+  // The job IS on the schedule either way — a quiet push only skips the
+  // message, so there is nothing left to do once the row is updated.
+  if (!notify) return NextResponse.json({ ok: true, notified: false })
+
   // Fetch after update so date reflects any change
   const job = await getJobNotifData(jobId)
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -93,5 +108,5 @@ export async function POST(
       .map(s => sendTelegram(s.telegram_chat_id!, message)),
   )
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, notified: true })
 }

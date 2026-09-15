@@ -41,11 +41,13 @@ interface Props {
   /** Every leave row (ids + dates), filtered client-side against the form. */
   leaves?:             LeaveRecord[]
   role:                Role
+  /** Real role, not the preview-aware one — gates the quiet push. */
+  isAdmin?:            boolean
   coordinatorOptions?: Array<{ id: string; label: string }>
   designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leaves = [], role, coordinatorOptions = [], designerOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leaves = [], role, isAdmin = false, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
@@ -64,6 +66,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   const [showPushedModal,       setShowPushedModal]      = useState(false)
   const [clashData,             setClashData]            = useState<ClashesResponse | null>(null)
   const [pushJobId,             setPushJobId]            = useState<string | null>(null)
+  const [pushSilent,            setPushSilent]           = useState(false)
   // Bumped when Push to Schedule is refused: switches the phone to the Details
   // tab and opens the Job Details card if it was folded away on PC.
   const [revealDetails,         setRevealDetails]        = useState(0)
@@ -130,7 +133,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
     [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
   )
 
-  async function saveJob(mode: 'pending' | 'push_to_schedule') {
+  // silent: admin-only quiet push — the schedulers are not Telegrammed.
+  // Held in state as well as passed, because a clash sends the user through
+  // the modal and the push that follows must stay just as quiet.
+  async function saveJob(mode: 'pending' | 'push_to_schedule', silent = false) {
+    if (mode === 'push_to_schedule') setPushSilent(silent)
     const values = watch()
 
     // The six required fields are enforced here and only here (Nic,
@@ -241,7 +248,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
         // notifies all schedulers to assign installers.
         const res = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify(silent ? { silent: true } : {}),
         })
         if (!res.ok) {
           // Job was created but stayed pending — surface the failure and
@@ -286,9 +293,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
           .update({ time_start: timeStart || null, time_end: timeEnd || null } as never)
           .eq('id', pushJobId)
       }
+      // Carries the quiet-push choice through the clash modal: resolving a
+      // clash must not turn a silent push into a noisy one.
       const res = await fetch(`/api/jobs/${pushJobId}/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(pushSilent ? { silent: true } : {}),
       })
       if (!res.ok) throw new Error()
       setClashData(null)
@@ -516,6 +525,22 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
           >
             {saving ? 'Pushing…' : 'Push to Schedule'}
           </button>
+          {/* Quiet push — admin only (Nic, 2026-09-15). Same push, no Telegram
+              to the schedulers, for backfilling work the team already knows
+              about. Red because it is the one button here that skips telling
+              somebody. The server re-checks the real role: this flag is a
+              request, never permission. */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => saveJob('push_to_schedule', true)}
+              disabled={saving}
+              title="Puts the job on the schedule without Telegramming the schedulers"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-bad bg-bad-soft text-sm font-semibold text-bad disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 transition-all"
+            >
+              {saving ? 'Pushing…' : 'Push — no Telegram'}
+            </button>
+          )}
         </div>
       </div>
 

@@ -57,6 +57,10 @@ export default async function NewJobPage() {
       allInstallers={allInstallers}
       leaves={leaves}
       role={role}
+      /* The REAL role, not the effective one: getEffectiveRole returns
+         'scheduler' for a plain admin, so a preview-aware role can never
+         gate an admin-only control. The server re-checks this anyway. */
+      isAdmin={profile.role === 'admin'}
       coordinatorOptions={coordinatorOptions}
       designerOptions={designerOptions}
     />

@@ -220,3 +220,27 @@ export function canTickProductionFlags(input: {
   if (role === 'sales') return isSalesPoc
   return PRODUCTION_FLAG_ROLES.includes(role)
 }
+
+/**
+ * Whether Push to Schedule should Telegram the schedulers.
+ *
+ * Normally yes — that message is how a scheduler learns a job needs an
+ * installer. Nic asked for a quiet push (2026-09-15) for backfilling work the
+ * team already knows about, now that everyone is on board and a burst of
+ * notifications is noise rather than news.
+ *
+ * **Admin only, and decided on the server.** The flag arrives in the request
+ * body, so without this check any sales person could silence the schedulers by
+ * sending one extra field — a job would land on the schedule with nobody told.
+ *
+ * `realRole`, never the effective one: `getEffectiveRole` never returns
+ * 'admin', so an admin previewing as sales is still an admin here, and a
+ * genuine sales user can never become one.
+ */
+export function shouldNotifyOnPush(input: {
+  realRole:         string
+  silentRequested?: boolean
+}): boolean {
+  const { realRole, silentRequested } = input
+  return !(realRole === 'admin' && silentRequested === true)
+}

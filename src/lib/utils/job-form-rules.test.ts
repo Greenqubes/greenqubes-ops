@@ -13,6 +13,7 @@ import {
   shouldSuggestAddresses,
   shouldOfferPreviousLocation,
   canTickProductionFlags,
+  shouldNotifyOnPush,
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
@@ -273,6 +274,27 @@ check('installer never ticks', tick({ role: 'installer', isSalesPoc: true }), fa
 check('hr never ticks', tick({ role: 'hr', isSalesPoc: true }), false)
 check('a read-only form beats every role', tick({ role: 'scheduler', readOnly: true }), false)
 check('read-only beats sales on their own job', tick({ readOnly: true }), false)
+
+// ── Silent Push to Schedule, admin only (Nic, 2026-09-15) ───────────────────
+// Pushing a job normally Telegrams every scheduler. Nic wants a quiet push for
+// backfilling work the team already knows about. The flag arrives in the
+// REQUEST BODY, so the server must decide whether to honour it — otherwise any
+// sales person could silence the schedulers by sending one extra field.
+console.log('\nshouldNotifyOnPush:')
+
+check('a normal push notifies', shouldNotifyOnPush({ realRole: 'sales', silentRequested: false }), true)
+check('an admin asking for quiet gets quiet', shouldNotifyOnPush({ realRole: 'admin', silentRequested: true }), false)
+check('an admin not asking still notifies', shouldNotifyOnPush({ realRole: 'admin', silentRequested: false }), true)
+
+// THE SECURITY CASE: the flag is client-supplied, so a non-admin sending it
+// must change nothing at all.
+check('sales cannot silence the schedulers', shouldNotifyOnPush({ realRole: 'sales', silentRequested: true }), true)
+check('a scheduler cannot silence either', shouldNotifyOnPush({ realRole: 'scheduler', silentRequested: true }), true)
+check('a coordinator cannot silence either', shouldNotifyOnPush({ realRole: 'coordinator', silentRequested: true }), true)
+
+// The REAL role decides, never the previewed one: getEffectiveRole never
+// returns 'admin', so an admin previewing as sales is still an admin here.
+check('a missing flag is a normal push', shouldNotifyOnPush({ realRole: 'admin', silentRequested: undefined }), true)
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)
