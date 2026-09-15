@@ -62,6 +62,9 @@ export default async function JobDetailPage({
     <JobDetailShell
       job={job}
       role={role}
+      /* Real role — getEffectiveRole returns 'scheduler' for a plain
+         admin, so it can never gate an admin-only control. */
+      isAdmin={profile.role === 'admin'}
       userId={profile.id}
       userName={profile.name ?? ''}
       lang={(profile.lang as LangCode) ?? 'en'}

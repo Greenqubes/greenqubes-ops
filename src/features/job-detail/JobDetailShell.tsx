@@ -101,6 +101,8 @@ class SaveBlockedError extends Error {
 interface Props {
   job:             JobDetail
   role:            Role
+  /** Real role, not the preview-aware one — gates the quiet push. */
+  isAdmin?:        boolean
   userId:          string
   userName:        string
   lang:            LangCode
@@ -124,7 +126,7 @@ interface Props {
 }
 
 export function JobDetailShell({
-  job, role, userId, userName, lang, installers, supportUsers, leaves = [], initialMessages, salesPocOptions,
+  job, role, isAdmin = false, userId, userName, lang, installers, supportUsers, leaves = [], initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
   backHref = '/schedule', initialTab,
@@ -857,7 +859,15 @@ export function JobDetailShell({
     }
   }
 
-  const handlePushToSchedule = async () => {
+  // Quiet push — admin only, no Telegram to the schedulers (Nic, 2026-09-15).
+  // Kept in a ref as well as passed, so a clash that routes the user through
+  // the resolution modal does not turn a silent push into a noisy one on the
+  // way out. The server re-checks the real role; this is a request, not
+  // permission.
+  const pushSilentRef = useRef(false)
+
+  const handlePushToSchedule = async (silent = false) => {
+    pushSilentRef.current = silent
     // Required fields first — before any write, so a refused push leaves the
     // job exactly as it was.
     if (!checkRequired(getValues())) {
@@ -885,7 +895,7 @@ export function JobDetailShell({
       if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0 && data.leaveClashes.length === 0) {
         const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
         })
         if (!submitRes.ok) throw new Error()
         setStatus('scheduled')
@@ -926,7 +936,7 @@ export function JobDetailShell({
       }
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
       })
       if (!res.ok) throw new Error()
       setStatus('scheduled')
@@ -958,7 +968,7 @@ export function JobDetailShell({
     try {
       const res = await fetch(`/api/jobs/${job.id}/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
       })
       if (!res.ok) throw new Error()
       setStatus('scheduled')
@@ -1760,7 +1770,11 @@ export function JobDetailShell({
                   {status !== 'scheduled' && (
                     <button
                       type="button"
-                      onClick={handlePushToSchedule}
+                      /* Wrapped, not passed directly: onClick hands the
+                         click event to the first argument, and a MouseEvent
+                         is truthy — every sales push would have gone out
+                         silently. */
+                      onClick={() => handlePushToSchedule()}
                       disabled={saving}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                     >
@@ -1781,6 +1795,35 @@ export function JobDetailShell({
                     <Bell size={14} />
                     {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
                   </button>
+                  {/* Admin push, on a job not yet scheduled. This bar never had
+                      a Push to Schedule at all — StatusSection, which used to
+                      carry it, is no longer rendered anywhere — so an admin
+                      could not push a pending job from the edit form without
+                      previewing as sales. Both buttons are here: the normal
+                      one, and Nic's quiet one (2026-09-15) that skips the
+                      Telegram to the schedulers. */}
+                  {isAdmin && status !== 'scheduled' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handlePushToSchedule()}
+                        disabled={saving}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Bell size={14} />
+                        {saving ? t(lang, 'loading') : 'Push to Schedule'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePushToSchedule(true)}
+                        disabled={saving}
+                        title="Puts the job on the schedule without Telegramming the schedulers"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-bad bg-bad-soft text-sm font-semibold text-bad disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 transition-all"
+                      >
+                        {saving ? t(lang, 'loading') : 'Push — no Telegram'}
+                      </button>
+                    </>
+                  )}
                   {markCompleteBtn}
                 </div>
               )}
