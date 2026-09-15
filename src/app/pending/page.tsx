@@ -25,6 +25,11 @@ export default async function PendingPage() {
   // Nav only: a plain admin navigates with their own tabs. Permissions below
   // keep using effectiveRole exactly as before.
   const navRole      = await getNavRole(profile.role)
+  // Installers never see pending jobs — they see the work they are formally
+  // assigned to, and a pending job has nobody on it yet. RLS already returned
+  // them an empty list, but the page was reachable by URL while /schedule and
+  // /fcfs both bounce them; this closes the odd one out (Nic, 2026-09-15).
+  if (effectiveRole === 'installer') redirect('/installer')
   // hr never sees pending jobs. RLS already returns zero rows for her (the
   // jobs SELECT policy is scoped to non-pending statuses); this keeps the UI
   // honest rather than showing her an empty list.

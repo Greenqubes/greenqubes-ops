@@ -1796,12 +1796,15 @@ export function JobDetailShell({
                     {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
                   </button>
                   {/* Admin push, on a job not yet scheduled. This bar never had
-                      a Push to Schedule at all — StatusSection, which used to
-                      carry it, is no longer rendered anywhere — so an admin
-                      could not push a pending job from the edit form without
-                      previewing as sales. Both buttons are here: the normal
-                      one, and Nic's quiet one (2026-09-15) that skips the
-                      Telegram to the schedulers. */}
+                      a Push to Schedule at all: the old StatusSection carried
+                      the status actions, stopped being rendered when this
+                      action bar replaced it, and sat unused until it was
+                      deleted on 2026-09-15 — so an admin could not push a
+                      pending job from the edit form without previewing as
+                      sales. Both buttons are here: the normal one, and Nic's
+                      quiet one that skips the Telegram to the schedulers.
+                      Schedulers still have no push button here — that is a
+                      permissions question, deliberately left open. */}
                   {isAdmin && status !== 'scheduled' && (
                     <>
                       <button
