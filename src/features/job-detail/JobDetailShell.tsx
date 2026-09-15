@@ -23,6 +23,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
+import { rememberPreviousLocation, readPreviousLocation, forgetPreviousLocation } from './previous-location'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
 import { ProductionReadySection } from './ProductionReadySection'
@@ -341,6 +342,24 @@ export function JobDetailShell({
     [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
   )
   const isOnLeave = (id: string) => onLeaveSet.has(id)
+
+  // A job arrived at by Duplicate has a blank Location on purpose, and the
+  // address it came from waiting in sessionStorage (Nic, 2026-09-15). Offer it
+  // under the empty box; tapping fills it, and either using or dismissing it
+  // clears the stash so it never resurfaces on a later visit to this job.
+  const [previousLocation, setPreviousLocation] = useState<string | null>(null)
+  useEffect(() => { setPreviousLocation(readPreviousLocation(job.id)) }, [job.id])
+
+  const usePreviousLocation = () => {
+    if (!previousLocation) return
+    setValue('location', previousLocation, { shouldDirty: true })
+    forgetPreviousLocation(job.id)
+    setPreviousLocation(null)
+  }
+  const dismissPreviousLocation = () => {
+    forgetPreviousLocation(job.id)
+    setPreviousLocation(null)
+  }
 
   // .select('id') is load-bearing, not decoration: an UPDATE that RLS filters
   // out is NOT an error — PostgREST answers 204, no rows, no error, so a bare
@@ -811,7 +830,10 @@ export function JobDetailShell({
     try {
       const res = await fetch(`/api/jobs/${job.id}/duplicate`, { method: 'POST' })
       if (!res.ok) throw new Error()
-      const data = await res.json() as { id: string; skippedFiles: number }
+      const data = await res.json() as { id: string; skippedFiles: number; previousLocation?: string }
+      // The copy's Location is blank on purpose; keep the source address for
+      // the new form to offer as a one-tap fill (Nic, 2026-09-15).
+      if (data.previousLocation) rememberPreviousLocation(data.id, data.previousLocation)
       showSuccess(data.skippedFiles > 0
         ? `${t(lang, 'duplicateSuccess')} (${data.skippedFiles} file(s) skipped)`
         : t(lang, 'duplicateSuccess'))
@@ -1288,6 +1310,9 @@ export function JobDetailShell({
                 role={role}
                 missingFields={missingFields}
                 installerView={isInstaller}
+                previousLocation={previousLocation}
+                onUsePreviousLocation={usePreviousLocation}
+                onDismissPreviousLocation={dismissPreviousLocation}
               />
             </CollapseCard>
             {/* Prices — the Finance half of the hr/finance role. Dead since

@@ -62,6 +62,8 @@ export const zh: Partial<Translations> = {
   jobDescription: '工作描述',
   locationAddress: '地点/地址',
   openMaps: '打开地图',
+  usePreviousAddress: '使用上一个地址',
+  dismiss: '关闭',
   callContact: '拨打',
   requiredField: '* 此栏必填',
   requiredFieldsMissing: '推送到日程前请填写必填栏位',

@@ -162,3 +162,32 @@ export function shouldSuggestAddresses(input: {
   if (disabled || justPicked || !userEdited) return false
   return value.trim().length >= MIN_ADDRESS_QUERY_LENGTH
 }
+
+/**
+ * Whether to offer the source job's address under an empty Location box.
+ *
+ * Duplicate used to COPY the address into the copy (Nic, 2026-09-10 — a
+ * duplicate is usually the same site, so blanking it made people retype).
+ * A bulk order inverts that: 18 branches on one date means the inherited
+ * address is wrong every time, and an unedited copy looks finished, so two
+ * jobs can sit at the same address unnoticed (Nic, 2026-09-15).
+ *
+ * The copy now starts blank — which also means Push to Schedule blocks it
+ * until someone fills the address in, since Location is a required field —
+ * and the old value is offered beneath as a one-tap fill, so the same-site
+ * case still costs nothing.
+ *
+ * The offer is for an EMPTY box only: the moment anything is typed it is gone.
+ * Using or dismissing the offer is the caller's job — it drops `previous`,
+ * which is the same thing as having nothing to offer.
+ */
+export function shouldOfferPreviousLocation(input: {
+  current:  MaybeText
+  previous: MaybeText
+  disabled: boolean
+}): boolean {
+  const { current, previous, disabled } = input
+  if (disabled) return false
+  if (!(previous ?? '').trim()) return false
+  return !(current ?? '').trim()
+}

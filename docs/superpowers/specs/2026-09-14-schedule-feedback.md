@@ -22,6 +22,11 @@ the portal fix made visible.
 
 **Still open:** 1, 2, 3b, 5, 6, 8, 9, 11, 13.
 
+**Added 2026-09-15:** **14** — Duplicate should not carry the location over
+(Nic, after an 18-job bulk order). It reverses his own 2026-09-10 call, so it
+carries the prior reasoning with it and needs a choice between three options
+before anything is built.
+
 ---
 
 ## 1 — Job card: the right-hand block is too far right (PC)
@@ -438,6 +443,59 @@ already supports without any new column.
 
 ---
 
+## 14 — Duplicate should not carry the location over ⚠ REVERSES A 2026-09-10 CALL
+
+> "remove location every duplicate cuz it confuses user like me with bulk order"
+> — Nic, 2026-09-15
+
+**Not built.** Raised immediately after an 18-job bulk order, live on
+production, watched from the database as he worked.
+
+**This reverses Nic's own decision of 2026-09-10, and the reason he gave then is
+the opposite of the reason he gives now.** The comment sitting in
+`src/app/api/jobs/[id]/duplicate/route.ts` records it:
+
+> Location copies too since 2026-09-10 (Nic): a duplicate is nearly always
+> the same site again, so blanking it made people retype what they had.
+
+Before that date Duplicate deliberately blanked the location. The field has now
+been wanted both ways, each time for a sound reason — because **one button is
+serving two different jobs**:
+
+- **Same site again** (a return trip, a second phase) — copying the address
+  saves retyping. This is what 2026-09-10 optimised for.
+- **Many sites, one campaign** — 18 Cold Storage branches on a single date. Here
+  the inherited address is wrong *every* time, and dangerously plausible: an
+  unedited copy looks finished, and two jobs at the same address are invisible
+  on the schedule.
+
+**Observed 2026-09-15, not inferred:** 18 jobs built by duplicating down a
+chain, each copy arriving pre-filled with the **previous store's** address, each
+one overwritten by hand. Nic's words for it were "ux not so good for bulk order
+job". Nothing was actually lost — but the whole session started because three
+jobs *had* gone missing that morning, and an address silently inherited from the
+job before is exactly the kind of thing nobody would spot.
+
+**Decide between:**
+
+- **(a) Always blank it** — what Nic asked for. Simple; fully reverses
+  2026-09-10 and re-imposes retyping on same-site duplicates.
+- **(b) Ask at duplicate time** — a small "Same location / Different location"
+  choice. Serves both cases honestly; costs one tap per duplicate.
+- **(c) Blank it, but offer the old value back** — the box starts empty with the
+  previous address beneath it as a tap-to-fill suggestion.
+
+**(c) is the recommendation:** it gives Nic the empty box he asked for, so a
+copy can never be silently wrong, without re-creating the retyping problem that
+caused the 2026-09-10 change in the first place. **(b)** is the safer pick if he
+would rather be asked outright than trust a suggestion.
+
+**Overlap to note:** a proper bulk / multi-site flow (raised 2026-09-15, not yet
+an item on this list) would remove the case that prompted this. Worth settling
+the cheap fix regardless — same-site duplicates will still exist either way.
+
+---
+
 ## Grouping
 
 | # | Item | Kind | Size |
@@ -453,6 +511,7 @@ already supports without any new column.
 | 8 | Tickable buckets, shown on the job card | feature + migration | medium |
 | 11 | End-of-day Telegram summary, new bot | feature + new bot | medium, decisions open |
 | 9 | External page: job chat + read-only files | feature + security | medium–large |
+| 14 | Duplicate should not carry the location over | decision + small build | small, reverses a 2026-09-10 call |
 | 5 | Driver containers + drag-to-reassign | **architectural** | large, own spec |
 
 ## Cross-item notes

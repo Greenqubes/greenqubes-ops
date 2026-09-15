@@ -53,8 +53,15 @@ export async function POST(
   if (!source) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // ── New pending job — every Job Details field copied, POC = duplicator ─────
-  // Location copies too since 2026-09-10 (Nic): a duplicate is nearly always
-  // the same site again, so blanking it made people retype what they had.
+  // Location is the ONE field deliberately left blank (Nic, 2026-09-15). It
+  // copied from 2026-09-10 on the reasoning that a duplicate is usually the
+  // same site — true for a return trip, wrong for a bulk order, where 18
+  // branches share one date and the inherited address is wrong every time.
+  // An unedited copy looks finished, so two jobs can sit at the same address
+  // unnoticed. Blank also means Push to Schedule refuses the copy until the
+  // address is filled, since Location is a required field. The old value is
+  // returned below and offered under the empty box as a one-tap fill, so the
+  // same-site case still costs no typing.
   const { data: newJob, error: insertError } = await service
     .from('jobs')
     .insert({
@@ -65,7 +72,7 @@ export async function POST(
       time_start:              source.time_start,
       time_end:                source.time_end,
       client:                  source.client,
-      location:                source.location,
+      location:                '',
       description:             source.description,
       client_poc_name:         source.client_poc_name,
       client_poc_phone:        source.client_poc_phone,
@@ -150,5 +157,7 @@ export async function POST(
     if (fileError) skippedFiles++
   }
 
-  return NextResponse.json({ id: newJob.id, skippedFiles })
+  // previousLocation is the address the copy would have inherited before
+  // 2026-09-15 — offered to the user, never written to the row.
+  return NextResponse.json({ id: newJob.id, skippedFiles, previousLocation: source.location })
 }

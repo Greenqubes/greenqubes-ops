@@ -11,6 +11,7 @@ import {
   extractDialNumber,
   punctualityFor,
   shouldSuggestAddresses,
+  shouldOfferPreviousLocation,
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
@@ -211,6 +212,42 @@ check('a read-only form never suggests', suggest({ disabled: true }), false)
 check('the write straight after a pick does not re-open', suggest({ justPicked: true }), false)
 check('the detailed-address swap does not re-open', suggest({ justPicked: true, value: '#02-110, 1 Kim Seng Promenade' }), false)
 check('disabled beats everything', suggest({ disabled: true, userEdited: true, justPicked: false }), false)
+
+// ── Previous-address offer after a Duplicate (Nic, 2026-09-15) ───────────────
+// Duplicate used to COPY the source job's address into the copy. For a bulk
+// order — 18 Cold Storage branches on one date — that address is wrong every
+// single time, and an unedited copy looks finished. The copy now starts BLANK
+// and the old address is offered underneath as a one-tap fill, so nothing is
+// retyped and nothing is silently inherited.
+console.log('\nshouldOfferPreviousLocation:')
+
+const offer = (over: Partial<Parameters<typeof shouldOfferPreviousLocation>[0]> = {}) =>
+  shouldOfferPreviousLocation({
+    current:  '',
+    previous: 'Cold Storage Takashimaya, 391A Orchard Rd, Singapore 238872',
+    disabled: false,
+    ...over,
+  })
+
+check('an empty box with a previous address offers it', offer(), true)
+check('once the user has typed, the offer is gone', offer({ current: 'Jelita' }), false)
+check('no previous address, nothing to offer', offer({ previous: '' }), false)
+check('a whitespace-only previous address is not a real one', offer({ previous: '   ' }), false)
+check('a whitespace-only box still counts as empty', offer({ current: '   ' }), true)
+// Using or dismissing the offer drops `previous` — the caller's job, and the
+// same state as having nothing to offer in the first place.
+check('using or dismissing it ends the offer', offer({ previous: null }), false)
+check('a read-only form never offers', offer({ disabled: true }), false)
+
+// THE OLD BEHAVIOUR, asserted so this test can prove it catches the real thing:
+// before 2026-09-15 the copy arrived carrying the source address, so the box was
+// never empty and no offer could ever apply. A regression that re-copies the
+// address makes `current` non-empty, which this check pins.
+check('a copy that arrives pre-filled is the bug — no offer', offer({ current: 'Cold Storage Takashimaya, 391A Orchard Rd, Singapore 238872' }), false)
+
+// Safety property this change buys: a blank copy cannot reach the schedule,
+// because Location is one of the six fields required on Push to Schedule.
+check('a blank copy cannot be pushed until its address is filled', REQUIRED_JOB_FIELDS.includes('location'), true)
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

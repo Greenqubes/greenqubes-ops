@@ -81,6 +81,8 @@ export const en = {
   jobDescription: 'Job Description',
   locationAddress: 'Location / Address',
   openMaps: 'Open Maps',
+  usePreviousAddress: 'Use previous address',
+  dismiss: 'Dismiss',
   callContact: 'Call',
   requiredField: '* This field is required',
   requiredFieldsMissing: 'Fill in the required fields before pushing to schedule',

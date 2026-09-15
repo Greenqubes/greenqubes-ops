@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Input } from '@/components/Input'
 import { useAnchoredDropdown, dropdownStyle } from '@/components/useAnchoredDropdown'
-import { composeAddress, shouldSuggestAddresses } from '@/lib/utils/job-form-rules'
+import { composeAddress, shouldSuggestAddresses, shouldOfferPreviousLocation } from '@/lib/utils/job-form-rules'
+import { t, type LangCode } from '@/lib/i18n'
 import type { AutocompleteResponse, PlaceSuggestion } from '@/app/api/places/autocomplete/route'
 import type { PlaceDetailsResponse } from '@/app/api/places/details/route'
 
@@ -35,9 +36,17 @@ interface Props {
   disabled?:    boolean
   error?:       boolean
   placeholder?: string
+  lang?:        LangCode
+  /** Address this job was duplicated from. Offered beneath an EMPTY box only. */
+  previousLocation?:          string | null
+  onUsePreviousLocation?:     () => void
+  onDismissPreviousLocation?: () => void
 }
 
-export function LocationInput({ value, onChange, disabled = false, error = false, placeholder }: Props) {
+export function LocationInput({
+  value, onChange, disabled = false, error = false, placeholder,
+  lang = 'en', previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
+}: Props) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [open,        setOpen]        = useState(false)
   const wrapRef  = useRef<HTMLDivElement>(null)
@@ -158,6 +167,31 @@ export function LocationInput({ value, onChange, disabled = false, error = false
         placeholder={placeholder}
         autoComplete="off"
       />
+
+      {/* The address this job was duplicated from. Duplicate leaves Location
+          blank so a bulk copy can never silently inherit the wrong site
+          (Nic, 2026-09-15); this puts the old value one tap away for the
+          same-site case. Empty box only — typing anything dismisses it. */}
+      {shouldOfferPreviousLocation({ current: value, previous: previousLocation, disabled }) && (
+        <div className="mt-1.5 flex items-start gap-2">
+          <button
+            type="button"
+            onClick={() => onUsePreviousLocation?.()}
+            className="flex-1 min-w-0 text-left text-xs text-muted hover:text-terracotta border border-dashed border-line hover:border-terracotta rounded-md px-2.5 py-1.5 transition-colors"
+          >
+            <span className="block font-medium">{t(lang, 'usePreviousAddress')}</span>
+            <span className="block truncate text-muted">{previousLocation}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onDismissPreviousLocation?.()}
+            aria-label={t(lang, 'dismiss')}
+            className="text-muted hover:text-ink text-xs px-2 py-1.5 shrink-0 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Portalled for the same reason as TimeSelect: the card's
           overflow-hidden would clip these suggestions. This one usually sat

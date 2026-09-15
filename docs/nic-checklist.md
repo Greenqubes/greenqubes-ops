@@ -23,14 +23,16 @@ _Last updated: 2026-09-11 (feat-jobs — **your job form screenshot is built and
 
 ## Pending — Next Session
 
-### Your feedback list — 9 of 13 still to do (from 2026-09-14)
+### Your feedback list — 10 of 14 still to do (from 2026-09-14, one added 2026-09-15)
 
-_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). These nine are tomorrow's work, in the order I'd suggest. Everything is written down in full — nothing depends on either of us remembering it._
+_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). A fourteenth was added on 2026-09-15 after your 18-job bulk order. Everything is written down in full — nothing depends on either of us remembering it._
 
 **Two that only need your answer, then they're quick:**
 
 - [ ] **Sales gets "DO issued" and "Production ready"** — one question first: **all jobs, or only jobs where they're the Person-in-Charge?** Own jobs is a screen change and quick. Any job needs a database rule change.
 - [ ] **Lock Job Details for coordinators** — and something you should see before deciding: coordinators **and production** share one blanket permission to edit jobs (migration 0037). Locking it properly in the database would cut off about 15 production staff, which is exactly why coordinator limits were kept to the screen only back on 7 Sept. So this can be done on screen, but the database will still allow it. Also, "unless they created it and assigned sales as PIC" reads two ways — **any job they created**, or only ones they handed to a sales person? I've assumed the first.
+
+- [ ] **Duplicate should stop carrying the location over** (added 2026-09-15, after your 18-store Arnotts order) — **heads up: this reverses your own call of 2026-09-10.** Back then you asked for the address TO be copied, because a duplicate is usually the same site again and blanking it made people retype what they already had. For a bulk order it's the opposite: the address is wrong every single time, and a copy you forget to change looks finished — two jobs at the same address are invisible on the schedule. Three ways to go: **(a)** always blank it, what you asked for; **(b)** ask "same location or different?" when you press Duplicate; **(c)** blank it but show the old address underneath so one tap puts it back. **I'd suggest (c)** — you get the empty box, without bringing back the retyping that caused the September change. Your call.
 
 **Two I'll mock up for you before building:**
 

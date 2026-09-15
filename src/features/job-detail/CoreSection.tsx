@@ -40,6 +40,11 @@ interface Props {
   missingFields?:    RequiredJobField[]
   installerView?:    boolean
   bare?:             boolean
+  /** Address the job was duplicated from — offered under an empty Location
+   *  box as a one-tap fill (Nic, 2026-09-15). Null when not a fresh copy. */
+  previousLocation?:          string | null
+  onUsePreviousLocation?:     () => void
+  onDismissPreviousLocation?: () => void
 }
 
 // Frame for the section body: the page's CollapseCard supplies the card
@@ -54,6 +59,7 @@ function CoreFrame({ bare, children }: { bare: boolean; children: React.ReactNod
 export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
+  previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
 }: Props) {
   // A field's red message clears the moment it is filled, without waiting for
   // another push — so the form stops nagging as soon as it is satisfied.
@@ -377,6 +383,10 @@ export function CoreSection({
                   onChange={field.onChange}
                   disabled={coreLocked}
                   error={!!errors.location || isMissing('location')}
+                  lang={lang}
+                  previousLocation={previousLocation}
+                  onUsePreviousLocation={onUsePreviousLocation}
+                  onDismissPreviousLocation={onDismissPreviousLocation}
                 />
               )}
             />
