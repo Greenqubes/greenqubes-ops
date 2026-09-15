@@ -19,7 +19,10 @@ export type ScheduleJob = {
   punctuality:      Punctuality
   production_ready: boolean
   do_issued:        boolean
-  job_assignees:    Array<{ is_suggestion?: boolean; users: { id: string; name: string } | null }>
+  // is_sub_installer is a fact about THIS job, not about the person — the
+  // card reads it to split Driver from Support Crew (Nic, 2026-09-15).
+  // Optional because the installer views feed rows through a different query.
+  job_assignees:    Array<{ is_suggestion?: boolean; is_sub_installer?: boolean; users: { id: string; name: string } | null }>
   // Team lines on the list cards (Nic, 2026-08-19). Optional because the
   // installer views feed InstallerJob rows (no team fields) into JobRow —
   // the card only renders the lines when these are present.
@@ -32,7 +35,7 @@ const SCHEDULE_SELECT = `
   id, status, date, date_end, time_start, time_end,
   project_title, client, location, description, punctuality,
   production_ready, do_issued, sales_poc_id,
-  job_assignees ( is_suggestion, users ( id, name ) ),
+  job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) ),
   job_coordinators ( users ( name ) )
 `
 

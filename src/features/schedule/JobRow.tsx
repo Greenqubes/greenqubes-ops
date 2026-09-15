@@ -6,7 +6,28 @@ import { MapPin, Users, Check } from 'lucide-react'
 import { Pill } from '@/components/Pill'
 import { cn } from '@/lib/utils/cn'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import { splitCrew } from '@/lib/utils/job-card'
 import { fmtTime, isOverdue } from './utils'
+
+/** A crew member's name. Whole name, never a first name — see splitCrew. */
+function NamePill({ name }: { name: string }) {
+  return (
+    <span className="inline-block rounded-full border border-line bg-bg px-2 py-[1px] text-[11px] font-medium text-ink2">
+      {name}
+    </span>
+  )
+}
+
+function CrewLine({ label, names }: { label: string; names: string[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[12px] font-semibold text-ink">{label}</span>
+      {names.length > 0
+        ? names.map(n => <NamePill key={n} name={n} />)
+        : <span className="text-[11px] italic text-muted">none</span>}
+    </div>
+  )
+}
 
 interface JobRowProps {
   job:          ScheduleJob
@@ -43,10 +64,17 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
     if (delta > 60 && deletable) setConfirmDelete(true)
   }
 
+  // Compact meta row, installer views only. Kept on first names because that
+  // row is a single tight line; the team card below uses whole names in pills
+  // precisely because first names are ambiguous ("Ali B" and "Ali Ramjan"
+  // both collapse to "Ali"; "Xiao Yi" becomes "Xiao").
   const installerNames = job.job_assignees
     .map(a => a.users?.name.split(' ')[0])
     .filter(Boolean)
     .join(', ')
+
+  // Driver vs Support Crew — two separate lines on the card (Nic, 2026-09-15).
+  const { drivers, support } = splitCrew(job.job_assignees)
 
   // Sales / Coordinator / Installer lines (Nic, 2026-08-19). Only when the
   // feeding query loaded team fields — installer views pass InstallerJob rows
@@ -56,11 +84,6 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
     .map(c => c.users?.name)
     .filter(Boolean)
     .join(', ')
-  const assignedFullNames = job.job_assignees
-    .map(a => a.users?.name)
-    .filter(Boolean)
-    .join(', ')
-
   // No time set = whole-day floater — say so instead of leaving a blank
   // (matches the FCFS board's "All day" bars).
   const timeRange = [fmtTime(job.time_start), fmtTime(job.time_end)]
@@ -116,6 +139,74 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                 job.punctuality === 'strict' ? 'bg-punct-strict' : 'bg-punct-flex'
               )} />
 
+              {hasTeamInfo ? (
+                /* Team card, rebuilt to Nic's sketch (2026-09-15): title,
+                   description over two lines, the FULL address, and Support
+                   Crew on the left; time and the people in a column on the
+                   right. The address was previously truncated at 150px, so
+                   the unit number and postcode Google Places fills in were
+                   saved and then hidden. */
+                <div className="flex-1 min-w-0 flex gap-3">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <h3 className="font-display text-[17px] font-semibold text-ink leading-tight line-clamp-2">
+                      {job.project_title || job.client || 'Untitled job'}
+                    </h3>
+
+                    {job.description && (
+                      <p className="text-[13px] text-ink2 leading-snug line-clamp-2">
+                        {job.description}
+                      </p>
+                    )}
+
+                    <p className="flex items-start gap-1 text-[12px] font-semibold text-ink leading-snug">
+                      <MapPin size={12} className="mt-[2px] shrink-0 text-muted" />
+                      <span className="min-w-0">{job.location || '—'}</span>
+                    </p>
+
+                    <CrewLine label="Support Crew:" names={support} />
+
+                    {(job.production_ready || job.do_issued || (!overdue && job.status !== 'scheduled')) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+                        {job.production_ready && (
+                          <span className="text-xs font-medium text-brand-green">Production ✓</span>
+                        )}
+                        {job.do_issued && (
+                          <span className="text-xs font-medium text-brand-green">DO ✓</span>
+                        )}
+                        {!overdue && job.status !== 'scheduled' && <Pill variant={job.status} />}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-[150px] shrink-0 border-l border-line pl-3 flex flex-col gap-1.5">
+                    <div>
+                      <span className="block text-[9px] uppercase tracking-wide text-muted leading-none">Time</span>
+                      <span className="block text-[15px] font-semibold text-ink leading-tight">{timeRange}</span>
+                    </div>
+                    {jobDayLabel && (
+                      <div>
+                        <span className="block text-[9px] uppercase tracking-wide text-muted leading-none">Job Day</span>
+                        <span className="block text-[13px] font-medium text-ink2 leading-tight">{jobDayLabel}</span>
+                      </div>
+                    )}
+                    <p className="text-[11.5px] text-muted leading-tight">
+                      Sales: <span className="font-medium text-ink2">{job.sales_name || 'NIL'}</span>
+                    </p>
+                    <p className="text-[11.5px] text-muted leading-tight">
+                      Coordinator: <span className="font-medium text-ink2">{coordinatorNames || 'NIL'}</span>
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="text-[11.5px] text-muted">Driver:</span>
+                      {drivers.length > 0
+                        ? drivers.map(n => <NamePill key={n} name={n} />)
+                        : <span className="text-[11px] italic text-muted">nobody yet</span>}
+                    </div>
+                    {overdue && (
+                      <div className="mt-auto flex justify-end pt-1"><Pill variant="overdue" /></div>
+                    )}
+                  </div>
+                </div>
+              ) : (
               <div className="flex-1 min-w-0">
                 {/* Client + time / job day */}
                 <div className="flex justify-between items-start gap-2 mb-1">
@@ -174,25 +265,8 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                   )}
                 </div>
 
-                {/* Team row — installers bottom-left; Sales / Coordinator box
-                    sits right but its text stays left-aligned so both labels
-                    start at the same edge */}
-                {hasTeamInfo && (
-                  <div className="flex justify-between items-end gap-3 mt-1.5">
-                    <p className="text-[11px] text-muted leading-tight truncate min-w-0">
-                      Installer: {assignedFullNames || 'NIL'}
-                    </p>
-                    <div className="text-left space-y-0.5 min-w-0 shrink-0 max-w-[55%]">
-                      <p className="text-[11px] text-muted leading-tight truncate">
-                        Sales: {job.sales_name || 'NIL'}
-                      </p>
-                      <p className="text-[11px] text-muted leading-tight truncate">
-                        Coordinator: {coordinatorNames || 'NIL'}
-                      </p>
-                    </div>
-                  </div>
-                )}
               </div>
+              )}
             </div>
           </div>
         </Link>

@@ -35,7 +35,7 @@ export async function getInstallerJobs(): Promise<InstallerJob[]> {
       id, status, date, date_end, time_start, time_end,
       project_title, client, location, description, client_poc_name, client_poc_phone,
       sales_poc_id, punctuality, production_ready, do_issued,
-      job_assignees ( is_suggestion, users ( id, name ) )
+      job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) )
     `)
     .eq('status', 'scheduled')
     .order('date', { ascending: true })
