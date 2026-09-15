@@ -370,7 +370,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
             <DesignBriefSection
               jobId={null}
               lang={lang}
-              readOnly={false}
+              /* Nothing to brief against yet, and a designer attached before
+                 the job reaches the schedule cannot see it (migration 0060).
+                 Unlocks on the edit form once the job is pushed. */
+              readOnly
+              lockedNote={t(lang, 'briefLockedUntilScheduled')}
               canManage={canEditDesigners}
               userId={userId}
               briefText={briefText}

@@ -23,6 +23,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
+import { designBriefEditable } from '@/lib/utils/job-form-rules'
 import { rememberPreviousLocation, readPreviousLocation, forgetPreviousLocation } from './previous-location'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
@@ -1340,7 +1341,13 @@ export function JobDetailShell({
                 ref={briefCardRef}
                 jobId={job.id}
                 lang={lang}
-                readOnly={formReadOnly}
+                /* Locked until the job is ON the schedule (Nic, 2026-09-15):
+                   migration 0060 stops designers seeing pending jobs, so a
+                   brief written on one would be invisible to its designer. */
+                readOnly={!designBriefEditable({ status, readOnly: formReadOnly })}
+                lockedNote={designBriefEditable({ status, readOnly: formReadOnly }) || formReadOnly
+                  ? undefined
+                  : t(lang, 'briefLockedUntilScheduled')}
                 canManage={canEditCore}
                 userId={userId}
                 briefText={briefText}

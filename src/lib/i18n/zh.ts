@@ -13,6 +13,7 @@ export const zh: Partial<Translations> = {
   roleHr: '人事/财务',
   companySchedule: '公司排程',
   columnsLabel: '每行卡片数',
+  briefLockedUntilScheduled: '请先将此任务推送到排程 — 设计师只能看到已排程的任务。',
   oneColumn: '每行 1 个',
   twoColumns: '每行 2 个',
   threeColumns: '每行 3 个',

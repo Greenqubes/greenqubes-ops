@@ -244,3 +244,23 @@ export function shouldNotifyOnPush(input: {
   const { realRole, silentRequested } = input
   return !(realRole === 'admin' && silentRequested === true)
 }
+
+/**
+ * Whether the Design brief card can be filled in yet.
+ *
+ * Locked until the job is ON the schedule (Nic, 2026-09-15). This follows
+ * directly from migration 0060: designers no longer see pending jobs, so a
+ * brief written on one — or a designer attached to one — would be invisible
+ * to the very person it is for, with nothing on screen to say why.
+ *
+ * `status: null` is the New Job form, where the job does not exist yet.
+ * `readOnly` still wins, so completed jobs stay locked as they always were.
+ */
+export function designBriefEditable(input: {
+  status:   string | null
+  readOnly: boolean
+}): boolean {
+  const { status, readOnly } = input
+  if (readOnly) return false
+  return status === 'scheduled'
+}

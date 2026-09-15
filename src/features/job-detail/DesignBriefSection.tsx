@@ -46,6 +46,9 @@ export interface DesignBriefSectionProps {
   // Gating reuses `readOnly`/`canManage` (textLocked below) — identical to
   // the `(readOnly || !canEditCore)` / `canEditDesigners` checks the Team
   // tab used to apply to this same grid.
+  /** Shown at the top of the card when it is locked, so the grey fields
+   *  explain themselves instead of looking broken. */
+  lockedNote?:         string
   designerOptions:     DesignerOption[]
   selectedDesignerIds: string[]
   onToggleDesigner:    (id: string) => void
@@ -54,7 +57,7 @@ export interface DesignBriefSectionProps {
 export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionProps>(
   function DesignBriefSection(
     {
-      jobId, lang, readOnly, canManage, userId, briefText, onBriefText, dueDate, dueManual, onDueDate, briefError, files,
+      jobId, lang, readOnly, canManage, userId, briefText, onBriefText, dueDate, dueManual, onDueDate, briefError, files, lockedNote,
       designerOptions, selectedDesignerIds, onToggleDesigner,
     },
     ref,
@@ -148,6 +151,15 @@ export const DesignBriefSection = forwardRef<HTMLDivElement, DesignBriefSectionP
       <div ref={ref}>
         <CollapseCard title={t(lang, 'designBriefTitle')} storageKey="gq-jobcard-designbrief">
           <div className="space-y-4">
+
+            {/* Why the fields below are grey. Without this the card just looks
+                broken (Nic, 2026-09-15). */}
+            {lockedNote && (
+              <div className="flex items-start gap-2 rounded-lg border border-line bg-bg px-3 py-2.5 text-xs text-muted">
+                <Lock size={13} className="mt-[1px] shrink-0" />
+                <span>{lockedNote}</span>
+              </div>
+            )}
 
             {/* 1. Brief text */}
             <div>

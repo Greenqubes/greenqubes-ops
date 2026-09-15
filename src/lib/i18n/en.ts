@@ -25,6 +25,7 @@ export const en = {
   viewWeek: 'Week',
   viewMonth: 'Month',
   columnsLabel: 'Cards per row',
+  briefLockedUntilScheduled: 'Push this job to the schedule first — designers only see scheduled jobs.',
   oneColumn: '1 per row',
   twoColumns: '2 per row',
   threeColumns: '3 per row',

@@ -14,6 +14,7 @@ import {
   shouldOfferPreviousLocation,
   canTickProductionFlags,
   shouldNotifyOnPush,
+  designBriefEditable,
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
@@ -295,6 +296,21 @@ check('a coordinator cannot silence either', shouldNotifyOnPush({ realRole: 'coo
 // The REAL role decides, never the previewed one: getEffectiveRole never
 // returns 'admin', so an admin previewing as sales is still an admin here.
 check('a missing flag is a normal push', shouldNotifyOnPush({ realRole: 'admin', silentRequested: undefined }), true)
+
+// ── Design brief locked until the job is on the schedule ────────────────────
+// Follows from 0060 (Nic, 2026-09-15): designers can no longer see pending
+// jobs, so a brief written on one — or a designer attached to one — would be
+// invisible to the person it is for. The card unlocks when the job is pushed.
+console.log('\ndesignBriefEditable:')
+
+check('a scheduled job can be briefed', designBriefEditable({ status: 'scheduled', readOnly: false }), true)
+check('a pending job cannot', designBriefEditable({ status: 'pending', readOnly: false }), false)
+check('nor one awaiting approval', designBriefEditable({ status: 'awaiting_approval', readOnly: false }), false)
+// Completed jobs were already locked by readOnly; this must not change that.
+check('a completed job stays locked', designBriefEditable({ status: 'completed', readOnly: true }), false)
+check('read-only beats a scheduled job', designBriefEditable({ status: 'scheduled', readOnly: true }), false)
+// The New Job form has no job yet — nothing to brief against.
+check('a job that does not exist yet cannot be briefed', designBriefEditable({ status: null, readOnly: false }), false)
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)
