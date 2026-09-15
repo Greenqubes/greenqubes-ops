@@ -30,6 +30,12 @@ export default async function PendingPage() {
   // them an empty list, but the page was reachable by URL while /schedule and
   // /fcfs both bounce them; this closes the odd one out (Nic, 2026-09-15).
   if (effectiveRole === 'installer') redirect('/installer')
+  // Designer and production are off pending jobs too (Nic, 2026-09-15): a
+  // draft has unconfirmed dates and missing details, and production seeing
+  // one could mean signage built for a job that changes. Migration 0060
+  // enforces this in the database as well — until then they could SELECT
+  // every draft in the company and only lacked a link to the page.
+  if (effectiveRole === 'designer' || effectiveRole === 'production') redirect('/schedule')
   // hr never sees pending jobs. RLS already returns zero rows for her (the
   // jobs SELECT policy is scoped to non-pending statuses); this keeps the UI
   // honest rather than showing her an empty list.
