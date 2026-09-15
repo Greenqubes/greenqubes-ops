@@ -21,11 +21,13 @@ _Last updated: 2026-09-14 (fix-jobs — **six of your thirteen are live; nine ar
 
 _Last updated: 2026-09-11 (feat-jobs — **your job form screenshot is built and live, and the app now updates itself.** Six fields must be filled before a job can go on the schedule (title, date, company, client, contact number, address) — a half-filled draft still saves, and on an existing job those details can be changed but not emptied. Typing an address now suggests real Singapore places and fills in **the unit number and postcode**, there is a call button beside the contact number and an Open Maps button beside the address, the Day box became End Date, and duplicating a job brings the address along. **Two things I found while in there that had been wrong for a while:** nothing on the New Job form had ever actually been checked — the rules existed but the buttons walked past them, so an empty form could go straight onto the schedule; and every error message in the app had been showing in green instead of red since the August rebrand. **The refresh problem is solved**: after a deploy, a tab notices within about three minutes, or the instant someone comes back to it, and refreshes itself — unless they are mid-typing, in which case it waits and shows a bar. You tested all three cases live. **One last shout to the team:** the popup now asks everyone to log out and log in once, because today's copy of the app is too old to know how to check.)_
 
+_Last updated: 2026-09-15 (feat-jobs — **a long one: nineteen changes live across two releases, and your driver containers are finally designed.** We started on your missing jobs. The answer took minutes: **4 of the 7 were in the database, the other 3 were never saved at all** — so not a display problem, and nothing was hiding. You then tried to make it happen again while I watched the database every 4 seconds, and **all 18 duplicates worked**. So I still don't know what caused it, and I'd rather say that than invent a reason. **What the watching did show was the real cost:** every duplicate was carrying the previous store's address forward, which is where your "remove location on duplicate" came from — now built. **Your two sketches turned into a full design** for the driver containers: Mixed Drivers on top, your three drivers across the middle (Rintu, Xiao Yi, CK — the only three ticked as Driver, checked against the real data), Unassigned at the bottom, and all five drag rules. **Your best call of the day was the 6pm summary** — a drag tells nobody, so arranging tomorrow doesn't buzz an installer ten times, except jobs happening today which still go out at once. **Live now:** the job card you sketched (including **the full address, which had been cut off at 150 pixels** — you'd been saving postcodes the card then hid), 1/2/3 job cards per row, attaching files while creating a job, sales ticking DO issued and Production ready on their own jobs, and your admin-only red "no Telegram" push. **Four things I found that had quietly never worked:** your admin menu never had Pending or Leave because the app was showing you the scheduler's menu; schedulers could save a draft with no Pending tab to find it in; schedulers and admins had **no Push to Schedule button on the job page at all**; and **deleting a job left its files in storage forever** — every job ever deleted, including the 46 from August. **One bug was mine and you found it:** attaching a file to a new job failed and said nothing. It now tells you. Two housekeeping items are below.)_
+
 ## Pending — Next Session
 
-### Your feedback list — 7 of 14 still to do (from 2026-09-14, one added 2026-09-15)
+### Your feedback list — 5 of 14 still to do (from 2026-09-14, one added 2026-09-15)
 
-_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). A fourteenth was added on 2026-09-15 after your 18-job bulk order. **On 2026-09-15: items 2 and 14 were built and are on `dev` awaiting your preview; item 1 was decided; item 5 (driver containers) was fully designed; item 11 was answered and split into two summaries; item 13 is designed and held.** Everything is written down in full — nothing depends on either of us remembering it._
+_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). A fourteenth was added on 2026-09-15 after your 18-job bulk order. **On 2026-09-15: items 2 and 14 are LIVE on production; item 1 decided (Option A + cards-per-row, the card part LIVE); item 5 (driver containers) fully designed and ready to build; item 11 answered and split into two summaries; item 13 designed and held.** Still to do: 3b, 5 (build), 6, 8, 9 — and 11/13 once you say go. Everything is written down in full — nothing depends on either of us remembering it._
 
 **Two that only need your answer, then they're quick:**
 
@@ -57,6 +59,11 @@ _You went through 13 things one at a time. **Six are already live on production*
   - **Scheduler and admin only** can drag; everyone else sees the board read-only.
   - **Two things still to settle when you're ready:** hand-sorting jobs *inside* a container (the list is ranked first-come-first-served today, so a manual order needs somewhere to live), and what happens when a job stops being shared — drag one driver off a Mixed job and it should drop into the other driver's container by itself.
   - **FCFS joins this** — not a bug, just 2,282px wide at the AM/PM zoom, so a phone shows two hours.
+
+### Leftover files in storage (found 2026-09-15)
+
+- [ ] **Old deleted jobs left their files behind — worth a clean-up when convenient.** Until today, deleting a job removed the record but **not the actual files**, which are still sitting in Cloudflare: invisible, unreachable, still costing you a little. That's every job ever deleted, including the 46 wiped in August. **Deleting a job now cleans up properly**, so this only concerns the old ones. Clearing them is a one-off script with a dry run first, same as the previous clean-ups — say the word.
+- [ ] **One stray test file** from your first attachment test this evening, uploaded before the Cancel button learned to clean up after itself. Harmless, and the nightly sweep removes it within 7 days on its own. Mentioned only so it isn't a surprise if you go looking.
 
 ### Focus rings have never been the brand colour (found 2026-09-14)
 
@@ -343,6 +350,22 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-09-15, feat-jobs — 19 Changes Live, Driver Containers Designed)
+
+- [x] **[Nic] Your missing jobs — answered, and it was not a display problem.** 4 of the 7 were in the database; the other 3 were never saved. Searched every way there is — by title, client, date, and everything created that day — with the permission rules bypassed so nothing could hide.
+- [x] **[Nic] You tried to reproduce it live while I watched the database.** 18 duplicates in a row, all of them fine. **So the cause is still unknown**, and I would rather leave it open than invent one. Nothing was lost either way.
+- [x] **[Nic] Duplicate no longer carries the address over** — your call, from watching that bulk order. It offers the old address as a one-tap fill instead, so the same-site case still costs no typing. **This reverses your own decision of 10 Sept**, and the reasoning from then is recorded beside it so nobody quietly flips it back.
+- [x] **[Nic] The job card rebuilt to your sketch** — bigger title, description over two lines, support crew and driver as name pills, time and people in their own column. **The full address shows at last**: it had been cut off at 150 pixels, so since address lookup went in you had been saving unit numbers and postcodes the card then hid.
+- [x] **[Nic] 1, 2 or 3 job cards per row** on a wide screen, your choice, remembered per device. Phones and laptops are untouched.
+- [x] **[Nic] Attach files while creating a job** — no more saving first and reopening. Files wait in a holding area and move onto the job when you save; Cancel throws them away immediately, and anything abandoned is swept after 7 days. They go into the **same four buckets** as the job form, so nothing appears to move on its own.
+- [x] **[Nic] Sales can tick DO issued and Production ready on their own jobs** — your call: own jobs, not everyone's.
+- [x] **[Nic] Your admin-only red "Push — no Telegram" button**, on both the new job form and the job page. The server decides whether to honour it, so nobody else can silence the schedulers by pretending.
+- [x] **[Nic] Design brief locked until a job is on the schedule**, and moved to the Team tab on phones. It follows from designers no longer seeing draft jobs — a brief written on one would be invisible to the person it is for.
+- [x] **[Nic] Database change applied (0060) on your go** — designers and production can no longer read draft jobs. They never had a Pending tab but could reach every draft by typing the address; the database now agrees with the screen.
+- [x] **[Nic] Four things that had quietly never worked**, all found while doing the above: your admin menu was showing you the scheduler's menu (no Pending, no Leave); schedulers could save a draft with nowhere to find it; schedulers and admins had **no Push to Schedule button on the job page at all**; and **deleting a job left its files in storage forever**. All fixed, and three dead files deleted.
+- [x] **[Nic] One bug was mine, and your testing found it** — attaching a file to a new job failed and said nothing at all. It now reports the real reason. The likely cause was a stale browser tab, which I have written down as likely rather than proven.
+- [x] **[Nic] Your driver containers are designed** — three fixed bands, your three real drivers, all five drag rules, and the 6pm summary. Nothing built yet; it is the next big piece and wants its own session.
 
 ## Done This Session ✓ (2026-09-14, fix-jobs — Your Feedback Pass: 6 Fixed and LIVE)
 
