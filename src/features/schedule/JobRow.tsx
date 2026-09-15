@@ -177,7 +177,7 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
 
                     <CrewLine label="Support Crew:" names={support} />
 
-                    {(job.production_ready || job.do_issued || (!overdue && job.status !== 'scheduled')) && (
+                    {(job.production_ready || job.do_issued) && (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
                         {job.production_ready && (
                           <span className="text-xs font-medium text-brand-green">Production ✓</span>
@@ -185,7 +185,6 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                         {job.do_issued && (
                           <span className="text-xs font-medium text-brand-green">DO ✓</span>
                         )}
-                        {!overdue && job.status !== 'scheduled' && <Pill variant={job.status} />}
                       </div>
                     )}
                   </div>
@@ -213,9 +212,19 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                         ? drivers.map(n => <NamePill key={n} name={n} />)
                         : <span className="text-[11px] italic text-muted">nobody yet</span>}
                     </div>
-                    {overdue && (
-                      <div className="mt-auto flex justify-end pt-1"><Pill variant="overdue" /></div>
-                    )}
+                    {/* The status pill lives here for EVERY status, not just
+                        the exceptions — bottom-right, where Overdue already
+                        sat (Nic, 2026-09-15). Scheduled now shows too; it
+                        used to be hidden on the grounds that everything on
+                        the schedule tab is scheduled, but the same card is
+                        reused on Pending and Completed, so one fixed place
+                        for "what state is this job in" reads better than a
+                        pill that appears only sometimes. Overdue still wins,
+                        since it is the more urgent fact about a scheduled
+                        job. */}
+                    <div className="mt-auto flex justify-end pt-1">
+                      <Pill variant={overdue ? 'overdue' : job.status} />
+                    </div>
                   </div>
                 </div>
               ) : (
