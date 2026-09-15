@@ -23,9 +23,9 @@ _Last updated: 2026-09-11 (feat-jobs — **your job form screenshot is built and
 
 ## Pending — Next Session
 
-### Your feedback list — 8 of 14 still to do (from 2026-09-14, one added 2026-09-15)
+### Your feedback list — 7 of 14 still to do (from 2026-09-14, one added 2026-09-15)
 
-_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). A fourteenth was added on 2026-09-15 after your 18-job bulk order. **Two more (2 and 14) were built on 2026-09-15 and are on `dev` awaiting your preview**, and item 13 is designed and held. Everything is written down in full — nothing depends on either of us remembering it._
+_You went through 13 things one at a time. **Six are already live on production** (see Done This Session below). A fourteenth was added on 2026-09-15 after your 18-job bulk order. **On 2026-09-15: items 2 and 14 were built and are on `dev` awaiting your preview; item 1 was decided; item 5 (driver containers) was fully designed; item 11 was answered and split into two summaries; item 13 is designed and held.** Everything is written down in full — nothing depends on either of us remembering it._
 
 **Two that only need your answer, then they're quick:**
 
@@ -36,7 +36,7 @@ _You went through 13 things one at a time. **Six are already live on production*
 
 **Two I'll mock up for you before building:**
 
-- [ ] **Job card — time / sales / coordinator too far right on PC.** The wider the screen the further your eye travels. Two very different answers (stop the card getting wider, or pull everything left and leave space), so I'll show you both rather than guess. You said you don't want the old jobsheet's density.
+- [x] **[Nic] Job card — time / sales / coordinator too far right on PC — DECIDED 2026-09-15, not yet built.** You picked **Option A: stop the card getting wider.** The cause turned out to be simple — nothing on the schedule list ever had a maximum width, so the card grows to fill whatever monitor it lands on and drags the right-hand block out with it. That's why your scheduler feels it on a 32″ and you don't. You also extended it: with the card capped there's spare room, so the list shows **two or three jobs side by side** depending on screen size, reading **down then across**. Mockup: https://claude.ai/artifact/Sz7XKcZyXfxp3SZxHD4RrB
 - [ ] **Time picker — AM/PM clicker, and make it less ugly.** Noted properly: **scrolling through the whole day stays**, the clicker is a faster way in on top of it, not a replacement.
 
 **Four that need decisions, then building:**
@@ -44,11 +44,19 @@ _You went through 13 things one at a time. **Six are already live on production*
 - [ ] **Support crew pills** (your 7 Sept item, raised again) — still undecided: is "Carpentry" one pill matching all three job titles, or do you tidy the data? Plus excluding Sales/Designer/Coordinator partly reverses the 4 Sept decision to open that bucket to everyone. And **Support crew + External installers are still missing from the New Job form**.
 - [ ] **Tickable attachment buckets** — Job Order rename, ticks locking the name, ticks showing on the job card. **One thing to settle:** for Permit-to-Work and BCA a tick means "still to do", but Job Order only appears once a file is attached, which means "done". Opposite signals on one card — I'll bring you a way to show both. Needs a database change.
 - [ ] **External installer page — job chat + read-only files.** Two calls needed: that page has **no login** (the link is the key), so letting it write into your job chat is a bigger step than letting it read; and **which** attachments should an outside contractor see — all of them, or only ones you tick for them? That links to the buckets item above.
-- [ ] **End-of-day Telegram summary on a new bot.** Your format is captured exactly. Queries you invited: what time does it send · who receives it · "jobs added" means added today or happening today · is the name list fixed or whoever was active. **One practical step:** everyone who should receive it has to message the new bot once first — Telegram blocks bots from messaging people who haven't started them. That's what caught the digest bot in August.
+- [ ] **End-of-day Telegram summary — now TWO summaries (your call, 2026-09-15).** Your format is captured exactly, and the driver-container design ended up needing the same mechanism, so they merged. **Answered:** it sends at **6pm**, and there are **two different messages** — a **scheduler summary** (the whole-day overview you sketched) and an **installer summary** (each person's own: what was assigned to them, what came off). **Jobs dated today are the exception — those notify immediately**, so a change made at 2pm never lands after the job should have started. **Still open:** one new bot for both or two, and whether the job form's existing instant messages fold into the same rule (a quiet board plus a noisy job form would be inconsistent). **One practical step:** everyone who should receive it has to message the new bot once first — Telegram blocks bots from messaging people who haven't started them. That's what caught the digest bot in August.
 
-**One that's a design session of its own:**
+**One that's a design session of its own — ✅ THE DESIGN IS NOW DONE (2026-09-15), ready to build:**
 
-- [ ] **Driver containers + drag-to-reassign, and FCFS on a phone.** Your sketch: a coloured container per driver, unassigned jobs loose at the bottom, a drag handle for the scheduler, and dragging between containers swapping the crew. This changes how the schedule is *organised*, not how it looks. Open questions I'll walk you through: support crew is attached to the *job* not the driver, so what moves with a card · does a drag fire Telegram immediately or stay quiet while you shuffle · dropping onto an already-booked driver is a clash — warn or refuse · what does a hand-sorted order mean when the list is ranked first-come-first-served · do sales and coordinators see containers too. **FCFS joins this**: it isn't a bug (it scrolls in its own box, as you confirmed) — the problem is the board is 2,282px wide at the AM/PM zoom, so a phone shows two hours.
+- [ ] **Driver containers + drag-to-reassign — DESIGNED 2026-09-15, nothing built yet.** We went through it properly from your two sketches and your marked-up card. Everything below is settled; say go and it gets built. Mockup: https://claude.ai/artifact/Sz7XKcZyXfxp3SZxHD4RrB
+  - **Three fixed bands:** Mixed Drivers on top (jobs with 2+ drivers) · your three drivers across the middle · Unassigned at the bottom. More drivers push Unassigned further down. Each band is always in the same place, so nobody hunts for anything.
+  - **It fits your crew exactly** — Rintu, Xiao Yi and CK are the only three ticked as Driver, confirmed against the live data. Three across on the scheduler's 32″ is a natural fit, and it drops to two or one on smaller screens so nobody else is affected.
+  - **The card is rebuilt to your sketch** — bigger title, description over two lines, support crew and driver as name pills, and **the full address at last**. That last one turned out to be a real bug: the address is cut off at 150 pixels, so ever since address lookup went in you have been saving unit numbers and postcodes that the card then hides.
+  - **All five drag rules decided**, each asking before it acts, and nothing saved until you confirm. Dropping a job into Unassigned confirms first, because it clears everyone off.
+  - **The big one: dragging does NOT Telegram anybody.** Arranging tomorrow would otherwise buzz an installer ten times for a day that isn't settled, each message contradicting the last. Instead a **6pm summary** per person — except **jobs dated today, which notify immediately**, so a 2pm reassignment never arrives after the job should have started.
+  - **Scheduler and admin only** can drag; everyone else sees the board read-only.
+  - **Two things still to settle when you're ready:** hand-sorting jobs *inside* a container (the list is ranked first-come-first-served today, so a manual order needs somewhere to live), and what happens when a job stops being shared — drag one driver off a Mixed job and it should drop into the other driver's container by itself.
+  - **FCFS joins this** — not a bug, just 2,282px wide at the AM/PM zoom, so a phone shows two hours.
 
 ### Focus rings have never been the brand colour (found 2026-09-14)
 

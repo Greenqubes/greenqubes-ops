@@ -23,9 +23,18 @@ the portal fix made visible.
 **Still open:** 1, 2, 3b, 5, 6, 8, 9, 11, 13.
 
 **Added 2026-09-15:** **14** — Duplicate should not carry the location over
-(Nic, after an 18-job bulk order). It reverses his own 2026-09-10 call, so it
-carries the prior reasoning with it and needs a choice between three options
-before anything is built.
+(Nic, after an 18-job bulk order). Decided (option c) and **BUILT**, on `dev`.
+
+**Built 2026-09-15, on `dev` awaiting preview:** **2** (sales ticks DO issued /
+Production ready on their own jobs) and **14**.
+
+**Designed 2026-09-15, nothing built:** **5** — the driver-container session
+finally happened, from two hand sketches and an annotated screenshot. Layout,
+card, all five drag rules and the notification model are settled; see item 5.
+**13** designed and held at Nic's call. **1** decided (Option A + columns by
+screen width). **11** answered and split into two summaries.
+
+**Still open:** 3b, 6, 7 (rides with 5), 8, 9, and the build of 1, 5, 11, 13.
 
 ---
 
@@ -50,6 +59,31 @@ viewport instead, which is what makes a wide monitor worse than a laptop.
 **To check before designing:** whether the right block is genuinely pinned right
 or merely pushed there by the card stretching. That decides small change vs
 re-layout.
+
+### Answered and decided 2026-09-15
+
+**It is pushed, not pinned.** There is **no `max-width` anywhere** on the
+schedule list — not on `ScheduleShell`, not on `ListView`, not on `JobRow`. The
+card grows to fill whatever monitor it lands on, and `justify-between` drags
+Job Time, Sales and Coordinator to the far edge with it. That is why the
+scheduler feels it and Nic does not: it scales with screen size.
+
+**Nic's choice: Option A — cap the card width.** Nothing moves, nobody relearns
+the card, and a 32" reads like a laptop. Option B (time/sales/coordinator moved
+into fixed left-packed columns) was mocked up and rejected in favour of A.
+
+**Extended by Nic in the same session:** once the card stops stretching there is
+spare width, so the list splits into columns — 1 / 2 / 3 by screen width, the
+same thresholds as item 5. Reading order **down-then-across** (his call): a
+column is scanned straight down, and it collapses to the existing single column
+on a narrow screen without reordering anything.
+
+Mockup with eye-travel measured live at any width:
+<https://claude.ai/artifact/Sz7XKcZyXfxp3SZxHD4RrB>
+
+**Note the overlap:** item 5's driver bands replace this list view entirely for
+the scheduler. Item 1 still stands on its own for Pending and Completed, which
+are not grouped by driver.
 
 **Open:** cap the card width, or cluster content left and leave the right empty?
 They look very different. Nic explicitly does not want the old sheet's density
@@ -206,6 +240,122 @@ looks. It deserves its own design session and spec.
   served by `scheduled_at` today. A manual order is a different concept and
   needs somewhere to live.
 - **Who else sees containers?** Sales, coordinators and HR open the same page.
+
+### Designed 2026-09-15 — the session this item was waiting for
+
+Worked through with Nic against a live mockup, from two hand sketches plus an
+annotated screenshot. Mockup:
+<https://claude.ai/artifact/Sz7XKcZyXfxp3SZxHD4RrB>
+
+**Nothing is built.** Everything below is decided; the code is not written.
+
+#### Layout — three fixed bands, top to bottom
+
+```
+┌─────────────────────────────────────────────┐
+│  MIXED DRIVERS   — jobs with 2+ drivers     │   full width
+├───────────┬───────────┬─────────────────────┤
+│    CK     │   RINTU   │      XIAO YI        │   N across
+├───────────┴───────────┴─────────────────────┤
+│  UNASSIGNED      — nobody on it yet         │   full width
+└─────────────────────────────────────────────┘
+```
+
+- **A band is always in the same place.** That is the point, and it is why this
+  beats one flowing grid: a grid reshuffles as the day fills, so the scheduler
+  would have to hunt. Bands never move.
+- **More drivers push Unassigned DOWN, never sideways** (Nic's words). A fourth
+  driver starts a second row in the middle band; Unassigned stays last.
+- **It fits the real crew exactly.** `is_driver` is true for exactly three
+  people — Rintu, Xiao Yi, CK (verified against the live DB 2026-09-15) — so
+  three across is the natural width, not a squeeze. The other four installers
+  are support crew, who ride on a job rather than owning it.
+- **Mixed Drivers holds 2+ driver jobs ONLY.** This is what makes the board
+  honest: a shared job appears exactly once, with every driver named on the
+  card. The alternative — filing it under one driver, or duplicating it into
+  both — either loses it from someone's day or double-counts it.
+- **Driver containers run left to right and wrap.** They are *people*, not an
+  ordered sequence. The down-then-across rule Nic chose applies where it was
+  decided: to the JOBS inside each container, which run down in time order.
+
+#### Column count follows the screen
+
+| Width | Columns | |
+|---|---|---|
+| < 1600px | 1 | laptops and phones unchanged |
+| 1600–2199px | 2 | |
+| ≥ 2200px | 3 | the scheduler's 32" monitor (confirmed by Nic) |
+
+Set by the width at which a card stops being readable, not by what fits: below
+~700px per card the crew column crowds the address, which is the very thing the
+card redesign exists to expose.
+
+#### The card — Nic's type scale, from his annotated screenshot
+
+```
+┌──────────────────────────────────────────┬───────────────┐
+│ PROJECT TITLE                    (H2, b) │ TIME          │
+│ Description, up to 2 lines       (H3)    │ 9AM ~ 11AM    │
+│ Full address, 2 lines            (H4, b) │ Sales:  …     │
+│ Support Crew: [pill] [pill]              │ Coordinator: …│
+│                                          │ Driver: [pill]│
+│                                          │      [OVERDUE]│
+└──────────────────────────────────────────┴───────────────┘
+```
+
+- **The address is a REAL BUG, not a preference.** `JobRow` truncates it at
+  `max-w-[150px]`. Since Google Places started filling in unit numbers and
+  postcodes (2026-09-11) the full address has been saved and then hidden. Nic's
+  "I want to see full address" is asking for data he already has.
+- Description gains a second line (`line-clamp-1` → 2).
+- Support crew names become pills; Driver moves into the right column as a pill;
+  Overdue moves to the bottom of that column.
+
+#### Drag and drop — every rule decided
+
+| Drag | What happens |
+|---|---|
+| **Mixed → a driver** | Other driver comes off automatically; asks which support crew to remove. **Always asks, even with no support crew** — no silent drags. |
+| **Driver → another driver** | Job moves; asks about the existing support crew first, who stay with the job unless told otherwise. |
+| **Anything → Unassigned** | Drops everyone, driver and support crew. **Confirms first** — the most destructive drag on the board. |
+| **Anything → Mixed Drivers** | Asks who to assign. **If only one driver is picked the card drops into that driver's own container instead**, so the band can never hold a single-driver job. |
+| **Unassigned → a driver** | That driver goes on; asks about adding support crew at the same time. |
+
+**Four rules across all of them:**
+
+1. **Nothing is written until every prompt is confirmed.** Cancel at any point
+   and the drag never happened — no save, no message, card snaps back.
+2. **Crew are not told per drag** (see notifications below).
+3. **The clash check runs on confirm, not on drop.** Dragging a card over a
+   driver is not a decision yet and must not throw warnings mid-shuffle.
+4. **Scheduler and admin only.** Sales and coordinators have been suggest-only
+   for installers since 2026-09-01; the board is read-only for them. This
+   answers the open "who else sees containers" question above — everyone sees
+   it, only scheduler and admin can drag.
+
+#### Notifications — the shape changed
+
+Nic's call, and it is the load-bearing decision of the whole feature: **a drag
+does not Telegram anybody.** A scheduler arranging tomorrow would otherwise buzz
+an installer ten times for a day that is not settled, with the last message
+contradicting the first nine.
+
+- **Future-dated jobs** → collected into a **6pm summary** per person.
+- **Jobs dated TODAY notify immediately** (Nic, 2026-09-15). Without this
+  exception a job reassigned at 2pm would reach the installer at 6pm, after it
+  should have started. This is the line that makes the quiet board safe.
+
+**This merges with item 11.** See that item — it is now two summaries, not one.
+
+#### Still open
+
+- **The hand-sorted order** question above is NOT answered. Containers group by
+  driver, but within a container the jobs are still FCFS-ranked by
+  `scheduled_at`. A manual drag-to-reorder needs somewhere to live before it can
+  be built.
+- **What happens when a job stops being shared** — drag one driver off a Mixed
+  job and it should fall into the remaining driver's container by itself.
+- **Item 7 (FCFS too wide for a phone) belongs with this**, per 2026-09-14.
 
 ---
 
@@ -398,6 +548,34 @@ the `*` shorthand. Also standing: user text must be escaped before it goes into
 a Telegram message — a crafted job title could otherwise inject formatting or a
 fake link. That hardening item is already on the checklist and this feature is a
 good reason to do it.
+
+### Answered 2026-09-15 — and it grew a second message
+
+The drag-and-drop design in item 5 needed somewhere for its notifications to go,
+and landed on the same mechanism. Nic's answers:
+
+- **TWO summaries, not one** — different audiences want different things:
+  - **Scheduler summary** — the whole-day overview already sketched in this item.
+  - **Installer summary** — per person: what was **assigned** to them and what
+    was **taken off** them. New, from the item 5 session.
+- **Sends at 6pm.** This answers "what time does it send".
+- **Who receives it:** the scheduler summary goes to the office roster as
+  sketched; the installer summary goes to each installer about their own jobs
+  only. That answers "who receives it".
+
+**Why the installer summary exists at all** — it is what makes the drag-and-drop
+board usable. A scheduler arranging tomorrow would otherwise fire a Telegram per
+drag, buzzing a phone ten times for a day that is not settled, each message
+contradicting the last.
+
+**The exception that makes it safe:** a job dated **TODAY** notifies
+**immediately** and does not wait for 6pm (Nic, 2026-09-15). A job reassigned at
+2pm must not reach its installer after it should have started.
+
+**Still open:** whether both summaries share one new bot or need two; and
+whether the existing immediate Telegrams from the job form (assign-installers)
+stay as they are or fold into the same rule, since a quiet board plus a noisy
+job form would be inconsistent.
 
 ---
 
