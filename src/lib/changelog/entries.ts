@@ -35,15 +35,20 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-15',
-    // 19:40 SGT, decoded from the production deployment's x-vercel-id epoch
-    // AFTER the deploy landed, per the CLAUDE.md rule. This machine's clock
-    // reports MPST and TZ= is ignored here, so it is never the source.
-    time: '19:40',
+    // 20:17 SGT — bumped from 19:40 when a second release went out the same
+    // evening. ONE entry per date (CLAUDE.md): a second entry would not
+    // reopen the popup, since `date` is what decides that, so the later
+    // release is folded in here and the time moved to the latest deployment.
+    // Both times decoded from the production deployment's own x-vercel-id
+    // epoch AFTER each deploy landed — this machine reports MPST and TZ= is
+    // ignored, so the local clock is never the source.
+    time: '20:17',
     headsUp: [
       'Duplicate now leaves the address blank — tap "Use previous address" to bring it back.',
       'The Design brief only opens once a job is on the schedule.',
     ],
     added: [
+      '**Attach files while creating a job** — no more saving first, then reopening.',
       'Job cards show the **full address**, plus driver and support crew.',
       'Pick 1, 2 or 3 job cards per row on a wide screen.',
       'Schedulers get a **Pending** tab — saved drafts were unreachable before.',
