@@ -148,19 +148,31 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                    saved and then hidden. */
                 <div className="flex-1 min-w-0 flex gap-3">
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    <h3 className="font-display text-[17px] font-semibold text-ink leading-tight line-clamp-2">
+                    {/* break-words on all three: line-clamp hides overflow but
+                        cannot WRAP an unbroken string, so a pasted run of
+                        characters with no spaces pushed straight through the
+                        card and over the crew column (Nic, 2026-09-15). */}
+                    <h3 className="font-display text-[17px] font-semibold text-ink leading-tight line-clamp-2 break-words">
                       {job.project_title || job.client || 'Untitled job'}
                     </h3>
 
+                    {/* Two lines, then "…" — Nic's call. */}
                     {job.description && (
-                      <p className="text-[13px] text-ink2 leading-snug line-clamp-2">
+                      <p className="text-[13px] text-ink2 leading-snug line-clamp-2 break-words">
                         {job.description}
                       </p>
                     )}
 
+                    {/* The address wraps freely onto a second and third line.
+                        It is deliberately NOT clamped at two: cutting this
+                        field off is the bug this card exists to fix, and a
+                        full Singapore address with unit number and postcode
+                        needs three lines in the narrowest column. Three is
+                        far more than any real address and only stops junk
+                        data stretching the card. */}
                     <p className="flex items-start gap-1 text-[12px] font-semibold text-ink leading-snug">
                       <MapPin size={12} className="mt-[2px] shrink-0 text-muted" />
-                      <span className="min-w-0">{job.location || '—'}</span>
+                      <span className="min-w-0 line-clamp-3 break-words">{job.location || '—'}</span>
                     </p>
 
                     <CrewLine label="Support Crew:" names={support} />
@@ -189,10 +201,10 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                         <span className="block text-[13px] font-medium text-ink2 leading-tight">{jobDayLabel}</span>
                       </div>
                     )}
-                    <p className="text-[11.5px] text-muted leading-tight">
+                    <p className="text-[11.5px] text-muted leading-tight break-words">
                       Sales: <span className="font-medium text-ink2">{job.sales_name || 'NIL'}</span>
                     </p>
-                    <p className="text-[11.5px] text-muted leading-tight">
+                    <p className="text-[11.5px] text-muted leading-tight break-words">
                       Coordinator: <span className="font-medium text-ink2">{coordinatorNames || 'NIL'}</span>
                     </p>
                     <div className="flex flex-wrap items-center gap-1">
