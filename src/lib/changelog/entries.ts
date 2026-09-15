@@ -34,6 +34,31 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-15',
+    // 19:40 SGT, decoded from the production deployment's x-vercel-id epoch
+    // AFTER the deploy landed, per the CLAUDE.md rule. This machine's clock
+    // reports MPST and TZ= is ignored here, so it is never the source.
+    time: '19:40',
+    headsUp: [
+      'Duplicate now leaves the address blank — tap "Use previous address" to bring it back.',
+      'The Design brief only opens once a job is on the schedule.',
+    ],
+    added: [
+      'Job cards show the **full address**, plus driver and support crew.',
+      'Pick 1, 2 or 3 job cards per row on a wide screen.',
+      'Schedulers get a **Pending** tab — saved drafts were unreachable before.',
+      'Sales can tick Production ready and DO issued on their own jobs.',
+    ],
+    improved: [
+      'On phones the Design brief moved to the Team tab, above Team.',
+      'The status pill now sits in the same corner on every card.',
+    ],
+    fixed: [
+      'Very long titles and addresses no longer spill out of a job card.',
+      'Crew names show in full — "Xiao Yi" was showing as "Xiao".',
+    ],
+  },
+  {
     date: '2026-09-14',
     // 19:11 SGT, decoded from the production deployment's x-vercel-id epoch
     // after the deploy landed, per the CLAUDE.md rule. Cross-checked against
