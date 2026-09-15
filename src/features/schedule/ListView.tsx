@@ -1,3 +1,6 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Calendar } from 'lucide-react'
 import { JobRow } from './JobRow'
 import { DateStrip } from './DateStrip'
@@ -30,14 +33,48 @@ interface ListViewProps {
   selectedIds?: Set<string>
   onToggle?:    (id: string) => void
   onDelete?:    (id: string) => void
+  /** Cards per row the user picked. Narrowed below when the window is too
+   *  small to carry it, so a phone is never forced into two or three. */
+  columns?:     1 | 2 | 3
 }
 
 export function ListView({
   jobsByDate, selectedDate, today, lang, strings,
   leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {}, onSelectDate,
-  selectable, selectedIds, onToggle, onDelete,
+  selectable, selectedIds, onToggle, onDelete, columns = 1,
 }: ListViewProps) {
   const dayJobs    = jobsByDate[selectedDate] ?? []
+
+  // The window decides the ceiling, the user decides within it. Measured
+  // AFTER mount and starting at 1, so the first render matches the server's —
+  // /schedule is hydration-sensitive (#418) and must not be given a reason
+  // to differ.
+  const [maxColumns, setMaxColumns] = useState(1)
+  useEffect(() => {
+    const read = () => setMaxColumns(
+      window.matchMedia('(min-width: 1536px)').matches ? 3
+        : window.matchMedia('(min-width: 1024px)').matches ? 2
+        : 1,
+    )
+    read()
+    window.addEventListener('resize', read)
+    return () => window.removeEventListener('resize', read)
+  }, [])
+
+  const cols = Math.min(columns, maxColumns)
+  // Down the first column, then across — Nic's call, 2026-09-15: a column is
+  // scanned straight down, and on a narrow screen it collapses back to the
+  // single list in its original order.
+  const gridStyle = cols > 1
+    ? {
+        display:            'grid',
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridAutoFlow:        'column' as const,
+        gridTemplateRows:    `repeat(${Math.ceil(dayJobs.length / cols)}, auto)`,
+        alignItems:          'start' as const,
+        columnGap:           '1rem',
+      }
+    : undefined
   const dayHoliday = holidayByDate[selectedDate]
   // De-duplicated: one person can hold two overlapping entries (a half day
   // inside a longer one) and should still be named once.
@@ -88,18 +125,20 @@ export function ListView({
                 {strings.flexibleWindow}
               </span>
             </div>
-            {dayJobs.map(job => (
-              <JobRow
-                key={job.id}
-                job={job}
-                currentDate={selectedDate}
-                selectable={selectable}
-                selected={selectedIds?.has(job.id)}
-                onToggle={onToggle}
-                deletable={selectable}
-                onDelete={() => onDelete?.(job.id)}
-              />
-            ))}
+            <div style={gridStyle}>
+              {dayJobs.map(job => (
+                <JobRow
+                  key={job.id}
+                  job={job}
+                  currentDate={selectedDate}
+                  selectable={selectable}
+                  selected={selectedIds?.has(job.id)}
+                  onToggle={onToggle}
+                  deletable={selectable}
+                  onDelete={() => onDelete?.(job.id)}
+                />
+              ))}
+            </div>
           </>
         )}
       </div>

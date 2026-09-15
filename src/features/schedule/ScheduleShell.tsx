@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { createClient } from '@/lib/supabase/client'
@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
+import { ColumnToggle, type ListColumns } from './ColumnToggle'
 import { JumpCalendar } from './JumpCalendar'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
@@ -23,6 +24,9 @@ import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
+
+/** Per-device, like the date strip's week/month choice. */
+const LIST_COLUMNS_KEY = 'gq-schedule-list-columns'
 
 type ViewMode = 'list' | 'week' | 'month'
 
@@ -223,6 +227,19 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
     return monthLabel(selectedDate)
   }, [viewMode, selectedDate])
 
+  // How many job cards sit side by side, remembered per device. Read only
+  // AFTER mount: /schedule is hydration-sensitive (#418), so the first render
+  // must match the server's — same rule DateStrip follows for its own toggle.
+  const [listColumns, setListColumns] = useState<ListColumns>(1)
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(LIST_COLUMNS_KEY))
+    if (saved === 2 || saved === 3) setListColumns(saved)
+  }, [])
+  const chooseColumns = (n: ListColumns) => {
+    setListColumns(n)
+    try { localStorage.setItem(LIST_COLUMNS_KEY, String(n)) } catch { /* private window */ }
+  }
+
   const views: { v: ViewMode; Icon: typeof List; label: string }[] = [
     { v: 'list',  Icon: List,         label: tr(lang, 'viewList')  },
     { v: 'week',  Icon: CalendarDays, label: tr(lang, 'viewWeek')  },
@@ -363,6 +380,12 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
             </button>
           ))}
         </div>
+
+        {/* Cards per row — list view only, and only where there is room to
+            choose (Nic, 2026-09-15). */}
+        {viewMode === 'list' && (
+          <ColumnToggle value={listColumns} onChange={chooseColumns} lang={lang} />
+        )}
       </div>
 
       {/* ── Views ── */}
@@ -381,6 +404,7 @@ export function ScheduleShell({ jobs, lang, role, pageMode = 'schedule', leaves 
           selectedIds={selectedIds}
           onToggle={toggleJob}
           onDelete={handleSingleDelete}
+          columns={listColumns}
         />
       )}
       {viewMode === 'week' && (

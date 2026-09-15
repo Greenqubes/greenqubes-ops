@@ -24,6 +24,10 @@ export const en = {
   viewList: 'List',
   viewWeek: 'Week',
   viewMonth: 'Month',
+  columnsLabel: 'Cards per row',
+  oneColumn: '1 per row',
+  twoColumns: '2 per row',
+  threeColumns: '3 per row',
   stripShowMonth: 'Show full month',
   stripShowWeek: 'Show one week',
 
