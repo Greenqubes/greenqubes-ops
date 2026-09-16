@@ -67,6 +67,12 @@ export type FormValues = {
   quote_amount:            string
   supplier_cost:           string
   margin_notes:            string
+  // Map coordinates of the picked address (migration 0061). Never typed by a
+  // person — LocationInput sets them on a pick and clears them on a hand
+  // edit. Nothing reads them yet; deliberate capture, see
+  // src/lib/utils/location-coords.ts.
+  lat:                     number | null
+  lng:                     number | null
 }
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
@@ -91,6 +97,8 @@ const formValuesFromJob = (job: JobDetail): FormValues => ({
   quote_amount:            job.job_financials?.quote_amount?.toString() ?? '',
   supplier_cost:           job.job_financials?.supplier_cost?.toString() ?? '',
   margin_notes:            job.job_financials?.margin_notes ?? '',
+  lat:                     job.lat ?? null,
+  lng:                     job.lng ?? null,
 })
 
 // Thrown when a write is refused by RLS rather than failing outright, so
@@ -388,6 +396,8 @@ export function JobDetailShell({
       production_instructions: values.production_instructions || null,
       notes:                   values.notes || null,
       sales_poc_id:            values.sales_poc_id || null,
+      lat:                     values.lat,
+      lng:                     values.lng,
     } as never).eq('id', job.id).select('id').throwOnError()
     if (!saved || saved.length === 0) throw new SaveBlockedError()
     reset(values)

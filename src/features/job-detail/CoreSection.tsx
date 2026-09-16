@@ -394,6 +394,15 @@ export function CoreSection({
                   previousLocation={previousLocation}
                   onUsePreviousLocation={onUsePreviousLocation}
                   onDismissPreviousLocation={onDismissPreviousLocation}
+                  /* Coordinates of the picked place (migration 0061).
+                     LocationInput sets them on a pick and clears them the
+                     moment someone types, so a stale pin can never be saved
+                     against a hand-edited address. Nothing reads them yet —
+                     deliberate capture, Nic 2026-09-16. */
+                  onCoords={c => {
+                    setValue('lat', c?.lat ?? null, { shouldDirty: true })
+                    setValue('lng', c?.lng ?? null, { shouldDirty: true })
+                  }}
                 />
               )}
             />

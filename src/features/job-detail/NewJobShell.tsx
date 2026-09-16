@@ -113,6 +113,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
       supplier_cost:           '',
       margin_notes:            '',
       sales_poc_id:            userId,
+      lat:                     null,
+      lng:                     null,
     },
   })
 
@@ -173,6 +175,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
           time_end:                values.time_end || null,
           client:                  values.client,
           location:                values.location,
+          lat:                     values.lat,
+          lng:                     values.lng,
           description:             values.description || null,
           client_poc_name:         values.client_poc_name || null,
           client_poc_phone:        values.client_poc_phone || null,

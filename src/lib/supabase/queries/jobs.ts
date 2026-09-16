@@ -153,6 +153,10 @@ export type JobDetail = {
   project_title:           string | null
   client:                  string
   location:                string
+  // Map coordinates of the picked address (migration 0061). Unused by any
+  // code — deliberate capture for a future proximity feature, 2026-09-16.
+  lat:                     number | null
+  lng:                     number | null
   description:             string | null
   client_poc_name:         string | null
   client_poc_phone:        string | null
@@ -224,7 +228,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
     .from('jobs')
     .select(`
       id, status, date, date_end, time_start, time_end,
-      project_title, client, location, description, client_poc_name, client_poc_phone,
+      project_title, client, location, lat, lng, description, client_poc_name, client_poc_phone,
       sales_poc_id, production_ready, do_issued, punctuality,
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override,
