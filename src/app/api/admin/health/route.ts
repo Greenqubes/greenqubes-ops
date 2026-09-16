@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
       checkTelegramBot('Telegram ops bot',    'TELEGRAM_BOT_TOKEN'),
       checkTelegramBot('Telegram digest bot', 'TELEGRAM_DIGEST_BOT_TOKEN'),
       checkTelegramBot('Telegram bugs bot',   'TELEGRAM_BUG_BOT_TOKEN'),
+      checkTelegramBot('Telegram summary bot','TELEGRAM_SUMMARY_BOT_TOKEN'),
       checkLastSync(),
       // Longest normal gap is 15h (6pm → next 9am); only a longer silence warns.
       checkLastCron('Overdue cron', 'overdue_check',     16, 'runs twice daily, 9am + 6pm SGT'),

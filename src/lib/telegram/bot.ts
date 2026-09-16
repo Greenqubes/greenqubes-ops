@@ -226,3 +226,40 @@ async function telegramPost(
   void logApiUsage({ service: 'telegram', endpoint: 'sendMessage', estimated_cost: 0 })
   return res
 }
+
+// ── Summary bot ──────────────────────────────────────────────────────────────
+// Third bot, reading TELEGRAM_SUMMARY_BOT_TOKEN. Carries both 6pm summaries.
+//
+// Nic's call, 2026-09-16, made with the cost stated: a separate bot keeps the
+// daily digest out of the job-notification thread, at the price of every
+// recipient having to message it once — Telegram blocks a bot from messaging
+// anyone who has not started it. That is exactly what bit the digest bot in
+// August 2026, so a failed send is REPORTED rather than swallowed: the return
+// value tells the cron who never received theirs.
+export async function sendSummaryTelegram(chatId: string, text: string): Promise<boolean> {
+  const token = process.env.TELEGRAM_SUMMARY_BOT_TOKEN
+  if (!token || !chatId?.trim()) {
+    console.warn('[telegram-summary] TELEGRAM_SUMMARY_BOT_TOKEN or chat id missing — skipping')
+    return false
+  }
+
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    }),
+  })
+  if (!res.ok) {
+    // 403 "bot was blocked" / "can't initiate conversation" means they never
+    // pressed START. Logged with the reason, so it is chased rather than
+    // guessed at.
+    console.error('[telegram-summary] sendMessage failed', chatId, res.status, await res.text())
+    return false
+  }
+  void logApiUsage({ service: 'telegram', endpoint: 'summary', estimated_cost: 0 })
+  return true
+}
