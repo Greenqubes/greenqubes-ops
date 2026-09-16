@@ -347,6 +347,31 @@ contradicting the first nine.
 
 **This merges with item 11.** See that item — it is now two summaries, not one.
 
+#### Answered 2026-09-16, and BUILT
+
+- **Hand-sorted order — ANSWERED: sort by time.** Nic asked whether proximity
+  sorting was possible. It is, and the coordinates now cost nothing (Google
+  puts `location` in the same Essentials tier as the address), but pure
+  proximity order fights the clock: a 9am in Jurong and a 2pm in Tampines
+  cannot be driven nearest-first. Containers sort by **time** — the driver’s
+  real day — and `jobs.lat`/`lng` (migration 0061) are captured from now on so
+  a "which driver is already near this job" hint has data behind it when it is
+  designed. No manual-order column, so nothing to migrate if that changes.
+- **"What happens when a job stops being shared" — ANSWERED by the derived-band
+  rule**, with no separate code. The band comes from the driver set every time
+  it renders, so dropping one driver off a Mixed job lands it in the remaining
+  driver’s container automatically.
+- **External installers get their own containers** (Nic, 2026-09-16), below the
+  three drivers and above Unassigned, appearing only when they hold work. A job
+  with a driver AND an external shows in BOTH, as one object rendered twice —
+  the driver’s copy live, the external’s a read-only mirror. Display-only: you
+  cannot drag INTO an external container.
+- **The support crew belongs to the driver** (Nic, 2026-09-16): any drag that
+  removes a driver removes their helpers too and asks fresh.
+- **Item 11 built** — two 6pm summaries on a new bot, with the today-notifies-
+  immediately exception. Still open there: nothing. The bot itself is Nic’s to
+  create, and every recipient must message it once.
+
 #### Still open
 
 - **The hand-sorted order** question above is NOT answered. Containers group by

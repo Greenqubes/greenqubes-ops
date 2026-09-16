@@ -60,6 +60,15 @@ _You went through 13 things one at a time. **Six are already live on production*
   - **Two things still to settle when you're ready:** hand-sorting jobs *inside* a container (the list is ranked first-come-first-served today, so a manual order needs somewhere to live), and what happens when a job stops being shared — drag one driver off a Mixed job and it should drop into the other driver's container by itself.
   - **FCFS joins this** — not a bug, just 2,282px wide at the AM/PM zoom, so a phone shows two hours.
 
+### Driver board + 6pm summaries (built 2026-09-16 — needs a bot from you)
+
+- [ ] **Create the summary bot and send Claude the token.** Message @BotFather on Telegram, "/newbot", pick a name. The token goes into Vercel (all three environments) and `.env.local`. **Nothing can send until this exists** — the board is built and working, the messages are written and tested, they just have no bot to go out on.
+- [ ] **Everyone who should get a summary must message that bot once, before it will ever reach them.** Telegram blocks a bot from messaging anyone who hasn't started it. This is exactly what bit the digest bot in August, and the failure is silent — their summary simply never arrives and nobody finds out. Worth doing in the same breath as handing over the token.
+- [ ] **Decide who gets the scheduler summary.** Built as schedulers + admin. Say the word if you want it wider or narrower. **Worth knowing:** only 2 of your 4 schedulers/admins currently have Telegram linked at all, so two would get nothing even with the bot in place.
+- [ ] **Decide whether the GreenqubesAI account should appear in the summary.** It can create jobs, so it's in the list — and its test jobs show up under its own name. Easy to exclude.
+- [ ] **Heads up for your outside contractors:** the Accept and Decline buttons are gone from their link page, and every job they're on now opens straight away. Anyone who was sent a job and never pressed Accept couldn't open it before and can now — worth knowing if one of them mentions seeing more than they used to.
+- [ ] **Drop `job_external_contacts.status`** — accept/decline was removed 2026-09-16, so the column is written once at creation and never read again. Small migration in a quiet session; same housekeeping as the years/skills columns below.
+
 ### Leftover files in storage (found 2026-09-15)
 
 - [ ] **Old deleted jobs left their files behind — worth a clean-up when convenient.** Until today, deleting a job removed the record but **not the actual files**, which are still sitting in Cloudflare: invisible, unreachable, still costing you a little. That's every job ever deleted, including the 46 wiped in August. **Deleting a job now cleans up properly**, so this only concerns the old ones. Clearing them is a one-off script with a dry run first, same as the previous clean-ups — say the word.
