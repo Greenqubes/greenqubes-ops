@@ -25,7 +25,7 @@
 - **Nic's decisions, 2026-09-16:** build board + summaries and merge only when both work · a **new** summary bot, not the ops bot · sort inside a container by **time**, and capture coordinates now for a later proximity feature · leave the job form's instant "Save & notify" Telegram exactly as it is.
 - **Nic's external-installer decisions, 2026-09-16:** a job with a driver AND an external shows **twice — once in the driver's container, once in the external's** ("both the same thing, its for visibility purpose"), with the driver's copy the live one · external containers are **display-only, no drag in** — assigning an outsider stays on the job form · **accept/decline is removed entirely** from the external page: "we inform beforehand through message and call to set agreement, in which they have no rights to reject once agreed unless informed otherwise again."
 - **Mixed Drivers stays** (Nic, 2026-09-16) — two of OUR drivers sharing a job do NOT mirror into both containers, because both copies would be draggable and could contradict each other. Mirrors are safe only because an external copy cannot be dragged.
-- **Coming out of Mixed onto a driver drops the support crew too** (Nic, 2026-09-16) — "drop both driver and support then prompt who to include" — because a shared job's helpers belong to two different drivers' teams. A one-driver move keeps them, pre-ticked.
+- **The support crew belongs to the DRIVER, not the job** (Nic, 2026-09-16): any drag that takes a driver off takes their helpers off with them, and the prompt starts empty — "if moving from one driver container over to another driver container, drop support crew too. cuz its a different team altogether." When no driver is removed (adding a second driver, or placing an unassigned job) the existing crew stays, pre-ticked.
 
 ## Already built — do not rebuild
 
@@ -312,16 +312,28 @@ check('three drivers in mixed → only the target survives',
     askSupport: true, askDrivers: false, destructive: false,
   })
 
-// A ONE-driver move is different: the job was one driver's all along, so its
-// support crew is that job's crew and travels with it, pre-ticked. The
-// scheduler can still take them off in the prompt.
-check('driver to driver KEEPS the support crew, pre-ticked',
+// Nic, 2026-09-16: "if moving from one driver container over to another
+// driver container, drop support crew too. cuz its a different team
+// altogether." The support crew belongs to the DRIVER, not to the job — so
+// when the driver goes, their helpers go with them.
+check('driver to driver DROPS the support crew — a different team',
   planDrag(job('d2', [main(CK), support(XY)]), driverBandId('rintu'), DRIVERS),
   {
     targetBand: driverBandId('rintu'),
     driverIds: ['rintu'], removedDriverIds: ['ck'],
-    supportIds: ['xy'], removedSupportIds: [],
+    supportIds: [], removedSupportIds: ['xy'],
     askSupport: true, askDrivers: false, destructive: false,
+  })
+
+// The other side of the same rule: NO driver is removed here — CK is still on
+// the job, so the people who ride with him stay, pre-ticked.
+check('adding a second driver KEEPS the existing support crew',
+  planDrag(job('d3', [main(CK), support(XY)]), MIXED, DRIVERS),
+  {
+    targetBand: MIXED,
+    driverIds: ['ck'], removedDriverIds: [],
+    supportIds: ['xy'], removedSupportIds: [],
+    askSupport: true, askDrivers: true, destructive: false,
   })
 
 // Nic's rule: ALWAYS asks, even with no support crew — no silent drags.
@@ -723,25 +735,33 @@ export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[
   const targetId = targetBand.replace(/^driver:/, '')
   if (current.length === 1 && current[0] === targetId) return null   // already there
 
+  const removedDriverIds = current.filter(id => id !== targetId)
+
   /**
-   * Coming OUT of Mixed, the support crew is dropped too and the prompt
-   * starts empty.
+   * THE SUPPORT RULE: the support crew belongs to the DRIVER, not to the job.
    *
-   * Nic, 2026-09-16: "CK + RINTU in mixed, if i drag into xiao yi container,
-   * drop both driver and support then prompt who to include for support xiao
-   * yi." A shared job's helpers belong to two different drivers' teams, so
-   * carrying them across to a third driver would hand him someone else's
-   * crew. A ONE-driver move is the opposite case — that support crew is the
-   * job's own, so it travels with it, pre-ticked and removable.
+   * Nic, 2026-09-16 — first for Mixed ("CK + RINTU in mixed, if i drag into
+   * xiao yi container, drop both driver and support then prompt who to
+   * include for support xiao yi"), then widened to every move: "if moving
+   * from one driver container over to another driver container, drop support
+   * crew too. cuz its a different team altogether."
+   *
+   * So: whenever a drag takes a driver OFF, their helpers go with them and
+   * the prompt starts empty. When no driver is removed — adding a second
+   * driver to make a job Mixed, or placing an unassigned job — the existing
+   * crew stays, because the person they ride with is still on it.
+   *
+   * One line, no special cases, and it reads the same way out loud as it does
+   * in code.
    */
-  const fromMixed = current.length >= 2
+  const losesADriver = removedDriverIds.length > 0
 
   return {
     targetBand,
     driverIds:         [targetId],
-    removedDriverIds:  current.filter(id => id !== targetId),
-    supportIds:        fromMixed ? []      : support,
-    removedSupportIds: fromMixed ? support : [],
+    removedDriverIds,
+    supportIds:        losesADriver ? []      : support,
+    removedSupportIds: losesADriver ? support : [],
     askSupport:        true,
     askDrivers:        false,
     destructive:       false,
@@ -1510,9 +1530,9 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
           </p>
         )}
 
-        {/* Said out loud, never silently. Coming out of Mixed clears the
-            support crew as well (Nic, 2026-09-16) — a shared job's helpers
-            belong to two different drivers' teams. Emptying a list the
+        {/* Said out loud, never silently. The support crew belongs to the
+            driver (Nic, 2026-09-16), so when the driver goes their helpers go
+            too — "its a different team altogether". Emptying a list the
             scheduler had filled without a word would read as a bug. */}
         {plan.removedSupportIds.length > 0 && !plan.destructive && (
           <div className="rounded-xl border border-brand-amber bg-brand-amber-soft p-3">
@@ -1521,7 +1541,7 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
             </p>
             <p className="text-[12px] text-ink2 mt-0.5">
               {plan.removedSupportIds.map(id => supportPool.find(p => p.id === id)?.name ?? 'someone').join(', ')}
-              {' '}rode with the drivers this job is leaving. Pick who should support it now.
+              {' '}rode with the driver this job is leaving. Pick who should support it now.
             </p>
           </div>
         )}
