@@ -4,7 +4,7 @@
 
 **Goal:** Turn `/schedule`'s day list into a driver-grouped board the scheduler can drag jobs around, and replace the per-drag Telegram with two 6pm summaries — with jobs dated today still notifying immediately.
 
-**Architecture:** A job's band is **derived, never stored** — the formal crew decides it (0 → Unassigned, 1 driver → that driver's container, 2+ drivers → Mixed Drivers, no driver but one external → that external's container). That one rule gives the layout, every drag outcome, and the "job stops being shared" behaviour for free, and it lives in a pure module with no React so it can be tested standalone. Drags go through a single new server route that writes drivers and support crew together, records the change to the existing append-only `events` table (no new table), and notifies immediately only when the job is dated today. A 6pm cron reads those event rows and sends two different messages from a new summary bot.
+**Architecture:** A job's band is **derived, never stored** — the formal crew decides it (0 → Unassigned, 1 driver → that driver's container, 2+ drivers → Mixed Drivers), and every confirmed external installer gets a **second card for the same job object**, so the driver and the contractor each see their day complete without anything being duplicated in the database. That one rule gives the layout, every drag outcome, and the "job stops being shared" behaviour for free, and it lives in a pure module with no React so it can be tested standalone. Drags go through a single new server route that writes drivers and support crew together, records the change to the existing append-only `events` table (no new table), and notifies immediately only when the job is dated today. A 6pm cron reads those event rows and sends two different messages from a new summary bot.
 
 **Tech Stack:** Next.js 15 App Router, TypeScript strict, Supabase (PostgREST + RLS), Tailwind, pointer-event drag (no library — mirrors `TaskListSection`), Telegram Bot API, Vercel cron.
 
@@ -23,7 +23,9 @@
 - **Tests are standalone tsx scripts**, no framework. Run one with `npx tsx path/to/file.test.ts`. Exit 1 on failure. Follow the shape of `src/lib/utils/job-card.test.ts`.
 - **Every new test keeps the OLD behaviour asserted alongside the new one** where a bug is being fixed, so the test demonstrably catches the real thing (the 2026-09-14 rule).
 - **Nic's decisions, 2026-09-16:** build board + summaries and merge only when both work · a **new** summary bot, not the ops bot · sort inside a container by **time**, and capture coordinates now for a later proximity feature · leave the job form's instant "Save & notify" Telegram exactly as it is.
-- **Nic's external-installer decisions, 2026-09-16:** a job with a driver AND an external belongs to **the driver's container** · external containers are **display-only, no drag in** — assigning an outsider stays on the job form · **accept/decline is removed entirely** from the external page: "we inform beforehand through message and call to set agreement, in which they have no rights to reject once agreed unless informed otherwise again."
+- **Nic's external-installer decisions, 2026-09-16:** a job with a driver AND an external shows **twice — once in the driver's container, once in the external's** ("both the same thing, its for visibility purpose"), with the driver's copy the live one · external containers are **display-only, no drag in** — assigning an outsider stays on the job form · **accept/decline is removed entirely** from the external page: "we inform beforehand through message and call to set agreement, in which they have no rights to reject once agreed unless informed otherwise again."
+- **Mixed Drivers stays** (Nic, 2026-09-16) — two of OUR drivers sharing a job do NOT mirror into both containers, because both copies would be draggable and could contradict each other. Mirrors are safe only because an external copy cannot be dragged.
+- **Coming out of Mixed onto a driver drops the support crew too** (Nic, 2026-09-16) — "drop both driver and support then prompt who to include" — because a shared job's helpers belong to two different drivers' teams. A one-driver move keeps them, pre-ticked.
 
 ## Already built — do not rebuild
 
@@ -84,7 +86,7 @@ The whole feature's logic, with no React around it. Everything else in this plan
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `MIXED`, `UNASSIGNED`, `driverBandId(userId)`, `externalBandId(contactId)`, `mainCrew(job)`, `supportCrew(job)`, `externalCrew(job)`, `bandForCrew(driverIds, externalIds)`, `bandOfJob(job)`, `buildBands(jobs, drivers)`, `sortByStartTime(jobs)`, `planDrag(job, targetBand, drivers)`. Types `BoardJob`, `BoardAssignee`, `BoardExternal`, `DriverRef`, `Band`, `DragPlan`.
+- Produces: `MIXED`, `UNASSIGNED`, `driverBandId(userId)`, `externalBandId(contactId)`, `mainCrew(job)`, `supportCrew(job)`, `externalCrew(job)`, `primaryBand(job)`, `landingBand(driverIds, externalIds)`, `mirrorBands(job)`, `isMirror(job)`, `isMirrorCard(job, bandId)`, `buildBands(jobs, drivers)`, `countRealJobs(bands)`, `sortByStartTime(jobs)`, `planDrag(job, targetBand, drivers)`. Types `BoardJob`, `BoardAssignee`, `BoardExternal`, `DriverRef`, `Band`, `DragPlan`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -98,7 +100,8 @@ The whole feature's logic, with no React around it. Everything else in this plan
 
 import {
   MIXED, UNASSIGNED, driverBandId, externalBandId,
-  mainCrew, bandForCrew, bandOfJob, buildBands, sortByStartTime, planDrag,
+  mainCrew, primaryBand, mirrorBands, isMirror, isMirrorCard, buildBands, countRealJobs,
+  sortByStartTime, planDrag,
   type BoardJob, type DriverRef,
 } from './driver-board'
 
@@ -145,45 +148,66 @@ check('a suggestion is not crew',
   mainCrew(job('j2', [sugg(CK)])),
   [])
 
-console.log('bandForCrew — the one rule the whole board derives from:')
+console.log('primaryBand — where the ONE draggable copy of a job lives:')
 
-check('nobody on it → Unassigned',    bandForCrew([],                    []), UNASSIGNED)
-check('one driver → their container', bandForCrew(['ck'],                []), driverBandId('ck'))
-check('two drivers → Mixed',          bandForCrew(['ck','rintu'],        []), MIXED)
-check('three drivers → Mixed',        bandForCrew(['ck','rintu','xy'],   []), MIXED)
+check('nobody on it → Unassigned',    primaryBand(job('p1', [])),                    UNASSIGNED)
+check('one driver → their container', primaryBand(job('p2', [main(CK)])),            driverBandId('ck'))
+check('two drivers → Mixed',          primaryBand(job('p3', [main(CK), main(RINTU)])), MIXED)
+check('three drivers → Mixed',        primaryBand(job('p4', [main(CK), main(RINTU), main(XY)])), MIXED)
+check('support crew alone does NOT place a job', primaryBand(job('p5', [support(CK)])), UNASSIGNED)
 
 // Someone not flagged is_driver still gets their own container rather than
 // vanishing. Old rows predate the 2026-09-07 Drivers bucket, and a job that
 // is not on the board is a job the scheduler cannot find.
 check('a lone non-driver still gets their own container',
-  bandForCrew(['stranger'], []), driverBandId('stranger'))
+  primaryBand(job('p6', [{ users: { id: 'zz', name: 'Ali Ramjan' }, is_sub_installer: false }])),
+  driverBandId('zz'))
 
-// Externals (Nic, 2026-09-16). A job with an outside contractor and nobody
-// else used to sit in Unassigned looking unstaffed — the card does not even
-// load externals today, so it read "Driver: nobody yet".
-check('only an external → that external\'s container',
-  bandForCrew([], ['ahseng']), externalBandId('ahseng'))
+// A job with a driver AND an external belongs to the DRIVER (Nic): it is the
+// driver's van and the driver's day. The external ALSO sees it — as a mirror,
+// below — but the live, draggable card sits here.
+check('a driver plus an external is still the driver\'s',
+  primaryBand(job('p7', [main(CK)], '09:00:00', [ext('ahseng', 'Ah Seng')])),
+  driverBandId('ck'))
 
-// "The driver's container" — Nic's call. The container answers whose day
-// this is, and it is the driver's van and the driver's schedule.
-check('a driver plus an external belongs to the driver',
-  bandForCrew(['ck'], ['ahseng']), driverBandId('ck'))
+// An external-only job has NO primary band: its external container is its only
+// home, so that copy is the live one. null says "look in the mirrors".
+check('external only → no primary band', primaryBand(job('p8', [], '09:00:00', [ext('ahseng','Ah Seng')])), null)
 
-// Two outside contractors and no driver: the same problem Mixed exists to
-// solve — file it under one and the other's day is incomplete.
-check('two externals, no driver → Mixed', bandForCrew([], ['ahseng','boonleong']), MIXED)
+console.log('mirrorBands — the extra copies, one per external:')
 
-console.log('bandOfJob:')
+check('no externals → no mirrors', mirrorBands(job('m1', [main(CK)])), [])
 
-check('reads the job assignees', bandOfJob(job('j3', [main(RINTU), support(CK)])), driverBandId('rintu'))
-check('support crew alone does NOT place a job', bandOfJob(job('j4', [support(CK)])), UNASSIGNED)
-check('an external link places a job', bandOfJob(job('j5', [], '09:00:00', [ext('ahseng','Ah Seng')])), externalBandId('ahseng'))
+// Nic, 2026-09-16: "i actually prefer having 2 duplicate copies of the job but
+// linking to same job form — my driver gets 1 jobcard, external installer gets
+// another, both the same thing. its for visibility purpose."
+check('a driver + external job appears in the external\'s container too',
+  mirrorBands(job('m2', [main(CK)], '09:00:00', [ext('ahseng','Ah Seng')])),
+  [externalBandId('ahseng')])
+
+check('two externals → a copy each',
+  mirrorBands(job('m3', [main(CK)], '09:00:00', [ext('ahseng','Ah Seng'), ext('bl','Boon Leong')])),
+  [externalBandId('ahseng'), externalBandId('bl')])
 
 // A suggested external is a tentative sales pick that has not been confirmed
 // — invisible on the contact's own link page (migration 0040), so it must not
 // make the job look staffed here either.
-check('a SUGGESTED external does not place a job',
-  bandOfJob(job('j6', [], '09:00:00', [ext('ahseng','Ah Seng', true)])), UNASSIGNED)
+check('a SUGGESTED external gets no copy',
+  mirrorBands(job('m4', [main(CK)], '09:00:00', [ext('ahseng','Ah Seng', true)])),
+  [])
+
+console.log('isMirror — a copy is read-only only when the job has a real home:')
+
+// The drag acts on the JOB, not on the container it was picked up from, so a
+// mirror must not be draggable: two live cards for one job is how a board
+// starts contradicting itself.
+check('an external copy beside a driver copy is a mirror',
+  isMirror(job('r1', [main(CK)], '09:00:00', [ext('ahseng','Ah Seng')])), true)
+
+// With nobody internal on it, the external container IS the job's only home —
+// so that card must stay draggable, or an external-only job could never be
+// given to a driver.
+check('an external-only job is NOT a mirror', isMirror(job('r2', [], '09:00:00', [ext('ahseng','Ah Seng')])), false)
 
 console.log('buildBands — fixed order, drivers always present:')
 
@@ -228,6 +252,34 @@ check('an external container is named after the contact',
     .find(b => b.id === externalBandId('ahseng'))?.driver?.name,
   'Ah Seng')
 
+// The duplicate-copy rule (Nic, 2026-09-16). ONE job row, TWO cards, both
+// opening the same job form — the driver sees their day complete and the
+// external sees theirs, and neither has to know about the other's container.
+const shared = buildBands(
+  [job('sh', [main(CK)], '09:00:00', [ext('ahseng', 'Ah Seng')])],
+  DRIVERS,
+)
+check('a shared job appears in BOTH containers',
+  shared.filter(b => b.jobs.length > 0).map(b => b.id),
+  [driverBandId('ck'), externalBandId('ahseng')])
+check('and it is the same job, not a copy of the data',
+  shared.filter(b => b.jobs.length > 0).map(b => b.jobs[0].id),
+  ['sh', 'sh'])
+// Per CARD, not per band: one external container can hold a mirror of a
+// driver's job AND an external-only job that is live, side by side.
+check('the driver copy is live, the external copy is a mirror',
+  shared.filter(b => b.jobs.length > 0).map(b => isMirrorCard(b.jobs[0], b.id)),
+  [false, true])
+check('an external-only job in an external container is NOT a mirror',
+  isMirrorCard(job('eo', [], '09:00:00', [ext('ahseng','Ah Seng')]), externalBandId('ahseng')),
+  false)
+
+// The count must not lie. Two cards for one job would otherwise read as two
+// jobs, and a scheduler counting the day's work would be wrong.
+check('the real job count ignores mirrors', countRealJobs(shared), 1)
+check('and counts unshared jobs once each',
+  countRealJobs(buildBands([job('x', [main(CK)]), job('y', [])], DRIVERS)), 2)
+
 console.log('sortByStartTime — a driver\'s day runs in clock order:')
 
 check('earliest first, no-time last',
@@ -237,13 +289,39 @@ check('earliest first, no-time last',
 
 console.log('planDrag:')
 
-// Mixed → a driver: the other driver comes off automatically.
-check('mixed to a driver drops the other driver',
+// Mixed → a driver. Nic, 2026-09-16: "CK + RINTU in mixed, if i drag into
+// xiao yi container, drop BOTH driver and support then prompt who to include
+// for support xiao yi." A shared job's support crew belongs to two different
+// drivers' teams, so carrying them across to a third driver would be wrong —
+// the slate is wiped and the prompt starts empty.
+check('mixed to a driver drops every other driver AND the support crew',
   planDrag(job('m', [main(CK), main(RINTU), support(XY)]), driverBandId('ck'), DRIVERS),
   {
     targetBand: driverBandId('ck'),
     driverIds: ['ck'], removedDriverIds: ['rintu'],
-    supportIds: ['xy'], askSupport: true, askDrivers: false, destructive: false,
+    supportIds: [], removedSupportIds: ['xy'],
+    askSupport: true, askDrivers: false, destructive: false,
+  })
+
+check('three drivers in mixed → only the target survives',
+  planDrag(job('m3', [main(CK), main(RINTU), main(XY)]), driverBandId('ck'), DRIVERS),
+  {
+    targetBand: driverBandId('ck'),
+    driverIds: ['ck'], removedDriverIds: ['rintu', 'xy'],
+    supportIds: [], removedSupportIds: [],
+    askSupport: true, askDrivers: false, destructive: false,
+  })
+
+// A ONE-driver move is different: the job was one driver's all along, so its
+// support crew is that job's crew and travels with it, pre-ticked. The
+// scheduler can still take them off in the prompt.
+check('driver to driver KEEPS the support crew, pre-ticked',
+  planDrag(job('d2', [main(CK), support(XY)]), driverBandId('rintu'), DRIVERS),
+  {
+    targetBand: driverBandId('rintu'),
+    driverIds: ['rintu'], removedDriverIds: ['ck'],
+    supportIds: ['xy'], removedSupportIds: [],
+    askSupport: true, askDrivers: false, destructive: false,
   })
 
 // Nic's rule: ALWAYS asks, even with no support crew — no silent drags.
@@ -252,7 +330,8 @@ check('a driver-to-driver move still asks with no support crew',
   {
     targetBand: driverBandId('rintu'),
     driverIds: ['rintu'], removedDriverIds: ['ck'],
-    supportIds: [], askSupport: true, askDrivers: false, destructive: false,
+    supportIds: [], removedSupportIds: [],
+    askSupport: true, askDrivers: false, destructive: false,
   })
 
 check('unassigned to a driver adds them and offers support crew',
@@ -260,7 +339,8 @@ check('unassigned to a driver adds them and offers support crew',
   {
     targetBand: driverBandId('xy'),
     driverIds: ['xy'], removedDriverIds: [],
-    supportIds: [], askSupport: true, askDrivers: false, destructive: false,
+    supportIds: [], removedSupportIds: [],
+    askSupport: true, askDrivers: false, destructive: false,
   })
 
 // The most destructive drag on the board — it clears everybody.
@@ -269,7 +349,8 @@ check('to Unassigned clears everyone and is flagged destructive',
   {
     targetBand: UNASSIGNED,
     driverIds: [], removedDriverIds: ['ck'],
-    supportIds: [], askSupport: false, askDrivers: false, destructive: true,
+    supportIds: [], removedSupportIds: ['rintu'],
+    askSupport: false, askDrivers: false, destructive: true,
   })
 
 check('to Mixed asks who should be on it',
@@ -277,7 +358,8 @@ check('to Mixed asks who should be on it',
   {
     targetBand: MIXED,
     driverIds: ['ck'], removedDriverIds: [],
-    supportIds: [], askSupport: true, askDrivers: true, destructive: false,
+    supportIds: [], removedSupportIds: [],
+    askSupport: true, askDrivers: true, destructive: false,
   })
 
 // Dropping a card back where it already is must be a no-op, not a prompt.
@@ -424,30 +506,90 @@ export function externalCrew(job: BoardJob): DriverRef[] {
 }
 
 /**
- * THE rule.
+ * THE rule — where the ONE live, draggable copy of a job lives.
  *
- * Internal drivers decide first: a job with one of OUR drivers on it belongs
- * to that driver's container even when an outside contractor is helping —
- * Nic's call, 2026-09-16, because the container answers whose day this is and
- * it is the driver's van and the driver's schedule.
+ * Internal crew decides it. A job with one of OUR drivers belongs to that
+ * driver's container even when an outside contractor is helping (Nic): it is
+ * the driver's van and the driver's day.
  *
- * Only when no driver is on it do externals place the job. Two externals and
- * no driver hit Mixed for the same reason two drivers do: filing a shared job
- * under one person leaves the other's day incomplete.
+ * Returns **null** when the job has no internal crew but does have an
+ * external: its external container is then its only home, so that copy is the
+ * live one rather than a mirror. Without this an external-only job could
+ * never be dragged onto a driver.
  */
-export function bandForCrew(driverIds: string[], externalIds: string[] = []): string {
-  if (driverIds.length === 1) return driverBandId(driverIds[0])
-  if (driverIds.length >= 2)  return MIXED
-  if (externalIds.length === 1) return externalBandId(externalIds[0])
-  if (externalIds.length >= 2)  return MIXED
+export function primaryBand(job: BoardJob): string | null {
+  const drivers = mainCrew(job)
+  if (drivers.length === 1) return driverBandId(drivers[0].id)
+  if (drivers.length >= 2)  return MIXED
+  if (externalCrew(job).length > 0) return null
   return UNASSIGNED
 }
 
-export function bandOfJob(job: BoardJob): string {
-  return bandForCrew(
-    mainCrew(job).map(d => d.id),
-    externalCrew(job).map(e => e.id),
-  )
+/**
+ * Where a PROPOSED crew would put the card — the confirmation prompt's "lands
+ * in" line.
+ *
+ * Same rule as primaryBand, but asked of a driver set the scheduler is still
+ * choosing rather than of a saved job. Kept here beside it so the two can
+ * never answer differently.
+ */
+export function landingBand(driverIds: string[], externalIds: string[] = []): string {
+  if (driverIds.length === 1) return driverBandId(driverIds[0])
+  if (driverIds.length >= 2)  return MIXED
+  if (externalIds.length > 0) return externalBandId(externalIds[0])
+  return UNASSIGNED
+}
+
+/**
+ * The extra copies: one per confirmed external installer.
+ *
+ * Nic, 2026-09-16 — "i actually prefer having 2 duplicate copies of the job
+ * but linking to same job form? so my driver gets 1 jobcard, external
+ * installer gets another job card but both are the same thing. its for
+ * visibility purpose."
+ *
+ * ONE job row, two cards, both opening the same job form. Nothing is
+ * duplicated in the database; the board simply renders the same object twice,
+ * so the two can never drift apart.
+ */
+export function mirrorBands(job: BoardJob): string[] {
+  return externalCrew(job).map(e => externalBandId(e.id))
+}
+
+/**
+ * Is an external copy of this job read-only?
+ *
+ * Yes whenever the job also has internal crew — the driver's card is the live
+ * one, and two draggable cards for one job is how a board starts
+ * contradicting itself. No when the externals are the job's only home, or it
+ * could never be handed to a driver.
+ */
+export function isMirror(job: BoardJob): boolean {
+  return mainCrew(job).length > 0
+}
+
+/**
+ * Is THIS card, in THIS band, a read-only mirror?
+ *
+ * Asked per card rather than per band because one external container can hold
+ * both: a mirror of a job that belongs to a driver, and an external-only job
+ * that is live and draggable, side by side.
+ */
+export function isMirrorCard(job: BoardJob, bandId: string): boolean {
+  return bandId.startsWith('external:') && isMirror(job)
+}
+
+/**
+ * How many jobs are really on this day.
+ *
+ * A shared job renders twice, so adding up the band counts would tell the
+ * scheduler there is more work than there is. Counting distinct ids is the
+ * only figure that stays true however many containers a job appears in.
+ */
+export function countRealJobs(bands: Band[]): number {
+  const seen = new Set<string>()
+  for (const band of bands) for (const job of band.jobs) seen.add(job.id)
+  return seen.size
 }
 
 /** Earliest first; a job with no start time is an all-day floater and sorts last. */
@@ -485,13 +627,25 @@ export function buildBands(jobs: BoardJob[], drivers: DriverRef[]): Band[] {
   const strays    = new Map<string, DriverRef>()
   const externals = new Map<string, DriverRef>()
 
+  const put = (bandId: string, job: BoardJob) =>
+    (byBand.get(bandId) ?? byBand.set(bandId, []).get(bandId)!).push(job)
+
   for (const job of jobs) {
     const crew = mainCrew(job)
     const exts = externalCrew(job)
-    const id   = bandForCrew(crew.map(c => c.id), exts.map(e => e.id))
+
     if (crew.length === 1 && !knownIds.includes(crew[0].id)) strays.set(crew[0].id, crew[0])
-    if (id.startsWith('external:')) externals.set(exts[0].id, exts[0])
-    ;(byBand.get(id) ?? byBand.set(id, []).get(id)!).push(job)
+
+    // The live card, where there is one.
+    const primary = primaryBand(job)
+    if (primary) put(primary, job)
+
+    // A copy per external. The SAME object is pushed, not a clone — one job
+    // row, two cards, both opening the same form, and they cannot drift.
+    for (const e of exts) {
+      externals.set(e.id, e)
+      put(externalBandId(e.id), job)
+    }
   }
 
   const take = (id: string) => sortByStartTime(byBand.get(id) ?? [])
@@ -514,8 +668,12 @@ export type DragPlan = {
   driverIds:        string[]
   /** Drivers coming OFF, so the prompt can name them. */
   removedDriverIds: string[]
-  /** Support crew currently on the job — pre-ticked in the prompt. */
+  /** Support crew this drag proposes, PRE-TICKED in the prompt. Empty when
+   *  coming out of Mixed — see planDrag. */
   supportIds:       string[]
+  /** Support crew coming OFF, so the prompt can say so out loud rather than
+   *  silently emptying a list the scheduler had filled. */
+  removedSupportIds: string[]
   /** Offer the support-crew list. Always true except a drop to Unassigned,
    *  which clears everybody anyway. Nic: no silent drags. */
   askSupport:       boolean
@@ -534,11 +692,8 @@ export type DragPlan = {
  * the drag never happened.
  */
 export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[]): DragPlan | null {
-  const current   = mainCrew(job).map(d => d.id)
-  const support   = supportCrew(job).map(d => d.id)
-  const externals = externalCrew(job).map(e => e.id)
-
-  if (bandForCrew(current, externals) === targetBand) return null
+  const current = mainCrew(job).map(d => d.id)
+  const support = supportCrew(job).map(d => d.id)
 
   // External containers are display-only (Nic, 2026-09-16) — assigning an
   // outside contractor stays on the job form, where the suggest-then-confirm
@@ -547,28 +702,49 @@ export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[
   if (targetBand.startsWith('external:')) return null
 
   if (targetBand === UNASSIGNED) {
+    // Already empty — a drop that changes nothing must not raise a prompt.
+    if (current.length === 0 && support.length === 0) return null
     return {
-      targetBand, driverIds: [], removedDriverIds: current, supportIds: [],
+      targetBand, driverIds: [], removedDriverIds: current,
+      supportIds: [], removedSupportIds: support,
       askSupport: false, askDrivers: false, destructive: true,
     }
   }
 
   if (targetBand === MIXED) {
+    if (current.length >= 2) return null       // already there
     return {
-      targetBand, driverIds: current, removedDriverIds: [], supportIds: support,
+      targetBand, driverIds: current, removedDriverIds: [],
+      supportIds: support, removedSupportIds: [],
       askSupport: true, askDrivers: true, destructive: false,
     }
   }
 
   const targetId = targetBand.replace(/^driver:/, '')
+  if (current.length === 1 && current[0] === targetId) return null   // already there
+
+  /**
+   * Coming OUT of Mixed, the support crew is dropped too and the prompt
+   * starts empty.
+   *
+   * Nic, 2026-09-16: "CK + RINTU in mixed, if i drag into xiao yi container,
+   * drop both driver and support then prompt who to include for support xiao
+   * yi." A shared job's helpers belong to two different drivers' teams, so
+   * carrying them across to a third driver would hand him someone else's
+   * crew. A ONE-driver move is the opposite case — that support crew is the
+   * job's own, so it travels with it, pre-ticked and removable.
+   */
+  const fromMixed = current.length >= 2
+
   return {
     targetBand,
-    driverIds:        [targetId],
-    removedDriverIds: current.filter(id => id !== targetId),
-    supportIds:       support,
-    askSupport:       true,
-    askDrivers:       false,
-    destructive:      false,
+    driverIds:         [targetId],
+    removedDriverIds:  current.filter(id => id !== targetId),
+    supportIds:        fromMixed ? []      : support,
+    removedSupportIds: fromMixed ? support : [],
+    askSupport:        true,
+    askDrivers:        false,
+    destructive:       false,
   }
 }
 ```
@@ -1191,7 +1367,7 @@ import { useEffect, useState } from 'react'
 import { X, AlertTriangle } from 'lucide-react'
 import { Btn } from '@/components/Btn'
 import { cn } from '@/lib/utils/cn'
-import { MIXED, UNASSIGNED, bandForCrew, driverBandId, externalBandId, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
+import { MIXED, UNASSIGNED, landingBand, driverBandId, externalBandId, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
 
 interface Props {
   plan:        DragPlan
@@ -1250,7 +1426,7 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
   // unassigned — the crew route clears internal crew only, so it falls into
   // that external's container. The label has to say so, or the scheduler is
   // told something untrue about a drag they are about to confirm.
-  const landing = bandForCrew(driverIds, externalIds)
+  const landing = landingBand(driverIds, externalIds)
   const landingLabel =
     landing === UNASSIGNED ? 'Unassigned'
     : landing === MIXED    ? 'Mixed Drivers'
@@ -1332,6 +1508,22 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
               {plan.removedDriverIds.map(id => drivers.find(d => d.id === id)?.name ?? 'someone').join(', ')}
             </span>
           </p>
+        )}
+
+        {/* Said out loud, never silently. Coming out of Mixed clears the
+            support crew as well (Nic, 2026-09-16) — a shared job's helpers
+            belong to two different drivers' teams. Emptying a list the
+            scheduler had filled without a word would read as a bug. */}
+        {plan.removedSupportIds.length > 0 && !plan.destructive && (
+          <div className="rounded-xl border border-brand-amber bg-brand-amber-soft p-3">
+            <p className="text-[13px] font-semibold text-brand-amber">
+              The support crew comes off too
+            </p>
+            <p className="text-[12px] text-ink2 mt-0.5">
+              {plan.removedSupportIds.map(id => supportPool.find(p => p.id === id)?.name ?? 'someone').join(', ')}
+              {' '}rode with the drivers this job is leaving. Pick who should support it now.
+            </p>
+          </div>
         )}
 
         {plan.askDrivers && (
@@ -1580,11 +1772,12 @@ The line is rendered only when there is someone on it — unlike Support Crew, w
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { JobRow } from './JobRow'
 import { useCardDrag } from './useCardDrag'
 import { CrewChangeModal } from './CrewChangeModal'
-import { buildBands, planDrag, externalCrew, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
+import { buildBands, planDrag, externalCrew, mainCrew, isMirrorCard, countRealJobs, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 
 interface Props {
@@ -1631,6 +1824,12 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
 
   return (
     <div className="space-y-3">
+      {/* The honest number. A shared job renders twice, so adding up the band
+          counts would tell the scheduler there is more work than there is. */}
+      <p className="text-[11px] text-muted">
+        {countRealJobs(bands)} job{countRealJobs(bands) === 1 ? '' : 's'} today
+      </p>
+
       {bands.map(band => {
         const isDriverBand = band.kind === 'driver'
         // External containers are display-only (Nic, 2026-09-16): assigning an
@@ -1669,15 +1868,29 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
                 are PEOPLE, not an ordered sequence, so they run left to right
                 and wrap. Mixed and Unassigned stay full width. */}
             <div className={cn(isDriverBand ? '' : 'xl:columns-1')}>
-              {band.jobs.map(job => (
-                <JobRow
-                  key={job.id}
-                  job={job}
-                  currentDate={currentDate}
-                  dragging={draggingId === job.id}
-                  onDragHandle={canDrag ? e => startDrag(job.id, e) : undefined}
-                />
-              ))}
+              {band.jobs.map(job => {
+                // A mirror is a read-only view of a job that lives in a
+                // driver's container. It gets no drag handle: the drag acts
+                // on the JOB, so two draggable cards for one job is how a
+                // board starts contradicting itself.
+                const mirror = isMirrorCard(job, band.id)
+                return (
+                  <div key={`${band.id}:${job.id}`}>
+                    {mirror && (
+                      <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        <Link2 size={11} />
+                        Same job — also with {mainCrew(job).map(d => d.name).join(', ')}
+                      </p>
+                    )}
+                    <JobRow
+                      job={job}
+                      currentDate={currentDate}
+                      dragging={draggingId === job.id}
+                      onDragHandle={canDrag && !mirror ? e => startDrag(job.id, e) : undefined}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </section>
         )
