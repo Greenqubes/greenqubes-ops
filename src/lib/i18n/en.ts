@@ -22,6 +22,7 @@ export const en = {
   searchJobs: 'Search jobs, customers, locations…',
   filterToday: 'Today',
   viewList: 'List',
+  viewBoard: 'Drivers',
   viewWeek: 'Week',
   viewMonth: 'Month',
   columnsLabel: 'Cards per row',

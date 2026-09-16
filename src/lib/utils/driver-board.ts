@@ -41,12 +41,17 @@ export type BoardJob = {
 
 export type DriverRef = { id: string; name: string }
 
-export type Band = {
+/**
+ * Generic over the job type so a caller passing richer rows (ScheduleJob,
+ * which carries the title, address and team the card renders) gets them back
+ * unchanged rather than narrowed to the handful of fields these rules read.
+ */
+export type Band<T extends BoardJob = BoardJob> = {
   id:     string
   kind:   'mixed' | 'driver' | 'external' | 'unassigned'
   /** The person this band belongs to — null for Mixed and Unassigned. */
   driver: DriverRef | null
-  jobs:   BoardJob[]
+  jobs:   T[]
 }
 
 export const MIXED      = 'mixed'
@@ -210,13 +215,13 @@ export function sortByStartTime<T extends { time_start: string | null }>(jobs: T
  * contractor, not a standing column, so an empty one would be clutter, while
  * an empty driver container is itself information.
  */
-export function buildBands(jobs: BoardJob[], drivers: DriverRef[]): Band[] {
+export function buildBands<T extends BoardJob>(jobs: T[], drivers: DriverRef[]): Band<T>[] {
   const knownIds  = drivers.map(d => d.id)
-  const byBand    = new Map<string, BoardJob[]>()
+  const byBand    = new Map<string, T[]>()
   const strays    = new Map<string, DriverRef>()
   const externals = new Map<string, DriverRef>()
 
-  const put = (bandId: string, job: BoardJob) => {
+  const put = (bandId: string, job: T) => {
     const list = byBand.get(bandId)
     if (list) list.push(job)
     else byBand.set(bandId, [job])
@@ -261,7 +266,7 @@ export function buildBands(jobs: BoardJob[], drivers: DriverRef[]): Band[] {
  * scheduler there is more work than there is. Counting distinct ids is the
  * only figure that stays true however many containers a job appears in.
  */
-export function countRealJobs(bands: Band[]): number {
+export function countRealJobs(bands: Array<{ jobs: Array<{ id: string }> }>): number {
   const seen = new Set<string>()
   for (const band of bands) for (const job of band.jobs) seen.add(job.id)
   return seen.size

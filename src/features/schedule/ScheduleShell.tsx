@@ -4,11 +4,14 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { createClient } from '@/lib/supabase/client'
-import { Search, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
+import { Search, List, CalendarDays, Grid3X3, Truck, ChevronLeft, ChevronRight, ChevronDown, X, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { ListView  } from './ListView'
+import { DriverBoard } from './DriverBoard'
+import { DateStrip } from './DateStrip'
+import { DayNotices } from './DayNotices'
 import { ColumnToggle, type ListColumns } from './ColumnToggle'
 import { JumpCalendar } from './JumpCalendar'
 import { WeekView  } from './WeekView'
@@ -19,7 +22,7 @@ import {
   toISO, shiftDate, shiftMonth,
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
-import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
+import type { ScheduleJob, CrewMember } from '@/lib/supabase/queries/jobs'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
@@ -27,8 +30,10 @@ import type { Role } from '@/lib/supabase/types'
 
 /** Per-device, like the date strip's week/month choice. */
 const LIST_COLUMNS_KEY = 'gq-schedule-list-columns'
+/** Per-device too: the scheduler lives on the board, sales on the list. */
+const VIEW_MODE_KEY = 'gq-schedule-view-mode'
 
-type ViewMode = 'list' | 'week' | 'month'
+type ViewMode = 'list' | 'board' | 'week' | 'month'
 
 interface ScheduleShellProps {
   jobs:     ScheduleJob[]
@@ -40,12 +45,15 @@ interface ScheduleShellProps {
   pageMode?: 'schedule' | 'pending' | 'completed'
   /** Optional so the pending/completed pages compile and render unchanged —
    *  leave and holidays only belong on the live schedule. */
+  /** Driver board — only the live schedule passes these. */
+  drivers?:     CrewMember[]
+  supportPool?: CrewMember[]
   leaves?:   Array<LeaveRecord & { user_name: string }>
   holidays?: Holiday[]
   events?:   CompanyEvent[]
 }
 
-export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
   const today  = toISO(new Date())
   const router = useRouter()
 
@@ -238,6 +246,27 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     const saved = Number(localStorage.getItem(LIST_COLUMNS_KEY))
     if (saved === 2 || saved === 3) setListColumns(saved)
   }, [])
+  // The scheduler and admin land on the board — it is built for them and it
+  // is where the day is arranged. Everyone else keeps the list they already
+  // have, and either can switch; the choice is remembered per device. Read
+  // AFTER mount for the same reason as listColumns: /schedule is
+  // hydration-sensitive (#418).
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_MODE_KEY)
+    if (saved === 'board' || saved === 'list' || saved === 'week' || saved === 'month') {
+      // The board only exists on the live schedule — pending jobs have no
+      // drivers and completed jobs must not be dragged.
+      setViewMode(saved === 'board' && pageMode !== 'schedule' ? 'list' : saved)
+      return
+    }
+    if (pageMode === 'schedule' && (role === 'scheduler' || navRole === 'admin')) setViewMode('board')
+  }, [pageMode, role, navRole])
+
+  const chooseView = (v: ViewMode) => {
+    setViewMode(v)
+    try { localStorage.setItem(VIEW_MODE_KEY, v) } catch { /* private window */ }
+  }
+
   const chooseColumns = (n: ListColumns) => {
     setListColumns(n)
     try { localStorage.setItem(LIST_COLUMNS_KEY, String(n)) } catch { /* private window */ }
@@ -245,6 +274,11 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
 
   const views: { v: ViewMode; Icon: typeof List; label: string }[] = [
     { v: 'list',  Icon: List,         label: tr(lang, 'viewList')  },
+    // The board only exists on the live schedule: pending jobs have no
+    // drivers, and completed jobs must not be dragged.
+    ...(pageMode === 'schedule'
+      ? [{ v: 'board' as const, Icon: Truck, label: tr(lang, 'viewBoard') }]
+      : []),
     { v: 'week',  Icon: CalendarDays, label: tr(lang, 'viewWeek')  },
     { v: 'month', Icon: Grid3X3,      label: tr(lang, 'viewMonth') },
   ]
@@ -371,7 +405,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           {views.map(({ v, Icon, label }) => (
             <button
               key={v}
-              onClick={() => setViewMode(v)}
+              onClick={() => chooseView(v)}
               title={label}
               className={cn(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors',
@@ -409,6 +443,38 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           onDelete={handleSingleDelete}
           columns={listColumns}
         />
+      )}
+      {viewMode === 'board' && (
+        <>
+          <DateStrip
+            jobsByDate={jobsByDate}
+            selectedDate={selectedDate}
+            today={today}
+            lang={lang}
+            leaveNamesByDate={leaveNamesByDate}
+            holidayByDate={holidayByDate}
+            onSelectDate={setSelectedDate}
+          />
+          <div className="px-4 pb-8 lg:pb-24">
+            {/* Above the board on purpose: a day with nobody scheduled can
+                still be a public holiday or have people away. */}
+            <DayNotices
+              leaveNames={[...new Set(leaveNamesByDate[selectedDate] ?? [])]}
+              holiday={holidayByDate[selectedDate]}
+              events={eventsByDate[selectedDate] ?? []}
+              onLeaveLabel={listStrings.onLeave}
+              holidayLabel={listStrings.publicHoliday}
+              eventLabel={listStrings.companyEvent}
+            />
+            <DriverBoard
+              jobs={jobsByDate[selectedDate] ?? []}
+              drivers={drivers}
+              supportPool={supportPool}
+              canDrag={role === 'scheduler' || navRole === 'admin'}
+              currentDate={selectedDate}
+            />
+          </div>
+        </>
       )}
       {viewMode === 'week' && (
         <WeekView

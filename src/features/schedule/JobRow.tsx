@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { MapPin, Users, Check } from 'lucide-react'
+import { MapPin, Users, Check, GripVertical } from 'lucide-react'
 import { Pill } from '@/components/Pill'
 import { cn } from '@/lib/utils/cn'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
@@ -37,6 +37,11 @@ interface JobRowProps {
   onToggle?:    (id: string) => void
   deletable?:   boolean
   onDelete?:    () => void
+  /** Driver board only, scheduler/admin. Absent everywhere else, so the
+   *  pending and completed lists are untouched. */
+  onDragHandle?: (e: React.PointerEvent) => void
+  /** This card is the one currently being carried. */
+  dragging?:     boolean
 }
 
 function daysBetween(a: string, b: string): number {
@@ -45,7 +50,7 @@ function daysBetween(a: string, b: string): number {
   )
 }
 
-export function JobRow({ job, currentDate, selectable, selected, onToggle, deletable, onDelete }: JobRowProps) {
+export function JobRow({ job, currentDate, selectable, selected, onToggle, deletable, onDelete, onDragHandle, dragging }: JobRowProps) {
   const overdue       = isOverdue(job.status, job.date)
   const isDraft       = job.status === 'pending' || job.status === 'awaiting_approval'
   const isCompleted   = job.status === 'completed'
@@ -76,6 +81,16 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
   // Driver vs Support Crew — two separate lines on the card (Nic, 2026-09-15).
   const { drivers, support } = splitCrew(job.job_assignees)
 
+  // Outside contractors, confirmed only — a suggested external is invisible
+  // on their own link page (migration 0040) and must not look staffed here.
+  // Until 2026-09-16 the card could not show these AT ALL: the schedule query
+  // never loaded them, so a job crewed entirely by an outside contractor read
+  // "Driver: nobody yet".
+  const externalNames = (job.job_external_contacts ?? [])
+    .filter(e => !e.is_suggestion)
+    .map(e => e.external_contacts?.name)
+    .filter((n): n is string => !!n)
+
   // Sales / Coordinator / Installer lines (Nic, 2026-08-19). Only when the
   // feeding query loaded team fields — installer views pass InstallerJob rows
   // without them (and keep the compact first-names meta row instead).
@@ -100,6 +115,18 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
   return (
     <>
       <div className="flex items-start gap-2 mb-2">
+        {/* Driver board only. touch-none so a finger drag moves the card
+            instead of scrolling the page under it. */}
+        {onDragHandle && (
+          <button
+            type="button"
+            aria-label="Drag to another driver"
+            onPointerDown={onDragHandle}
+            className="mt-6 shrink-0 cursor-grab touch-none rounded p-1 text-muted hover:text-ink active:cursor-grabbing"
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         {selectable && (
           <button
             type="button"
@@ -129,7 +156,8 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
               overdue    ? 'border-bad bg-bad-soft'
                          : isCompleted ? 'bg-paper opacity-70'
                                        : 'bg-paper',
-              overdue && 'border-solid'
+              overdue && 'border-solid',
+              dragging && 'opacity-50'
             )}
           >
             <div className="flex gap-3">
@@ -176,6 +204,14 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                     </p>
 
                     <CrewLine label="Support Crew:" names={support} />
+
+                    {/* Rendered only when someone is on it — unlike Support
+                        Crew, which shows "none", because most jobs never
+                        involve an outside contractor and an empty row on
+                        every card is noise. */}
+                    {externalNames.length > 0 && (
+                      <CrewLine label="External:" names={externalNames} />
+                    )}
 
                     {(job.production_ready || job.do_issued) && (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">

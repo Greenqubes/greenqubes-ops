@@ -29,14 +29,33 @@ export type ScheduleJob = {
   sales_poc_id?:     string | null
   sales_name?:       string | null
   job_coordinators?: Array<{ users: { name: string } | null }>
+  // Outside contractors. The card and the board were BLIND to these until
+  // 2026-09-16 — this query never loaded them, so a job with only an external
+  // installer on it rendered "Driver: nobody yet" and sat in Unassigned
+  // looking unstaffed. Optional because the installer views feed rows through
+  // a different query.
+  job_external_contacts?: Array<{ is_suggestion: boolean; external_contacts: { id: string; name: string } | null }>
+  // Map coordinates of the picked address (migration 0061). Read by nothing
+  // yet — deliberate capture for a future proximity feature, 2026-09-16.
+  lat?: number | null
+  lng?: number | null
 }
 
+// Embedding external_contacts from job_external_contacts is safe: there is
+// exactly ONE foreign key between them (contact_id), unlike the jobs → users
+// case the standing rule forbids.
+//
+// Note: `hr` has no SELECT policy on job_external_contacts (0039/0040 cover
+// scheduler/coordinator/admin and sales/designer/production). PostgREST
+// returns [] for an unreadable embed rather than erroring, so HR simply sees
+// no external containers — acceptable, her schedule is view-only.
 const SCHEDULE_SELECT = `
   id, status, date, date_end, time_start, time_end,
-  project_title, client, location, description, punctuality,
+  project_title, client, location, lat, lng, description, punctuality,
   production_ready, do_issued, sales_poc_id,
   job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) ),
-  job_coordinators ( users ( name ) )
+  job_coordinators ( users ( name ) ),
+  job_external_contacts ( is_suggestion, external_contacts ( id, name ) )
 `
 
 // Suggestions (is_suggestion=true) are tentative sales picks — they must not
@@ -455,3 +474,41 @@ export async function createDefaultBuckets(jobId: string): Promise<void> {
   if (error) throw error
 }
 
+
+// ── Driver board (Nic, 2026-09-15/16) ────────────────────────────────────────
+
+export type CrewMember = { id: string; name: string }
+
+/**
+ * The drivers, in name order.
+ *
+ * `is_driver` is a fact about the PERSON (set in Admin → Users), unlike
+ * `is_sub_installer`, which is a fact about the job. Exactly three people
+ * carry it today — Rintu, Xiao Yi and CK — but the board reads the flag
+ * rather than hard-coding them, so a fourth driver gets a container the
+ * moment the tick is made.
+ */
+export async function getDrivers(): Promise<CrewMember[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users').select('id, name')
+    .eq('is_driver', true).is('deleted_at', null)
+    .order('name') as { data: CrewMember[] | null }
+  return data ?? []
+}
+
+/**
+ * Who can ride along as support crew.
+ *
+ * The Support crew bucket was widened to ALL roles on 2026-09-04 so anyone
+ * can be dispatched for a night job or a manpower shortage, so this is
+ * everyone active with nobody excluded by role.
+ */
+export async function getSupportPool(): Promise<CrewMember[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users').select('id, name')
+    .is('deleted_at', null)
+    .order('name') as { data: CrewMember[] | null }
+  return data ?? []
+}
