@@ -4,7 +4,7 @@
 
 **Goal:** Turn `/schedule`'s day list into a driver-grouped board the scheduler can drag jobs around, and replace the per-drag Telegram with two 6pm summaries — with jobs dated today still notifying immediately.
 
-**Architecture:** A job's band is **derived, never stored** — the set of formal non-support assignees decides it (0 → Unassigned, 1 → that driver's container, 2+ → Mixed Drivers). That one rule gives the layout, every drag outcome, and the "job stops being shared" behaviour for free, and it lives in a pure module with no React so it can be tested standalone. Drags go through a single new server route that writes drivers and support crew together, records the change to the existing append-only `events` table (no new table), and notifies immediately only when the job is dated today. A 6pm cron reads those event rows and sends two different messages from a new summary bot.
+**Architecture:** A job's band is **derived, never stored** — the formal crew decides it (0 → Unassigned, 1 driver → that driver's container, 2+ drivers → Mixed Drivers, no driver but one external → that external's container). That one rule gives the layout, every drag outcome, and the "job stops being shared" behaviour for free, and it lives in a pure module with no React so it can be tested standalone. Drags go through a single new server route that writes drivers and support crew together, records the change to the existing append-only `events` table (no new table), and notifies immediately only when the job is dated today. A 6pm cron reads those event rows and sends two different messages from a new summary bot.
 
 **Tech Stack:** Next.js 15 App Router, TypeScript strict, Supabase (PostgREST + RLS), Tailwind, pointer-event drag (no library — mirrors `TaskListSection`), Telegram Bot API, Vercel cron.
 
@@ -22,7 +22,8 @@
 - **Date labels are always English** in every language (CLAUDE.md hard rule).
 - **Tests are standalone tsx scripts**, no framework. Run one with `npx tsx path/to/file.test.ts`. Exit 1 on failure. Follow the shape of `src/lib/utils/job-card.test.ts`.
 - **Every new test keeps the OLD behaviour asserted alongside the new one** where a bug is being fixed, so the test demonstrably catches the real thing (the 2026-09-14 rule).
-- **Nic's four decisions, 2026-09-16:** build board + summaries and merge only when both work · a **new** summary bot, not the ops bot · sort inside a container by **time**, and capture coordinates now for a later proximity feature · leave the job form's instant "Save & notify" Telegram exactly as it is.
+- **Nic's decisions, 2026-09-16:** build board + summaries and merge only when both work · a **new** summary bot, not the ops bot · sort inside a container by **time**, and capture coordinates now for a later proximity feature · leave the job form's instant "Save & notify" Telegram exactly as it is.
+- **Nic's external-installer decisions, 2026-09-16:** a job with a driver AND an external belongs to **the driver's container** · external containers are **display-only, no drag in** — assigning an outsider stays on the job form · **accept/decline is removed entirely** from the external page: "we inform beforehand through message and call to set agreement, in which they have no rights to reject once agreed unless informed otherwise again."
 
 ## Already built — do not rebuild
 
@@ -83,7 +84,7 @@ The whole feature's logic, with no React around it. Everything else in this plan
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `MIXED`, `UNASSIGNED`, `driverBandId(userId)`, `mainCrew(job)`, `bandForDrivers(driverIds, knownDriverIds)`, `bandOfJob(job, knownDriverIds)`, `buildBands(jobs, drivers)`, `sortByStartTime(jobs)`, `planDrag(job, targetBand, drivers)`. Types `BoardJob`, `BoardAssignee`, `DriverRef`, `Band`, `DragPlan`.
+- Produces: `MIXED`, `UNASSIGNED`, `driverBandId(userId)`, `externalBandId(contactId)`, `mainCrew(job)`, `supportCrew(job)`, `externalCrew(job)`, `bandForCrew(driverIds, externalIds)`, `bandOfJob(job)`, `buildBands(jobs, drivers)`, `sortByStartTime(jobs)`, `planDrag(job, targetBand, drivers)`. Types `BoardJob`, `BoardAssignee`, `BoardExternal`, `DriverRef`, `Band`, `DragPlan`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -96,8 +97,8 @@ The whole feature's logic, with no React around it. Everything else in this plan
  */
 
 import {
-  MIXED, UNASSIGNED, driverBandId,
-  mainCrew, bandForDrivers, bandOfJob, buildBands, sortByStartTime, planDrag,
+  MIXED, UNASSIGNED, driverBandId, externalBandId,
+  mainCrew, bandForCrew, bandOfJob, buildBands, sortByStartTime, planDrag,
   type BoardJob, type DriverRef,
 } from './driver-board'
 
@@ -119,8 +120,17 @@ const main    = (u: DriverRef) => ({ users: { id: u.id, name: u.name }, is_sub_i
 const support = (u: DriverRef) => ({ users: { id: u.id, name: u.name }, is_sub_installer: true  })
 const sugg    = (u: DriverRef) => ({ users: { id: u.id, name: u.name }, is_sub_installer: false, is_suggestion: true })
 
-const job = (id: string, assignees: BoardJob['job_assignees'], time: string | null = '09:00:00'): BoardJob =>
-  ({ id, time_start: time, job_assignees: assignees })
+/** An external installer link. Not a user — externals live in their own table. */
+const ext = (id: string, name: string, isSuggestion = false) =>
+  ({ is_suggestion: isSuggestion, external_contacts: { id, name } })
+
+const job = (
+  id: string,
+  assignees: BoardJob['job_assignees'],
+  time: string | null = '09:00:00',
+  externals: BoardJob['job_external_contacts'] = [],
+): BoardJob =>
+  ({ id, time_start: time, job_assignees: assignees, job_external_contacts: externals })
 
 console.log('mainCrew:')
 
@@ -135,23 +145,45 @@ check('a suggestion is not crew',
   mainCrew(job('j2', [sugg(CK)])),
   [])
 
-console.log('bandForDrivers — the one rule the whole board derives from:')
+console.log('bandForCrew — the one rule the whole board derives from:')
 
-check('nobody on it → Unassigned',   bandForDrivers([],               ['ck','rintu','xy']), UNASSIGNED)
-check('one driver → their container', bandForDrivers(['ck'],          ['ck','rintu','xy']), driverBandId('ck'))
-check('two drivers → Mixed',          bandForDrivers(['ck','rintu'],  ['ck','rintu','xy']), MIXED)
-check('three drivers → Mixed',        bandForDrivers(['ck','rintu','xy'], ['ck','rintu','xy']), MIXED)
+check('nobody on it → Unassigned',    bandForCrew([],                    []), UNASSIGNED)
+check('one driver → their container', bandForCrew(['ck'],                []), driverBandId('ck'))
+check('two drivers → Mixed',          bandForCrew(['ck','rintu'],        []), MIXED)
+check('three drivers → Mixed',        bandForCrew(['ck','rintu','xy'],   []), MIXED)
 
 // Someone not flagged is_driver still gets their own container rather than
 // vanishing. Old rows predate the 2026-09-07 Drivers bucket, and a job that
 // is not on the board is a job the scheduler cannot find.
 check('a lone non-driver still gets their own container',
-  bandForDrivers(['stranger'], ['ck','rintu','xy']), driverBandId('stranger'))
+  bandForCrew(['stranger'], []), driverBandId('stranger'))
+
+// Externals (Nic, 2026-09-16). A job with an outside contractor and nobody
+// else used to sit in Unassigned looking unstaffed — the card does not even
+// load externals today, so it read "Driver: nobody yet".
+check('only an external → that external\'s container',
+  bandForCrew([], ['ahseng']), externalBandId('ahseng'))
+
+// "The driver's container" — Nic's call. The container answers whose day
+// this is, and it is the driver's van and the driver's schedule.
+check('a driver plus an external belongs to the driver',
+  bandForCrew(['ck'], ['ahseng']), driverBandId('ck'))
+
+// Two outside contractors and no driver: the same problem Mixed exists to
+// solve — file it under one and the other's day is incomplete.
+check('two externals, no driver → Mixed', bandForCrew([], ['ahseng','boonleong']), MIXED)
 
 console.log('bandOfJob:')
 
-check('reads the job assignees', bandOfJob(job('j3', [main(RINTU), support(CK)]), ['ck','rintu','xy']), driverBandId('rintu'))
-check('support crew alone does NOT place a job', bandOfJob(job('j4', [support(CK)]), ['ck','rintu','xy']), UNASSIGNED)
+check('reads the job assignees', bandOfJob(job('j3', [main(RINTU), support(CK)])), driverBandId('rintu'))
+check('support crew alone does NOT place a job', bandOfJob(job('j4', [support(CK)])), UNASSIGNED)
+check('an external link places a job', bandOfJob(job('j5', [], '09:00:00', [ext('ahseng','Ah Seng')])), externalBandId('ahseng'))
+
+// A suggested external is a tentative sales pick that has not been confirmed
+// — invisible on the contact's own link page (migration 0040), so it must not
+// make the job look staffed here either.
+check('a SUGGESTED external does not place a job',
+  bandOfJob(job('j6', [], '09:00:00', [ext('ahseng','Ah Seng', true)])), UNASSIGNED)
 
 console.log('buildBands — fixed order, drivers always present:')
 
@@ -176,6 +208,25 @@ check('a stray non-driver gets a container after the real drivers',
   buildBands([job('s', [{ users: { id: 'zz', name: 'Ali Ramjan' }, is_sub_installer: false }])], DRIVERS)
     .map(b => b.id),
   [MIXED, driverBandId('ck'), driverBandId('rintu'), driverBandId('xy'), driverBandId('zz'), UNASSIGNED])
+
+// External containers sit BELOW the three main drivers and ABOVE Unassigned
+// (Nic's words: "a new container below my 3 main driver… unassigned container
+// always below all of these"). They appear ONLY when they hold a job — an
+// external is an occasional contractor, not a standing column, so an empty
+// one would be clutter. That is the deliberate difference from a driver,
+// whose empty container is itself information.
+check('an external container sits under the drivers, above Unassigned',
+  buildBands([job('e', [], '09:00:00', [ext('ahseng', 'Ah Seng')])], DRIVERS).map(b => b.id),
+  [MIXED, driverBandId('ck'), driverBandId('rintu'), driverBandId('xy'), externalBandId('ahseng'), UNASSIGNED])
+
+check('no external jobs → no external containers',
+  buildBands([job('n', [main(CK)])], DRIVERS).map(b => b.id),
+  [MIXED, driverBandId('ck'), driverBandId('rintu'), driverBandId('xy'), UNASSIGNED])
+
+check('an external container is named after the contact',
+  buildBands([job('e', [], '09:00:00', [ext('ahseng', 'Ah Seng')])], DRIVERS)
+    .find(b => b.id === externalBandId('ahseng'))?.driver?.name,
+  'Ah Seng')
 
 console.log('sortByStartTime — a driver\'s day runs in clock order:')
 
@@ -234,6 +285,25 @@ check('a drag onto its own band is refused',
   planDrag(job('z', [main(CK)]), driverBandId('ck'), DRIVERS),
   null)
 
+// Nic's call: external containers are display-only. Assigning an outsider
+// stays on the job form, where the suggest-then-confirm rules live. The board
+// also never registers them as drop targets, so this is belt and braces —
+// the rule is asserted here so it cannot be lost in a UI refactor.
+check('dragging INTO an external container is refused',
+  planDrag(job('e1', [main(CK)]), externalBandId('ahseng'), DRIVERS),
+  null)
+
+// Dragging a job OUT of an external's container onto a driver is allowed, and
+// the external STAYS: they were phoned and agreed to this job, so a drag must
+// not quietly drop a contractor who is expecting to turn up.
+check('external to a driver adds the driver and keeps the external',
+  planDrag(job('e2', [], '09:00:00', [ext('ahseng', 'Ah Seng')]), driverBandId('ck'), DRIVERS),
+  {
+    targetBand: driverBandId('ck'),
+    driverIds: ['ck'], removedDriverIds: [],
+    supportIds: [], askSupport: true, askDrivers: false, destructive: false,
+  })
+
 console.log(failures === 0 ? '\nAll driver-board checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)
 ```
@@ -254,13 +324,14 @@ Expected: FAIL — `Cannot find module './driver-board'`.
  * From Nic's two hand sketches and the 2026-09-15 design session; spec at
  * docs/superpowers/specs/2026-09-14-schedule-feedback.md item 5.
  *
- * THE ONE RULE: a job's band is DERIVED from its formal driver set, never
- * stored. 0 drivers → Unassigned, 1 → that driver's container, 2+ → Mixed.
- * Everything else falls out of it, including two things the spec listed as
- * open questions: "if only one driver is picked the card drops into that
- * driver's own container instead", and "drag one driver off a Mixed job and
- * it should fall into the other driver's container by itself". Both are the
- * same line of code, so neither can drift from the other.
+ * THE ONE RULE: a job's band is DERIVED from its formal crew, never stored.
+ * 0 → Unassigned, 1 driver → that driver's container, 2+ drivers → Mixed, no
+ * driver but an external → that external's container. Everything else falls
+ * out of it, including two things the spec listed as open questions: "if only
+ * one driver is picked the card drops into that driver's own container
+ * instead", and "drag one driver off a Mixed job and it should fall into the
+ * other driver's container by itself". Both are the same line of code, so
+ * neither can drift from the other.
  */
 
 export type BoardAssignee = {
@@ -269,18 +340,30 @@ export type BoardAssignee = {
   is_sub_installer?: boolean
 }
 
+/**
+ * An outside contractor on a job. NOT a user — externals live in their own
+ * `external_contacts` table with a lifetime link token, so they never appear
+ * in job_assignees and the card was blind to them until 2026-09-16.
+ */
+export type BoardExternal = {
+  is_suggestion?:     boolean
+  external_contacts?: { id: string; name: string } | null
+}
+
 export type BoardJob = {
-  id:             string
-  time_start:     string | null
-  job_assignees:  BoardAssignee[]
+  id:                    string
+  time_start:            string | null
+  job_assignees:         BoardAssignee[]
+  /** Optional: only the live schedule query loads these. */
+  job_external_contacts?: BoardExternal[]
 }
 
 export type DriverRef = { id: string; name: string }
 
 export type Band = {
   id:     string
-  kind:   'mixed' | 'driver' | 'unassigned'
-  /** Driver this band belongs to — null for Mixed and Unassigned. */
+  kind:   'mixed' | 'driver' | 'external' | 'unassigned'
+  /** The person this band belongs to — null for Mixed and Unassigned. */
   driver: DriverRef | null
   jobs:   BoardJob[]
 }
@@ -288,7 +371,8 @@ export type Band = {
 export const MIXED      = 'mixed'
 export const UNASSIGNED = 'unassigned'
 
-export const driverBandId = (userId: string) => `driver:${userId}`
+export const driverBandId   = (userId: string)    => `driver:${userId}`
+export const externalBandId = (contactId: string) => `external:${contactId}`
 
 /**
  * The job's drivers: formal, non-support assignees.
@@ -322,15 +406,48 @@ export function supportCrew(job: BoardJob): DriverRef[] {
   return out
 }
 
-/** THE rule. `knownDriverIds` is only used to order bands, never to hide a job. */
-export function bandForDrivers(driverIds: string[], _knownDriverIds: string[]): string {
-  if (driverIds.length === 0) return UNASSIGNED
-  if (driverIds.length === 1) return driverBandId(driverIds[0])
-  return MIXED
+/**
+ * The job's external installers: confirmed links only.
+ *
+ * A SUGGESTED external is a tentative sales pick, invisible on the contact's
+ * own link page until a scheduler or coordinator confirms it (migration
+ * 0040). It must not make a job look staffed on the board either.
+ */
+export function externalCrew(job: BoardJob): DriverRef[] {
+  const out: DriverRef[] = []
+  for (const row of job.job_external_contacts ?? []) {
+    if (row?.is_suggestion) continue
+    if (!row?.external_contacts?.id) continue
+    out.push({ id: row.external_contacts.id, name: row.external_contacts.name })
+  }
+  return out
 }
 
-export function bandOfJob(job: BoardJob, knownDriverIds: string[]): string {
-  return bandForDrivers(mainCrew(job).map(d => d.id), knownDriverIds)
+/**
+ * THE rule.
+ *
+ * Internal drivers decide first: a job with one of OUR drivers on it belongs
+ * to that driver's container even when an outside contractor is helping —
+ * Nic's call, 2026-09-16, because the container answers whose day this is and
+ * it is the driver's van and the driver's schedule.
+ *
+ * Only when no driver is on it do externals place the job. Two externals and
+ * no driver hit Mixed for the same reason two drivers do: filing a shared job
+ * under one person leaves the other's day incomplete.
+ */
+export function bandForCrew(driverIds: string[], externalIds: string[] = []): string {
+  if (driverIds.length === 1) return driverBandId(driverIds[0])
+  if (driverIds.length >= 2)  return MIXED
+  if (externalIds.length === 1) return externalBandId(externalIds[0])
+  if (externalIds.length >= 2)  return MIXED
+  return UNASSIGNED
+}
+
+export function bandOfJob(job: BoardJob): string {
+  return bandForCrew(
+    mainCrew(job).map(d => d.id),
+    externalCrew(job).map(e => e.id),
+  )
 }
 
 /** Earliest first; a job with no start time is an all-day floater and sorts last. */
@@ -354,16 +471,26 @@ export function sortByStartTime<T extends { time_start: string | null }>(jobs: T
  * nothing today" is information, and a band that appears only when occupied
  * would move the others. Anyone assigned but NOT flagged is_driver gets a
  * container after the real ones, so no job can be invisible.
+ *
+ * EXTERNAL containers sit below every driver and above Unassigned (Nic,
+ * 2026-09-16: "a new container below my 3 main driver… unassigned container
+ * always below all of these"), and appear ONLY when they hold a job. That is
+ * the deliberate difference from a driver: an external is an occasional
+ * contractor, not a standing column, so an empty one would be clutter, while
+ * an empty driver container is itself information.
  */
 export function buildBands(jobs: BoardJob[], drivers: DriverRef[]): Band[] {
-  const knownIds = drivers.map(d => d.id)
-  const byBand   = new Map<string, BoardJob[]>()
-  const strays   = new Map<string, DriverRef>()
+  const knownIds  = drivers.map(d => d.id)
+  const byBand    = new Map<string, BoardJob[]>()
+  const strays    = new Map<string, DriverRef>()
+  const externals = new Map<string, DriverRef>()
 
   for (const job of jobs) {
     const crew = mainCrew(job)
-    const id   = bandForDrivers(crew.map(c => c.id), knownIds)
+    const exts = externalCrew(job)
+    const id   = bandForCrew(crew.map(c => c.id), exts.map(e => e.id))
     if (crew.length === 1 && !knownIds.includes(crew[0].id)) strays.set(crew[0].id, crew[0])
+    if (id.startsWith('external:')) externals.set(exts[0].id, exts[0])
     ;(byBand.get(id) ?? byBand.set(id, []).get(id)!).push(job)
   }
 
@@ -373,6 +500,9 @@ export function buildBands(jobs: BoardJob[], drivers: DriverRef[]): Band[] {
     { id: MIXED, kind: 'mixed' as const, driver: null, jobs: take(MIXED) },
     ...[...drivers, ...strays.values()].map(d => ({
       id: driverBandId(d.id), kind: 'driver' as const, driver: d, jobs: take(driverBandId(d.id)),
+    })),
+    ...[...externals.values()].map(e => ({
+      id: externalBandId(e.id), kind: 'external' as const, driver: e, jobs: take(externalBandId(e.id)),
     })),
     { id: UNASSIGNED, kind: 'unassigned' as const, driver: null, jobs: take(UNASSIGNED) },
   ]
@@ -403,12 +533,18 @@ export type DragPlan = {
  * confirms, and only then does the crew route run. Cancel at any point and
  * the drag never happened.
  */
-export function planDrag(job: BoardJob, targetBand: string, drivers: DriverRef[]): DragPlan | null {
-  const knownIds = drivers.map(d => d.id)
-  const current  = mainCrew(job).map(d => d.id)
-  const support  = supportCrew(job).map(d => d.id)
+export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[]): DragPlan | null {
+  const current   = mainCrew(job).map(d => d.id)
+  const support   = supportCrew(job).map(d => d.id)
+  const externals = externalCrew(job).map(e => e.id)
 
-  if (bandForDrivers(current, knownIds) === targetBand) return null
+  if (bandForCrew(current, externals) === targetBand) return null
+
+  // External containers are display-only (Nic, 2026-09-16) — assigning an
+  // outside contractor stays on the job form, where the suggest-then-confirm
+  // rules already live. The board also declines to register them as drop
+  // targets; this is the second lock, so a UI refactor cannot undo the rule.
+  if (targetBand.startsWith('external:')) return null
 
   if (targetBand === UNASSIGNED) {
     return {
@@ -1055,13 +1191,16 @@ import { useEffect, useState } from 'react'
 import { X, AlertTriangle } from 'lucide-react'
 import { Btn } from '@/components/Btn'
 import { cn } from '@/lib/utils/cn'
-import { MIXED, UNASSIGNED, bandForDrivers, driverBandId, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
+import { MIXED, UNASSIGNED, bandForCrew, driverBandId, externalBandId, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
 
 interface Props {
   plan:        DragPlan
   job:         { id: string; title: string }
   drivers:     DriverRef[]
   supportPool: DriverRef[]
+  /** Confirmed outside contractors already on the job. A drag never adds or
+   *  removes these — they are here so the "lands in" line tells the truth. */
+  externals:   DriverRef[]
   onClose:     () => void
   onSaved:     () => void
 }
@@ -1084,7 +1223,9 @@ type ClashReport = {
  * z-[60]: BottomNav is z-50 and nothing interactive may sit behind it
  * (CLAUDE.md hard rule).
  */
-export function CrewChangeModal({ plan, job, drivers, supportPool, onClose, onSaved }: Props) {
+export function CrewChangeModal({ plan, job, drivers, supportPool, externals, onClose, onSaved }: Props) {
+  const externalIds   = externals.map(e => e.id)
+  const externalNames = externals.map(e => e.name)
   const [driverIds,  setDriverIds]  = useState<string[]>(plan.driverIds)
   const [supportIds, setSupportIds] = useState<string[]>(plan.supportIds)
   const [checking,   setChecking]   = useState(false)
@@ -1104,11 +1245,18 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, onClose, onSa
   // Where the card will ACTUALLY land — a Mixed drop with one driver picked
   // drops into that driver's own container instead, so the band can never
   // hold a single-driver job (Nic's rule).
-  const landing = bandForDrivers(driverIds, drivers.map(d => d.id))
+  // Where the card will ACTUALLY land, externals included. A job dragged to
+  // Unassigned that still has an outside contractor on it does NOT become
+  // unassigned — the crew route clears internal crew only, so it falls into
+  // that external's container. The label has to say so, or the scheduler is
+  // told something untrue about a drag they are about to confirm.
+  const landing = bandForCrew(driverIds, externalIds)
   const landingLabel =
     landing === UNASSIGNED ? 'Unassigned'
     : landing === MIXED    ? 'Mixed Drivers'
-    : drivers.find(d => driverBandId(d.id) === landing)?.name ?? 'a driver'
+    : externalBandId(externalIds[0] ?? '') === landing
+      ? `${externalNames[0] ?? 'an external installer'} (external)`
+      : drivers.find(d => driverBandId(d.id) === landing)?.name ?? 'a driver'
 
   async function confirm() {
     setError(null)
@@ -1350,7 +1498,27 @@ export async function getSupportPool(): Promise<CrewMember[]> {
 }
 ```
 
-Also add `is_driver` to `SCHEDULE_SELECT`'s users embed: `job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) )` stays as-is — the board reads `is_driver` from `getDrivers()`, not from the embed, so **no change is needed here.** Add `lat, lng` to `SCHEDULE_SELECT` and to `ScheduleJob` (`lat?: number | null; lng?: number | null`).
+`job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) )` stays as it is — the board reads `is_driver` from `getDrivers()`, not from the embed. Add to `SCHEDULE_SELECT`:
+
+```
+  lat, lng,
+  job_external_contacts ( is_suggestion, external_contacts ( id, name ) )
+```
+
+and to `ScheduleJob`:
+
+```ts
+  lat?: number | null
+  lng?: number | null
+  // Outside contractors. The card and the board were BLIND to these until
+  // 2026-09-16 — this query never loaded them, so a job with only an external
+  // installer on it rendered "Driver: nobody yet" and sat in Unassigned
+  // looking unstaffed. Optional because the installer views feed rows through
+  // a different query.
+  job_external_contacts?: Array<{ is_suggestion: boolean; external_contacts: { id: string; name: string } | null }>
+```
+
+Embedding `external_contacts` from `job_external_contacts` is safe: there is exactly ONE foreign key between them (`contact_id`), unlike the `jobs → users` case the standing rule forbids. **Note for the reviewer:** `hr` has no SELECT policy on `job_external_contacts` (0039/0040 cover scheduler/coordinator/admin and sales/designer/production). PostgREST returns `[]` for an unreadable embed rather than erroring, so HR simply sees no external containers. Acceptable — HR's schedule is view-only and externals are not her concern.
 
 - [ ] **Step 2: Add the drag handle to JobRow**
 
@@ -1380,6 +1548,30 @@ Inside the outer `<div className="flex items-start gap-2 mb-2">`, before the `<L
 
 Import `GripVertical` from `lucide-react`. Apply `dragging && 'opacity-50'` to the card's `cn(...)` so the card being carried is visibly lifted.
 
+**Also add the External line to the card.** In the team-card branch, directly under the existing `<CrewLine label="Support Crew:" names={support} />`:
+
+```tsx
+{externalNames.length > 0 && (
+  <CrewLine label="External:" names={externalNames} />
+)}
+```
+
+with, beside the existing `splitCrew` call:
+
+```ts
+// Outside contractors, confirmed only — a suggested external is invisible on
+// their own link page (migration 0040) and must not look staffed here. Until
+// 2026-09-16 the card could not show these at all: the schedule query never
+// loaded them, so a job crewed entirely by an outside contractor read
+// "Driver: nobody yet".
+const externalNames = (job.job_external_contacts ?? [])
+  .filter(e => !e.is_suggestion)
+  .map(e => e.external_contacts?.name)
+  .filter((n): n is string => !!n)
+```
+
+The line is rendered only when there is someone on it — unlike Support Crew, which shows "none", because most jobs never involve an outside contractor and an empty row on every card is noise.
+
 - [ ] **Step 3: Write the board**
 
 ```tsx
@@ -1392,7 +1584,7 @@ import { cn } from '@/lib/utils/cn'
 import { JobRow } from './JobRow'
 import { useCardDrag } from './useCardDrag'
 import { CrewChangeModal } from './CrewChangeModal'
-import { buildBands, planDrag, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
+import { buildBands, planDrag, externalCrew, type DragPlan, type DriverRef } from '@/lib/utils/driver-board'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 
 interface Props {
@@ -1441,14 +1633,20 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
     <div className="space-y-3">
       {bands.map(band => {
         const isDriverBand = band.kind === 'driver'
+        // External containers are display-only (Nic, 2026-09-16): assigning an
+        // outside contractor stays on the job form. NOT registering them means
+        // hit-testing can never return one, so a card dropped over an external
+        // simply snaps back — no prompt, nothing written.
+        const droppable = band.kind !== 'external'
         return (
           <section
             key={band.id}
-            ref={el => registerBand(band.id, el)}
+            ref={el => { if (droppable) registerBand(band.id, el) }}
             className={cn(
               'rounded-card border p-3 transition-colors',
               hoverBandId === band.id && draggingId ? 'border-terracotta bg-terracotta-soft' : 'border-line bg-bg',
               band.kind === 'unassigned' && 'border-dashed',
+              band.kind === 'external'   && 'border-dashed border-brand-blue',
             )}
           >
             <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -1457,6 +1655,11 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
                  : band.kind === 'unassigned' ? 'Unassigned'
                  : band.driver!.name}
               </h2>
+              {band.kind === 'external' && (
+                <span className="rounded-full border border-brand-blue bg-brand-blue-soft px-2 py-[1px] text-[10px] font-semibold text-brand-blue">
+                  External
+                </span>
+              )}
               <span className="text-[11px] text-muted">
                 {band.jobs.length === 0 ? 'nothing today' : `${band.jobs.length} job${band.jobs.length === 1 ? '' : 's'}`}
               </span>
@@ -1486,6 +1689,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
           job={{ id: plan.job.id, title: plan.job.project_title || plan.job.client || 'Untitled job' }}
           drivers={drivers}
           supportPool={supportPool}
+          externals={externalCrew(plan.job)}
           onClose={() => setPlan(null)}
           onSaved={() => { setPlan(null); router.refresh() }}
         />
@@ -1495,7 +1699,9 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
 }
 ```
 
-The driver bands sit side by side via a wrapper in the band list — wrap the `drivers` bands in one grid rather than each being its own row. Replace the `bands.map` above with: render the Mixed band, then a `<div>` holding every `kind === 'driver'` band with
+The driver bands sit side by side via a wrapper in the band list — wrap the `drivers` bands in one grid rather than each being its own row. Replace the `bands.map` above with, in this exact order: the **Mixed** band full width, then a `<div>` holding every `kind === 'driver'` band as a grid, then every `kind === 'external'` band full width, then **Unassigned** full width. External containers stay full width rather than joining the driver grid — they are occasional, they come and go with the day's work, and slotting them into the grid would shift the drivers' fixed positions, which is the one thing the band layout exists to prevent.
+
+The driver grid uses
 
 ```tsx
 style={{
@@ -2128,7 +2334,127 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ---
 
-### Task 11: Docs, and the bot Nic has to create
+### Task 11: Remove accept/decline from the external installer page
+
+Nic, 2026-09-16: *"external installer don't have the option to accept or decline because we will inform beforehand through message and call to set agreement for the job, in which they have no rights to reject once agreed unless informed otherwise again."*
+
+**The trap, found before writing any code:** Accept is not just a button. `if (link !== 'accepted')` gates BOTH `/api/ext/[token]/job/[jobId]` (the job detail) and `/api/ext/[token]/tasks` (ticking the task list). Delete the buttons alone and **every external installer is locked out of every job with a 403, permanently.** The gate has to change in the same commit: being formally on the job IS the agreement.
+
+**Files:**
+- Delete: `src/app/api/ext/[token]/respond/route.ts`
+- Modify: `src/app/api/ext/[token]/job/[jobId]/route.ts:21`, `src/app/api/ext/[token]/tasks/route.ts:31`, `src/lib/supabase/queries/external.ts:96-115`, `src/features/external/ExternalHomePage.tsx`, `src/features/job-detail/ExternalPOCBucket.tsx`, `src/lib/i18n/en.ts`, `src/lib/i18n/zh.ts`
+
+**Interfaces:**
+- Consumes: nothing.
+- Produces: `isContactOnJob(contactId, jobId)` returns `boolean` — whether a CONFIRMED link exists — instead of the old status string.
+
+- [ ] **Step 1: Change the gate first, before removing anything**
+
+In `src/lib/supabase/queries/external.ts`, replace `getContactJobLink`:
+
+```ts
+/**
+ * Is this contact formally on this job?
+ *
+ * Was: the link's accept/decline status, used to gate the detail page and the
+ * task list until the person pressed Accept. Accept/decline was removed on
+ * 2026-09-16 (Nic): agreement is reached by message and call before anyone is
+ * put on a job, so being on it IS the agreement and there is nothing to
+ * accept. `is_suggestion` still gates: a tentative sales pick is invisible
+ * here until a scheduler or coordinator confirms it (migration 0040).
+ *
+ * This function must change in the SAME commit as the buttons. Leaving the
+ * old `!== 'accepted'` check in place while removing the only way to reach
+ * 'accepted' would lock every external out of every job with a 403.
+ */
+export async function isContactOnJob(contactId: string, jobId: string): Promise<boolean> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('job_external_contacts')
+    .select('job_id')
+    .eq('contact_id', contactId)
+    .eq('job_id', jobId)
+    .eq('is_suggestion', false)
+    .maybeSingle()
+  return !!data
+}
+```
+
+Then in both routes, replace the import and the gate:
+
+```ts
+import { getContactByToken, isContactOnJob } from '@/lib/supabase/queries/external'
+// …
+if (!await isContactOnJob(check.contact.id, jobId)) {
+  return NextResponse.json({ error: 'not_on_job' }, { status: 403 })
+}
+```
+
+- [ ] **Step 2: Verify the gate opens before the buttons go**
+
+Run: `npm run type-check` → clean, and `rg -n "'accepted'" src/app/api/ext` → **no matches**.
+
+- [ ] **Step 3: Delete the respond route**
+
+```bash
+git rm -r "src/app/api/ext/[token]/respond"
+```
+
+- [ ] **Step 4: Simplify the external home page**
+
+In `src/features/external/ExternalHomePage.tsx`:
+- Delete the `respond` function (line ~38) and the `busy` state it drives if nothing else uses it.
+- Delete the Accept and Decline buttons (lines ~186-200) and the whole **Pending** section they sit in.
+- Recompute the two remaining sections with no status in them at all:
+
+```ts
+// Every confirmed job, split by date alone. There is no pending state any
+// more: agreement happens by phone before anyone is put on a job.
+const today    = todayIso()
+const upcoming = jobs.filter(j =>
+  j.job.job_status !== 'completed' && (j.job.date_end ?? j.job.date) >= today)
+const past     = jobs.filter(j =>
+  j.job.job_status === 'completed' || (j.job.date_end ?? j.job.date) < today)
+```
+
+- In the Past section, `const isDone = j.status === 'accepted'` becomes `const isDone = true` — every past job is now openable, so simply drop the conditional and always render the card as a button.
+- Drop `status` from `ExtJobSummary` in `src/lib/supabase/queries/external.ts` and from the query that fills it.
+
+- [ ] **Step 5: Remove the chips from the job form**
+
+In `src/features/job-detail/ExternalPOCBucket.tsx`, delete the `LinkStatus` type and every `status ===` branch (lines ~23, 247-248, 258-259, 300). A confirmed external now renders with one style — the amber **suggestion** state is untouched, because suggest-then-confirm is a different mechanism and still in force. Remove the now-unused `extBucketAccepted` / `extBucketDeclined` keys from `en.ts` and `zh.ts`.
+
+- [ ] **Step 6: Verify nothing still reads the status**
+
+Run: `rg -n "'accepted'|'declined'" src/ --glob '!*.test.ts'`
+Expected: **no matches outside `src/lib/supabase/types.ts`**, where the column's type stays because the column itself stays (see Step 7).
+
+Then `npm run type-check` → clean, `npm run build` → clean.
+
+- [ ] **Step 7: Ledger the column, do not drop it**
+
+`job_external_contacts.status` stays in the database, defaulted and unread. Dropping a column is destructive and buys nothing today, and this repo already handles exactly this case the same way — `users.years_experience` / `skills` were hidden in 0052 with the drop ledgered for a quiet session. Add the same line to `docs/nic-checklist.md` under Provisioning overhaul's neighbouring cleanup item, so it is not rediscovered as a mystery:
+
+> **Drop `job_external_contacts.status`** — accept/decline was removed 2026-09-16, so the column is written once at creation and never read. Needs a small migration in a quiet session.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add -A src/app/api/ext src/features/external src/features/job-detail/ExternalPOCBucket.tsx src/lib/supabase/queries/external.ts src/lib/i18n docs/nic-checklist.md
+git commit -m "feat: external installers no longer accept or decline a job
+
+Agreement is reached by message and call before anyone is put on a job
+(Nic, 2026-09-16), so there is nothing to accept. The 'accepted' check
+also gated the job detail and task routes — being formally on the job is
+now what unlocks them, changed in the same commit so no external is ever
+locked out.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
+### Task 12: Docs, and the bot Nic has to create
 
 **Files:**
 - Modify: `docs/nic-checklist.md`, `docs/context.md`, `docs/superpowers/specs/2026-09-14-schedule-feedback.md`, `.env.local`
@@ -2140,6 +2466,7 @@ Under a new `### Driver board + 6pm summaries` heading in **Pending — Next Ses
 - Create the summary bot with @BotFather and send Claude the token (goes into Vercel for all three environments plus `.env.local`).
 - **Everyone who should get a summary must message that bot once.** Telegram blocks a bot from messaging anyone who has not started it — this is what bit the digest bot in August, and a person who skips it silently never receives theirs.
 - Decide whether the scheduler summary should also go to you, or schedulers only.
+- **Heads up for your outside contractors:** the Accept and Decline buttons are gone from their link page, and every job they are on now opens straight away. Anyone who was sent a job and never pressed Accept could not open it before and can now — worth knowing if one of them mentions seeing more than they used to.
 
 - [ ] **Step 2: Record the standing facts in `docs/context.md`**
 
