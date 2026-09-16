@@ -147,6 +147,38 @@ export async function wasRecentlyNotified(
   return (count ?? 0) > 0
 }
 
+/**
+ * One append-only row per person affected by a driver-board drag.
+ *
+ * This is the queue the 6pm summary reads. It rides on the existing `events`
+ * table rather than a new one: events already has a jsonb payload, is
+ * service-role-only, and is never updated or deleted — exactly the shape a
+ * change log needs. No migration.
+ *
+ * `notified_now` marks a change that already went out immediately because the
+ * job is dated today (Nic's exception, 2026-09-15). The cron skips those, so
+ * nobody gets the same reassignment twice.
+ */
+export async function recordCrewChange(
+  jobId:       string,
+  changes:     Array<{ userId: string; action: 'added' | 'removed'; asSupport: boolean }>,
+  actorId:     string | null,
+  notifiedNow: boolean,
+): Promise<void> {
+  if (changes.length === 0) return
+  const supabase = createServiceClient()
+  await supabase.from('events').insert(
+    changes.map(c => ({
+      actor_id:     actorId,
+      kind:         'crew_change',
+      target_id:    jobId,
+      target_table: 'jobs',
+      payload:      { user_id: c.userId, action: c.action, as_support: c.asSupport, notified_now: notifiedNow },
+      visibility:   ['role:scheduler'],
+    })) as never,
+  )
+}
+
 export async function recordOverdueNotification(jobId: string): Promise<void> {
   const supabase = createServiceClient()
   await supabase.from('events').insert({
