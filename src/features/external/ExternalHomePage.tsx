@@ -17,7 +17,6 @@ export function ExternalHomePage({ token }: Props) {
   const [contact,  setContact]  = useState<{ name: string } | null>(null)
   const [jobs,     setJobs]     = useState<ExtJobSummary[]>([])
   const [selected, setSelected] = useState<ExtJobSummary | null>(null)
-  const [busy,     setBusy]     = useState<string | null>(null)   // job_id being answered
 
   useEffect(() => {
     let cancelled = false
@@ -35,22 +34,6 @@ export function ExternalHomePage({ token }: Props) {
     return () => { cancelled = true }
   }, [token])
 
-  const respond = async (jobId: string, response: 'accepted' | 'declined') => {
-    setBusy(jobId)
-    try {
-      const res = await fetch(`/api/ext/${token}/respond`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ job_id: jobId, response }),
-      })
-      if (!res.ok) throw new Error()
-      setJobs(prev => prev.map(j => j.job_id === jobId ? { ...j, status: response } : j))
-    } catch {
-      // leave the card as-is — they can tap again
-    } finally {
-      setBusy(null)
-    }
-  }
 
   const brandBar = (
     <div className="bg-ink px-4 py-3 flex items-center gap-2.5">
@@ -94,15 +77,16 @@ export function ExternalHomePage({ token }: Props) {
     return <ExternalJobDetail token={token} summary={selected} onBack={() => setSelected(null)} />
   }
 
+  // Every confirmed job, split by DATE alone. There is no pending state any
+  // more: accept/decline was removed 2026-09-16 (Nic) because agreement is
+  // reached by message and call before anyone is put on a job — so being on
+  // it is the agreement, and there is nothing to answer.
   const today    = todayIso()
-  const pending  = jobs.filter(j => j.status === 'pending' && j.job.job_status !== 'completed')
   const upcoming = jobs.filter(j =>
-    j.status === 'accepted' && j.job.job_status !== 'completed' &&
-    (j.job.date_end ?? j.job.date) >= today,
+    j.job.job_status !== 'completed' && (j.job.date_end ?? j.job.date) >= today,
   )
   const past = jobs.filter(j =>
-    (j.status === 'accepted' && (j.job.job_status === 'completed' || (j.job.date_end ?? j.job.date) < today)) ||
-    j.status === 'declined',
+    j.job.job_status === 'completed' || (j.job.date_end ?? j.job.date) < today,
   )
 
   const metaChips = (j: ExtJobSummary) => (
@@ -153,58 +137,11 @@ export function ExternalHomePage({ token }: Props) {
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-0.5">Your jobs</p>
         <h1 className="text-xl font-bold text-ink">{contact?.name}</h1>
         <p className="text-[11px] text-muted mt-0.5">
-          {pending.length + upcoming.length} active
-          {pending.length > 0 && ` · ${pending.length} need${pending.length === 1 ? 's' : ''} your response`}
+          {upcoming.length} active
         </p>
       </div>
 
       <div className="max-w-md mx-auto">
-        {/* Needs response */}
-        {pending.length > 0 && (
-          <>
-            {sectionHead('Needs response', pending.length, 'red')}
-            {pending.map(j => (
-              <div
-                key={j.job_id}
-                className="mx-3 mb-2 rounded-xl border-[1.5px] border-terracotta/30 bg-paper overflow-hidden"
-              >
-                <div className="px-3.5 pt-3 pb-2.5">
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-ink truncate">
-                        {j.job.project_title || j.job.client}
-                      </p>
-                      <p className="text-[11px] text-muted truncate">{j.job.client}</p>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-terracotta-soft text-terracotta shrink-0">
-                      Pending
-                    </span>
-                  </div>
-                  {metaChips(j)}
-                </div>
-                <div className="flex gap-2 px-3.5 pb-3">
-                  <button
-                    type="button"
-                    disabled={busy === j.job_id}
-                    onClick={() => respond(j.job_id, 'accepted')}
-                    className="flex-1 py-2 rounded-lg bg-brand-green text-white text-xs font-bold disabled:opacity-50"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy === j.job_id}
-                    onClick={() => respond(j.job_id, 'declined')}
-                    className="flex-1 py-2 rounded-lg border-[1.5px] border-line bg-paper text-terracotta text-xs font-bold disabled:opacity-50"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
         {/* Upcoming */}
         {upcoming.length > 0 && (
           <>
@@ -223,9 +160,6 @@ export function ExternalHomePage({ token }: Props) {
                     </p>
                     <p className="text-[11px] text-muted truncate">{j.job.client}</p>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-green-soft text-brand-green shrink-0">
-                    Accepted
-                  </span>
                 </div>
                 {metaChips(j)}
               </button>
@@ -233,20 +167,20 @@ export function ExternalHomePage({ token }: Props) {
           </>
         )}
 
-        {/* Past / declined */}
+        {/* Past — done or the date has gone by. Nothing is "declined" any
+            more; an external cannot refuse a job from here. */}
         {past.length > 0 && (
           <>
             {sectionHead('Past', past.length)}
             {past.map(j => {
-              const isDone = j.status === 'accepted'
               return (
                 <div
                   key={j.job_id}
-                  role={isDone ? 'button' : undefined}
-                  onClick={isDone ? () => setSelected(j) : undefined}
+                  role="button"
+                  onClick={() => setSelected(j)}
                   className={cn(
                     'mx-3 mb-2 rounded-xl border-[1.5px] border-line bg-paper px-3.5 pt-3 pb-2.5 opacity-60',
-                    isDone && 'cursor-pointer',
+                    'cursor-pointer',
                   )}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -257,7 +191,7 @@ export function ExternalHomePage({ token }: Props) {
                       <p className="text-[11px] text-muted truncate">{j.job.client}</p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-bg text-muted shrink-0">
-                      {isDone ? 'Done' : 'Declined'}
+                      Done
                     </span>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-bg text-ink2">

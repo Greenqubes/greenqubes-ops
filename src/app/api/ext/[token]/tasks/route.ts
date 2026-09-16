@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getContactByToken, getContactJobLink } from '@/lib/supabase/queries/external'
+import { getContactByToken, isContactOnJob } from '@/lib/supabase/queries/external'
 
 // PUBLIC route — the external contact ticks a task off on site. Allowed only
 // on jobs they accepted. completed_by stays NULL (external people have no
@@ -27,9 +27,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 
-  const link = await getContactJobLink(check.contact.id, jobId)
-  if (link !== 'accepted') {
-    return NextResponse.json({ error: 'not_accepted' }, { status: 403 })
+  // Being formally on the job IS the agreement — accept/decline was removed
+  // 2026-09-16 (Nic). Same change as the job-detail route above it.
+  if (!await isContactOnJob(check.contact.id, jobId)) {
+    return NextResponse.json({ error: 'not_on_job' }, { status: 403 })
   }
 
   const supabase = createServiceClient()

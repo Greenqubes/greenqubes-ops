@@ -343,8 +343,6 @@ export const zh: Partial<Translations> = {
   extBucketSuggest: '推荐',
   extBucketSuggested: '已推荐',
   extBucketSalesSuggested: '销售推荐',
-  extBucketAccepted: '已接受',
-  extBucketDeclined: '已拒绝',
   extBucketPastJob: '个历史工作',
   extBucketPastJobs: '个历史工作',
   extBucketCopyLink: '复制链接',

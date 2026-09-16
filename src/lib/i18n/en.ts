@@ -451,8 +451,6 @@ export const en = {
   extBucketSuggest: 'Suggest',
   extBucketSuggested: 'Suggested',
   extBucketSalesSuggested: 'Sales suggested',
-  extBucketAccepted: 'Accepted',
-  extBucketDeclined: 'Declined',
   extBucketPastJob: 'past job',
   extBucketPastJobs: 'past jobs',
   extBucketCopyLink: 'Copy link',

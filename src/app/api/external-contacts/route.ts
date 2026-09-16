@@ -16,7 +16,6 @@ type ContactRow = {
   deleted_at: string | null
   created_at: string
   job_external_contacts: Array<{
-    status: 'pending' | 'accepted' | 'declined'
     jobs:   { date: string; status: string } | null
   }>
 }
@@ -55,7 +54,7 @@ export async function GET() {
   const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('external_contacts')
-    .select('id, name, phone, token, deleted_at, created_at, job_external_contacts(status, jobs(date, status))')
+    .select('id, name, phone, token, deleted_at, created_at, job_external_contacts(jobs(date, status))')
     .order('created_at', { ascending: true })
   if (error) return NextResponse.json({ error: 'Query failed' }, { status: 500 })
 
@@ -72,9 +71,10 @@ export async function GET() {
       url:        `${APP_URL}/ext/${c.token}`,
       deleted_at: c.deleted_at,
       job_count:  links.length,
-      // "active" = not declined, job not completed, and not already in the past
+      // "active" = job not completed and not already in the past. The
+      // "not declined" clause went with accept/decline on 2026-09-16 — an
+      // external cannot refuse a job any more, so every confirmed link counts.
       active_job_count: links.filter(l =>
-        l.status !== 'declined' &&
         l.jobs!.status !== 'completed' &&
         l.jobs!.date >= today,
       ).length,

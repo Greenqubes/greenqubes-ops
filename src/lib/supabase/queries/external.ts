@@ -31,7 +31,6 @@ export async function getContactByToken(token: string): Promise<TokenCheck> {
 
 export type ExtJobSummary = {
   job_id:      string
-  status:      'pending' | 'accepted' | 'declined'
   assigned_at: string
   job: {
     id:            string
@@ -54,7 +53,7 @@ export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]
   const { data } = await supabase
     .from('job_external_contacts')
     .select(`
-      job_id, status, assigned_at,
+      job_id, assigned_at,
       jobs ( id, project_title, client, location, date, date_end,
              time_start, time_end, punctuality, status )
     `)
@@ -63,7 +62,7 @@ export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]
     .order('assigned_at', { ascending: false })
 
   type Row = {
-    job_id: string; status: 'pending' | 'accepted' | 'declined'; assigned_at: string
+    job_id: string; assigned_at: string
     jobs: {
       id: string; project_title: string | null; client: string; location: string
       date: string; date_end: string | null; time_start: string | null
@@ -75,7 +74,6 @@ export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]
     .filter(r => r.jobs)
     .map(r => ({
       job_id:      r.job_id,
-      status:      r.status,
       assigned_at: r.assigned_at,
       job: {
         id:            r.jobs!.id,
@@ -92,19 +90,37 @@ export async function getContactJobs(contactId: string): Promise<ExtJobSummary[]
     }))
 }
 
-// The link between one contact and one job — used to gate the detail page
-// (attachments / tasks unlock only after acceptance).
-export async function getContactJobLink(
+/**
+ * Is this contact formally on this job? Gates the detail page and the task
+ * list.
+ *
+ * Was `getContactJobLink`, returning the link's accept/decline status, and
+ * both callers demanded `'accepted'`. Accept/decline was removed on
+ * 2026-09-16 (Nic): "we will inform beforehand through message and call to
+ * set agreement for the job, in which they have no rights to reject once
+ * agreed unless informed otherwise again." Agreement is reached before anyone
+ * is put on a job, so being on it IS the agreement and there is nothing to
+ * accept.
+ *
+ * This had to change in the SAME commit as the buttons. Leaving the old
+ * `!== 'accepted'` check while removing the only way to REACH 'accepted'
+ * would have locked every external installer out of every job with a 403,
+ * permanently and with no way back in.
+ *
+ * `is_suggestion` still gates: a tentative sales pick stays invisible here
+ * until a scheduler or coordinator confirms it (migration 0040).
+ */
+export async function isContactOnJob(
   contactId: string,
   jobId: string,
-): Promise<'pending' | 'accepted' | 'declined' | null> {
+): Promise<boolean> {
   const supabase = createServiceClient()
   const { data } = await supabase
     .from('job_external_contacts')
-    .select('status')
+    .select('job_id')
     .eq('contact_id', contactId)
     .eq('job_id', jobId)
     .eq('is_suggestion', false)
     .maybeSingle()
-  return data?.status ?? null
+  return !!data
 }

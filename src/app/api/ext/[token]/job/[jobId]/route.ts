@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getContactByToken, getContactJobLink } from '@/lib/supabase/queries/external'
+import { getContactByToken, isContactOnJob } from '@/lib/supabase/queries/external'
 import { getDownloadUrl } from '@/lib/storage/r2'
 
 // PUBLIC route — full job detail for the external contact's link page.
@@ -17,9 +17,12 @@ export async function GET(
     return NextResponse.json({ error: 'invalid' }, { status: 410 })
   }
 
-  const link = await getContactJobLink(check.contact.id, jobId)
-  if (link !== 'accepted') {
-    return NextResponse.json({ error: 'not_accepted' }, { status: 403 })
+  // Being formally on the job IS the agreement — accept/decline was removed
+  // 2026-09-16 (Nic): it is settled by message and call before anyone is put
+  // on a job. This check and the buttons changed together, or every external
+  // would have been locked out of every job with no way to accept.
+  if (!await isContactOnJob(check.contact.id, jobId)) {
+    return NextResponse.json({ error: 'not_on_job' }, { status: 403 })
   }
 
   const supabase = createServiceClient()

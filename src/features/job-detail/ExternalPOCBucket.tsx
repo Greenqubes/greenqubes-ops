@@ -20,8 +20,11 @@ type ExtContact = {
   active_job_count: number
 }
 
-type LinkStatus = 'pending' | 'accepted' | 'declined'
-type JobLink    = { status: LinkStatus; is_suggestion: boolean }
+// The link's accept/decline status is gone (Nic, 2026-09-16) — an external
+// agrees by phone before being put on a job, so a confirmed link has exactly
+// one state. The is_suggestion flag is untouched: suggest-then-confirm is a
+// different mechanism and still in force.
+type JobLink    = { is_suggestion: boolean }
 
 interface Props {
   jobId:     string
@@ -68,10 +71,10 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
     Promise.all([
       fetch('/api/external-contacts').then(r => r.ok ? r.json() : []),
       fetch(`/api/jobs/${jobId}/external-contacts`).then(r => r.ok ? r.json() : []),
-    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; status: LinkStatus; is_suggestion: boolean }>]) => {
+    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; is_suggestion: boolean }>]) => {
       if (cancelled) return
       setContacts(all)
-      setLinks(new Map(assigned.map(a => [a.contact_id, { status: a.status, is_suggestion: a.is_suggestion }])))
+      setLinks(new Map(assigned.map(a => [a.contact_id, { is_suggestion: a.is_suggestion }])))
       if (assigned.length > 0) setOpen(true)
       setLoaded(true)
     }).catch(() => { if (!cancelled) setLoaded(true) })
@@ -82,7 +85,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
   // Sales   → suggestion (server decides by role; UI mirrors it).
   const assignContact = async (contactId: string) => {
     const prev = links.get(contactId)
-    setLinks(p => new Map(p).set(contactId, { status: 'pending', is_suggestion: !isManager }))
+    setLinks(p => new Map(p).set(contactId, { is_suggestion: !isManager }))
     try {
       const res = await fetch(`/api/jobs/${jobId}/external-contacts`, {
         method:  'POST',
@@ -243,10 +246,9 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
       )
     }
 
-    const label =
-      link.status === 'accepted' ? t(lang, 'extBucketAccepted') :
-      link.status === 'declined' ? t(lang, 'extBucketDeclined') :
-      t(lang, 'extBucketAssigned')
+    // One state now: a confirmed link means they are on the job. Accepted /
+    // Declined chips went with the buttons on 2026-09-16.
+    const label = t(lang, 'extBucketAssigned')
     return (
       <button
         type="button"
@@ -255,9 +257,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
         title={isManager ? t(lang, 'extBucketRemove') : undefined}
         className={cn(
           'text-[10px] font-bold px-2 py-1 rounded-md border disabled:opacity-100',
-          link.status === 'accepted' ? 'bg-brand-green-soft border-brand-green/30 text-brand-green' :
-          link.status === 'declined' ? 'bg-terracotta-soft border-terracotta/30 text-terracotta' :
-          'bg-brand-amber-soft border-brand-amber/40 text-brand-amber',
+          'bg-brand-green-soft border-brand-green/30 text-brand-green',
         )}
       >
         {label}
@@ -297,9 +297,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
                 key={c.id}
                 className={cn(
                   'rounded-xl border-[1.5px] px-3 py-2.5 flex items-center gap-2.5',
-                  links.get(c.id)?.status === 'accepted' ? 'border-brand-green bg-brand-green/10' :
-                  links.get(c.id)                        ? 'border-brand-amber bg-brand-amber/10' :
-                  'border-line bg-paper',
+                  links.get(c.id) ? 'border-brand-green bg-brand-green/10' : 'border-line bg-paper',
                 )}
               >
                 <div

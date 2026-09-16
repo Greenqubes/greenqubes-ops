@@ -180,8 +180,6 @@ export const bn: Partial<Translations> = {
   extBucketSuggest: 'প্রস্তাব',
   extBucketSuggested: 'প্রস্তাবিত',
   extBucketSalesSuggested: 'সেলস প্রস্তাব করেছে',
-  extBucketAccepted: 'গ্রহণ করেছেন',
-  extBucketDeclined: 'প্রত্যাখ্যান করেছেন',
   extBucketPastJob: 'টি আগের কাজ',
   extBucketPastJobs: 'টি আগের কাজ',
   extBucketCopyLink: 'লিংক কপি করুন',
