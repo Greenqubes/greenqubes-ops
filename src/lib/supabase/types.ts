@@ -71,6 +71,11 @@ export interface Database {
           completed_at:            string | null
           scheduled_at:            string | null
           r2_folder:               string | null
+          // Map coordinates of the picked Google Place (migration 0061).
+          // NULL when the address was typed by hand. Read by nothing yet —
+          // deliberate capture for a future proximity feature, 2026-09-16.
+          lat:                     number | null
+          lng:                     number | null
           completion_override:     boolean
           design_brief:            string | null
           design_due_date:         string | null
@@ -90,7 +95,7 @@ export interface Database {
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
+          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'lat' | 'lng' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution'
         > & {
           id?:                     string
           created_at?:             string
@@ -100,6 +105,8 @@ export interface Database {
           project_title?:          string | null
           date_end?:               string | null
           r2_folder?:              string | null
+          lat?:                    number | null
+          lng?:                    number | null
           design_brief?:           string | null
           design_due_date?:        string | null
           design_due_manual?:      boolean

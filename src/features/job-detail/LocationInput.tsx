@@ -41,11 +41,22 @@ interface Props {
   previousLocation?:          string | null
   onUsePreviousLocation?:     () => void
   onDismissPreviousLocation?: () => void
+  /**
+   * The picked place's map coordinates, or null when there are none to trust.
+   *
+   * Fires with coordinates only when a suggestion is TAPPED, and with null
+   * the moment someone types over the box by hand — a pin that no longer
+   * describes what is written there is worse than no pin, because a future
+   * proximity feature would believe it. Nothing reads these yet; see
+   * migration 0061 and src/lib/utils/location-coords.ts.
+   */
+  onCoords?: (coords: { lat: number; lng: number } | null) => void
 }
 
 export function LocationInput({
   value, onChange, disabled = false, error = false, placeholder,
   lang = 'en', previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
+  onCoords,
 }: Props) {
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [open,        setOpen]        = useState(false)
@@ -143,7 +154,15 @@ export function LocationInput({
     })
       .then(r => r.ok ? r.json() as Promise<PlaceDetailsResponse> : null)
       .then(data => {
-        if (!data?.formattedAddress) return
+        if (!data) return
+        // Coordinates and the detailed address arrive in the same answer, but
+        // are reported separately: a place can have one without the other.
+        onCoords?.(
+          typeof data.lat === 'number' && typeof data.lng === 'number'
+            ? { lat: data.lat, lng: data.lng }
+            : null,
+        )
+        if (!data.formattedAddress) return
         justPicked.current = true   // the swap must not re-open the list
         onChange(composeAddress({
           name:     suggestion.main,
@@ -159,7 +178,13 @@ export function LocationInput({
     <div ref={wrapRef} className="relative">
       <Input
         value={value}
-        onChange={e => { userEdited.current = true; onChange(e.target.value) }}
+        onChange={e => {
+          userEdited.current = true
+          // Typed by hand, so any saved pin is now describing a different
+          // place than the text. Clear it rather than let it go stale.
+          onCoords?.(null)
+          onChange(e.target.value)
+        }}
         onFocus={() => { if (suggestions.length) setOpen(true) }}
         onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
         disabled={disabled}
