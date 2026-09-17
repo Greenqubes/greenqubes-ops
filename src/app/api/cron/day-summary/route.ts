@@ -6,6 +6,33 @@ import { buildSchedulerSummary, buildInstallerSummary, formatDayDate, splitForTe
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
 /**
+ * Who can create a job, and therefore who is listed in the scheduler summary.
+ */
+const CAN_CREATE = ['sales', 'coordinator', 'scheduler', 'admin']
+
+/**
+ * People who get the whole-day overview on top of the schedulers and admins.
+ *
+ * Nic's own account is `sales` (checked against the live table, 2026-09-16),
+ * so a role-based list left the owner off the one message that shows whether
+ * the day was captured properly. Named by EMAIL rather than by name, because
+ * two people can share a first name, and rather than by widening `sales`,
+ * which would send the whole-day overview to every sales person.
+ */
+const ALWAYS_RECEIVE_EMAILS = ['nicholas.wong@greenqubes.com']
+
+/**
+ * System accounts that are not people. Excluded from the roster so the
+ * message reads as a team list rather than a system log — GreenqubesAI can
+ * create jobs (the assistant's create_pending_job tool) and its test jobs
+ * were otherwise showing up under its own name every evening.
+ *
+ * Matched by NAME because this account has no email. Brittle if it is ever
+ * renamed; the failure is cosmetic (it reappears in the list), not harmful.
+ */
+const SYSTEM_ACCOUNT_NAMES = ['GreenqubesAI']
+
+/**
  * The 6pm summaries. Vercel cron "0 10 * * *" — Vercel schedules in UTC, and
  * 10:00 UTC is 18:00 SGT.
  *
@@ -41,15 +68,16 @@ export async function GET(req: NextRequest) {
   const dateLbl  = formatDayDate(todayISO)
 
   // ── A. Scheduler summary ────────────────────────────────────────────────
-  type Person = { id: string; name: string; role: string; telegram_chat_id: string | null }
+  type Person = { id: string; name: string; role: string; email: string | null; telegram_chat_id: string | null }
   const { data: people } = await db
-    .from('users').select('id, name, role, telegram_chat_id')
+    .from('users').select('id, name, role, email, telegram_chat_id')
     .is('deleted_at', null).order('name') as { data: Person[] | null }
   const staff = people ?? []
 
-  // Who appears IN the message: everyone who can create a job.
-  const CAN_CREATE = ['sales', 'coordinator', 'scheduler', 'admin']
-  const roster     = staff.filter(u => CAN_CREATE.includes(u.role))
+  // Who appears IN the message: everyone who can create a job, minus the
+  // system accounts that are not people.
+  const roster = staff.filter(u =>
+    CAN_CREATE.includes(u.role) && !SYSTEM_ACCOUNT_NAMES.includes(u.name))
 
   type NewJob = {
     id: string; project_title: string | null; client: string; created_by: string | null
@@ -85,7 +113,11 @@ export async function GET(req: NextRequest) {
   // message matters and exactly when it would have silently failed.
   const schedulerParts = splitForTelegram(schedulerText)
   let schedulerSent = 0
-  for (const u of staff.filter(x => x.role === 'scheduler' || x.role === 'admin')) {
+  const overviewRecipients = staff.filter(x =>
+    x.role === 'scheduler' ||
+    x.role === 'admin' ||
+    (x.email !== null && ALWAYS_RECEIVE_EMAILS.includes(x.email)))
+  for (const u of overviewRecipients) {
     if (!u.telegram_chat_id) continue
     let allSent = true
     for (const part of schedulerParts) {
