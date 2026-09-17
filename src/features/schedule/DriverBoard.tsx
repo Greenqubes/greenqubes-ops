@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link2 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -35,31 +35,16 @@ interface Props {
  * instead of being filed under one driver (leaving the other's day
  * incomplete) or duplicated into both.
  *
- * Column count follows the screen, set by the width at which a card stops
- * being readable rather than by what fits: below ~700px per card the crew
- * column crowds the address, which is the very thing the card redesign
- * exists to expose.
+ * The driver containers sit in an `auto-fit` grid rather than at measured
+ * breakpoints, so the browser fits as many as stay readable: three across on
+ * a normal 1920 screen, two on a laptop, one on a phone. Nic, 2026-09-17 —
+ * "scrolling down so much is a killer".
  */
 export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }: Props) {
   const router = useRouter()
   const [plan, setPlan] = useState<{ plan: DragPlan; job: ScheduleJob } | null>(null)
 
   const bands = useMemo(() => buildBands(jobs, drivers), [jobs, drivers])
-
-  // Read AFTER mount and starting at 1, so the first render matches the
-  // server's — /schedule is hydration-sensitive (#418) and must not be given
-  // a reason to differ. Same rule ListView and DateStrip follow.
-  const [driverCols, setDriverCols] = useState(1)
-  useEffect(() => {
-    const read = () => setDriverCols(
-      window.matchMedia('(min-width: 2200px)').matches ? 3
-        : window.matchMedia('(min-width: 1600px)').matches ? 2
-        : 1,
-    )
-    read()
-    window.addEventListener('resize', read)
-    return () => window.removeEventListener('resize', read)
-  }, [])
 
   const { draggingId, hoverBandId, startDrag, registerBand } = useCardDrag({
     onDrop: (jobId, bandId) => {
@@ -148,11 +133,20 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
       {mixed.map(renderBand)}
 
       {/* Drivers are PEOPLE, not an ordered sequence, so they run left to
-          right and wrap. */}
+          right and wrap.
+          `auto-fit` rather than a fixed column count at measured breakpoints:
+          the browser fits as many containers as will stay readable, so all
+          three drivers sit side by side on a normal 1920 screen (Nic,
+          2026-09-17 — "scrolling down so much is a killer") and it still
+          collapses to one on a phone. Pure CSS, so there is no resize
+          listener and no first-render mismatch to manage — /schedule is
+          hydration-sensitive (#418), and this removes the risk rather than
+          working around it. 520px is the width below which the card's crew
+          column starts crowding the address. */}
       <div
         style={{
           display:             'grid',
-          gridTemplateColumns: `repeat(${driverCols}, minmax(0, 1fr))`,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 520px), 1fr))',
           gap:                 '0.75rem',
           alignItems:          'start',
         }}

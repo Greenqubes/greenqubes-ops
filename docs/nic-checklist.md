@@ -60,12 +60,14 @@ _You went through 13 things one at a time. **Six are already live on production*
   - **Two things still to settle when you're ready:** hand-sorting jobs *inside* a container (the list is ranked first-come-first-served today, so a manual order needs somewhere to live), and what happens when a job stops being shared — drag one driver off a Mixed job and it should drop into the other driver's container by itself.
   - **FCFS joins this** — not a bug, just 2,282px wide at the AM/PM zoom, so a phone shows two hours.
 
-### Driver board + 6pm summaries (built 2026-09-16 — needs a bot from you)
+### Driver board + daily summaries (built 2026-09-16/17 — two steps needed at go-live)
 
-- [ ] **Create the summary bot and send Claude the token.** Message @BotFather on Telegram, "/newbot", pick a name. The token goes into Vercel (all three environments) and `.env.local`. **Nothing can send until this exists** — the board is built and working, the messages are written and tested, they just have no bot to go out on.
-- [ ] **Everyone who should get a summary must message that bot once, before it will ever reach them.** Telegram blocks a bot from messaging anyone who hasn't started it. This is exactly what bit the digest bot in August, and the failure is silent — their summary simply never arrives and nobody finds out. Worth doing in the same breath as handing over the token.
-- [ ] **Decide who gets the scheduler summary.** Built as schedulers + admin. Say the word if you want it wider or narrower. **Worth knowing:** only 2 of your 4 schedulers/admins currently have Telegram linked at all, so two would get nothing even with the bot in place.
-- [ ] **Decide whether the GreenqubesAI account should appear in the summary.** It can create jobs, so it's in the list — and its test jobs show up under its own name. Easy to exclude.
+- [x] **[Nic] Summary bot created — DONE 2026-09-17.** @gq_summary_bot, token in `.env.local` and Vercel. You and the GreenqubesAI account have started it.
+- [ ] **⚠ THE MOMENT THIS GOES LIVE, two things must happen in this order** — the messages cannot reach anyone until both are done:
+  1. **Set `TELEGRAM_SUMMARY_WEBHOOK_SECRET` in Vercel** (any long random string, all three environments). Without it the bot's webhook accepts any caller. Harmless today because no webhook exists yet — but it must be in place BEFORE step 2, not after.
+  2. **Register the webhook** so the bot can record who has connected. One command, and Claude can run it on your say-so once production has the new code. It must point at production, never a preview: preview links change and sit behind a login.
+- [ ] **Then tell the team: profile picture → Connect Summary.** One tap each. Telegram refuses to let a bot message anyone who has not pressed Start, and the failure is silent — their summary just never arrives. **Four people need Connect Telegram FIRST** (they have no Telegram linked at all): Firoz, Aroze, Halim and **CK — one of your three drivers**.
+- [x] **[Nic] Who gets what — DECIDED 2026-09-17.** The 4pm gaps check goes to schedulers, admins and you (your account is `sales`, so you are named explicitly rather than by role). The 6pm summary goes to each installer about their own jobs. GreenqubesAI is hidden from the roster — it is not a person.
 - [ ] **Heads up for your outside contractors:** the Accept and Decline buttons are gone from their link page, and every job they're on now opens straight away. Anyone who was sent a job and never pressed Accept couldn't open it before and can now — worth knowing if one of them mentions seeing more than they used to.
 - [ ] **Drop `job_external_contacts.status`** — accept/decline was removed 2026-09-16, so the column is written once at creation and never read again. Small migration in a quiet session; same housekeeping as the years/skills columns below.
 
