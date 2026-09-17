@@ -20,6 +20,11 @@ interface Props {
   /** Scheduler and admin only — everyone else reads the board (Nic, 2026-09-15). */
   canDrag:     boolean
   currentDate: string
+  /** Bulk selection, same as the list view — the tick boxes feed the
+   *  delete / complete bar at the bottom of the page. */
+  selectable?:  boolean
+  selectedIds?: Set<string>
+  onToggle?:    (id: string) => void
 }
 
 /**
@@ -40,7 +45,7 @@ interface Props {
  * a normal 1920 screen, two on a laptop, one on a phone. Nic, 2026-09-17 —
  * "scrolling down so much is a killer".
  */
-export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }: Props) {
+export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, selectable, selectedIds, onToggle }: Props) {
   const router = useRouter()
   const [plan, setPlan] = useState<{ plan: DragPlan; job: ScheduleJob } | null>(null)
 
@@ -109,6 +114,12 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate }
                 currentDate={currentDate}
                 dragging={draggingId === job.id}
                 onDragHandle={canDrag && !mirror ? e => startDrag(job.id, e) : undefined}
+                // A mirror is the same job as the driver's copy, so ticking
+                // either shows both ticked — the Set is keyed by job id. Left
+                // selectable on purpose: refusing it would be a surprise.
+                selectable={selectable}
+                selected={selectedIds?.has(job.id)}
+                onToggle={onToggle}
               />
             </div>
           )

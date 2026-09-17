@@ -472,6 +472,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
               supportPool={supportPool}
               canDrag={role === 'scheduler' || navRole === 'admin'}
               currentDate={selectedDate}
+              selectable={canBulkDelete}
+              selectedIds={selectedIds}
+              onToggle={toggleJob}
             />
           </div>
         </>

@@ -115,30 +115,39 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
   return (
     <>
       <div className="flex items-start gap-2 mb-2">
-        {/* Driver board only. touch-none so a finger drag moves the card
-            instead of scrolling the page under it. */}
-        {onDragHandle && (
-          <button
-            type="button"
-            aria-label="Drag to another driver"
-            onPointerDown={onDragHandle}
-            className="mt-6 shrink-0 cursor-grab touch-none rounded p-1 text-muted hover:text-ink active:cursor-grabbing"
-          >
-            <GripVertical size={16} />
-          </button>
-        )}
-        {selectable && (
-          <button
-            type="button"
-            onClick={() => onToggle?.(job.id)}
-            className="mt-3 shrink-0 w-5 h-5 rounded border-2 hidden md:flex items-center justify-center transition-colors"
-            style={{
-              borderColor: selected ? 'var(--terracotta)' : 'var(--line)',
-              backgroundColor: selected ? 'var(--terracotta)' : 'var(--paper)',
-            }}
-          >
-            {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-          </button>
+        {/* Left-edge controls, stacked: tick box on top, drag handle under it
+            (Nic, 2026-09-17). A column rather than two siblings in the row,
+            so the board can show both without them sitting side by side and
+            eating the card's width. */}
+        {(selectable || onDragHandle) && (
+          <div className="shrink-0 flex flex-col items-center gap-1.5 mt-3">
+            {selectable && (
+              <button
+                type="button"
+                onClick={() => onToggle?.(job.id)}
+                aria-label="Select job"
+                className="shrink-0 w-5 h-5 rounded border-2 hidden md:flex items-center justify-center transition-colors"
+                style={{
+                  borderColor: selected ? 'var(--terracotta)' : 'var(--line)',
+                  backgroundColor: selected ? 'var(--terracotta)' : 'var(--paper)',
+                }}
+              >
+                {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+              </button>
+            )}
+            {/* Driver board only. touch-none so a finger drag moves the card
+                instead of scrolling the page under it. */}
+            {onDragHandle && (
+              <button
+                type="button"
+                aria-label="Drag to another driver"
+                onPointerDown={onDragHandle}
+                className="shrink-0 cursor-grab touch-none rounded p-1 text-muted hover:text-ink active:cursor-grabbing"
+              >
+                <GripVertical size={16} />
+              </button>
+            )}
+          </div>
         )}
         {/* min-w-0: a flex item's min-width defaults to its content, so a
             long nowrap title inflates the whole card past the phone screen
