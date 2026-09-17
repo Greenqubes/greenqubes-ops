@@ -135,14 +135,20 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
                 {selected && <Check size={11} className="text-white" strokeWidth={3} />}
               </button>
             )}
-            {/* Driver board only. touch-none so a finger drag moves the card
-                instead of scrolling the page under it. */}
+            {/* Driver board only, and DESKTOP only — `hidden md:flex` (Nic,
+                2026-09-17). Dragging a card around a phone screen fights the
+                page scroll and is nobody's idea of a good time; the scheduler
+                arranges the day at a desk. Hidden means display:none, so it
+                cannot receive a pointer event and no drag can start. Matches
+                the tick box above it, which has always been desktop-only.
+                touch-none keeps a stylus or touchscreen laptop from scrolling
+                the page mid-drag. */}
             {onDragHandle && (
               <button
                 type="button"
                 aria-label="Drag to another driver"
                 onPointerDown={onDragHandle}
-                className="shrink-0 cursor-grab touch-none rounded p-1 text-muted hover:text-ink active:cursor-grabbing"
+                className="shrink-0 cursor-grab touch-none rounded p-1 text-muted hover:text-ink active:cursor-grabbing hidden md:flex"
               >
                 <GripVertical size={16} />
               </button>

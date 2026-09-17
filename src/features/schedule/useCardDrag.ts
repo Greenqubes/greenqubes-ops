@@ -25,6 +25,30 @@ export function useCardDrag({ onDrop }: { onDrop: (jobId: string, bandId: string
   const active  = useRef<string | null>(null)
 
   /**
+   * The card that follows the cursor while dragging.
+   *
+   * Moved by writing `transform` straight onto the node rather than through
+   * React state: a pointermove fires dozens of times a second, and
+   * re-rendering the whole board on each one makes the ghost lag behind the
+   * cursor — the opposite of what it is for. It starts `display:none` and is
+   * only shown once it has a real position, so it never flashes at 0,0.
+   */
+  const ghostRef = useRef<HTMLDivElement>(null)
+
+  const moveGhost = (x: number, y: number) => {
+    const el = ghostRef.current
+    if (!el) return
+    // Offset from the cursor so the ghost does not sit under the pointer and
+    // block the hit-testing the drop relies on.
+    el.style.transform = `translate3d(${x + 14}px, ${y + 14}px, 0)`
+    el.style.display   = 'block'
+  }
+
+  const hideGhost = () => {
+    if (ghostRef.current) ghostRef.current.style.display = 'none'
+  }
+
+  /**
    * Only bands that accept a drop register themselves. An external
    * installer's container deliberately does not (Nic, 2026-09-16), so
    * hit-testing can never return one and a card dropped over it simply snaps
@@ -60,6 +84,7 @@ export function useCardDrag({ onDrop }: { onDrop: (jobId: string, bandId: string
         document.body.style.touchAction = 'none'
         document.body.style.userSelect  = 'none'
       }
+      moveGhost(ev.clientX, ev.clientY)
       setHoverBandId(bandUnder(ev.clientX, ev.clientY))
     }
 
@@ -69,6 +94,7 @@ export function useCardDrag({ onDrop }: { onDrop: (jobId: string, bandId: string
       window.removeEventListener('pointercancel', up)
       document.body.style.touchAction = ''
       document.body.style.userSelect  = ''
+      hideGhost()
       const dragged = active.current
       const target  = dragged ? bandUnder(ev.clientX, ev.clientY) : null
       pending.current = null
@@ -83,5 +109,5 @@ export function useCardDrag({ onDrop }: { onDrop: (jobId: string, bandId: string
     window.addEventListener('pointercancel', up)
   }, [bandUnder, onDrop])
 
-  return { draggingId, hoverBandId, startDrag, registerBand }
+  return { draggingId, hoverBandId, startDrag, registerBand, ghostRef }
 }

@@ -51,7 +51,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
 
   const bands = useMemo(() => buildBands(jobs, drivers), [jobs, drivers])
 
-  const { draggingId, hoverBandId, startDrag, registerBand } = useCardDrag({
+  const { draggingId, hoverBandId, startDrag, registerBand, ghostRef } = useCardDrag({
     onDrop: (jobId, bandId) => {
       const job = jobs.find(j => j.id === jobId)
       if (!job) return
@@ -128,6 +128,17 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
     )
   }
 
+  // What the ghost shows. Derived from draggingId, so it changes once per
+  // drag rather than on every pointer move.
+  const draggedJob = useMemo(() => {
+    const j = jobs.find(x => x.id === draggingId)
+    if (!j) return null
+    return {
+      title: j.project_title || j.client || 'Untitled job',
+      sub:   j.location || '',
+    }
+  }, [jobs, draggingId])
+
   const mixed      = bands.filter(b => b.kind === 'mixed')
   const driverBand = bands.filter(b => b.kind === 'driver')
   const external   = bands.filter(b => b.kind === 'external')
@@ -172,6 +183,20 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
       {external.map(renderBand)}
 
       {unassigned.map(renderBand)}
+
+      {/* The card that follows the cursor. Always mounted so the hook's ref
+          exists the instant a drag starts — it is hidden with display:none
+          until it has a real position, which is why it never flashes at the
+          top-left corner. pointer-events-none so it can never intercept the
+          drop it is describing. */}
+      <div
+        ref={ghostRef}
+        style={{ display: 'none', position: 'fixed', top: 0, left: 0 }}
+        className="pointer-events-none z-[70] w-[280px] rounded-card border border-terracotta bg-paper px-3 py-2 shadow-lg"
+      >
+        <p className="truncate text-[13px] font-semibold text-ink">{draggedJob?.title ?? ''}</p>
+        <p className="truncate text-[11px] text-muted">{draggedJob?.sub ?? ''}</p>
+      </div>
 
       {plan && (
         <CrewChangeModal
