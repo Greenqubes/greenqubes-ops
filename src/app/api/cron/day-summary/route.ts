@@ -36,6 +36,22 @@ const ALWAYS_RECEIVE_EMAILS = ['nicholas.wong@greenqubes.com']
 const SYSTEM_ACCOUNT_NAMES = ['GreenqubesAI']
 
 /**
+ * How far back someone must have created a job to stay on the roster.
+ *
+ * Nic, 2026-09-17. Four of the eight people whose role permits job creation
+ * had never created one — Bryan, Benny Teo, Vinz and Tai Ee Heng — so half
+ * the message was permanently empty lines. The list is now whoever has
+ * actually entered a job recently, and it maintains itself: someone who stops
+ * drops off, someone who starts appears the same evening.
+ *
+ * The cost was stated and accepted: a sales person who enters NOTHING for a
+ * month disappears rather than showing an empty line, so their silence stops
+ * being visible in this message. Watch for that if the roster ever looks too
+ * short.
+ */
+const ROSTER_ACTIVE_DAYS = 30
+
+/**
  * The 6pm summaries. Vercel cron "0 10 * * *" — Vercel schedules in UTC, and
  * 10:00 UTC is 18:00 SGT.
  *
@@ -77,10 +93,18 @@ export async function GET(req: NextRequest) {
     .is('deleted_at', null).order('name') as { data: Person[] | null }
   const staff = people ?? []
 
-  // Who appears IN the message: everyone who can create a job, minus the
-  // system accounts that are not people.
+  // Who appears IN the message: people who can create a job, are not system
+  // accounts, and have actually entered one in the last 30 days.
+  const activeSince = new Date(Date.now() - ROSTER_ACTIVE_DAYS * 864e5).toISOString()
+  const { data: recentCreators } = await db
+    .from('jobs').select('created_by').gte('created_at', activeSince) as
+    { data: Array<{ created_by: string | null }> | null }
+  const activeIds = new Set((recentCreators ?? []).map(r => r.created_by).filter(Boolean) as string[])
+
   const roster = staff.filter(u =>
-    CAN_CREATE.includes(u.role) && !SYSTEM_ACCOUNT_NAMES.includes(u.name))
+    CAN_CREATE.includes(u.role) &&
+    !SYSTEM_ACCOUNT_NAMES.includes(u.name) &&
+    activeIds.has(u.id))
 
   type NewJob = {
     id: string; project_title: string | null; client: string; created_by: string | null
