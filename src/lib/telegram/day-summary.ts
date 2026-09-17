@@ -176,6 +176,9 @@ export type TomorrowRow = {
    *  following them (Nic, 2026-09-17). */
   driverNames:  string[]
   supportNames: string[]
+  /** The job's Person-in-Charge — who the crew call if something is wrong on
+   *  site (Nic, 2026-09-17). '' when the job has none. */
+  pocName: string
 }
 
 /**
@@ -233,6 +236,11 @@ export function buildInstallerSummary(p: {
         const others = [...r.driverNames, ...r.supportNames]
         if (others.length > 0) parts.push(`   With you: ${tgEscape(others.join(', '))}`)
       }
+
+      // Who to call if something is wrong on site (Nic, 2026-09-17). Said
+      // plainly when there is nobody, because "who do I ring?" at 8am on a
+      // job with no Person-in-Charge is exactly when it matters.
+      parts.push(`   PIC: ${r.pocName ? tgEscape(r.pocName) : '<b>none set</b>'}`)
 
       parts.push(`   <a href="${p.appUrl}/jobs/${r.id}">Open</a>`)
     })

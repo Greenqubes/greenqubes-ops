@@ -141,9 +141,9 @@ const withTomorrow = buildInstallerSummary({
   tomorrowLabel: '18/09/2026 (Fri)',
   tomorrow: [
     { id: 't1', title: 'Arnotts GE Delivery', timeLabel: '9 AM – 1 PM', location: 'Blk 825 Tampines St 81',
-      role: 'driver',  driverNames: [], supportNames: ['Razu', 'Zhang Xing'] },
+      role: 'driver',  driverNames: [], supportNames: ['Razu', 'Zhang Xing'], pocName: 'Nicholas' },
     { id: 't2', title: 'Fossil Bugis',        timeLabel: 'All day',     location: 'Bugis Junction #02-11',
-      role: 'support', driverNames: ['CK'], supportNames: ['Hasan'] },
+      role: 'support', driverNames: ['CK'], supportNames: ['Hasan'], pocName: 'Charles Ow' },
   ],
   added: [], removed: [],
 })
@@ -161,12 +161,15 @@ contains('and its address',                 withTomorrow, 'Blk 825 Tampines St 8
 absent('the support-crew label is gone',    withTomorrow, 'support crew')
 contains('a driver is told who follows them', withTomorrow, 'With you: Razu, Zhang Xing')
 contains('support crew are told who to follow', withTomorrow, 'Driver: CK')
+// Who to call if something is wrong on site (Nic, 2026-09-17).
+contains('the Person-in-Charge is named',       withTomorrow, 'PIC: Nicholas')
+contains('per job, not per message',            withTomorrow, 'PIC: Charles Ow')
 
 // A driver on their own gets no dangling "With you:" line.
 absent('no empty With-you line',
   buildInstallerSummary({
     dateLabel: 'x', name: 'CK', appUrl: 'https://x.test', tomorrowLabel: 'y',
-    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'driver', driverNames: [], supportNames: [] }],
+    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'driver', driverNames: [], supportNames: [], pocName: 'N' }],
     added: [], removed: [],
   }),
   'With you:')
@@ -176,7 +179,7 @@ absent('no empty With-you line',
 contains('support crew with no driver is warned',
   buildInstallerSummary({
     dateLabel: 'x', name: 'Razu', appUrl: 'https://x.test', tomorrowLabel: 'y',
-    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'support', driverNames: [], supportNames: [] }],
+    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'support', driverNames: [], supportNames: [], pocName: '' }],
     added: [], removed: [],
   }),
   'Driver: <b>nobody assigned yet</b>')
@@ -199,7 +202,7 @@ check('work tomorrow alone is enough to send',
   buildInstallerSummary({
     dateLabel: '17/09/2026 (Thu)', name: 'Hasan', appUrl: 'https://x.test',
     tomorrowLabel: '18/09/2026 (Fri)',
-    tomorrow: [{ id: 't9', title: 'Jewel', timeLabel: 'All day', location: 'Jewel', role: 'driver', driverNames: [], supportNames: [] }],
+    tomorrow: [{ id: 't9', title: 'Jewel', timeLabel: 'All day', location: 'Jewel', role: 'driver', driverNames: [], supportNames: [], pocName: 'N' }],
     added: [], removed: [],
   }) !== '',
   true)

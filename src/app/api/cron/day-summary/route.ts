@@ -182,12 +182,12 @@ export async function GET(req: NextRequest) {
 
     type TomorrowJob = {
       id: string; project_title: string | null; client: string; location: string
-      time_start: string | null; time_end: string | null
+      time_start: string | null; time_end: string | null; sales_poc_id: string | null
       job_assignees: Array<{ user_id: string; is_suggestion: boolean; is_sub_installer: boolean }>
     }
     const { data: tomorrowJobs } = await db
       .from('jobs')
-      .select('id, project_title, client, location, time_start, time_end, job_assignees(user_id, is_suggestion, is_sub_installer)')
+      .select('id, project_title, client, location, time_start, time_end, sales_poc_id, job_assignees(user_id, is_suggestion, is_sub_installer)')
       .lte('date', tomorrowISO)
       .or(`date_end.gte.${tomorrowISO},and(date.eq.${tomorrowISO},date_end.is.null)`)
       .eq('status', 'scheduled') as { data: TomorrowJob[] | null }
@@ -210,6 +210,7 @@ export async function GET(req: NextRequest) {
           role:      a.is_sub_installer ? 'support' : 'driver',
           driverNames:  others.filter(x => !x.is_sub_installer).map(x => nameById.get(x.user_id) ?? 'Unknown'),
           supportNames: others.filter(x =>  x.is_sub_installer).map(x => nameById.get(x.user_id) ?? 'Unknown'),
+          pocName:      j.sales_poc_id ? (nameById.get(j.sales_poc_id) ?? '') : '',
         })
         tomorrowByPerson.set(a.user_id, list)
       }
