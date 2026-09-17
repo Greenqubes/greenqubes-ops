@@ -105,7 +105,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
           {/* An empty container stays quiet — "Nothing today" is not a count
               and should not pull the eye the way a number does. */}
           {band.jobs.length === 0 ? (
-            <span className="ml-auto text-[11px] text-muted">Nothing today</span>
+            <span className="ml-auto text-[11px] text-muted">Nothing Today</span>
           ) : (
             <span className="ml-auto text-[13px] font-semibold text-ink leading-none">
               {band.jobs.length}
@@ -174,7 +174,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
           {countRealJobs(bands)}
         </span>
         <span className="text-[13px] font-medium text-ink2">
-          Job{countRealJobs(bands) === 1 ? '' : 's'} today
+          Job{countRealJobs(bands) === 1 ? '' : 's'} Today
         </span>
       </p>
 
