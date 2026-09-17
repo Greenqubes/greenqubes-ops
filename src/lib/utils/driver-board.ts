@@ -365,3 +365,31 @@ export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[
     destructive:       false,
   }
 }
+
+/**
+ * The background colour of each driver's container (Nic, 2026-09-17) — his
+ * original sketch had one colour per driver so the scheduler finds a person
+ * by colour before reading the name.
+ *
+ * Keyed by NAME rather than user id, because a uuid in source tells a reader
+ * nothing and this has to be editable by whoever is looking at it. Matched
+ * case- and space-insensitively so "Xiao Yi", "xiao yi" and a stray trailing
+ * space all land on the same tint.
+ *
+ * A driver who is not listed — a fourth person, or a renamed one — gets the
+ * neutral board background rather than an arbitrary colour. That degrades
+ * quietly and visibly: their container simply looks like the others until
+ * someone adds a line here.
+ *
+ * The values live in globals.css so dark mode can swap them; the light
+ * pastels would glare against a dark page.
+ */
+const DRIVER_TINTS: Record<string, string> = {
+  'ck':      'var(--driver-tint-purple)',
+  'xiao yi': 'var(--driver-tint-beige)',
+  'rintu':   'var(--driver-tint-green)',
+}
+
+export function driverTint(name: string): string | null {
+  return DRIVER_TINTS[name.trim().toLowerCase().replace(/\s+/g, ' ')] ?? null
+}

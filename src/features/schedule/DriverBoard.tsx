@@ -8,7 +8,7 @@ import { JobRow } from './JobRow'
 import { useCardDrag } from './useCardDrag'
 import { CrewChangeModal } from './CrewChangeModal'
 import {
-  buildBands, planDrag, externalCrew, mainCrew, isMirrorCard, countRealJobs,
+  buildBands, planDrag, externalCrew, mainCrew, isMirrorCard, countRealJobs, driverTint,
   type Band, type DragPlan, type DriverRef,
 } from '@/lib/utils/driver-board'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
@@ -68,13 +68,25 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
     // simply snaps back — no prompt, nothing written.
     const droppable = band.kind !== 'external'
 
+    // One colour per driver (Nic, 2026-09-17), so a person is found by colour
+    // before the name is read. Only the driver bands are tinted — Mixed,
+    // Unassigned and the externals keep the neutral board background, which
+    // is what makes the coloured ones stand out. An unlisted driver gets null
+    // and falls back to neutral rather than an arbitrary colour.
+    const tint = band.kind === 'driver' && band.driver ? driverTint(band.driver.name) : null
+    // The drop highlight must win while a card is over the band, or the tint
+    // would hide the one piece of feedback the drag depends on.
+    const highlighted = hoverBandId === band.id && draggingId
+
     return (
       <section
         key={band.id}
         ref={el => { if (droppable) registerBand(band.id, el) }}
+        style={tint && !highlighted ? { backgroundColor: tint } : undefined}
         className={cn(
           'rounded-card border p-3 transition-colors',
-          hoverBandId === band.id && draggingId ? 'border-terracotta bg-terracotta-soft' : 'border-line bg-bg',
+          highlighted ? 'border-terracotta bg-terracotta-soft'
+                      : cn('border-line', !tint && 'bg-bg'),
           band.kind === 'unassigned' && 'border-dashed',
           band.kind === 'external'   && 'border-dashed border-brand-blue',
         )}

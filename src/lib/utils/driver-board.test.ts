@@ -7,7 +7,7 @@
 import {
   MIXED, UNASSIGNED, driverBandId, externalBandId,
   mainCrew, primaryBand, mirrorBands, isMirror, isMirrorCard, buildBands, countRealJobs,
-  sortByStartTime, planDrag,
+  sortByStartTime, planDrag, driverTint,
   type BoardJob, type DriverRef,
 } from './driver-board'
 
@@ -312,6 +312,23 @@ check('external to a driver adds the driver and keeps the external',
     supportIds: [], removedSupportIds: [],
     askSupport: true, askDrivers: false, destructive: false,
   })
+
+console.log('driverTint — one colour per driver (Nic, 2026-09-17):')
+
+check('CK is purple',     driverTint('CK'),      'var(--driver-tint-purple)')
+check('Xiao Yi is beige', driverTint('Xiao Yi'), 'var(--driver-tint-beige)')
+check('Rintu is green',   driverTint('Rintu'),   'var(--driver-tint-green)')
+
+// Matched loosely on purpose: a name typed with different case or a stray
+// space is the same person, and losing their colour over it would look like
+// a bug rather than a typo.
+check('case does not matter',       driverTint('xiao yi'),   'var(--driver-tint-beige)')
+check('stray whitespace is fine',   driverTint('  Rintu  '), 'var(--driver-tint-green)')
+check('a double space still works', driverTint('Xiao  Yi'),  'var(--driver-tint-beige)')
+
+// A fourth driver degrades quietly to the neutral board background rather
+// than being handed an arbitrary colour.
+check('an unlisted driver has no tint', driverTint('Ali Ramjan'), null)
 
 console.log(failures === 0 ? '\nAll driver-board checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

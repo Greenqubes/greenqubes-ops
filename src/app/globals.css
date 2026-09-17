@@ -45,6 +45,17 @@
   --punct-strict-soft: #F5E8E3;
   --punct-flex: #3D6FB5;
   --punct-flex-soft: #E5EEFC;
+
+  /* ── Driver container tints (Nic 2026-09-17) ──
+     One colour per driver on the schedule board, exactly as his original
+     sketch had them: CK purple, Xiao Yi beige, Rintu green. Named by COLOUR,
+     not by person — who gets which lives in driver-board.ts, so a change of
+     crew is one line there rather than a rename here.
+     Deliberately outside the brand palette: like the punctuality signals
+     above, these identify something at a glance and must survive a rebrand. */
+  --driver-tint-purple: #D9D2E9;
+  --driver-tint-beige:  #FFF2CC;
+  --driver-tint-green:  #D9EAD3;
 }
 
 .dark {
@@ -63,6 +74,12 @@
 
   --punct-strict-soft: #2A1A17;
   --punct-flex-soft: #152030;
+
+  /* The same three hues dropped to near-black, so a white job card still
+     reads against them. The light pastels would glare in dark mode. */
+  --driver-tint-purple: #211E2A;
+  --driver-tint-beige:  #272317;
+  --driver-tint-green:  #1A2318;
 }
 
 @layer base {
