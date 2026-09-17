@@ -32,7 +32,6 @@ interface ListViewProps {
   selectable?:  boolean
   selectedIds?: Set<string>
   onToggle?:    (id: string) => void
-  onDelete?:    (id: string) => void
   /** Cards per row the user picked. Narrowed below when the window is too
    *  small to carry it, so a phone is never forced into two or three. */
   columns?:     1 | 2 | 3
@@ -41,7 +40,7 @@ interface ListViewProps {
 export function ListView({
   jobsByDate, selectedDate, today, lang, strings,
   leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {}, onSelectDate,
-  selectable, selectedIds, onToggle, onDelete, columns = 1,
+  selectable, selectedIds, onToggle, columns = 1,
 }: ListViewProps) {
   const dayJobs    = jobsByDate[selectedDate] ?? []
 
@@ -134,8 +133,6 @@ export function ListView({
                   selectable={selectable}
                   selected={selectedIds?.has(job.id)}
                   onToggle={onToggle}
-                  deletable={selectable}
-                  onDelete={() => onDelete?.(job.id)}
                 />
               ))}
             </div>

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { MapPin, Users, Check, GripVertical } from 'lucide-react'
 import { Pill } from '@/components/Pill'
@@ -35,8 +34,6 @@ interface JobRowProps {
   selectable?:  boolean
   selected?:    boolean
   onToggle?:    (id: string) => void
-  deletable?:   boolean
-  onDelete?:    () => void
   /** Driver board only, scheduler/admin. Absent everywhere else, so the
    *  pending and completed lists are untouched. */
   onDragHandle?: (e: React.PointerEvent) => void
@@ -50,24 +47,10 @@ function daysBetween(a: string, b: string): number {
   )
 }
 
-export function JobRow({ job, currentDate, selectable, selected, onToggle, deletable, onDelete, onDragHandle, dragging }: JobRowProps) {
+export function JobRow({ job, currentDate, selectable, selected, onToggle, onDragHandle, dragging }: JobRowProps) {
   const overdue       = isOverdue(job.status, job.date)
   const isDraft       = job.status === 'pending' || job.status === 'awaiting_approval'
   const isCompleted   = job.status === 'completed'
-
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const touchStartX = useRef<number | null>(null)
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
-    if (delta > 60 && deletable) setConfirmDelete(true)
-  }
 
   // Compact meta row, installer views only. Kept on first names because that
   // row is a single tight line; the team card below uses whole names in pills
@@ -161,8 +144,6 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
         <Link
           href={`/jobs/${job.id}`}
           className="flex-1 min-w-0 block group"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
         >
           <div
             className={cn(
@@ -344,36 +325,6 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, delet
         </Link>
       </div>
 
-      {/* Swipe-to-delete confirmation modal */}
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/40"
-          onClick={() => setConfirmDelete(false)}
-        >
-          <div
-            className="w-full max-w-xs bg-paper rounded-2xl border border-line p-6 space-y-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="font-display text-base font-medium text-ink text-center">Delete this job?</p>
-            <p className="text-sm text-muted text-center">This can&apos;t be undone.</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 py-2.5 rounded-xl border border-line text-sm font-medium text-ink2 hover:border-ink2 transition-colors"
-              >
-                No
-              </button>
-              <button
-                onClick={() => { setConfirmDelete(false); onDelete?.() }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
-                style={{ backgroundColor: 'var(--terracotta)' }}
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
