@@ -102,9 +102,18 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
               External
             </span>
           )}
-          <span className="ml-auto text-[11px] text-muted">
-            {band.jobs.length === 0 ? 'nothing today' : `${band.jobs.length} job${band.jobs.length === 1 ? '' : 's'}`}
-          </span>
+          {/* An empty container stays quiet — "nothing today" is not a count
+              and should not pull the eye the way a number does. */}
+          {band.jobs.length === 0 ? (
+            <span className="ml-auto text-[11px] text-muted">nothing today</span>
+          ) : (
+            <span className="ml-auto text-[15px] font-semibold text-ink leading-none">
+              {band.jobs.length}
+              <span className="ml-1 text-[12px] font-medium text-ink2">
+                job{band.jobs.length === 1 ? '' : 's'}
+              </span>
+            </span>
+          )}
         </div>
 
         {band.jobs.map(job => {
@@ -160,8 +169,13 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
     <div className="space-y-3">
       {/* The honest number. A shared job renders twice, so adding up the band
           counts would tell the scheduler there is more work than there is. */}
-      <p className="text-[11px] text-muted">
-        {countRealJobs(bands)} job{countRealJobs(bands) === 1 ? '' : 's'} today
+      <p className="flex items-baseline gap-1.5">
+        <span className="font-display text-[22px] font-semibold text-ink leading-none">
+          {countRealJobs(bands)}
+        </span>
+        <span className="text-[13px] font-medium text-ink2">
+          job{countRealJobs(bands) === 1 ? '' : 's'} today
+        </span>
       </p>
 
       {mixed.map(renderBand)}
