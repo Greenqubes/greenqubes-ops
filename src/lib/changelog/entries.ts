@@ -34,6 +34,36 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-17',
+    // 18:42 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch AFTER it landed. This machine reports MPST and TZ= is ignored,
+    // so the local clock is never the source (CLAUDE.md).
+    time: '18:42',
+    headsUp: [
+      'Schedulers: the new Drivers view is where you arrange the day. Drag jobs between drivers.',
+      'Everyone: tap your profile picture → Connect Summary, or the daily job messages cannot reach you.',
+      'Swiping a job card sideways no longer deletes it. Use Delete on the job page instead.',
+    ],
+    added: [
+      'Drivers view on the schedule — a coloured container per driver.',
+      'Drag a job to another driver; it asks before anything is saved.',
+      'A 6pm message with your jobs tomorrow and anything that changed.',
+      'A 4pm message to schedulers listing every job still without a driver.',
+      'Job cards now show the outside contractors on a job.',
+    ],
+    improved: [
+      'Dragging a job shows a card following your cursor.',
+      'External installers no longer accept or decline — agreed by phone beforehand.',
+    ],
+    fixed: [
+      'A job crewed only by an outside contractor no longer looks unstaffed.',
+    ],
+    known: [
+      'The daily messages reach only people who have tapped Connect Summary.',
+      'Nobody is notified when a scheduled job’s date moves — a fix is being designed.',
+    ],
+  },
+  {
     date: '2026-09-15',
     // 20:17 SGT — bumped from 19:40 when a second release went out the same
     // evening. ONE entry per date (CLAUDE.md): a second entry would not
