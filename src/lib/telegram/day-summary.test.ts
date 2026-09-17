@@ -140,8 +140,10 @@ const withTomorrow = buildInstallerSummary({
   dateLabel: '17/09/2026 (Thu)', name: 'Xiao Yi', appUrl: 'https://x.test',
   tomorrowLabel: '18/09/2026 (Fri)',
   tomorrow: [
-    { id: 't1', title: 'Arnotts GE Delivery', timeLabel: '9 AM – 1 PM', location: 'Blk 825 Tampines St 81', role: 'driver' },
-    { id: 't2', title: 'Fossil Bugis',        timeLabel: 'All day',     location: 'Bugis Junction #02-11', role: 'support' },
+    { id: 't1', title: 'Arnotts GE Delivery', timeLabel: '9 AM – 1 PM', location: 'Blk 825 Tampines St 81',
+      role: 'driver',  driverNames: [], supportNames: ['Razu', 'Zhang Xing'] },
+    { id: 't2', title: 'Fossil Bugis',        timeLabel: 'All day',     location: 'Bugis Junction #02-11',
+      role: 'support', driverNames: ['CK'], supportNames: ['Hasan'] },
   ],
   added: [], removed: [],
 })
@@ -153,7 +155,31 @@ contains('with its time',                   withTomorrow, '9 AM – 1 PM')
 // 18-duplicate order produced exactly that, and on a phone the title alone
 // is useless.
 contains('and its address',                 withTomorrow, 'Blk 825 Tampines St 81')
-contains('a support job says so',           withTomorrow, 'support crew')
+
+// Written from the READER's side (Nic, 2026-09-17). The old "— support crew"
+// label told them what they already knew; who to follow is what they need.
+absent('the support-crew label is gone',    withTomorrow, 'support crew')
+contains('a driver is told who follows them', withTomorrow, 'With you: Razu, Zhang Xing')
+contains('support crew are told who to follow', withTomorrow, 'Driver: CK')
+
+// A driver on their own gets no dangling "With you:" line.
+absent('no empty With-you line',
+  buildInstallerSummary({
+    dateLabel: 'x', name: 'CK', appUrl: 'https://x.test', tomorrowLabel: 'y',
+    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'driver', driverNames: [], supportNames: [] }],
+    added: [], removed: [],
+  }),
+  'With you:')
+
+// But support crew with NO driver must be told — that is a real problem for
+// them at 6pm, not a blank to leave out.
+contains('support crew with no driver is warned',
+  buildInstallerSummary({
+    dateLabel: 'x', name: 'Razu', appUrl: 'https://x.test', tomorrowLabel: 'y',
+    tomorrow: [{ id: 'a', title: 'A', timeLabel: 'All day', location: '', role: 'support', driverNames: [], supportNames: [] }],
+    added: [], removed: [],
+  }),
+  'Driver: <b>nobody assigned yet</b>')
 // Tomorrow comes FIRST: it is the thing he acts on tonight.
 check('tomorrow is above the changes',
   withTomorrow.indexOf('TOMORROW') < (withTomorrow.indexOf('ADDED') === -1 ? Infinity : withTomorrow.indexOf('ADDED')),
@@ -173,7 +199,7 @@ check('work tomorrow alone is enough to send',
   buildInstallerSummary({
     dateLabel: '17/09/2026 (Thu)', name: 'Hasan', appUrl: 'https://x.test',
     tomorrowLabel: '18/09/2026 (Fri)',
-    tomorrow: [{ id: 't9', title: 'Jewel', timeLabel: 'All day', location: 'Jewel', role: 'driver' }],
+    tomorrow: [{ id: 't9', title: 'Jewel', timeLabel: 'All day', location: 'Jewel', role: 'driver', driverNames: [], supportNames: [] }],
     added: [], removed: [],
   }) !== '',
   true)

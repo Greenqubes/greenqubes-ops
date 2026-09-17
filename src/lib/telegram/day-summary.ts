@@ -171,6 +171,11 @@ export type InstallerJobRow = {
 export type TomorrowRow = {
   id: string; title: string; timeLabel: string
   role: 'driver' | 'support'; location: string
+  /** Everyone else on the job, so the line can be written from the reader's
+   *  side: support crew are told who to follow, a driver is told who is
+   *  following them (Nic, 2026-09-17). */
+  driverNames:  string[]
+  supportNames: string[]
 }
 
 /**
@@ -207,13 +212,28 @@ export function buildInstallerSummary(p: {
   if (p.tomorrow.length > 0) {
     parts.push(`<u>TOMORROW — ${tgEscape(p.tomorrowLabel)}</u>`)
     p.tomorrow.forEach((r, i) => {
-      const as = r.role === 'support' ? ' — support crew' : ''
-      parts.push(`${i + 1}. <b>${tgEscape(r.title)}</b>${as}`)
+      parts.push(`${i + 1}. <b>${tgEscape(r.title)}</b>`)
       parts.push(`   ${tgEscape(r.timeLabel)}`)
       // The address is what tells two identically-titled jobs apart. Nic's
       // 18-duplicate order produced exactly that, and on a phone the title
       // alone is useless.
       if (r.location) parts.push(`   ${tgEscape(r.location)}`)
+
+      // Written from the READER's side (Nic, 2026-09-17), replacing a
+      // "— support crew" label that told them what they already knew:
+      //   • support crew are told WHO TO FOLLOW
+      //   • a driver is told WHO IS FOLLOWING THEM
+      // Support crew with no driver yet is said out loud — that is a real
+      // problem for them at 6pm, not a blank to be left out.
+      if (r.role === 'support') {
+        parts.push(`   Driver: ${r.driverNames.length > 0
+          ? tgEscape(r.driverNames.join(', '))
+          : '<b>nobody assigned yet</b>'}`)
+      } else {
+        const others = [...r.driverNames, ...r.supportNames]
+        if (others.length > 0) parts.push(`   With you: ${tgEscape(others.join(', '))}`)
+      }
+
       parts.push(`   <a href="${p.appUrl}/jobs/${r.id}">Open</a>`)
     })
     parts.push(LINE)

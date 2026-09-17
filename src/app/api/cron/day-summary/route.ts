@@ -194,8 +194,13 @@ export async function GET(req: NextRequest) {
 
     const tomorrowByPerson = new Map<string, TomorrowRow[]>()
     for (const j of tomorrowJobs ?? []) {
-      for (const a of j.job_assignees) {
-        if (a.is_suggestion) continue
+      const formal = j.job_assignees.filter(a => !a.is_suggestion)
+      for (const a of formal) {
+        // Everyone ELSE on the job, so the line reads from this person's side
+        // (Nic, 2026-09-17): support crew are told who to follow, a driver is
+        // told who is following them. Self is excluded — nobody needs telling
+        // they are on their own job.
+        const others = formal.filter(x => x.user_id !== a.user_id)
         const list = tomorrowByPerson.get(a.user_id) ?? []
         list.push({
           id:        j.id,
@@ -203,6 +208,8 @@ export async function GET(req: NextRequest) {
           timeLabel: formatTimeRange(j.time_start, j.time_end),
           location:  j.location ?? '',
           role:      a.is_sub_installer ? 'support' : 'driver',
+          driverNames:  others.filter(x => !x.is_sub_installer).map(x => nameById.get(x.user_id) ?? 'Unknown'),
+          supportNames: others.filter(x =>  x.is_sub_installer).map(x => nameById.get(x.user_id) ?? 'Unknown'),
         })
         tomorrowByPerson.set(a.user_id, list)
       }
