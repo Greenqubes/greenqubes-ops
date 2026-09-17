@@ -5,8 +5,8 @@
  */
 
 import {
-  tgEscape, formatDayDate, buildSchedulerSummary, buildInstallerSummary,
-  splitForTelegram, TELEGRAM_LIMIT, formatTimeRange,
+  tgEscape, formatDayDate, buildInstallerSummary,
+  splitForTelegram, TELEGRAM_LIMIT, formatTimeRange, buildUnassignedSummary,
 } from './day-summary'
 
 let failures = 0
@@ -42,36 +42,55 @@ check('angle brackets and ampersands are neutralised',
   'A &amp; B &lt;b&gt;bold&lt;/b&gt;')
 check('plain text is untouched', tgEscape('Tampines Optical'), 'Tampines Optical')
 
-console.log('buildSchedulerSummary:')
+console.log('buildUnassignedSummary — the scheduler\'s 4pm check:')
 
-const sched = buildSchedulerSummary({
-  dateLabel: '16/09/2026 (Wed)',
+const gaps = buildUnassignedSummary({
+  dateLabel: '17/09/2026 (Thu)',
   appUrl:    'https://x.test',
-  roster: [
-    { name: 'Nicholas', jobs: [
-      { id: 'j1', title: 'Tampines Optical', driverNames: ['CK'] },
-      { id: 'j2', title: 'Arnotts <script>', driverNames: [] },
+  groups: [
+    { salesName: 'Nicholas', jobs: [
+      { id: 'g1', title: 'Big Oakley Tower', dateLabel: '21/09/2026 (Mon)', location: '2 Jurong East St 21', createdBy: 'Nicholas', daysAway: 4 },
+      { id: 'g3', title: 'Later one',        dateLabel: '30/10/2026 (Fri)', location: '', createdBy: 'Nicholas', daysAway: 43 },
     ] },
-    { name: 'Daniel',  jobs: [{ id: 'j3', title: 'Fossil Bugis', driverNames: ['Rintu', 'Xiao Yi'] }] },
-    { name: 'Charles', jobs: [] },
+    { salesName: 'Charles Ow', jobs: [
+      { id: 'g2', title: 'Arnotts <b>GE</b>', dateLabel: '02/10/2026 (Fri)', location: '', createdBy: 'Charles Ow', daysAway: 15 },
+    ] },
   ],
 })
 
-contains('header carries the date',           sched, 'End of Day Summary')
-contains('header is bold + underlined',       sched, '<b><u>End of Day Summary (16/09/2026 (Wed))</u></b>')
-contains('each person is bold',               sched, '<b>Nicholas</b>')
-contains('someone with jobs says JOBS ADDED', sched, '<u>JOBS ADDED</u>')
-contains('a job shows its driver',            sched, 'Tampines Optical (CK)')
-contains('two drivers are both named',        sched, 'Fossil Bugis (Rintu, Xiao Yi)')
-contains('no driver reads Unassigned, bold',  sched, '<b>Unassigned</b>')
-contains('every job carries a link',          sched, 'https://x.test/jobs/j1')
-// Charles added nothing and must still appear — the sketch shows an unchanging
-// roster, not just whoever was busy.
-contains('an idle person is still listed',    sched, 'NO JOBS ADDED')
-contains('and it is Charles',                 sched, '<b>Charles</b>')
-contains('it ends',                           sched, 'END OF SUMMARY')
-absent('a job title cannot inject HTML',      sched, '<script>')
-contains('the title is escaped instead',      sched, 'Arnotts &lt;script&gt;')
+contains('counts across every group',     gaps, '3 jobs with nobody assigned')
+// Grouped by the sales person (Nic, 2026-09-17) — the scheduler chases per
+// person, so the message is ordered the way he works.
+contains('the sales person heads their group', gaps, '<b>Nicholas</b>')
+contains('and so does the next',          gaps, '<b>Charles Ow</b>')
+check('Nicholas comes before Charles',    gaps.indexOf('<b>Nicholas</b>') < gaps.indexOf('<b>Charles Ow</b>'), true)
+// Numbering restarts inside each group rather than running 1..3 across them.
+check('each group numbers from 1',        (gaps.match(/\n1\. /g) ?? []).length, 2)
+contains('names the job',                 gaps, 'Big Oakley Tower')
+contains('gives the date',                gaps, '21/09/2026 (Mon)')
+// "in 4 days" is what he acts on — a bare date makes him do the arithmetic.
+contains('and how far away it is',        gaps, 'in 4 days')
+contains('the address, to tell duplicates apart', gaps, '2 Jurong East St 21')
+contains('links straight to the job',     gaps, 'https://x.test/jobs/g1')
+// His rule: keep firing until it is filled. Saying so stops it reading as a
+// one-off that can be ignored.
+contains('says it will repeat',           gaps, 'again tomorrow')
+absent('a job title cannot inject HTML',  gaps, '<b>GE</b>')
+
+check('a job with no address simply omits the line',
+  gaps.includes('   \n'), false)
+
+// Today and tomorrow read as words — the two that matter most.
+const one = (daysAway: number) => buildUnassignedSummary({ dateLabel: 'x', appUrl: 'https://x.test',
+  groups: [{ salesName: 'N', jobs: [{ id: 'a', title: 'A', dateLabel: 'd', location: '', createdBy: 'N', daysAway }] }] })
+contains('today is spelled out', one(0), '<b>TODAY</b>')
+contains('tomorrow too',        one(1), '<b>tomorrow</b>')
+
+// Silence would be indistinguishable from a broken bot — the failure that hid
+// the vault sync for 57 days. An all-clear is one line and removes the doubt.
+const clear = buildUnassignedSummary({ dateLabel: '17/09/2026 (Thu)', appUrl: 'https://x.test', groups: [] })
+contains('all-clear when nothing is missing', clear, 'Every upcoming job has a driver')
+check('and it is NOT empty', clear !== '', true)
 
 console.log('formatTimeRange:')
 

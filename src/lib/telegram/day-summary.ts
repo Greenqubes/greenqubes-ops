@@ -79,36 +79,72 @@ export function splitForTelegram(text: string, limit: number = TELEGRAM_LIMIT): 
   return parts.map((p, i) => `${p}\n\n<i>(${i + 1}/${parts.length})</i>`)
 }
 
-export function buildSchedulerSummary(p: {
+export type UnassignedJob = {
+  id: string; title: string; dateLabel: string
+  location: string; createdBy: string; daysAway: number
+}
+
+/**
+ * The scheduler's 4pm check: **every job still without a driver**.
+ *
+ * Nic's scheduler, 2026-09-17, in his own words — "at 4pm SGT it will cut off
+ * and read whatever job that has not been arranged with installer/driver, he
+ * will do it. regardless if the job is 5 days from now, 20 days from now or 1
+ * month away. cuz by end of day before he leaves he will insert
+ * installer/driver into all the job. then if still left unassigned, fire tmr
+ * again until driver or installer is inserted."
+ *
+ * So: no look-ahead window, and it repeats daily until the gap is filled.
+ * This replaced a full who-added-what roster, which listed everything and
+ * therefore told him nothing he had to act on.
+ *
+ * Soonest first, because that is the order he will work through them. Each
+ * line carries the date, the address and who entered the job — the address
+ * because two jobs can share a title (his 18-duplicate order), and the
+ * creator because that is who he would ask.
+ *
+ * Returns an ALL-CLEAR line rather than '' when nothing is missing: silence
+ * would be indistinguishable from a broken bot, which is exactly how the
+ * vault sync went unnoticed for 57 days.
+ */
+export function buildUnassignedSummary(p: {
   dateLabel: string
   appUrl:    string
-  roster: Array<{
-    name: string
-    jobs: Array<{ id: string; title: string; driverNames: string[] }>
-  }>
+  /** Grouped by the job's sales person (Nic, 2026-09-17) — the scheduler
+   *  chases per person, so the message is ordered the way he works. Jobs
+   *  inside a group run soonest first. */
+  groups: Array<{ salesName: string; jobs: UnassignedJob[] }>
 }): string {
-  const parts = [`<b><u>End of Day Summary (${tgEscape(p.dateLabel)})</u></b>`, '']
+  const total = p.groups.reduce((n, g) => n + g.jobs.length, 0)
 
-  for (const person of p.roster) {
-    parts.push(`<b>${tgEscape(person.name)}</b>`)
-    if (person.jobs.length === 0) {
-      // Everyone is listed whether or not they added anything — Nic's sketch
-      // shows an unchanging roster, not just whoever happened to be busy.
-      parts.push('<u>NO JOBS ADDED</u>')
-    } else {
-      parts.push('<u>JOBS ADDED</u>')
-      person.jobs.forEach((job, i) => {
-        const who = job.driverNames.length > 0
-          ? tgEscape(job.driverNames.join(', '))
-          : '<b>Unassigned</b>'
-        parts.push(`${i + 1}. ${tgEscape(job.title)} (${who})`)
-        parts.push(`   <a href="${p.appUrl}/jobs/${job.id}">Open</a>`)
-      })
-    }
+  if (total === 0) {
+    return `<b><u>Jobs still to arrange — ${tgEscape(p.dateLabel)}</u></b>\n\n`
+      + '✅ Every upcoming job has a driver. Nothing outstanding.'
+  }
+
+  const parts = [
+    `<b><u>Jobs still to arrange — ${tgEscape(p.dateLabel)}</u></b>`,
+    '',
+    `${total} job${total === 1 ? '' : 's'} with nobody assigned:`,
+    '',
+  ]
+
+  for (const group of p.groups) {
+    if (group.jobs.length === 0) continue
+    parts.push(`<b>${tgEscape(group.salesName)}</b>`)
+    group.jobs.forEach((j, i) => {
+      const when = j.daysAway === 0 ? 'TODAY'
+        : j.daysAway === 1 ? 'tomorrow'
+        : `in ${j.daysAway} days`
+      parts.push(`${i + 1}. <b>${tgEscape(j.title)}</b>`)
+      parts.push(`   ${tgEscape(j.dateLabel)} — <b>${when}</b>`)
+      if (j.location) parts.push(`   ${tgEscape(j.location)}`)
+      parts.push(`   <a href="${p.appUrl}/jobs/${j.id}">Open</a>`)
+    })
     parts.push(LINE)
   }
 
-  parts.push('END OF SUMMARY')
+  parts.push('These will appear again tomorrow until someone is assigned.')
   return parts.join('\n')
 }
 
