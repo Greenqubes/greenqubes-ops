@@ -6,7 +6,7 @@
 
 import {
   tgEscape, formatDayDate, buildSchedulerSummary, buildInstallerSummary,
-  splitForTelegram, TELEGRAM_LIMIT,
+  splitForTelegram, TELEGRAM_LIMIT, formatTimeRange,
 } from './day-summary'
 
 let failures = 0
@@ -73,14 +73,25 @@ contains('it ends',                           sched, 'END OF SUMMARY')
 absent('a job title cannot inject HTML',      sched, '<script>')
 contains('the title is escaped instead',      sched, 'Arnotts &lt;script&gt;')
 
+console.log('formatTimeRange:')
+
+check('start and end',   formatTimeRange('09:00:00', '18:00:00'), '9 AM – 6 PM')
+check('minutes kept',    formatTimeRange('09:30:00', '11:15:00'), '9:30 AM – 11:15 AM')
+check('start only',      formatTimeRange('14:00:00', null),       'from 2 PM')
+// A job with no time is a whole-day floater — say so rather than leave a gap,
+// matching the schedule card and the FCFS board.
+check('no time at all',  formatTimeRange(null, null),             'All day')
+
 console.log('buildInstallerSummary:')
 
 const inst = buildInstallerSummary({
   dateLabel: '16/09/2026 (Wed)',
   name:      'CK',
   appUrl:    'https://x.test',
-  added:   [{ id: 'j1', title: 'Tampines Optical', dateLabel: '17/09/2026 (Thu)', role: 'driver'  }],
-  removed: [{ id: 'j9', title: 'Fossil Bugis',     dateLabel: '18/09/2026 (Fri)', role: 'support' }],
+  tomorrowLabel: '17/09/2026 (Thu)',
+  tomorrow: [],
+  added:   [{ id: 'j1', title: 'Tampines Optical', dateLabel: '17/09/2026 (Thu)', role: 'driver',  location: '10 Tampines Central' }],
+  removed: [{ id: 'j9', title: 'Fossil Bugis',     dateLabel: '18/09/2026 (Fri)', role: 'support', location: 'Bugis Junction' }],
 })
 
 contains('greets the person',        inst, 'CK')
@@ -95,10 +106,61 @@ contains('links through',            inst, 'https://x.test/jobs/j1')
 // Somebody with only removals must not be sent an empty "added" heading.
 const removalsOnly = buildInstallerSummary({
   dateLabel: '16/09/2026 (Wed)', name: 'Rintu', appUrl: 'https://x.test',
-  added: [], removed: [{ id: 'j2', title: 'Bugis', dateLabel: '17/09/2026 (Thu)', role: 'driver' }],
+  tomorrowLabel: '17/09/2026 (Thu)', tomorrow: [],
+  added: [], removed: [{ id: 'j2', title: 'Bugis', dateLabel: '17/09/2026 (Thu)', role: 'driver', location: 'Bugis' }],
 })
 absent('no empty ADDED heading',    removalsOnly, 'ADDED TO YOUR JOBS')
 contains('the removal still shows', removalsOnly, '<u>TAKEN OFF</u>')
+
+console.log('buildInstallerSummary — tomorrow (Nic, 2026-09-17):')
+
+// The hole this closes: with a pure change log, an installer whose schedule
+// did not change today gets NO message — even with a 9am tomorrow assigned
+// three weeks ago. Silence was indistinguishable from "nothing on".
+const withTomorrow = buildInstallerSummary({
+  dateLabel: '17/09/2026 (Thu)', name: 'Xiao Yi', appUrl: 'https://x.test',
+  tomorrowLabel: '18/09/2026 (Fri)',
+  tomorrow: [
+    { id: 't1', title: 'Arnotts GE Delivery', timeLabel: '9 AM – 1 PM', location: 'Blk 825 Tampines St 81', role: 'driver' },
+    { id: 't2', title: 'Fossil Bugis',        timeLabel: 'All day',     location: 'Bugis Junction #02-11', role: 'support' },
+  ],
+  added: [], removed: [],
+})
+
+contains('tomorrow is named with its date', withTomorrow, '<u>TOMORROW — 18/09/2026 (Fri)</u>')
+contains('the job is listed',               withTomorrow, 'Arnotts GE Delivery')
+contains('with its time',                   withTomorrow, '9 AM – 1 PM')
+// The address is what tells two identically-titled jobs apart — Nic's
+// 18-duplicate order produced exactly that, and on a phone the title alone
+// is useless.
+contains('and its address',                 withTomorrow, 'Blk 825 Tampines St 81')
+contains('a support job says so',           withTomorrow, 'support crew')
+// Tomorrow comes FIRST: it is the thing he acts on tonight.
+check('tomorrow is above the changes',
+  withTomorrow.indexOf('TOMORROW') < (withTomorrow.indexOf('ADDED') === -1 ? Infinity : withTomorrow.indexOf('ADDED')),
+  true)
+
+// Nothing tomorrow AND nothing changed = nothing worth sending.
+check('a totally quiet day produces no message',
+  buildInstallerSummary({
+    dateLabel: '17/09/2026 (Thu)', name: 'Hasan', appUrl: 'https://x.test',
+    tomorrowLabel: '18/09/2026 (Fri)', tomorrow: [], added: [], removed: [],
+  }),
+  '')
+
+// But a quiet day with work tomorrow must still go out — that is the whole
+// point of the change.
+check('work tomorrow alone is enough to send',
+  buildInstallerSummary({
+    dateLabel: '17/09/2026 (Thu)', name: 'Hasan', appUrl: 'https://x.test',
+    tomorrowLabel: '18/09/2026 (Fri)',
+    tomorrow: [{ id: 't9', title: 'Jewel', timeLabel: 'All day', location: 'Jewel', role: 'driver' }],
+    added: [], removed: [],
+  }) !== '',
+  true)
+
+contains('a change-only day still sends', removalsOnly, 'TAKEN OFF')
+absent('and shows no empty TOMORROW',     removalsOnly, 'TOMORROW —')
 
 console.log('splitForTelegram:')
 

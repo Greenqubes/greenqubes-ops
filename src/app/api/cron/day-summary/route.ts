@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendSummaryTelegram } from '@/lib/telegram/bot'
-import { buildSchedulerSummary, buildInstallerSummary, formatDayDate, splitForTelegram } from '@/lib/telegram/day-summary'
+import {
+  buildSchedulerSummary, buildInstallerSummary, formatDayDate, formatTimeRange,
+  splitForTelegram, type TomorrowRow,
+} from '@/lib/telegram/day-summary'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
@@ -140,14 +143,51 @@ export async function GET(req: NextRequest) {
   const pending = (changes ?? []).filter(c => c.payload && !c.payload.notified_now)
 
   const jobIds = [...new Set(pending.map(c => c.target_id))]
-  type JobLite = { id: string; project_title: string | null; client: string; date: string }
+  type JobLite = { id: string; project_title: string | null; client: string; date: string; location: string }
   const { data: jobRows } = jobIds.length === 0
     ? { data: [] as JobLite[] }
-    : await db.from('jobs').select('id, project_title, client, date').in('id', jobIds) as
+    : await db.from('jobs').select('id, project_title, client, date, location').in('id', jobIds) as
       { data: JobLite[] | null }
   const jobById = new Map((jobRows ?? []).map(j => [j.id, j]))
 
-  type Entry = { id: string; title: string; dateLabel: string; role: 'driver' | 'support' }
+  // ── Tomorrow's roster, per person (Nic, 2026-09-17) ─────────────────────
+  // Without this, an installer whose schedule did not change today got NO
+  // message — even with a 9am tomorrow assigned three weeks ago. Jobs dated
+  // TODAY are deliberately excluded: those notify the moment they change, so
+  // by 6pm they are old news.
+  const tomorrowISO = new Date(new Date(`${todayISO}T00:00:00+08:00`).getTime() + 864e5)
+    .toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+  const tomorrowLbl = formatDayDate(tomorrowISO)
+
+  type TomorrowJob = {
+    id: string; project_title: string | null; client: string; location: string
+    time_start: string | null; time_end: string | null
+    job_assignees: Array<{ user_id: string; is_suggestion: boolean; is_sub_installer: boolean }>
+  }
+  const { data: tomorrowJobs } = await db
+    .from('jobs')
+    .select('id, project_title, client, location, time_start, time_end, job_assignees(user_id, is_suggestion, is_sub_installer)')
+    .lte('date', tomorrowISO)
+    .or(`date_end.gte.${tomorrowISO},and(date.eq.${tomorrowISO},date_end.is.null)`)
+    .eq('status', 'scheduled') as { data: TomorrowJob[] | null }
+
+  const tomorrowByPerson = new Map<string, TomorrowRow[]>()
+  for (const j of tomorrowJobs ?? []) {
+    for (const a of j.job_assignees) {
+      if (a.is_suggestion) continue
+      const list = tomorrowByPerson.get(a.user_id) ?? []
+      list.push({
+        id:        j.id,
+        title:     j.project_title || j.client || 'Untitled job',
+        timeLabel: formatTimeRange(j.time_start, j.time_end),
+        location:  j.location ?? '',
+        role:      a.is_sub_installer ? 'support' : 'driver',
+      })
+      tomorrowByPerson.set(a.user_id, list)
+    }
+  }
+
+  type Entry = { id: string; title: string; dateLabel: string; role: 'driver' | 'support'; location: string }
   const byPerson = new Map<string, { added: Entry[]; removed: Entry[] }>()
 
   for (const c of pending) {
@@ -159,6 +199,7 @@ export async function GET(req: NextRequest) {
       title:     job.project_title || job.client || 'Untitled job',
       dateLabel: formatDayDate(job.date),
       role:      c.payload.as_support ? 'support' : 'driver',
+      location:  job.location ?? '',
     }
     // Dragged on then off again in the same evening is no change at all, and
     // must not send two lines contradicting each other.
@@ -169,15 +210,25 @@ export async function GET(req: NextRequest) {
     byPerson.set(c.payload.user_id, bucket)
   }
 
+  // Everyone with EITHER work tomorrow or a change today. A person with a job
+  // tomorrow and nothing changed still needs telling — that is the whole point
+  // of adding the roster (Nic, 2026-09-17).
+  const recipientIds = new Set<string>([...byPerson.keys(), ...tomorrowByPerson.keys()])
+
   let installerSent = 0
-  for (const [userId, bucket] of byPerson) {
-    if (bucket.added.length === 0 && bucket.removed.length === 0) continue
+  for (const userId of recipientIds) {
+    const bucket = byPerson.get(userId) ?? { added: [], removed: [] }
     const person = staff.find(u => u.id === userId)
     if (!person?.telegram_chat_id) continue
     const text = buildInstallerSummary({
       dateLabel: dateLbl, name: person.name, appUrl: APP_URL,
+      tomorrowLabel: tomorrowLbl,
+      tomorrow: tomorrowByPerson.get(userId) ?? [],
       added: bucket.added, removed: bucket.removed,
     })
+    // '' means nothing tomorrow AND nothing changed — never send an empty
+    // "nothing happened", which is how people learn to ignore a channel.
+    if (!text) continue
     let allSent = true
     for (const part of splitForTelegram(text)) {
       if (!await sendSummaryTelegram(person.telegram_chat_id, part)) allSent = false

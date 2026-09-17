@@ -112,16 +112,78 @@ export function buildSchedulerSummary(p: {
   return parts.join('\n')
 }
 
+const MONTHS_TIME = ['AM', 'PM']
+
+/** `9 AM – 6 PM`, `9:30 AM – 11:15 AM`, `from 2 PM`, or `All day`. */
+export function formatTimeRange(start: string | null, end: string | null): string {
+  const one = (t: string) => {
+    const [h, m] = t.split(':').map(Number)
+    const suffix = MONTHS_TIME[h >= 12 ? 1 : 0]
+    const h12 = h % 12 || 12
+    return m === 0 ? `${h12} ${suffix}` : `${h12}:${String(m).padStart(2, '0')} ${suffix}`
+  }
+  if (!start) return 'All day'
+  if (!end)   return `from ${one(start)}`
+  return `${one(start)} – ${one(end)}`
+}
+
+export type InstallerJobRow = {
+  id: string; title: string; dateLabel: string
+  role: 'driver' | 'support'; location: string
+}
+
+export type TomorrowRow = {
+  id: string; title: string; timeLabel: string
+  role: 'driver' | 'support'; location: string
+}
+
+/**
+ * One installer's evening message: **where they are going tomorrow**, then
+ * what changed for them today.
+ *
+ * Nic, 2026-09-17. It began as a change log alone, which left a hole: an
+ * installer whose schedule did not change today got NO message, even with a
+ * 9am tomorrow assigned three weeks ago — so silence meant both "nothing
+ * changed" and "nobody told you about tomorrow". Tomorrow now leads, because
+ * it is the thing he acts on tonight; the changes follow, whatever date they
+ * fall on, so a move three weeks out is still heard about.
+ *
+ * Jobs dated TODAY are deliberately absent: those notify immediately when the
+ * change is made, so by 6pm they are old news.
+ *
+ * Returns '' when there is nothing tomorrow AND nothing changed. The caller
+ * must not send an empty message — "nothing happened" every evening is how
+ * people learn to ignore a channel.
+ */
 export function buildInstallerSummary(p: {
-  dateLabel: string
-  name:      string
-  appUrl:    string
-  added:   Array<{ id: string; title: string; dateLabel: string; role: 'driver' | 'support' }>
-  removed: Array<{ id: string; title: string; dateLabel: string; role: 'driver' | 'support' }>
+  dateLabel:     string
+  name:          string
+  appUrl:        string
+  tomorrowLabel: string
+  tomorrow:      TomorrowRow[]
+  added:         InstallerJobRow[]
+  removed:       InstallerJobRow[]
 }): string {
+  if (p.tomorrow.length === 0 && p.added.length === 0 && p.removed.length === 0) return ''
+
   const parts = [`<b><u>Your jobs — ${tgEscape(p.dateLabel)}</u></b>`, '', `<b>${tgEscape(p.name)}</b>`]
 
-  const block = (heading: string, rows: typeof p.added) => {
+  if (p.tomorrow.length > 0) {
+    parts.push(`<u>TOMORROW — ${tgEscape(p.tomorrowLabel)}</u>`)
+    p.tomorrow.forEach((r, i) => {
+      const as = r.role === 'support' ? ' — support crew' : ''
+      parts.push(`${i + 1}. <b>${tgEscape(r.title)}</b>${as}`)
+      parts.push(`   ${tgEscape(r.timeLabel)}`)
+      // The address is what tells two identically-titled jobs apart. Nic's
+      // 18-duplicate order produced exactly that, and on a phone the title
+      // alone is useless.
+      if (r.location) parts.push(`   ${tgEscape(r.location)}`)
+      parts.push(`   <a href="${p.appUrl}/jobs/${r.id}">Open</a>`)
+    })
+    parts.push(LINE)
+  }
+
+  const block = (heading: string, rows: InstallerJobRow[]) => {
     // A heading with nothing under it reads as an error. Only the sections
     // that have something appear.
     if (rows.length === 0) return
@@ -129,6 +191,7 @@ export function buildInstallerSummary(p: {
     rows.forEach((r, i) => {
       const as = r.role === 'support' ? ' — support crew' : ''
       parts.push(`${i + 1}. ${tgEscape(r.title)} — ${tgEscape(r.dateLabel)}${as}`)
+      if (r.location) parts.push(`   ${tgEscape(r.location)}`)
       parts.push(`   <a href="${p.appUrl}/jobs/${r.id}">Open</a>`)
     })
     parts.push(LINE)
