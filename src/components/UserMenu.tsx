@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass, Sparkles } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass, Sparkles, CalendarClock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
@@ -67,6 +67,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
   const [changingLang, setChangingLang] = useState(false)
   const [roleOverride, setRoleOverride] = useState<Role | null>(null)
   const [tgLinked,     setTgLinked]     = useState(false)
+  const [summaryLinked, setSummaryLinked] = useState(false)
   const [mounted,      setMounted]      = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
   const ref      = useRef<HTMLDivElement>(null)
@@ -89,6 +90,10 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
         if (data?.lang) setLang(data.lang as LangCode)
         if (data?.role) setIsAdmin(data.role === 'admin')
         setTgLinked(Boolean(data?.telegram_chat_id))
+        fetch('/api/telegram/summary-status')
+          .then(r => r.ok ? r.json() : null)
+          .then(j => { if (j) setSummaryLinked(Boolean(j.connected)) })
+          .catch(() => { /* the row just shows as not connected */ })
       }
     })
   }, [])
@@ -287,6 +292,25 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
             <Send size={14} strokeWidth={1.8} className={tgLinked ? 'text-brand-green' : undefined} />
             <span className="flex-1 text-left">{tgLinked ? 'Telegram connected' : 'Connect Telegram'}</span>
             {tgLinked && <Check size={13} strokeWidth={2} className="text-brand-green" />}
+          </a>
+
+          {/* Connect Summary — the daily job summaries come from a SEPARATE
+              bot (Nic's call, 2026-09-16), and Telegram refuses to let a bot
+              message anyone who has not pressed START. Without this button
+              that press has to be chased by hand: twelve people were
+              unreachable on 2026-09-17, and the failure is silent — their
+              summary simply never arrives. Stays tappable once connected so a
+              new phone can re-link. */}
+          <a
+            href="/api/telegram/summary-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+          >
+            <CalendarClock size={14} strokeWidth={1.8} className={summaryLinked ? 'text-brand-green' : undefined} />
+            <span className="flex-1 text-left">{summaryLinked ? 'Summary connected' : 'Connect Summary'}</span>
+            {summaryLinked && <Check size={13} strokeWidth={2} className="text-brand-green" />}
           </a>
 
           {/* Guided tour — restart from the role home page. The '/' redirect

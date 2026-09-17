@@ -53,3 +53,33 @@ export function verifyLinkToken(token: string): string | null {
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null
   return b64ToUuid(payload)
 }
+
+// ── Summary bot ───────────────────────────────────────────────────────────────
+// Same scheme, keyed on the SUMMARY bot's own token so a link meant for one
+// bot can never be replayed at the other. Telegram blocks a bot from messaging
+// anyone who has not pressed START, so this button exists purely to get that
+// press — twelve people needed chasing without it (Nic, 2026-09-17).
+
+function summarySecret(): string | null {
+  return process.env.TELEGRAM_SUMMARY_BOT_TOKEN || null
+}
+
+export function createSummaryLinkToken(userId: string): string | null {
+  const key = summarySecret()
+  if (!key) return null
+  const payload = uuidToB64(userId)
+  if (!payload) return null
+  return payload + sign(payload, key)
+}
+
+export function verifySummaryLinkToken(token: string): string | null {
+  const key = summarySecret()
+  if (!key) return null
+  if (token.length !== UUID_B64_LEN + SIG_B64_LEN) return null
+  if (!/^[A-Za-z0-9_-]+$/.test(token)) return null
+  const payload  = token.slice(0, UUID_B64_LEN)
+  const given    = Buffer.from(token.slice(UUID_B64_LEN))
+  const expected = Buffer.from(sign(payload, key))
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null
+  return b64ToUuid(payload)
+}
