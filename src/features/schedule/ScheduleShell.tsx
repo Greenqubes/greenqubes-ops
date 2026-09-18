@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,7 @@ import {
   toISO, shiftDate, shiftMonth,
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
+import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember } from '@/lib/supabase/queries/jobs'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
@@ -70,11 +71,29 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   const [viewMode,     setViewMode]     = useState<ViewMode>('list')
   const [query,        setQuery]        = useState('')
   const [showSearch,   setShowSearch]   = useState(false)
-  const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedDate, setSelectedDateState] = useState(today)
   const [showJump,     setShowJump]     = useState(false)
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState<'delete' | 'revert' | 'complete' | false>(false)
+
+  // The date the user is working on is remembered for as long as the tab is
+  // open (Nic, 2026-09-18: opening a job on 2 Oct and coming back dropped him
+  // on today, every time). sessionStorage, not localStorage, is the whole of
+  // his decision — it survives every move inside the app and empties itself
+  // when the tab or the app closes, so tomorrow still opens on today.
+  //
+  // Wrapping the setter rather than touching the ten call sites means every
+  // path that moves the date — paging arrows, date strip, jump calendar, month
+  // drill-down, the Today button — persists without having to remember to. The
+  // ref mirrors the state so the updater form stays pure.
+  const dateRef = useRef(today)
+  const setSelectedDate = useCallback((next: string | ((d: string) => string)) => {
+    const value = typeof next === 'function' ? next(dateRef.current) : next
+    dateRef.current = value
+    setSelectedDateState(value)
+    try { sessionStorage.setItem(scheduleDateKey(pageMode), value) } catch { /* private window */ }
+  }, [pageMode])
 
   const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending') || (role === 'coordinator' && pageMode === 'pending')
   // Undo accidental completions straight from the Completed list, and mark
@@ -232,6 +251,20 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     }
     return monthLabel(selectedDate)
   }, [viewMode, selectedDate])
+
+  // Put the user back on the date they were working on. Read AFTER mount for
+  // the same reason as the two settings below: /schedule is hydration-sensitive
+  // (#418), so the first render must match the server's — which is today.
+  // Nothing stored (first visit, or the tab was closed) resolves to today, and
+  // a damaged value does too: every view indexes jobsByDate[selectedDate], so a
+  // nonsense key would render an empty day with no explanation on it.
+  useEffect(() => {
+    let saved: string | null = null
+    try { saved = sessionStorage.getItem(scheduleDateKey(pageMode)) } catch { /* private window */ }
+    const restored = resolveScheduleDate(saved, today)
+    dateRef.current = restored
+    setSelectedDateState(restored)
+  }, [pageMode, today])
 
   // How many job cards sit side by side, remembered per device. Read only
   // AFTER mount: /schedule is hydration-sensitive (#418), so the first render
