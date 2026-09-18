@@ -34,6 +34,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-18',
+    // 15:28 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch AFTER it landed — captured at the moment the build flipped rather
+    // than whenever it was next looked at. This machine reports MPST and TZ=
+    // is ignored, so the local clock is never the source (CLAUDE.md).
+    time: '15:28',
+    improved: [
+      'The schedule stays on the date you were viewing after you open a job.',
+      'Closing the tab resets it to today.',
+    ],
+  },
+  {
     date: '2026-09-17',
     // 18:42 SGT, decoded from the production deployment's own x-vercel-id
     // epoch AFTER it landed. This machine reports MPST and TZ= is ignored,
