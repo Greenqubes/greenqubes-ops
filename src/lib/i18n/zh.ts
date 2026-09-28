@@ -327,6 +327,9 @@ export const zh: Partial<Translations> = {
   subBucketTitle: '支援人员',
   subBucketRemove: '移除',
   subBucketAllOnMain: '所有人都已在此工作中。',
+  subBucketFilterAll: '全部',
+  subBucketNoneInRole: '此角色中没有可安排的人员。',
+  supportCrewNotSaved: '工作已保存，但支援人员未保存——请在工作页面重新添加。',
   metaDriver: '司机',
 
   // ── 外部安装人员（第四阶段）───────────────────────────────────────────────
@@ -539,4 +542,11 @@ export const zh: Partial<Translations> = {
   companyEventLabel: '公司活动',
   onLeaveLabel: '请假中',
   publicHolidayLabel: '公共假期',
+
+  // Job description translate (2026-09-28)
+  translate: '翻译',
+  translating: '翻译中…',
+  hideTranslation: '隐藏翻译',
+  translationLabel: '翻译',
+  translateFailed: '翻译失败，请重试',
 }

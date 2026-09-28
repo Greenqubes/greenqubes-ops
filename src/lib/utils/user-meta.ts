@@ -52,6 +52,27 @@ export function filterUsers<T extends { role: string; subrole: string | null }>(
   })
 }
 
+// Roles that may be dispatched onto a job's Support crew, in ROLES order —
+// also the filter buttons above that list (Nic, 2026-09-28). Sales, HR /
+// Finance, Admin and Designer are off the list entirely, partly narrowing the
+// 2026-09-04 "any role" widening.
+export const SUPPORT_CREW_ROLES: Role[] = ROLES.filter(r =>
+  r === 'scheduler' || r === 'coordinator' || r === 'installer' || r === 'production')
+
+// The Support crew list for one filter button. `keepIds` = people already on
+// this job's crew (assigned or suggested): an excluded-role person picked
+// before this rule must stay visible under All, or nobody could take them off.
+export function supportCrewPool<T extends { id: string; role: string }>(
+  users: T[],
+  role: string,
+  keepIds: Set<string>,
+): T[] {
+  return users.filter(u => {
+    if (role !== 'all') return u.role === role && (SUPPORT_CREW_ROLES as string[]).includes(role)
+    return (SUPPORT_CREW_ROLES as string[]).includes(u.role) || keepIds.has(u.id)
+  })
+}
+
 export function subroleSuggestions(
   users: Array<{ role: string; subrole: string | null }>,
   role: string,

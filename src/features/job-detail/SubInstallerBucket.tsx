@@ -4,13 +4,19 @@ import { useState } from 'react'
 import { Plus, Users } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
+import { roleLabel } from '@/components/Pill'
+import { cn } from '@/lib/utils/cn'
+import { SUPPORT_CREW_ROLES, supportCrewPool } from '@/lib/utils/user-meta'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
   lang:        LangCode
-  /** Full installer pool minus anyone already engaged on the MAIN grid. */
+  /** Full installer pool minus anyone already engaged on the MAIN grid.
+   *  Narrowed here to SUPPORT_CREW_ROLES + the role filter. */
   installers:  InstallerUser[]
+  /** People already on this job's crew — shown even if their role is excluded. */
+  keepIds:     Set<string>
   /** How many sub-installers are currently picked (badge on the header). */
   subCount:    number
   stateOf:     (id: string) => InstallerCardState
@@ -34,10 +40,15 @@ interface Props {
 // green-confirmed rules as the main grid, everyone stored with the
 // is_sub_installer flag — hidden behind a dashed "+ Support crew" trigger.
 export function SubInstallerBucket({
-  lang, installers, subCount, stateOf, onToggle, disabledOf, noteOf, onLeaveOf,
+  lang, installers, keepIds, subCount, stateOf, onToggle, disabledOf, noteOf, onLeaveOf,
   onClear, defaultOpen, canEdit,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen)
+  // Role filter, same buttons as Admin → Users (Nic, 2026-09-28) but only
+  // the roles that can be dispatched as support crew.
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const everyone = supportCrewPool(installers, 'all', keepIds)
+  const shown    = supportCrewPool(installers, roleFilter, keepIds)
 
   if (!open) {
     if (!canEdit) return null
@@ -77,11 +88,32 @@ export function SubInstallerBucket({
           </button>
         )}
       </div>
-      {installers.length === 0 ? (
+      {everyone.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+          {(['all', ...SUPPORT_CREW_ROLES] as string[]).map(r => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRoleFilter(r)}
+              className={cn(
+                'text-xs rounded-full border px-2.5 py-1 transition-colors',
+                roleFilter === r
+                  ? 'border-terracotta text-terracotta bg-terracotta-soft font-medium'
+                  : 'border-line text-muted hover:text-ink2',
+              )}
+            >
+              {r === 'all' ? t(lang, 'subBucketFilterAll') : roleLabel(r)}
+            </button>
+          ))}
+        </div>
+      )}
+      {everyone.length === 0 ? (
         <p className="text-xs text-muted">{t(lang, 'subBucketAllOnMain')}</p>
+      ) : shown.length === 0 ? (
+        <p className="text-xs text-muted">{t(lang, 'subBucketNoneInRole')}</p>
       ) : (
         <InstallerGrid
-          installers={installers}
+          installers={shown}
           lang={lang}
           stateOf={stateOf}
           onToggle={onToggle}

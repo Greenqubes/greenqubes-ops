@@ -18,6 +18,7 @@ import type { Role } from '@/lib/supabase/types'
 import { showSignedDoSection } from '@/lib/utils/completion-rules'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { checkUpload, bytesToMb } from '@/lib/storage/upload-rules'
+import { canDeleteJobFile } from '@/lib/storage/job-file-permissions'
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
@@ -33,6 +34,10 @@ interface Props {
   jobId:     string
   userId:    string
   files:     JobFile[]
+  /** The job's real status + completion time — the bins stay for 24 hours
+   *  after completion even though the rest of the form is read-only. */
+  jobStatus:   string
+  completedAt: string | null
   bare?:     boolean
 }
 
@@ -218,7 +223,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
   )
 }
 
-export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files, bare = false }: Props) {
+export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files, jobStatus, completedAt, bare = false }: Props) {
   const isInstaller         = role === 'installer'
   const isDesigner          = role === 'designer'
   // Designer is view-only; installer reads instructions but cannot edit them.
@@ -233,16 +238,20 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
   const signedDoFiles    = files.filter(f => f.kind === 'do')
   const completionPhotos = files.filter(f => f.kind === 'completion')
 
-  // Who sees a bin (Nic, 2026-09-14). Office roles could always delete on the
-  // server — only the button was missing. Installers are the new, narrow case:
-  // their OWN completion uploads, never a colleague's. `readOnly` is true once
-  // the job is completed, so both are locked then, and /api/files/[id] checks
-  // all of this again regardless of what the screen offers.
-  const isOfficeRole        = !isInstaller && !isDesigner
-  const canDeleteProduction = canUploadProduction && isOfficeRole ? () => true : undefined
-  const canDeleteCompletion = !readOnly && !isDesigner
-    ? (file: JobFile) => isOfficeRole || file.uploader_id === userId
-    : undefined
+  // Who sees a bin (Nic, 2026-09-28): one rule for all three photo sections —
+  // anyone's upload, while the job is open and for 24 hours after it is
+  // completed, installers and office alike; a completed job keeps its last
+  // completion photo. Deliberately NOT gated on `readOnly`, which turns true
+  // the moment the job completes. The designer stays view-only.
+  // /api/files/[id] runs the same canDeleteJobFile again — this is only the
+  // screen's copy of the rule.
+  const canDelete = isDesigner ? undefined : (file: JobFile) => canDeleteJobFile({
+    role,
+    jobStatus,
+    completedAt,
+    fileKind: file.kind,
+    otherCompletionFiles: completionPhotos.filter(f => f.id !== file.id).length,
+  }).allowed
 
   return (
     <ProductionFrame bare={bare}>
@@ -280,7 +289,7 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         kind="production_instructions"
         files={productionPhotos}
         canUpload={canUploadProduction}
-        canDelete={canDeleteProduction}
+        canDelete={canDelete}
         jobId={jobId}
         userId={userId}
         lang={lang}
@@ -298,6 +307,7 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
           userId={userId}
           lang={lang}
           accept="image/*,.pdf"
+          canDelete={canDelete}
         />
       )}
 
@@ -307,7 +317,7 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         kind="completion"
         files={completionPhotos}
         canUpload={canUploadCompletion}
-        canDelete={canDeleteCompletion}
+        canDelete={canDelete}
         jobId={jobId}
         userId={userId}
         lang={lang}

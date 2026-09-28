@@ -112,12 +112,12 @@ export async function DELETE(
   const role = await getEffectiveRole(profile.role)
   const service = createServiceClient()
 
-  // kind + uploader_id are read because an installer may delete a COMPLETION
-  // file they uploaded themselves (Nic, 2026-09-14) — see canDeleteJobFile.
-  type FileRow = { id: string; job_id: string | null; r2_key: string; kind: string | null; uploader_id: string | null }
+  // kind is read because the job form's photo sections follow their own rule
+  // (Nic, 2026-09-28) — see canDeleteJobFile.
+  type FileRow = { id: string; job_id: string | null; r2_key: string; kind: string | null }
   const { data: file } = await service
     .from('files')
-    .select('id, job_id, r2_key, kind, uploader_id')
+    .select('id, job_id, r2_key, kind')
     .eq('id', fileId)
     .maybeSingle() as { data: FileRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
@@ -130,29 +130,45 @@ export async function DELETE(
     }
   }
 
-  let jobStatus: string | null = null
+  let jobStatus:   string | null = null
+  let completedAt: string | null = null
+  let otherCompletionFiles = 0
   if (file.job_id) {
     const { data: job } = await service
       .from('jobs')
-      .select('status')
+      .select('status, completed_at')
       .eq('id', file.job_id)
-      .maybeSingle() as { data: { status: string } | null; error: unknown }
-    jobStatus = job?.status ?? null
+      .maybeSingle() as { data: { status: string; completed_at: string | null } | null; error: unknown }
+    jobStatus   = job?.status ?? null
+    completedAt = job?.completed_at ?? null
+
+    // Only matters for the last completion photo on a completed job.
+    if (file.kind === 'completion' && jobStatus === 'completed') {
+      const { count, error } = await service
+        .from('files')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', file.job_id)
+        .eq('kind', 'completion')
+        .neq('id', file.id)
+      // Unknown count → assume this is the last one; refusing is the safe side.
+      otherCompletionFiles = error ? 0 : (count ?? 0)
+    }
   }
 
   const decision = canDeleteJobFile({
     role,
     jobStatus,
-    fileKind:   file.kind,
-    uploaderId: file.uploader_id,
-    userId:     profile.id,
+    completedAt,
+    fileKind: file.kind,
+    otherCompletionFiles,
   })
   if (!decision.allowed) {
     return NextResponse.json(
       {
-        error: decision.reason === 'completed' ? 'Job is completed'
-             : decision.reason === 'not-owner' ? 'You can only delete files you uploaded'
+        error: decision.reason === 'completed'       ? 'Job is completed — files lock 24 hours after completion'
+             : decision.reason === 'last-completion' ? 'A completed job must keep at least one completion photo — upload the right one first'
              : 'Forbidden',
+        reason: decision.reason,
       },
       { status: 403 },
     )

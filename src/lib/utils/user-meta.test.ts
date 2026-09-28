@@ -4,6 +4,7 @@ import {
   linkStatus, buildUserMeta, filterUsers,
   subroleSuggestions, qualificationSuggestions,
   rolesPresent, filterPickerOptions,
+  SUPPORT_CREW_ROLES, supportCrewPool,
 } from './user-meta'
 
 let failed = 0
@@ -93,6 +94,32 @@ eq('roleless option hidden by a specific role',
    filterPickerOptions(roleless, 'sales', '').length, 0)
 eq('roleless option still searchable under all',
    filterPickerOptions(roleless, 'all', 'acme').length, 1)
+
+console.log('\nsupportCrewPool:')
+// Nic, 2026-09-28: a role filter under Support crew like the admin one, with
+// Sales, HR / Finance, Admin and Designer taken OUT of the list entirely.
+const crew = [
+  { id: 'ck',  name: 'CK',         role: 'installer'   },
+  { id: 'ali', name: 'Ali B',      role: 'production'  },
+  { id: 'bt',  name: 'Benny Teo',  role: 'scheduler'   },
+  { id: 'br',  name: 'Bryan',      role: 'admin'       },
+  { id: 'co',  name: 'Charles Ow', role: 'sales'       },
+  { id: 'wj',  name: 'Wan Jun',    role: 'designer'    },
+  { id: 'hr',  name: 'Hana',       role: 'hr'          },
+  { id: 'cd',  name: 'Cody',       role: 'coordinator' },
+]
+const ids = (role: string, keep: string[] = []) => supportCrewPool(crew, role, new Set(keep)).map(u => u.id)
+eq('filter buttons are the four dispatchable roles, in admin order',
+   SUPPORT_CREW_ROLES, ['scheduler', 'coordinator', 'installer', 'production'])
+// THE REQUEST: before this, sales/admin/designer (Charles Ow, Bryan) sat in the list.
+eq('All drops sales, hr, admin and designer', ids('all'), ['ck', 'ali', 'bt', 'cd'])
+eq('a role button narrows to that role',      ids('production'), ['ali'])
+eq('scheduler button',                        ids('scheduler'), ['bt'])
+// Someone from an excluded role ALREADY on this job's crew must stay visible,
+// or they could never be taken off again.
+eq('an excluded person already on the crew stays under All', ids('all', ['co']), ['ck', 'ali', 'bt', 'co', 'cd'])
+eq('...but a role button still filters them out',            ids('installer', ['co']), ['ck'])
+eq('an excluded role shows nobody', ids('sales'), [])
 
 if (failed > 0) { console.error(`\n${failed} check(s) failed`); process.exit(1) }
 console.log('\nAll user-meta checks passed')
