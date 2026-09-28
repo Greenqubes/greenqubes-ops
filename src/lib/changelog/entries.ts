@@ -35,13 +35,19 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-28',
-    // 20:36 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch, captured the moment /api/version flipped to 16505f6. This
+    // 21:01 SGT (bumped from 20:36 — the Support crew release landed the same
+    // evening), decoded from the production deployment's own x-vercel-id
+    // epoch, captured the moment /api/version flipped to 9c660cf58f66. This
     // machine reports MPST and TZ= is ignored, so the local clock is never
     // the source (CLAUDE.md).
-    time: '20:36',
+    time: '21:01',
+    headsUp: [
+      'Support crew now lists only scheduler, coordinator, installer and production staff.',
+    ],
     added: [
       'Translate button on Job Description, for Chinese and Bengali profiles.',
+      'Role filter buttons under Support crew.',
+      'Support crew can be picked when creating a new job.',
     ],
     improved: [
       'Wrong completion photos and signed DOs can be deleted by anyone on the job.',
