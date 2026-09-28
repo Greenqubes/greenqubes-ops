@@ -31,7 +31,19 @@ _Last updated: 2026-09-28 (feat-installer — **installers can now bin wrong pho
 
 _Last updated: 2026-09-28 (feat-jobs — **Support crew has role buttons, and it's on the New Job form. Live at 9:01pm.** Under Support crew: All · Scheduler · Coordinator · Installer · Production, like your Admin → Users filter. Sales, HR / Finance, Admin and Designer are no longer in that list at all — except anyone already on a job's crew, who stays on that job so they can be taken off. On the New Job form, Support crew sits under Drivers; sales and coordinators suggest, schedulers and admins assign, the same as Drivers. **Earlier today: the 4pm "jobs still to arrange" message was checked and is working correctly.** Charles's Headboard job went on the schedule on Friday at 11:38am with no confirmed driver, sat on the 4pm list Friday to Monday, and CK was confirmed at 4:35pm Monday — 35 minutes after that day's message. Charles is sales, so he can only *suggest* crew; the scheduler has to confirm it before it counts. The system keeps no record of suggestions once they're confirmed, so that part is the likely explanation rather than proven. **Also seen: the 6pm message reached nobody on the 27th or 28th** — the Connect Summary item further down.)_
 
+_Last updated: 2026-09-28 (feat-jobs — **deleted jobs now go to a Bin, and drafts are private. Both live at 9:23pm.** Your Aydan jobs for 2–3 Oct had been deleted, and nothing in the app recorded who or when — so you asked for a trash can. Now every delete goes to the Bin (profile picture → Bin), can be restored exactly as it was for 3 months (you can change that in Admin → Settings), and records who deleted it. **You spotted the bigger problem while we designed it:** every sales person, coordinator and scheduler could see everyone's drafts. Now a draft is seen only by the person who made it, its sales person-in-charge and its coordinators — admin sees all. That part went live the moment the database change was applied, on your go. You checked everything on the preview except two things that need real logins; they are at the top of Pending.)_
+
 ## Pending — Next Session
+
+### Pending privacy + the Job Bin — ✅ LIVE on production 2026-09-28
+
+_Checklist page (your ticks and notes are saved there): https://claude.ai/artifact/FV3Dt9w3v2vWZiJZeZ6m2z_
+
+- [ ] **Two checks only a real login can do, now that it's live:** from your own sales login, Wei Qing's three drafts are gone from Pending and her draft link does not open; and a coordinator makes a test draft with you as PIC, you hand it to another sales person, and you're taken back to your list.
+- [ ] **Tell the team, briefly:** deleted jobs are in profile picture → Bin for 3 months; and drafts are now private, so a sales person no longer sees a colleague's drafts. The "What's new" popup says both, but a word in the group chat avoids "where did my job go".
+- [ ] **Glance at Admin → Health tomorrow** — the new "Bin cron" line shows its first 4am run. Until then it reads "no run recorded yet", which is expected.
+- [ ] **Three small things the review left for later, none urgent:** a restore could wrongly leave someone off once you have over 1,000 staff or contractors; a chat message sent in the second a job is being deleted could be lost; and "Put it back in the bin" restarts that job's 3-month countdown.
+- [ ] **Worth knowing:** the Aydan jobs from 2–3 Oct can still be recovered from the server PC's nightly backups (`E:Greenqubes-Archive`) until about mid-October, if you change your mind. After that the backups roll over.
 
 ### Your feedback list — 5 of 14 still to do (from 2026-09-14, one added 2026-09-15)
 
@@ -386,6 +398,14 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-09-28, feat-jobs — Pending Privacy + Job Bin, LIVE)
+
+- [x] **[Nic] Your missing Aydan jobs for 2–3 October — answered.** They were deleted, not hidden, and at the time nothing recorded who deleted a job. You chose to leave them (the nightly backups on the server PC could still bring them back, for about 30 days from 15 Sept).
+- [x] **[Nic] Pending privacy — LIVE, database change applied on your "apply both".** A draft is now seen only by whoever created it, its sales person-in-charge and the coordinators on it — plus admin. Schedulers see only their own. You caught this one yourself: everyone could see everyone's drafts.
+- [x] **[Nic] The Bin — LIVE on production 9:23pm, after you checked the preview.** Delete sends a job to the Bin; profile picture → Bin restores it exactly as it was, files and all. Every delete now records who and when. Admin → Settings sets how long it keeps them (3 months to start); a 4am job empties the rest.
+- [x] **Checked against the real database, not just tests** — a throwaway job was deleted, restored and emptied for real (15 of 15 checks), then cleaned up. An independent review found three problems, all fixed before it went live: handing a draft to another sales person failed, a restore at the same moment as "Delete forever" could lose files, and the retention warning could miss a job by a day.
+- [x] **[Nic] "What's new" updated** — two new heads-up lines on today's entry, time moved to 9:23pm.
 
 ## Done This Session ✓ (2026-09-28, feat-jobs — Support Crew Filter + New Job Support Crew, LIVE)
 

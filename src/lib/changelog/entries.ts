@@ -35,13 +35,15 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-09-28',
-    // 21:01 SGT (bumped from 20:36 — the Support crew release landed the same
+    // 21:23 SGT (bumped from 21:01 — the Job Bin release landed the same
     // evening), decoded from the production deployment's own x-vercel-id
-    // epoch, captured the moment /api/version flipped to 9c660cf58f66. This
-    // machine reports MPST and TZ= is ignored, so the local clock is never
-    // the source (CLAUDE.md).
-    time: '21:01',
+    // epoch 1790601830215, captured the moment /api/version flipped to
+    // c36efbc7aebd. This machine reports MPST and TZ= is ignored, so the
+    // local clock is never the source (CLAUDE.md).
+    time: '21:23',
     headsUp: [
+      'Deleted jobs now go to a Bin. Profile picture → Bin to restore one for 3 months.',
+      'Draft jobs are now visible only to their creator, sales PIC and coordinators.',
       'Support crew now lists only scheduler, coordinator, installer and production staff.',
     ],
     added: [
