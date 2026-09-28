@@ -1360,6 +1360,8 @@ export function JobDetailShell({
                 files={job.files.filter(f =>
                   f.kind === 'production_instructions' || f.kind === 'do' || f.kind === 'completion'
                 )}
+                jobStatus={job.status}
+                completedAt={job.completed_at}
               />
             </CollapseCard>
           </div>
