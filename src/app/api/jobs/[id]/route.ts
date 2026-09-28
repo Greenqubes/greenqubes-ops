@@ -6,7 +6,7 @@ import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignDueShift, tplDesignInstallShift, tplDesignDueRemoved, tplDesignDueSet } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
-import { deleteObject } from '@/lib/storage/r2'
+import { moveJobToBin } from '@/lib/supabase/queries/job-bin'
 import type { Role } from '@/lib/supabase/types'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -52,53 +52,18 @@ export async function DELETE(
     return NextResponse.json({ error: 'Only pending jobs can be deleted' }, { status: 409 })
   }
 
-  // Authorization is enforced entirely by the role + pending-only gates above:
-  // the only jobs DELETE RLS policy (0019) covers scheduler/admin, so sales
-  // and coordinator have no row-level policy to rely on. Deleting via the
-  // session client would silently filter to 0 rows for them and still report
-  // success, so the delete runs on the service client instead, and the
-  // result is checked to confirm a row was actually removed.
-  const svc = createServiceClient()
-
-  // Collect the stored objects BEFORE the delete: `files` rows cascade away
-  // with the job (ON DELETE CASCADE since 0001), and once they are gone
-  // nothing remembers which objects belonged to it.
+  // Authorization was decided above, on the SESSION client (so pending-job
+  // privacy, migration 0062, applies). The move runs on the service client:
+  // sales and coordinator have no DELETE policy, and the bin tables have no
+  // policies at all by design.
   //
-  // This closes a long-standing leak, found 2026-09-15 while building the
-  // New Job holding area: deleting a job removed its file ROWS but left every
-  // object in R2 forever — unreferenced, invisible, still billed. True of
-  // every job ever deleted, including the 46 wiped in August. Same family as
-  // the 2026-08-19 attachment-delete bug, which fixed single files and
-  // buckets but never the whole-job path.
-  type FileRow = { r2_key: string }
-  const { data: jobFiles } = await svc
-    .from('files')
-    .select('r2_key')
-    .eq('job_id', jobId) as { data: FileRow[] | null; error: unknown }
-
-  const { data: deletedRows, error: deleteError } = await svc
-    .from('jobs')
-    .delete()
-    .eq('id', jobId)
-    .select('id')
-
-  if (deleteError) {
-    return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
-  }
-  if (!deletedRows || deletedRows.length === 0) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  // The row is gone either way — a storage failure must not report the delete
-  // as failed, or the caller retries against a job that no longer exists. Any
-  // object that survives is unreferenced rather than harmful.
-  let filesDeleted = 0
-  for (const file of jobFiles ?? []) {
-    if (!file.r2_key) continue
-    try { await deleteObject(file.r2_key); filesDeleted++ } catch { /* left behind, not fatal */ }
-  }
-
-  return NextResponse.json({ ok: true, filesDeleted })
+  // Deleting no longer destroys anything (Nic, 2026-09-28, after a batch of
+  // jobs vanished with no record of who removed them): the job and its linked
+  // rows are sealed into job_bin, the R2 files are KEPT until the bin empties
+  // (cron /api/cron/bin-empty), and an events row records who and when.
+  const result = await moveJobToBin(createServiceClient(), jobId, profile.id)
+  if ('error' in result) return NextResponse.json({ error: result.error }, { status: result.status })
+  return NextResponse.json({ ok: true, emptiesOn: result.emptiesOn })
 }
 
 // Design brief fields + due-date auto-shift (Task 6). No general job-fields
