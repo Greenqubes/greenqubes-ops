@@ -53,6 +53,18 @@ export function isExpired(deletedAtISO: string, key: RetentionKey, nowISO: strin
   return sgtDate(nowISO) > emptiesOn(deletedAtISO, key)
 }
 
+/** When the bin-empty cron next runs: daily 20:00 UTC = 04:00 SGT (vercel.json).
+ *  The Settings warning counts against THIS, not now — a job on its last
+ *  restorable day is not expired at 3pm but is at tonight's run. Keep in step
+ *  with the cron's schedule. */
+export const BIN_RUN_UTC_HOUR = 20
+export function nextBinRunISO(nowISO: string): string {
+  const now = new Date(nowISO)
+  const run = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BIN_RUN_UTC_HOUR))
+  if (run.getTime() <= now.getTime()) run.setUTCDate(run.getUTCDate() + 1)
+  return run.toISOString()
+}
+
 export function countExpiringUnder(deletedAts: string[], key: RetentionKey, nowISO: string): number {
   return deletedAts.filter(d => isExpired(d, key, nowISO)).length
 }

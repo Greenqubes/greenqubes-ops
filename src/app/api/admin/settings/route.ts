@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getRetention, setRetention, listBin } from '@/lib/supabase/queries/job-bin'
-import { RETENTION_OPTIONS, countExpiringUnder, type RetentionKey } from '@/lib/utils/bin-rules'
+import { RETENTION_OPTIONS, countExpiringUnder, nextBinRunISO, type RetentionKey } from '@/lib/utils/bin-rules'
 
 // Admin → Settings. One setting today: how long the bin keeps deleted jobs
 // (Nic, 2026-09-28 — "time set by admin for all, drop down month or years").
@@ -24,7 +24,9 @@ export async function GET() {
   if (!(await guardAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const svc = createServiceClient()
   const [retention, rows] = await Promise.all([getRetention(svc), listBin(svc)])
-  const now = new Date().toISOString()
+  // Counted at the NEXT nightly run, not now: that is when the emptying
+  // actually happens, so a job on its last day is included in the warning.
+  const now = nextBinRunISO(new Date().toISOString())
   const deletedAts = rows.map(r => r.deleted_at)
   // How many binned jobs each choice would empty at the next nightly run —
   // so shortening the time can say so before it is saved.

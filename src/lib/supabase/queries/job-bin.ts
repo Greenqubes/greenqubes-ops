@@ -3,6 +3,7 @@ import { deleteObject } from '@/lib/storage/r2'
 import { BIN_CHILD_TABLES, snapshotUserIds, snapshotR2Keys, type JobSnapshot, type Row } from '@/lib/utils/bin-snapshot'
 import { pendingSharerIds } from '@/lib/auth/pending-privacy'
 import { parseRetention, emptiesOn, type RetentionKey } from '@/lib/utils/bin-rules'
+import { purgeClaimed } from '@/lib/utils/bin-purge'
 
 /**
  * The job bin, server side (spec 2026-09-28-job-bin-design.md). Every
@@ -97,24 +98,34 @@ export async function listBin(svc: Svc): Promise<BinRow[]> {
   return (data ?? []) as unknown as BinRow[]
 }
 
-/** Empty one bin entry for good: R2 objects first, then the row. An object
- *  that fails to delete is left behind (logged) — never the row half-removed. */
+/** Empty one bin entry for good. The row is CLAIMED first — deleted, with its
+ *  R2 keys handed back in the same statement — and only then are the files
+ *  deleted (see bin-purge.ts for why that order). A restore racing this finds
+ *  no row and fails cleanly; a file that fails to delete is left orphaned and
+ *  logged, never a restorable job whose files are gone. */
 export async function purgeBinEntry(
   svc: Svc, binId: string, actorId: string | null,
 ): Promise<{ filesDeleted: number; filesFailed: number } | null> {
-  const { data } = await svc.from('job_bin' as never).select('id, job_id, title, r2_keys').eq('id', binId).maybeSingle()
-  const row = data as { id: string; job_id: string; title: string | null; r2_keys: string[] } | null
-  if (!row) return null
-  let filesDeleted = 0, filesFailed = 0
-  for (const key of row.r2_keys) {
-    try { await deleteObject(key); filesDeleted++ }
-    catch { filesFailed++; console.error(`[bin/purge] bin=${row.id} left R2 object ${key}`) }
-  }
-  const { error } = await svc.from('job_bin' as never).delete().eq('id', row.id)
-  if (error) throw error
+  let row: { id: string; job_id: string; title: string | null; r2_keys: string[] } | null = null
+  const result = await purgeClaimed(
+    async () => {
+      const { data, error } = await svc.from('job_bin' as never).delete().eq('id', binId)
+        .select('id, job_id, title, r2_keys')
+      if (error) throw error
+      row = ((data ?? []) as unknown as NonNullable<typeof row>[])[0] ?? null
+      return row ? row.r2_keys : null
+    },
+    async key => {
+      try { await deleteObject(key) }
+      catch (e) { console.error(`[bin/purge] bin=${binId} left R2 object ${key}`); throw e }
+    },
+  )
+  if (!result || !row) return null
+  const { filesDeleted, filesFailed } = result
+  const claimed = row as { job_id: string; title: string | null }
   await svc.from('events').insert({
-    kind: 'job_purged', actor_id: actorId, target_id: row.job_id, target_table: 'jobs',
-    payload: { title: row.title, files_deleted: filesDeleted, files_failed: filesFailed }, visibility: [],
+    kind: 'job_purged', actor_id: actorId, target_id: claimed.job_id, target_table: 'jobs',
+    payload: { title: claimed.title, files_deleted: filesDeleted, files_failed: filesFailed }, visibility: [],
   } as never)
   return { filesDeleted, filesFailed }
 }

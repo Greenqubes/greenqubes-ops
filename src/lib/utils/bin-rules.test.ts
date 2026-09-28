@@ -5,7 +5,7 @@
  */
 import {
   hasBin, parseRetention, emptiesOn, isExpired, countExpiringUnder, sgtDate,
-  canSeeBinEntry, canRestoreBinEntry, canDeleteForever, DEFAULT_RETENTION,
+  canSeeBinEntry, canRestoreBinEntry, canDeleteForever, DEFAULT_RETENTION, nextBinRunISO,
   type BinAccess,
 } from './bin-rules'
 
@@ -67,6 +67,16 @@ check('SGT date, not UTC', sgtDate('2026-09-27T23:30:00.000Z'), '2026-09-28')
 check('not expired on the last day', isExpired(deleted, '1m', '2026-10-28T15:00:00.000Z'), false)
 check('expired the day after', isExpired(deleted, '1m', '2026-10-28T16:30:00.000Z'), true)
 check('shortening to 1 month would empty the older one now', countExpiringUnder([deleted, '2026-11-20T02:00:00.000Z'], '1m', '2026-12-01T02:00:00.000Z'), 1)
+
+console.log('next nightly run (04:00 SGT = 20:00 UTC):')
+check('3pm SGT → tonight 04:00 SGT', nextBinRunISO('2026-10-28T07:00:00.000Z'), '2026-10-28T20:00:00.000Z')
+check('03:59 SGT → one minute later', nextBinRunISO('2026-10-28T19:59:00.000Z'), '2026-10-28T20:00:00.000Z')
+check('04:30 SGT (just ran) → the next night', nextBinRunISO('2026-10-28T20:30:00.000Z'), '2026-10-29T20:00:00.000Z')
+// THE BUG (final review, 2026-09-28): counted against NOW, the warning missed
+// a job whose last restorable day is today — at 3pm it is not yet expired, at
+// tonight's run it is, and it is emptied with no warning.
+check('a job on its last day at 3pm IS emptied tonight — the warning must count it',
+  countExpiringUnder([deleted], '1m', nextBinRunISO('2026-10-28T07:00:00.000Z')), 1)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall bin-rules checks passed')
