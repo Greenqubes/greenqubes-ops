@@ -49,6 +49,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 
 ### Housekeeping done 2026-09-28
 - [x] **[Nic] Old `greenqubes-ops-voice-pa` folder deleted from this PC** — it matched GitHub exactly, nothing unsaved; the `feat-voice-pa` branch itself is still on GitHub. The `greenqubes-ops-workflow-v3` folder was already gone.
+- [x] **[Nic] Old `greenqubes-ops-hr-leave` folder deleted from this PC** — nothing unsaved, and its code was already in `dev` and `main` (HR/leave live since 9 Sept).
 - [x] **[Nic] Stale `feat-provision-organisation` branch deleted on GitHub** — checked first: everything on it was already in `main`.
 - [x] **[Nic] Test external contacts — nothing left to delete.** Only two contacts remain, CK and Fu, both real contractors on real completed jobs (Fossil Westgate 4 Sept, Sunglass Hut Tangs 17 Sept).
 
