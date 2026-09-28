@@ -95,6 +95,7 @@ export async function GET(req: NextRequest) {
       // Longest normal gap is 15h (6pm → next 9am); only a longer silence warns.
       checkLastCron('Overdue cron', 'overdue_check',     16, 'runs twice daily, 9am + 6pm SGT'),
       checkLastCron('Design cron',  'design_daily_cron', 26, 'runs daily, 8:30am SGT'),
+      checkLastCron('Bin cron',     'bin_empty_cron',    26, 'runs daily, 4am SGT'),
     ]),
     getUsageSummary(windowSince(window)),
     getUnusualActivity(7),
