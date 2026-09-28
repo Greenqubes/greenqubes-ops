@@ -1,10 +1,11 @@
-// Who may delete a job's attachment files/buckets, and when.
-// Mirrors the job-form UI: every office role gets the trash buttons; installers
-// never do; a completed job is locked for everyone.
+// Who may delete or move a job's files and attachment buckets, and when.
+// Attachments: every office role; installers never; a completed job is locked
+// for everyone. The job form's three photo sections follow their own rule,
+// canDeleteJobFile below.
 
 export type FileManageDecision =
   | { allowed: true }
-  | { allowed: false; reason: 'role' | 'completed' | 'not-owner' }
+  | { allowed: false; reason: 'role' | 'completed' }
 
 const OFFICE_ROLES = new Set(['sales', 'scheduler', 'coordinator', 'designer', 'production', 'admin'])
 
@@ -19,52 +20,69 @@ export function canManageJobFiles(
   return { allowed: true }
 }
 
-// ── Installers clearing up their own mistake (Nic, 2026-09-14) ──
+// ── The job form's photo sections: one standard rule (Nic, 2026-09-28) ──
 //
-// The rule above is deliberately "installers never" — it exists so site photos
-// can't vanish after the fact. This is a narrow, considered exception, not a
-// loosening of it: an installer may delete a COMPLETION file they uploaded
-// THEMSELVES, and only while the job is still open. They cannot touch a
-// colleague's photo, any other kind of file, or anything once the job is
-// completed — at which point a scheduler can still do it for them.
+// Production Photos, Signed DO and Completion Photos are what people get wrong
+// on site — the wrong picture in the wrong box, usually noticed right after
+// pressing Completed. So for these three kinds:
 //
-// Production needs nothing here: production is an office role, so the rule
-// above already lets it delete its own photos. Only the button was missing.
+//   • anyone who may delete there may delete ANY upload, not just their own
+//     (whose it is stopped mattering — Nic);
+//   • while the job is open, and for 24 hours after it is completed, for
+//     office staff and installers alike. After that the record is locked;
+//   • on a completed job the LAST completion photo stays — the job was only
+//     allowed to complete because it had one. Signed DO has no minimum.
+//
+// Installers get Completion Photos and Signed DO; production photos stay
+// office-only. Every other kind (attachments) keeps the office rule above,
+// locked the moment a job completes.
 
-const OWN_DELETE_KINDS = new Set(['completion'])
+export const COMPLETION_GRACE_MS = 24 * 60 * 60 * 1000
 
-export interface OwnFileDeleteInput {
-  role:       string | null | undefined
-  jobStatus:  string | null | undefined
-  fileKind:   string | null | undefined
-  /** `files.uploader_id` — the app user id, not the auth id. */
-  uploaderId: string | null | undefined
-  /** The caller's own app user id. */
-  userId:     string | null | undefined
+const PHOTO_KINDS     = new Set(['completion', 'do', 'production_instructions'])
+const INSTALLER_KINDS = new Set(['completion', 'do'])
+
+export type FileDeleteDecision =
+  | { allowed: true }
+  | { allowed: false; reason: 'role' | 'completed' | 'last-completion' }
+
+export interface FileDeleteInput {
+  role:        string | null | undefined
+  jobStatus:   string | null | undefined
+  /** `jobs.completed_at` — starts the 24-hour window. Missing = no window. */
+  completedAt: string | null | undefined
+  fileKind:    string | null | undefined
+  /** Completion files on the job OTHER than this one. */
+  otherCompletionFiles: number
+  now?:        number
 }
 
-export function canDeleteOwnUpload(input: OwnFileDeleteInput): FileManageDecision {
-  const { role, jobStatus, fileKind, uploaderId, userId } = input
-  if (role !== 'installer')                          return { allowed: false, reason: 'role' }
-  if (!fileKind || !OWN_DELETE_KINDS.has(fileKind))  return { allowed: false, reason: 'role' }
-  if (jobStatus === 'completed')                     return { allowed: false, reason: 'completed' }
-  // A missing id on either side must never match — an unknown uploader is
-  // not "mine".
-  if (!uploaderId || !userId || uploaderId !== userId) return { allowed: false, reason: 'not-owner' }
-  return { allowed: true }
+/** True while a completed job's photo sections are still correctable. */
+export function withinCompletionGrace(completedAt: string | null | undefined, now = Date.now()): boolean {
+  if (!completedAt) return false
+  const at = Date.parse(completedAt)
+  if (Number.isNaN(at)) return false
+  return now - at < COMPLETION_GRACE_MS
 }
 
-/** The whole delete gate: the office rule first, then the installer's own
- *  upload. Callers should use this rather than either half. */
-export function canDeleteJobFile(input: OwnFileDeleteInput): FileManageDecision {
-  const office = canManageJobFiles(input.role, input.jobStatus)
-  if (office.allowed) return office
-  const own = canDeleteOwnUpload(input)
-  if (own.allowed) return own
-  // Report the more informative refusal: "job is completed" and "not yours"
-  // both tell the person something; a bare "forbidden" does not.
-  if (office.reason === 'completed' || own.reason === 'completed') {
-    return { allowed: false, reason: 'completed' }
+/** The whole delete gate for a single file. Callers use this, never the
+ *  office rule alone. */
+export function canDeleteJobFile(input: FileDeleteInput): FileDeleteDecision {
+  const { role, jobStatus, completedAt, fileKind, otherCompletionFiles, now = Date.now() } = input
+  const isPhoto = !!fileKind && PHOTO_KINDS.has(fileKind)
+
+  // Attachments and anything else: the office rule, unchanged.
+  if (!isPhoto) return canManageJobFiles(role, jobStatus)
+
+  const mayTouch = role === 'installer'
+    ? INSTALLER_KINDS.has(fileKind!) && jobStatus != null   // an orphan is office clean-up
+    : !!role && OFFICE_ROLES.has(role)
+  if (!mayTouch) return { allowed: false, reason: 'role' }
+
+  if (jobStatus !== 'completed') return { allowed: true }
+  if (!withinCompletionGrace(completedAt, now)) return { allowed: false, reason: 'completed' }
+  if (fileKind === 'completion' && otherCompletionFiles < 1) {
+    return { allowed: false, reason: 'last-completion' }
   }
-  return own.reason === 'not-owner' ? own : office
+  return { allowed: true }
 }
