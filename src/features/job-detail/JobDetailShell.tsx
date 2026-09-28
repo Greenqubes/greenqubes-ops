@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useLiveChannel, type LivePayload } from '@/lib/supabase/useLiveChannel'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
+import { useBinEmptiesOn } from '@/features/bin/useBinEmptiesOn'
 import { Btn } from '@/components/Btn'
 import { Pill } from '@/components/Pill'
 import { Field } from '@/components/Field'
@@ -212,6 +213,9 @@ export function JobDetailShell({
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
+  // Deleting moves the job to the bin (2026-09-28) — the confirm names the
+  // last day it can be restored, read when the confirm opens.
+  const binDate = useBinEmptiesOn(showDeleteModal)
   const [deleting,             setDeleting]            = useState(false)
   const [showRevertModal,      setShowRevertModal]     = useState(false)
   const [reverting,            setReverting]           = useState(false)
@@ -1978,7 +1982,7 @@ export function JobDetailShell({
           <h2 className="font-display text-lg font-medium text-ink">
             {t(lang, 'deleteJobConfirmTitle')}
           </h2>
-          <p className="text-sm text-muted">{t(lang, 'deleteJobConfirmBody')}</p>
+          <p className="text-sm text-muted">{t(lang, 'deleteJobConfirmBody').replace('{date}', binDate ?? '…')}</p>
           <div className="flex gap-2 justify-end pt-1">
             <Btn variant="secondary" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
               {t(lang, 'cancel')}

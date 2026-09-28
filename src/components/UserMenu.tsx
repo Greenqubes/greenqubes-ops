@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass, Sparkles, CalendarClock } from 'lucide-react'
+import { LogOut, ShieldCheck, LayoutDashboard, Languages, Eye, EyeOff, Moon, Sun, Send, Check, Compass, Sparkles, CalendarClock, Trash2 } from 'lucide-react'
+import { hasBin } from '@/lib/utils/bin-rules'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils/cn'
@@ -68,6 +69,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
   const [roleOverride, setRoleOverride] = useState<Role | null>(null)
   const [tgLinked,     setTgLinked]     = useState(false)
   const [summaryLinked, setSummaryLinked] = useState(false)
+  const [realRole,     setRealRole]     = useState<string | null>(null)
   const [mounted,      setMounted]      = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
   const ref      = useRef<HTMLDivElement>(null)
@@ -89,6 +91,7 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
           .maybeSingle() as { data: { lang: string; role: string; telegram_chat_id: string | null } | null; error: unknown }
         if (data?.lang) setLang(data.lang as LangCode)
         if (data?.role) setIsAdmin(data.role === 'admin')
+        if (data?.role) setRealRole(data.role)
         setTgLinked(Boolean(data?.telegram_chat_id))
         fetch('/api/telegram/summary-status')
           .then(r => r.ok ? r.json() : null)
@@ -340,6 +343,19 @@ export function UserMenu({ lang: initialLang, openDirection = 'down', align = 'r
             <Sparkles size={14} strokeWidth={1.8} />
             {t(lang, 'changelogMenuLabel')}
           </button>
+
+          {/* Bin — deleted jobs, restorable until the bin empties (Nic,
+              2026-09-28). By REAL role: the bin mirrors the database, which
+              never sees preview-as. */}
+          {realRole && hasBin(realRole) && (
+            <button
+              onClick={() => { setOpen(false); router.push('/bin') }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink2 hover:bg-bg hover:text-ink transition-colors border-t border-line"
+            >
+              <Trash2 size={14} strokeWidth={1.8} />
+              {t(lang, 'binMenuLabel')}
+            </button>
+          )}
 
           {/* Admin shortcuts */}
           {isAdmin && (

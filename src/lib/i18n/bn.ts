@@ -73,7 +73,9 @@ export const bn: Partial<Translations> = {
   workloadSelectPrompt: 'তারিখ পরিবর্তন করতে ট্যাপ করুন (ঐচ্ছিক)',
   deleteJob: 'কাজ মুছুন',
   deleteJobConfirmTitle: 'এই কাজটি মুছবেন?',
-  deleteJobConfirmBody: 'এটি স্থায়ীভাবে কাজটি সরিয়ে দেবে এবং পূর্বাবস্থায় ফেরানো যাবে না।',
+  // English on purpose: bn is frozen (2026-08-03) and the old Bengali said the
+  // delete was permanent, which stopped being true with the bin (2026-09-28).
+  deleteJobConfirmBody: 'The job moves to the Bin. It can be restored until {date}.',
   workloadSendingTo: 'শিডিউলারকে পাঠানো হচ্ছে',
   workloadBusyWarning: 'টি কাজ ইতিমধ্যে এই দিনে — স্বাভাবিকের চেয়ে ব্যস্ত',
   statusOverride: 'স্ট্যাটাস ওভাররাইড',

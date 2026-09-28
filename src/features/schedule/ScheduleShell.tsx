@@ -17,6 +17,8 @@ import { JumpCalendar } from './JumpCalendar'
 import { WeekView  } from './WeekView'
 import { MonthView } from './MonthView'
 import { CompanyBar } from '@/components/CompanyBar'
+import { useToast } from '@/components/Toast'
+import { useBinEmptiesOn } from '@/features/bin/useBinEmptiesOn'
 import { BottomNav } from '@/components/BottomNav'
 import {
   toISO, shiftDate, shiftMonth,
@@ -76,6 +78,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [confirmBulk,  setConfirmBulk]  = useState<'delete' | 'revert' | 'complete' | false>(false)
+  const binDate = useBinEmptiesOn(confirmBulk === 'delete')
+  const { error: showError } = useToast()
 
   // The date the user is working on is remembered for as long as the tab is
   // open (Nic, 2026-09-18: opening a job on 2 Oct and coming back dropped him
@@ -109,14 +113,23 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     })
   }
 
+  // Every response is read (2026-09-28). This used to fire the deletes and
+  // clear the selection regardless — with the bin, a failed delete means the
+  // job was NOT copied and is still here, and the person has to be told.
+  // Failures stay ticked so it is obvious which ones, and a retry is one tap.
   async function handleBulkDelete() {
     setBulkBusy(true)
     try {
-      await Promise.all(
-        [...selectedIds].map(id => fetch(`/api/jobs/${id}`, { method: 'DELETE' }))
+      const results = await Promise.all(
+        [...selectedIds].map(id =>
+          fetch(`/api/jobs/${id}`, { method: 'DELETE' })
+            .then(r => ({ id, ok: r.ok }))
+            .catch(() => ({ id, ok: false })))
       )
-      setSelectedIds(new Set())
+      const failed = results.filter(r => !r.ok).map(r => r.id)
+      setSelectedIds(new Set(failed))
       setConfirmBulk(false)
+      if (failed.length) showError(tr(lang, 'bulkDeleteFailed').replace('{n}', String(failed.length)))
       router.refresh()
     } finally {
       setBulkBusy(false)
@@ -543,7 +556,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
             <>
               <p className="text-sm font-medium text-ink">
                 {confirmBulk === 'delete'
-                  ? <>Delete {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''}? This can&apos;t be undone.</>
+                  ? tr(lang, 'bulkDeleteConfirm').replace('{n}', String(selectedIds.size)).replace('{date}', binDate ?? '…')
                   : confirmBulk === 'revert'
                   ? <>Revert {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''} back to the schedule?</>
                   : <>Mark {selectedIds.size} job{selectedIds.size !== 1 ? 's' : ''} as complete?</>}
