@@ -329,6 +329,7 @@ export const zh: Partial<Translations> = {
   subBucketAllOnMain: '所有人都已在此工作中。',
   subBucketFilterAll: '全部',
   subBucketNoneInRole: '此角色中没有可安排的人员。',
+  supportCrewNotSaved: '工作已保存，但支援人员未保存——请在工作页面重新添加。',
   metaDriver: '司机',
 
   // ── 外部安装人员（第四阶段）───────────────────────────────────────────────

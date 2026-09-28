@@ -437,6 +437,7 @@ export const en = {
   subBucketAllOnMain: 'Everyone is already on this job.',
   subBucketFilterAll: 'All',
   subBucketNoneInRole: 'No one in this role is free for this job.',
+  supportCrewNotSaved: 'Job saved, but the support crew did not save — add them again on the job page.',
   metaDriver: 'Driver',
 
   // ── External installer bucket (Phase 4) ────────────────────────────────────
