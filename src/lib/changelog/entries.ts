@@ -34,6 +34,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-28',
+    // 20:36 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch, captured the moment /api/version flipped to 16505f6. This
+    // machine reports MPST and TZ= is ignored, so the local clock is never
+    // the source (CLAUDE.md).
+    time: '20:36',
+    added: [
+      'Translate button on Job Description, for Chinese and Bengali profiles.',
+    ],
+    improved: [
+      'Wrong completion photos and signed DOs can be deleted by anyone on the job.',
+      'Photos stay deletable for 24 hours after a job is completed.',
+    ],
+  },
+  {
     date: '2026-09-18',
     // 15:28 SGT, decoded from the production deployment's own x-vercel-id
     // epoch AFTER it landed — captured at the moment the build flipped rather

@@ -521,4 +521,11 @@ export const zh: Partial<Translations> = {
   companyEventLabel: '公司活动',
   onLeaveLabel: '请假中',
   publicHolidayLabel: '公共假期',
+
+  // Job description translate (2026-09-28)
+  translate: '翻译',
+  translating: '翻译中…',
+  hideTranslation: '隐藏翻译',
+  translationLabel: '翻译',
+  translateFailed: '翻译失败，请重试',
 }

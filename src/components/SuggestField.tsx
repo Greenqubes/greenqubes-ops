@@ -13,10 +13,14 @@ interface Props {
    *  Suggest button instead of sitting on a line of its own (Nic, 2026-09-10). */
   label?:   string
   error?:   string
+  /** Another small control for the label row, placed before Suggest
+   *  (Translate on Job Description — Nic, 2026-09-28). Shown even when the
+   *  field is read-only. Needs `label`. */
+  extraAction?: ReactNode
   children: ReactNode
 }
 
-export function SuggestField({ value, onAccept, readOnly = false, field, label, error, children }: Props) {
+export function SuggestField({ value, onAccept, readOnly = false, field, label, error, extraAction, children }: Props) {
   const [loading,    setLoading]    = useState(false)
   const [suggestion, setSuggestion] = useState<string | null>(null)
 
@@ -64,7 +68,10 @@ export function SuggestField({ value, onAccept, readOnly = false, field, label, 
             <span className="text-sm font-medium text-ink2">{label}</span>
             {error && <span className="text-xs font-medium text-bad">{error}</span>}
           </div>
-          {suggestButton}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {extraAction}
+            {suggestButton}
+          </div>
         </div>
       ) : (
         (showButton || loading) && (

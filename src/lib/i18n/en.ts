@@ -631,6 +631,13 @@ export const en = {
   companyEventLabel: 'Company event',
   onLeaveLabel: 'On leave',
   publicHolidayLabel: 'Public holiday',
+
+  // Job description translate (2026-09-28)
+  translate: 'Translate',
+  translating: 'Translating…',
+  hideTranslation: 'Hide translation',
+  translationLabel: 'Translation',
+  translateFailed: 'Could not translate — try again',
 }
 
 export type Translations = typeof en

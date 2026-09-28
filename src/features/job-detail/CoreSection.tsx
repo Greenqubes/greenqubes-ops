@@ -12,6 +12,7 @@ import { Modal } from '@/components/Modal'
 import { Btn } from '@/components/Btn'
 import { TimeSelect } from './TimeSelect'
 import { LocationInput } from './LocationInput'
+import { useTranslateText } from './useTranslateText'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import { extractDialNumber, mapsSearchUrl, endDateBeforeStart, canTickProductionFlags, type RequiredJobField } from '@/lib/utils/job-form-rules'
@@ -73,6 +74,10 @@ export function CoreSection({
     missingFields.includes(field) && !(watch(field) ?? '').trim()
   const requiredMsg = (field: RequiredJobField) =>
     isMissing(field) ? t(lang, 'requiredField') : undefined
+
+  // Translate the description into the viewer's profile language — every
+  // role, read-only views included; never written back (Nic, 2026-09-28).
+  const descriptionTranslate = useTranslateText(watch('description') ?? '', lang)
 
   // Designer / production see the core fields but cannot edit them.
   const coreLocked       = readOnly || !CORE_EDIT_ROLES.includes(role)
@@ -412,21 +417,26 @@ export function CoreSection({
 
         {/* Description — label shares its row with the Suggest button */}
         {installerView ? (
-          <Field label={t(lang, 'jobDescription')}>
+          <Field label={t(lang, 'jobDescription')} action={descriptionTranslate.button}>
             <div className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink2 min-h-[4.5rem] leading-relaxed">
               {watch('description') || '—'}
             </div>
+            {descriptionTranslate.panel}
           </Field>
         ) : (
-          <SuggestField
-            label={t(lang, 'jobDescription')}
-            value={watch('description')}
-            onAccept={s => setValue('description', s, { shouldDirty: true })}
-            readOnly={coreLocked}
-            field="Job Description"
-          >
-            <textarea {...register('description')} disabled={coreLocked} rows={3} className={TEXTAREA} />
-          </SuggestField>
+          <div>
+            <SuggestField
+              label={t(lang, 'jobDescription')}
+              value={watch('description')}
+              onAccept={s => setValue('description', s, { shouldDirty: true })}
+              readOnly={coreLocked}
+              field="Job Description"
+              extraAction={descriptionTranslate.button}
+            >
+              <textarea {...register('description')} disabled={coreLocked} rows={3} className={TEXTAREA} />
+            </SuggestField>
+            {descriptionTranslate.panel}
+          </div>
         )}
 
         {/* Times */}
