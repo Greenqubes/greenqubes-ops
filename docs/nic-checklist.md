@@ -27,6 +27,8 @@ _Last updated: 2026-09-17 (feat-schedule — **your driver containers are live, 
 
 _Last updated: 2026-09-18 (ux-schedule — **the schedule stays on the date you are working on. Live on production at 3:28pm.** Your report: "i press oct 2 to edit arnotts, then either i press back to schedule or greenqubes logo to go schedule page, it jumps to today. very repetitive any annoying." It does not any more — open a job from 2 October, come back by the back arrow or the logo, and you are still on 2 October. Same on the Drivers board and the Week and Month views, and on the Pending and Completed tabs, where each remembers its own date so browsing Pending cannot drag your schedule along with it. **Close the tab, or open the app tomorrow, and it is back on today** — your call, so nobody is ever left stranded on a date they set last week. The Today button is unchanged. No database change. **Also tidied: three boxes on your feedback list were still unticked** for work that shipped on the 15th and 17th — the driver containers, the two daily summaries and Duplicate dropping the address. Corrected, with what each one actually shipped as.)_
 
+_Last updated: 2026-09-28 (feat-installer — **installers can now bin wrong photos, and anyone on Chinese or Bengali can translate a job description. Both live at 8:36pm.** Your screenshot was Xiao Yi's job from 25 Sept: he put site photos into Signed DO by mistake and pressed Completed half a minute later. There was no way out — **Signed DO had never had a delete button for anyone**, and the completion-photo bin locked the moment the job was completed. Now, on your rules: anyone on the job can remove any wrong photo in Completion Photos or Signed DO, **up to 24 hours after completion**; office staff get the same, plus Production Photos; and a finished job always keeps one completion photo. The **Translate** button sits beside Suggest and shows the description in the person's own language, just for them — the original is never changed. Four small things are in Pending below.)_
+
 ## Pending — Next Session
 
 ### Your feedback list — 5 of 14 still to do (from 2026-09-14, one added 2026-09-15)
@@ -63,6 +65,13 @@ _You went through 13 things one at a time. A fourteenth was added on 2026-09-15 
   - **Scheduler and admin only** can drag; everyone else sees the board read-only.
   - **Two things still to settle when you're ready:** hand-sorting jobs *inside* a container (the list is ranked first-come-first-served today, so a manual order needs somewhere to live), and what happens when a job stops being shared — drag one driver off a Mixed job and it should drop into the other driver's container by itself.
   - **FCFS joins this** — not a bug, just 2,282px wide at the AM/PM zoom, so a phone shows two hours.
+
+### Photo deletes + Translate (from 2026-09-28, feat-installer)
+
+- [ ] **Worth deciding: should the Files-tab attachment folders get the same 24 hours?** Today they still lock the moment a job is completed — your rule covered the three photo sections only. A one-line change if you want it.
+- [ ] **Bengali translation left "level 6 warehouse" in English** on the real test, treating it like a place name; Chinese translated it. If the team finds Bengali leaves too many ordinary words in English, it is a small wording change to the AI's instructions.
+- [ ] **Awareness:** the Translate button's own label reads "Translate" in English for Bengali users (the Bengali freeze); the translation itself is in Bengali.
+- [ ] **Xiao Yi's 25 Sept job still has its wrong Signed DO photos** — you said to leave it. Its 24 hours had already passed, so only a manual clean-up would remove them.
 
 ### Driver board + daily summaries — ✅ LIVE on production 2026-09-17
 
@@ -372,6 +381,13 @@ _None of these are blockers; the 4 real findings are already fixed. Details in [
 - [x] **`NEXT_PUBLIC_APP_URL` in Vercel** — added to all 3 environments (Production, Preview, Development).
 
 ---
+
+## Done This Session ✓ (2026-09-28, feat-installer — Photo Deletes + Translate Button, LIVE)
+
+- [x] **[Nic] Delete bins on Signed DO and Completion Photos — LIVE 8:36pm.** Anyone on the job can remove a wrong photo, whoever uploaded it, while the job is open and for **24 hours after it is completed**. Office staff get the same, plus Production Photos. A completed job always keeps at least one completion photo; Signed DO can go to zero. You tested it on the preview.
+- [x] **[Nic] Translate button on Job Description — LIVE 8:36pm.** Beside ✦ Suggest, and on the installer's read-only box. Translates into the person's own profile language — Chinese or Bengali; English profiles have no button. Shown only to that person, never saved over the original. You tested it on the preview.
+- [x] **Checked on a real job description, not made-up text** — names and shop names stayed in English in both languages.
+- [x] **What's new entry written** for today, timed from the deployment's own clock.
 
 ## Done This Session ✓ (2026-09-18, ux-schedule — The Schedule Remembers Your Date, LIVE)
 
