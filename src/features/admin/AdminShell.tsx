@@ -11,9 +11,10 @@ import { HealthTab }     from '@/features/admin/HealthTab'
 import { CrashLogTab }  from '@/features/admin/CrashLogTab'
 import { BugReportsTab } from '@/features/admin/BugReportsTab'
 import { AIScoresTab }   from '@/features/admin/AIScoresTab'
+import { SettingsTab }   from '@/features/admin/SettingsTab'
 import type { LangCode, Role } from '@/lib/supabase/types'
 
-type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs' | 'ai-scores'
+type Tab = 'users' | 'digest' | 'health' | 'crashes' | 'bugs' | 'ai-scores' | 'settings'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users',     label: 'Users'    },
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'crashes',   label: 'Crashes'  },
   { id: 'bugs',      label: 'Bugs'     },
   { id: 'ai-scores', label: 'AI Scores' },
+  { id: 'settings',  label: 'Settings'  },
 ]
 
 type Props = {
@@ -115,6 +117,7 @@ export function AdminShell({ userName, role, lang }: Props) {
           {tab === 'crashes'   && <CrashLogTab />}
           {tab === 'bugs'      && <BugReportsTab />}
           {tab === 'ai-scores' && <AIScoresTab />}
+          {tab === 'settings'  && <SettingsTab />}
         </main>
       </div>
     </div>
