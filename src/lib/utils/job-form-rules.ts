@@ -264,3 +264,26 @@ export function designBriefEditable(input: {
   if (readOnly) return false
   return status === 'scheduled'
 }
+
+/**
+ * Does saving this form hand a DRAFT to a different person-in-charge?
+ *
+ * Drafts are private to their sharers since migration 0062 — creator, sales
+ * PIC, coordinators on it. A PIC who is none of the others and changes the
+ * PIC is writing a row they will no longer be allowed to see, and Postgres
+ * refuses the whole UPDATE (the new row must pass the SELECT policy too). So
+ * the ordinary save keeps the PIC as it was, and the change goes through
+ * /api/jobs/[id]/handover, which checks the caller shares the draft first.
+ * Scheduled jobs are unaffected and save their PIC the ordinary way.
+ */
+export function pendingPicHandover(input: {
+  status:      string
+  originalPic: MaybeText
+  newPic:      MaybeText
+}): { to: string | null } | null {
+  const isDraft = input.status === 'pending' || input.status === 'awaiting_approval'
+  if (!isDraft) return null
+  const from = input.originalPic || null
+  const to   = input.newPic || null
+  return from === to ? null : { to }
+}

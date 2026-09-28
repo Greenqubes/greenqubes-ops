@@ -6,6 +6,7 @@
 
 import {
   REQUIRED_JOB_FIELDS,
+  pendingPicHandover,
   missingRequiredJobFields,
   clearedRequiredFields,
   extractDialNumber,
@@ -311,6 +312,18 @@ check('a completed job stays locked', designBriefEditable({ status: 'completed',
 check('read-only beats a scheduled job', designBriefEditable({ status: 'scheduled', readOnly: true }), false)
 // The New Job form has no job yet — nothing to brief against.
 check('a job that does not exist yet cannot be briefed', designBriefEditable({ status: null, readOnly: false }), false)
+
+console.log('pendingPicHandover:')
+// THE BUG (final review, 2026-09-28): once drafts became private (0062), a
+// sales PIC who did not create the draft could not hand it to someone else —
+// the save's new row was hidden from them, so the WHOLE save failed. A PIC
+// change on a draft must go through the handover route instead.
+check('a draft changing PIC is a handover', pendingPicHandover({ status: 'pending', originalPic: 'u-nic', newPic: 'u-s2' }), { to: 'u-s2' })
+check('clearing the PIC on a draft is a handover too', pendingPicHandover({ status: 'pending', originalPic: 'u-nic', newPic: '' }), { to: null })
+check('legacy awaiting_approval counts as a draft', pendingPicHandover({ status: 'awaiting_approval', originalPic: 'u-nic', newPic: 'u-s2' }), { to: 'u-s2' })
+check('an unchanged PIC is not a handover', pendingPicHandover({ status: 'pending', originalPic: 'u-nic', newPic: 'u-nic' }), null)
+check('a scheduled job saves its PIC the ordinary way', pendingPicHandover({ status: 'scheduled', originalPic: 'u-nic', newPic: 'u-s2' }), null)
+check('setting a PIC where there was none is a handover', pendingPicHandover({ status: 'pending', originalPic: '', newPic: 'u-nic' }), { to: 'u-nic' })
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

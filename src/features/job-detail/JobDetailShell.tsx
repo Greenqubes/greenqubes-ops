@@ -24,7 +24,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
-import { designBriefEditable } from '@/lib/utils/job-form-rules'
+import { designBriefEditable, pendingPicHandover } from '@/lib/utils/job-form-rules'
 import { rememberPreviousLocation, readPreviousLocation, forgetPreviousLocation } from './previous-location'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
@@ -382,7 +382,13 @@ export function JobDetailShell({
   // written nothing (Nic's director hit exactly this on a scheduled job,
   // 2026-09-07). Asking for the row back turns a silently-refused write into a
   // real failure the catch in performSave can report.
+  //
+  // A DRAFT changing hands is the one exception (final review, 2026-09-28):
+  // drafts are private to their sharers (0062), so a PIC-only sharer cannot
+  // write a PIC that is not them — Postgres refuses the whole UPDATE. The
+  // ordinary save keeps the old PIC, and handOverDraft() moves it last.
   const saveValues = async (values: FormValues) => {
+    const handover = pendingPicHandover({ status, originalPic: job.sales_poc_id, newPic: values.sales_poc_id })
     const { data: saved } = await supabase.from('jobs').update({
       project_title:           values.project_title || null,
       date:                    values.date,
@@ -399,12 +405,27 @@ export function JobDetailShell({
       punctuality:             values.punctuality,
       production_instructions: values.production_instructions || null,
       notes:                   values.notes || null,
-      sales_poc_id:            values.sales_poc_id || null,
+      sales_poc_id:            handover ? (job.sales_poc_id ?? null) : (values.sales_poc_id || null),
       lat:                     values.lat,
       lng:                     values.lng,
     } as never).eq('id', job.id).select('id').throwOnError()
     if (!saved || saved.length === 0) throw new SaveBlockedError()
     reset(values)
+  }
+
+  // Runs LAST in a save, after every other write, because handing a draft
+  // away can take the caller's own access with it. Returns whether they can
+  // still see the job; false sends them back to their list.
+  const handOverDraft = async (values: FormValues): Promise<boolean> => {
+    const handover = pendingPicHandover({ status, originalPic: job.sales_poc_id, newPic: values.sales_poc_id })
+    if (!handover) return true
+    const res = await fetch(`/api/jobs/${job.id}/handover`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ salesPocId: handover.to }),
+    })
+    if (!res.ok) throw new Error()
+    const { stillVisible } = await res.json() as { stillVisible: boolean }
+    return stillVisible
   }
 
   // Sales toggles a tentative suggestion (yellow). Persists immediately via the
@@ -550,7 +571,9 @@ export function JobDetailShell({
         })
       }
 
+      const stillVisible = await handOverDraft(values)
       showSuccess(t(lang, 'savedSuccessfully'))
+      if (!stillVisible) { router.push(backHref); return }
       router.refresh()
     } catch (err) {
       showError(t(lang, err instanceof SaveBlockedError ? 'saveBlocked' : 'saveError'))
@@ -904,6 +927,9 @@ export function JobDetailShell({
       // briefText/dueDate/dueManual, which live outside the form).
       if (isBriefDirty || pushDate !== job.date) await saveDesignBriefFields(pushDate, { keepManualDue })
       if (isDirty) await saveValues(getValues())
+      // Still a draft here, so a PIC change goes through the handover route
+      // before the push (after it, the job is scheduled and the route refuses).
+      await handOverDraft(getValues())
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
