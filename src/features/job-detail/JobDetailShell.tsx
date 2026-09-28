@@ -1255,7 +1255,13 @@ export function JobDetailShell({
   // Support crew (Nic 2026-09-04): the bucket pool = remaining installers
   // PLUS every other role, dispatched for night jobs / manpower shortage.
   // All of them ride the existing is_sub_installer flag and save paths.
+  // Narrowed to SUPPORT_CREW_ROLES inside the bucket (2026-09-28).
   const subPool = [...installers.filter(i => !mainEngagedIds.has(i.id)), ...supportUsers]
+  // Anyone already on this job's crew stays listed even if their role is now
+  // excluded — otherwise an earlier pick could never be taken off.
+  const subKeepIds = new Set([
+    ...initialSubAssignedIds, ...initialSubSuggestedIds, ...selectedSubIds, ...suggestedSubIds,
+  ])
 
   const subCount = canAssign
     ? new Set([...selectedSubIds, ...initialSubSuggestedIds]).size
@@ -1529,6 +1535,7 @@ export function JobDetailShell({
             <SubInstallerBucket
               lang={lang}
               installers={subPool}
+              keepIds={subKeepIds}
               subCount={subCount}
               stateOf={subStateOf}
               onToggle={subOnToggle}

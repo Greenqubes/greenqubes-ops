@@ -12,6 +12,7 @@ import { SuggestField } from '@/components/SuggestField'
 import { SearchableSelect } from '@/components/SearchableSelect'
 import { CoreSection } from './CoreSection'
 import { InstallerGrid } from './InstallerGrid'
+import { SubInstallerBucket } from './SubInstallerBucket'
 import { DesignBriefSection } from './DesignBriefSection'
 import { NewJobAttachments, discardPendingUploads, type PendingAttachment } from './NewJobAttachments'
 import { DEFAULT_BUCKET_NAMES } from '@/lib/storage/new-job-attachments'
@@ -40,6 +41,8 @@ interface Props {
   lang:            LangCode
   salesPocOptions:     SelectOption[]
   allInstallers:       InstallerUser[]
+  /** Support crew pool — everyone who is not a driver (getSupportUsers). */
+  supportUsers:        InstallerUser[]
   /** Every leave row (ids + dates), filtered client-side against the form. */
   leaves?:             LeaveRecord[]
   role:                Role
@@ -49,11 +52,14 @@ interface Props {
   designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leaves = [], role, isAdmin = false, coordinatorOptions = [], designerOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supportUsers, leaves = [], role, isAdmin = false, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
   const [selectedIds,           setSelectedIds]          = useState<string[]>([])
+  // Support crew at creation (Nic, 2026-09-28) — it used to exist only on the
+  // edit form, so crew could only be added after saving and reopening.
+  const [selectedSubIds,        setSelectedSubIds]       = useState<string[]>([])
   const [selectedCoordIds,      setSelectedCoordIds]     = useState<string[]>([])
   const [selectedDesignerIds,   setSelectedDesignerIds]  = useState<string[]>([])
   // Design brief card (Task 6) — pre-book is exempt from the required rule.
@@ -123,7 +129,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
   // or picked holds the refresh back to a tappable bar (Nic, 2026-09-10).
   useUnsavedWork('new-job',
     isDirty || saving || briefText.trim().length > 0 ||
-    selectedIds.length > 0 || selectedCoordIds.length > 0 || selectedDesignerIds.length > 0 ||
+    selectedIds.length > 0 || selectedSubIds.length > 0 ||
+    selectedCoordIds.length > 0 || selectedDesignerIds.length > 0 ||
     pendingFiles.length > 0,
   )
 
@@ -242,6 +249,25 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
             suggested_by:  suggestMode ? userId : null,
           })) as never,
         )
+      }
+
+      // Support crew — same suggestion/formal rule as drivers, flagged as sub
+      // rows. Like the drivers above, no Telegram at creation; the 6pm
+      // summary tells crew about tomorrow's work.
+      // Checked but NOT thrown: the job already exists, and landing in the
+      // catch below would leave the person on this form, one tap from saving
+      // a duplicate. Say so and carry on — crew can be re-added on the job page.
+      if (selectedSubIds.length > 0) {
+        const { error: crewError } = await supabase.from('job_assignees').insert(
+          selectedSubIds.map(uid => ({
+            job_id:           job.id,
+            user_id:          uid,
+            is_suggestion:    suggestMode,
+            suggested_by:     suggestMode ? userId : null,
+            is_sub_installer: true,
+          })) as never,
+        )
+        if (crewError) showError(t(lang, 'supportCrewNotSaved'))
       }
 
       // Insert selected coordinators
@@ -507,14 +533,37 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, leav
                   installers={allInstallers}
                   lang={lang}
                   stateOf={id => selectedIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
-                  onToggle={id => setSelectedIds(prev =>
-                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-                  )}
+                  onToggle={id => {
+                    // One row per person per job: picking someone as a driver
+                    // takes them out of Support crew (same rule as the edit form).
+                    setSelectedSubIds(prev => prev.filter(x => x !== id))
+                    setSelectedIds(prev =>
+                      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                    )
+                  }}
                   noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
                   onLeaveOf={id => onLeaveSet.has(id)}
                 />
               )}
             </div>
+
+            {/* Support crew — same bucket and role filter as the edit form.
+                Drivers already picked above are left out of this pool. */}
+            <SubInstallerBucket
+              lang={lang}
+              installers={[...allInstallers.filter(i => !selectedIds.includes(i.id)), ...supportUsers]}
+              keepIds={new Set(selectedSubIds)}
+              subCount={selectedSubIds.length}
+              stateOf={id => selectedSubIds.includes(id) ? (suggestMode ? 'suggested' : 'assigned') : 'none'}
+              onToggle={id => setSelectedSubIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+              )}
+              noteOf={id => (suggestMode && selectedSubIds.includes(id)) ? 'Suggested' : null}
+              onLeaveOf={id => onLeaveSet.has(id)}
+              onClear={() => setSelectedSubIds([])}
+              defaultOpen={false}
+              canEdit
+            />
 
             {/* Designers grid moved into the Design Brief card, Details tab
                 (edit 14, smoke feedback 2026-08-28) — see DesignBriefSection
