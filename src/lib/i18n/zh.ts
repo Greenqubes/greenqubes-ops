@@ -327,6 +327,8 @@ export const zh: Partial<Translations> = {
   subBucketTitle: '支援人员',
   subBucketRemove: '移除',
   subBucketAllOnMain: '所有人都已在此工作中。',
+  subBucketFilterAll: '全部',
+  subBucketNoneInRole: '此角色中没有可安排的人员。',
   metaDriver: '司机',
 
   // ── 外部安装人员（第四阶段）───────────────────────────────────────────────

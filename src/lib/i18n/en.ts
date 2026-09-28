@@ -435,6 +435,8 @@ export const en = {
   subBucketTitle: 'Support crew',
   subBucketRemove: 'Remove',
   subBucketAllOnMain: 'Everyone is already on this job.',
+  subBucketFilterAll: 'All',
+  subBucketNoneInRole: 'No one in this role is free for this job.',
   metaDriver: 'Driver',
 
   // ── External installer bucket (Phase 4) ────────────────────────────────────
