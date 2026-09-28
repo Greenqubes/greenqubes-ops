@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { deleteObject } from '@/lib/storage/r2'
 import { canManageJobFiles } from '@/lib/storage/job-file-permissions'
+import { callerCanSeeJob } from '@/lib/supabase/queries/job-visibility'
 import type { Role } from '@/lib/supabase/types'
 
 // Delete a bucket AND its files (R2 objects + rows). files.bucket_id is
@@ -38,6 +39,11 @@ export async function DELETE(
     .maybeSingle() as { data: BucketRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
   if (!bucket) return NextResponse.json({ ok: true })
+  // Service client below bypasses RLS — ask the caller's own session first,
+  // so a draft they do not share stays out of reach (pending privacy, 0062).
+  if (!(await callerCanSeeJob(supabase, bucket.job_id))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   // The Designer JO bucket is protected for every role, including scheduler
   // and admin (Task 8) — this route runs on the service client and bypasses

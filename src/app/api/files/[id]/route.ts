@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { deleteObject } from '@/lib/storage/r2'
 import { canManageJobFiles, canDeleteJobFile } from '@/lib/storage/job-file-permissions'
+import { callerCanSeeJob } from '@/lib/supabase/queries/job-visibility'
 import type { Role } from '@/lib/supabase/types'
 
 // Move one attachment to another bucket on the same job. The R2 object never
@@ -42,6 +43,13 @@ export async function PATCH(
     .eq('id', fileId)
     .maybeSingle() as { data: FileRow | null; error: unknown }
   if (!file) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (file.job_id) {
+    // Service client below bypasses RLS — ask the caller's own session first,
+    // so a draft they do not share stays out of reach (pending privacy, 0062).
+    if (!(await callerCanSeeJob(supabase, file.job_id))) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+  }
 
   let jobStatus: string | null = null
   if (file.job_id) {
@@ -114,6 +122,13 @@ export async function DELETE(
     .maybeSingle() as { data: FileRow | null; error: unknown }
   // Already gone — treat as success so a double-tap never shows an error.
   if (!file) return NextResponse.json({ ok: true })
+  if (file.job_id) {
+    // Service client below bypasses RLS — ask the caller's own session first,
+    // so a draft they do not share stays out of reach (pending privacy, 0062).
+    if (!(await callerCanSeeJob(supabase, file.job_id))) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+  }
 
   let jobStatus: string | null = null
   if (file.job_id) {

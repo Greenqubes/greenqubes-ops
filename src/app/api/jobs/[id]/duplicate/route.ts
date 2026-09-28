@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { copyObject, generateKey } from '@/lib/storage/r2'
+import { callerCanSeeJob } from '@/lib/supabase/queries/job-visibility'
 import type { Role, FileKind } from '@/lib/supabase/types'
 
 const DUPLICATE_ROLES: Role[] = ['sales', 'scheduler', 'coordinator', 'admin']
@@ -31,6 +32,11 @@ export async function POST(
   const role = await getEffectiveRole(profile.role)
   if (!DUPLICATE_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  // Service client below bypasses RLS — ask the caller's own session first,
+  // so a draft they do not share stays out of reach (pending privacy, 0062).
+  if (!(await callerCanSeeJob(supabase, jobId))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   const service = createServiceClient()

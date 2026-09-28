@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { setJobDesigners } from '@/lib/supabase/queries/designers'
+import { callerCanSeeJob } from '@/lib/supabase/queries/job-visibility'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignAssigned } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
@@ -39,6 +40,11 @@ export async function POST(
   const effectiveRole = await getEffectiveRole(profile.role)
   if (!['sales', 'scheduler', 'coordinator', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  // Service client below bypasses RLS — ask the caller's own session first,
+  // so a draft they do not share stays out of reach (pending privacy, 0062).
+  if (!(await callerCanSeeJob(supabase, jobId))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   const { userIds } = await req.json().catch(() => ({})) as { userIds?: string[] }
