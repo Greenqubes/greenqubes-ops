@@ -74,3 +74,9 @@ Always explain in plain, everyday language. Avoid coding terms unless necessary.
   3. Take the next number above **both**, and say in your response which number you took and what you checked.
 
   Two things that follow from this: **never renumber, edit or delete a migration that is already applied** (0051 is the standing example — applied, unused, and later files count on it), and **never reserve numbers in a plan document for work that is not being built yet** — write `<N>` / `<N+1>` and pick the real numbers at implementation time. Reserved numbers go stale and are worse than none. (Nic, 2026-09-07.)
+- **Every migration that creates a table in `public` must GRANT access to it in the same file — no exceptions.** From 2026-10-30 Supabase stops granting Data API access to new `public` tables automatically; a table created without grants is unreachable from the app (permission denied), and this applies to preview branches and `supabase db reset` too. Tables that existed before that date keep their grants — do not add grants to them. Use exactly:
+  ```sql
+  grant select, insert, update, delete on public.<table> to authenticated;
+  grant select, insert, update, delete on public.<table> to service_role;
+  ```
+  **Never grant to `anon`** unless Nic approves it for that table: nothing in this app reads tables signed-out (the `/ext/*` contractor pages go through server routes on the service key), so an `anon` grant only opens an unused door. RLS must still be enabled with policies as usual — grants decide whether the API can reach the table at all, RLS decides which rows. If a table uses `serial`/`identity` rather than a uuid default, also `grant usage, select on sequence` for its sequence to the same two roles. (Nic, 2026-09-30, from Supabase's notice.)
