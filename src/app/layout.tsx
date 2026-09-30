@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, IBM_Plex_Sans } from 'next/font/google'
 import { Suspense } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider }       from '@/components/ThemeProvider'
 import { ToastProvider }       from '@/components/Toast'
 import { ErrorBoundary }       from '@/components/ErrorBoundary'
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Suspense>
           </ErrorBoundary>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
