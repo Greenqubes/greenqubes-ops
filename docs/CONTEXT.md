@@ -43,6 +43,8 @@ _Last updated: 2026-09-28 (feat-jobs — **drafts are private, and deleting a jo
 
 _Last updated: 2026-09-28 (chore-config — **Nic's checklist has a new shape.** Its Pending section was tidied with Nic from ~85 items to ~25, grouped **To build / Quiet-session cleanups / Only you / Parked / Someday ideas**; the old detailed section lives in `docs/nic-checklist-archive-20260928.md` for the reasoning, but **work from the live list, and add new pending items into those groups as one-liners** rather than growing long per-session sections again. Housekeeping the same day: the `greenqubes-ops-voice-pa` and `greenqubes-ops-hr-leave` folders are gone from this PC (the `feat-voice-pa` branch stays on GitHub), and `feat-provision-organisation` is deleted on GitHub. No code, no migration.)_
 
+_Last updated: 2026-09-30 (infra-config — **new tables need explicit Data API grants from 2026-10-30.** Supabase no longer auto-grants new `public` tables after that date; a table created without grants returns permission denied through supabase-js, including on preview branches and `supabase db reset`. Tables that existed before it keep their grants. The standing rule is in CLAUDE.md's Hard rules: grant select/insert/update/delete to `authenticated` + `service_role` in the migration that creates the table, **never `anon`** without Nic's approval (nothing here reads tables signed-out — `/ext/*` uses server routes on the service key), sequence grants for `serial`/identity tables. Grants only decide whether the API can reach a table; RLS still decides the rows. Also: **Vercel Speed Insights is not wanted** — its setup bot's two branches were deleted and Nic downgraded Plus; do not add `@vercel/speed-insights`.)_
+
 ---
 
 ## What this is

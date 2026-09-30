@@ -35,6 +35,8 @@ _Last updated: 2026-09-28 (feat-jobs — **deleted jobs now go to a Bin, and dra
 
 _Last updated: 2026-09-28 (chore-config — **your checklist is short again.** We went through it one item at a time and it came down from about 85 things to about 25, sorted into what's left to build, clean-ups for a quiet day, things only you can do, parked projects, and a short "someday" list. Nothing was thrown away — the old version is kept in a separate archive file. Also tidied: two old copies of the code removed from this PC and one stale branch deleted on GitHub. Nothing on the website changed. The one thing you said yes to that I held back — the 24-hour delete window for the Files-tab folders — is first under To build.)_
 
+_Last updated: 2026-09-30 (infra-config — **a Supabase notice handled, and the Speed Insights button undone.** Supabase is changing how NEW database tables get opened up to the app from 30 October. Your existing tables are unaffected and nothing needed changing today; a rule is now in Claude's instructions so every future table gets the right access written in — signed-in users and our server only, never signed-out visitors unless you say so. The Speed Insights setup you pressed by accident had made two branches on GitHub; neither ever reached the app, and both are deleted. You downgraded Speed Insights Plus. Nothing on the website changed.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
@@ -92,6 +94,13 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - Sub-jobs under a main job
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
+
+## Done This Session ✓ (2026-09-30, infra-config — Supabase Grants Rule + Speed Insights Cleanup)
+
+- [x] **[Nic] Supabase's 30 October notice — checked, nothing to change today.** Existing tables keep their access. Only tables created after that date need access written in.
+- [x] **[Nic] New rule added to Claude's instructions** — every new table gives access to signed-in users and our server only; signed-out visitors never, unless you approve it. Pushed to GitHub.
+- [x] **[Nic] Both Speed Insights bot branches deleted on GitHub** — neither was ever part of the app.
+- [x] **[Nic] Speed Insights Plus downgraded** in Vercel. Optional: press Disable in the Speed Insights tab if you want it fully off — it records nothing either way.
 
 ## Done This Session ✓ (2026-09-28, feat-jobs — Pending Privacy + Job Bin, LIVE)
 
