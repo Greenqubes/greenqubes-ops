@@ -34,6 +34,23 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-07',
+    // 16:52 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1791363160237, captured the moment /api/version flipped to
+    // 4a476cf52f68 (commit 9664b22). Never the local clock (CLAUDE.md).
+    time: '16:52',
+    headsUp: [
+      'For the best DO scans, put the paper on something dark or plain — not on other papers.',
+    ],
+    added: [
+      'Scan button in Signed DO turns a photo into a clean, straight PDF.',
+      'On a PC, scan any DO photo already on a job; the PDF also downloads.',
+    ],
+    fixed: [
+      'Error messages now show on top of pop-ups instead of hiding behind them.',
+    ],
+  },
+  {
     date: '2026-09-28',
     // 21:23 SGT (bumped from 21:01 — the Job Bin release landed the same
     // evening), decoded from the production deployment's own x-vercel-id
