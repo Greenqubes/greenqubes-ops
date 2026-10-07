@@ -7,6 +7,10 @@ import { assertImage, type RGBAImage } from './image'
 
 const CELLS_ACROSS = 48
 const LO = 30, HI = 235
+/** Median window radius in cells: 3 → 7x7, so a dark area up to 3 cells
+ *  (~13 mm on A4) thick, or 4x4 cells square, keeps its colour. A shadow must
+ *  be larger than that to be removed — phone shadows are. */
+const MEDIAN_R = 3
 
 export function whiten(img: RGBAImage): RGBAImage {
   assertImage(img)
@@ -30,18 +34,19 @@ export function whiten(img: RGBAImage): RGBAImage {
     grid[gy * GX + gx] = Math.max(v, 60)
   }
 
-  // 2. 3x3 median across cells — a dark area about one cell row thick (a logo,
-  //    a table header bar) loses the vote instead of being whitened away
+  // 2. 7x7 median across cells — a logo, header bar or shaded panel loses
+  //    the vote instead of being whitened away (3x3 kept only areas ~1 cell
+  //    thick; found in the final review). Median keeps hard shadow edges sharp.
   const med = new Float32Array(GX * GY)
   const win: number[] = []
   for (let gy = 0; gy < GY; gy++) for (let gx = 0; gx < GX; gx++) {
     win.length = 0
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -MEDIAN_R; dy <= MEDIAN_R; dy++) for (let dx = -MEDIAN_R; dx <= MEDIAN_R; dx++) {
       const x = Math.min(GX - 1, Math.max(0, gx + dx)), y = Math.min(GY - 1, Math.max(0, gy + dy))
       win.push(grid[y * GX + x])
     }
     win.sort((a, b) => a - b)
-    med[gy * GX + gx] = win[4]
+    med[gy * GX + gx] = win[win.length >> 1]
   }
 
   // 3. divide by the paper estimate (bilinear between cell centres), then

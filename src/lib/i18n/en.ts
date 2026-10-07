@@ -332,6 +332,8 @@ export const en = {
   scanSaved: 'Scan saved',
   scanFromCamera: 'Camera or file',
   scanFromJob: 'A photo on this job',
+  scanBack: 'Back',
+  scanNewPhoto: 'New photo',
   moveToBucket: 'Move to…',
   moveFileTitle: 'Move file to',
   fileMoved: 'File moved.',

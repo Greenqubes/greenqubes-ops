@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, RotateCcw, Plus, Check, Download } from 'lucide-react'
+import { X, RotateCcw, Plus, Check, Download, ArrowLeft, Camera } from 'lucide-react'
 import { Btn } from '@/components/Btn'
 import { useToast } from '@/components/Toast'
 import { t, type LangCode } from '@/lib/i18n'
@@ -96,10 +96,13 @@ export function ScanModal({ lang, jobTitle, first, jobImages, canSave, onSave, o
     }
   }
 
-  // Retake = back to the corners of the photo behind the last page
+  // Retake = drop the last page and take a NEW photo (final review: it used
+  // to reopen the same blurry photo). Cancelling the camera leaves the old
+  // photo's corners on screen, where New photo / Back still work.
   const retakeLast = () => {
     setPages(ps => { const last = ps[ps.length - 1]; if (last) URL.revokeObjectURL(last.url); return ps.slice(0, -1) })
     setStep('corners')
+    fileRef.current?.click()
   }
 
   const finish = async () => {
@@ -172,7 +175,13 @@ export function ScanModal({ lang, jobTitle, first, jobImages, canSave, onSave, o
 
       <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-3 border-t border-white/10">
         {step === 'corners' && (
-          <Btn variant="accent" onClick={next}><Check size={14} />{t(lang, 'scanNext')}</Btn>
+          <>
+            {pages.length > 0 && (
+              <Btn variant="secondary" className="bg-paper" onClick={() => setStep('pages')}><ArrowLeft size={14} />{t(lang, 'scanBack')}</Btn>
+            )}
+            <Btn variant="secondary" className="bg-paper" onClick={() => fileRef.current?.click()}><Camera size={14} />{t(lang, 'scanNewPhoto')}</Btn>
+            <Btn variant="accent" onClick={next}><Check size={14} />{t(lang, 'scanNext')}</Btn>
+          </>
         )}
         {step === 'pages' && (
           <>

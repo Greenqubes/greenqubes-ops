@@ -118,6 +118,8 @@ export const zh: Partial<Translations> = {
   scanSaved: '扫描已保存',
   scanFromCamera: '相机或文件',
   scanFromJob: '此工作中的照片',
+  scanBack: '返回',
+  scanNewPhoto: '换一张照片',
   moveToBucket: '移动到…',
   moveFileTitle: '移动文件到',
   fileMoved: '文件已移动。',

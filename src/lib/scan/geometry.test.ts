@@ -24,6 +24,16 @@ check('reorders a crossed quad (TL dragged past TR)',
   orderCorners([[95, 10], [5, 10], [95, 90], [5, 90]]),
   [[5, 10], [95, 10], [95, 90], [5, 90]])
 
+// Final review: x+y / x−y extremes picked independently could give one point
+// two corners (dropping the fourth) and the pipeline threw "degenerate quad"
+const distinct = (q: Quad) => new Set(q.map(p => p.join(','))).size
+check('asymmetric crossed dots keep all four points',
+  distinct(orderCorners([[95, 20], [90, 10], [90, 90], [10, 90]])), 4)
+check('a page at 45° keeps all four points',
+  distinct(orderCorners([[0, 49], [50, 0], [101, 50], [50, 100]])), 4)
+check('a page at 45° starts at its top-left-most point and runs clockwise',
+  orderCorners([[50, 100], [101, 50], [0, 49], [50, 0]]), [[0, 49], [50, 0], [101, 50], [50, 100]])
+
 // solveHomography — maps each corner exactly, and the centre of a square to the centre
 const sq: Quad = [[0, 0], [100, 0], [100, 100], [0, 100]]
 const skew: Quad = [[10, 20], [110, 15], [120, 130], [5, 120]]

@@ -6,17 +6,24 @@ export type Quad = [Point, Point, Point, Point]
 
 export const A4_PORTRAIT = { width: 2480, height: 3508 } // 300 dpi
 
-/** Sorts any four points into TL, TR, BR, BL by x+y / x−y extremes — so a
- *  dot dragged past its neighbour still yields an upright page. */
+/** Sorts any four points into TL, TR, BR, BL — so a dot dragged past its
+ *  neighbour still yields an upright page. Sorted clockwise by angle around
+ *  their centre, then started at the top-left-most point: every point is
+ *  used exactly once. (Picking x+y / x−y extremes independently, the first
+ *  version, could give one point two corners and drop the fourth — found in
+ *  the final review: a page at 45°, or a dot dragged just past another.) */
 export function orderCorners(pts: Point[]): Quad {
   if (pts.length !== 4) throw new Error('need 4 points')
-  const by = (f: (p: Point) => number, max: boolean) =>
-    pts.reduce((a, b) => (max ? f(b) > f(a) : f(b) < f(a)) ? b : a)
-  const tl = by(p => p[0] + p[1], false)
-  const br = by(p => p[0] + p[1], true)
-  const tr = by(p => p[0] - p[1], true)
-  const bl = by(p => p[0] - p[1], false)
-  return [[tl[0], tl[1]], [tr[0], tr[1]], [br[0], br[1]], [bl[0], bl[1]]]
+  const cx = (pts[0][0] + pts[1][0] + pts[2][0] + pts[3][0]) / 4
+  const cy = (pts[0][1] + pts[1][1] + pts[2][1] + pts[3][1]) / 4
+  const ring = [...pts].sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx))
+  let start = 0
+  for (let i = 1; i < 4; i++) {
+    const s = ring[i][0] + ring[i][1], best = ring[start][0] + ring[start][1]
+    if (s < best || (s === best && ring[i][0] < ring[start][0])) start = i
+  }
+  const q = [0, 1, 2, 3].map(k => ring[(start + k) % 4])
+  return q.map(p => [p[0], p[1]]) as Quad
 }
 
 function solve(A: number[][], b: number[]): number[] {

@@ -2,6 +2,10 @@
 // Four draggable dots over the photo, mouse and finger alike (pointer events).
 // While dragging, a magnifier above the finger shows exactly where the dot is —
 // the finger otherwise covers the very corner being placed.
+//
+// The dots are HTML, not SVG circles (final review): a fixed 44px finger
+// target whatever the photo's size, and not clipped when a dot sits on the
+// photo's edge — which is exactly where the detector leaves pages it refuses.
 
 import { useRef, useState } from 'react'
 import type { Point, Quad } from '@/lib/scan/geometry'
@@ -10,10 +14,11 @@ interface Props { imageUrl: string; width: number; height: number; quad: Quad; o
 
 const MAG = 112   // magnifier diameter, css px
 const ZOOM = 2.5
+const HIT = 44    // dot touch target, css px
 
 export function CornerEditor({ imageUrl, width, height, quad, onChange }: Props) {
   const boxRef = useRef<HTMLDivElement>(null)
-  const [drag, setDrag] = useState<{ i: number; screen: Point; rect: DOMRect } | null>(null)
+  const [drag, setDrag] = useState<{ i: number; pointerId: number; screen: Point; rect: DOMRect } | null>(null)
 
   const toImage = (clientX: number, clientY: number, r: DOMRect): Point => {
     const x = ((clientX - r.left) / r.width) * width
@@ -22,22 +27,22 @@ export function CornerEditor({ imageUrl, width, height, quad, onChange }: Props)
   }
 
   const onDown = (i: number) => (e: React.PointerEvent) => {
-    if (!boxRef.current) return
+    if (!boxRef.current || drag) return // one finger, one dot
     e.preventDefault()
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-    setDrag({ i, screen: [e.clientX, e.clientY], rect: boxRef.current.getBoundingClientRect() })
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDrag({ i, pointerId: e.pointerId, screen: [e.clientX, e.clientY], rect: boxRef.current.getBoundingClientRect() })
   }
   const onMove = (e: React.PointerEvent) => {
-    if (!drag) return
+    if (!drag || e.pointerId !== drag.pointerId) return
     const next = quad.map(p => [p[0], p[1]]) as Quad
     next[drag.i] = toImage(e.clientX, e.clientY, drag.rect)
     onChange(next)
     setDrag({ ...drag, screen: [e.clientX, e.clientY] })
   }
-  const onUp = () => setDrag(null)
+  const onUp = (e: React.PointerEvent) => { if (drag && e.pointerId === drag.pointerId) setDrag(null) }
 
-  const r = Math.max(width, height) * 0.022
   const pts = quad.map(p => p.join(',')).join(' ')
+  const line = Math.max(width, height) * 0.006
 
   return (
     <div className="relative mx-auto touch-none select-none"
@@ -45,14 +50,17 @@ export function CornerEditor({ imageUrl, width, height, quad, onChange }: Props)
       <div ref={boxRef} className="absolute inset-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={imageUrl} alt="" draggable={false} className="w-full h-full rounded-lg" />
-        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-          <polygon points={pts} fill="rgba(145,199,64,0.15)" stroke="#91C740" strokeWidth={r / 3} />
-          {quad.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={r} fill="rgba(255,255,255,0.85)" stroke="#5A801F" strokeWidth={r / 4}
-              className="cursor-grab"
-              onPointerDown={onDown(i)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} />
-          ))}
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+          <polygon points={pts} fill="rgba(145,199,64,0.15)" stroke="#91C740" strokeWidth={line} />
         </svg>
+        {quad.map(([x, y], i) => (
+          <div key={i} role="slider" aria-label={`corner ${i + 1}`} aria-valuenow={Math.round(x)}
+            className="absolute flex items-center justify-center cursor-grab"
+            style={{ width: HIT, height: HIT, left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%`, transform: 'translate(-50%, -50%)' }}
+            onPointerDown={onDown(i)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+            <span className="block w-5 h-5 rounded-full border-[3px] border-terracotta bg-white/85 shadow" />
+          </div>
+        ))}
       </div>
       {drag && (
         <div className="fixed pointer-events-none rounded-full border-2 border-white shadow-lg overflow-hidden"

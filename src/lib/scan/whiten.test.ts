@@ -25,6 +25,9 @@ function page(): RGBAImage {
     const shade = x < 192 ? 0.6 : 1                         // hard phone shadow over the left 40%
     data[i] = data[i + 1] = data[i + 2] = v * shade
     if (x >= 400 && x < 420 && y >= 500 && y < 520) { data[i] = 40; data[i + 1] = 60; data[i + 2] = 200 } // blue stamp
+    // final review: areas thicker than ~2 cells were whitened away entirely
+    if (x >= 220 && x < 300 && y >= 400 && y < 430) data[i] = data[i + 1] = data[i + 2] = 150   // thick grey header: 3 cells
+    if (x >= 320 && x < 360 && y >= 400 && y < 440) { data[i] = 40; data[i + 1] = 120; data[i + 2] = 120 } // teal logo panel: 4x4 cells
     data[i + 3] = 255
   }
   return { data, width: W, height: H }
@@ -39,6 +42,9 @@ check('paper in the light is white (≥245)', lum(out, 300, 50) >= 245, true)
 check('paper deep in the shadow is white (≥240)', lum(out, 80, 400) >= 240, true)
 check('text stays dark (<80)', lum(out, 300, 100) < 80, true)
 check('grey bar is NOT hollowed out (centre < 170)', lum(out, 230, 307) < 170, true)
+check('a 3-cell-thick grey header survives (centre < 215)', lum(out, 260, 415) < 215, true)
+check('a 4x4-cell coloured panel survives (centre < 200)', lum(out, 340, 420) < 200, true)
+check('paper just beside the shadow edge is white (≥235)', lum(out, 170, 600) >= 235, true)
 const s = (510 * W + 410) * 4
 check('blue stamp keeps its colour (blue > red + 60)', out.data[s + 2] > out.data[s] + 60, true)
 
