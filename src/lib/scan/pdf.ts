@@ -5,7 +5,7 @@ export interface PdfPage { jpeg: Uint8Array; widthPx: number; heightPx: number }
 
 const A4_PT: [number, number] = [595.28, 841.89]
 
-export function buildPdf(pages: PdfPage[]): Uint8Array {
+export function buildPdf(pages: PdfPage[]): Uint8Array<ArrayBuffer> {
   if (!pages.length) throw new Error('a PDF needs at least one page')
   const enc = new TextEncoder()
   const chunks: Uint8Array[] = []
