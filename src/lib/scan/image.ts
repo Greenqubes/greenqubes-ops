@@ -1,7 +1,8 @@
 // Plain RGBA pixels, the shape canvas ImageData uses. Pure — runs in the
 // browser, a worker, or a test.
 
-export interface RGBAImage { data: Uint8ClampedArray; width: number; height: number }
+// ArrayBuffer-backed so it can go straight into ImageData (TS 5.7+ typing)
+export interface RGBAImage { data: Uint8ClampedArray<ArrayBuffer>; width: number; height: number }
 
 /** The spike's second whitening bug (2026-09-30) was a buffer silently
  *  carrying 3 channels where 1 was expected — every read used the wrong
