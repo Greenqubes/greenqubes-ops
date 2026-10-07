@@ -8,7 +8,7 @@ import { Btn } from '@/components/Btn'
 import { Field } from '@/components/Field'
 import { t } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
-import { Camera, Download, Image as ImageIcon, FileVideo, Trash2 } from 'lucide-react'
+import { Camera, Download, Image as ImageIcon, FileVideo, Trash2, ScanLine } from 'lucide-react'
 import type { UseFormRegister, UseFormWatch, UseFormSetValue } from 'react-hook-form'
 import { SuggestField } from '@/components/SuggestField'
 import type { LangCode } from '@/lib/i18n'
@@ -19,10 +19,13 @@ import { showSignedDoSection } from '@/lib/utils/completion-rules'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { checkUpload, bytesToMb } from '@/lib/storage/upload-rules'
 import { canDeleteJobFile } from '@/lib/storage/job-file-permissions'
+import { ScanModal, type ScanSource } from '@/features/scan/ScanModal'
+import { uploadJobFile } from './upload-job-file'
 
 const TEXTAREA = 'w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:border-terracotta focus:ring-terracotta/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 resize-none'
 
 const VIDEO_EXT = /\.(mp4|mov|avi|webm|mkv)$/i
+const IMAGE_EXT = /\.(jpe?g|png|heic|heif|webp)$/i
 
 interface Props {
   register:  UseFormRegister<FormValues>
@@ -38,6 +41,8 @@ interface Props {
    *  after completion even though the rest of the form is read-only. */
   jobStatus:   string
   completedAt: string | null
+  /** Names a scanned Signed DO PDF. */
+  jobTitle?:   string | null
   bare?:     boolean
 }
 
@@ -87,9 +92,13 @@ interface UploadSectionProps {
   /** Which of these files this person may remove. Mirrors the server rule in
    *  job-file-permissions; the server is still the authority. */
   canDelete?: (file: JobFile) => boolean
+  /** Signed DO only (Nic, 2026-09-30): offer Scan. Everyone sees it; saving
+   *  to the job follows `canUpload`, otherwise the PDF downloads. */
+  scannable?: boolean
+  jobTitle?:  string | null
 }
 
-function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, accept = 'image/*,video/*', canDelete }: UploadSectionProps) {
+function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, accept = 'image/*,video/*', canDelete, scannable = false, jobTitle = null }: UploadSectionProps) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
   const router   = useRouter()
@@ -99,6 +108,17 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
   // Photos still going up count as unsaved work, so a post-deploy auto-refresh
   // waits rather than cutting the transfer off.
   useUnsavedWork('production-upload', uploading)
+
+  const scanRef = useRef<HTMLInputElement>(null)
+  const [scanFirst, setScanFirst] = useState<ScanSource | null>(null)
+  const jobImages = files
+    .filter(f => IMAGE_EXT.test(f.name ?? f.r2_key))
+    .map(f => ({ r2Key: f.r2_key, name: f.name }))
+
+  const saveScan = async (pdf: Blob, filename: string) => {
+    await uploadJobFile({ supabase, jobId, userId, kind, body: pdf, filename, contentType: 'application/pdf' })
+    router.refresh()
+  }
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? [])
@@ -120,30 +140,10 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
     setUploading(true)
     try {
       for (const file of selected) {
-        const contentType = file.type || 'application/octet-stream'
-        const urlRes = await fetch('/api/r2/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId, kind, filename: file.name, contentType }),
+        await uploadJobFile({
+          supabase, jobId, userId, kind, body: file,
+          filename: file.name, contentType: file.type || 'application/octet-stream',
         })
-        // A refusal here used to be read straight through as { url, key },
-        // giving `fetch(undefined)` and a bare "Save failed" that hid the
-        // real reason (Nic, 2026-09-14).
-        if (!urlRes.ok) {
-          const { error } = await urlRes.json().catch(() => ({ error: '' })) as { error?: string }
-          throw new Error(error || `${urlRes.status}`)
-        }
-        const { url, key } = await urlRes.json() as { url: string; key: string }
-
-        // fetch only rejects on network failure, so an HTTP error here was
-        // silently ignored and the row written anyway — leaving a file in the
-        // list that opened to nothing.
-        const putRes = await fetch(url, { method: 'PUT', headers: { 'Content-Type': contentType }, body: file })
-        if (!putRes.ok) throw new Error(`storage ${putRes.status}`)
-
-        await supabase.from('files').insert({
-          job_id: jobId, kind, r2_key: key, name: file.name, uploader_id: userId, visibility: ['public-internal'],
-        } as never).throwOnError()
       }
       router.refresh()
       showSuccess(t(lang, 'savedSuccessfully'))
@@ -189,6 +189,12 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
                   : <ImageIcon size={14} className="text-muted shrink-0" />
                 }
                 <p className="flex-1 min-w-0 text-sm text-ink truncate">{filename}</p>
+                {scannable && IMAGE_EXT.test(filename) && (
+                  <Btn variant="ghost" size="sm" onClick={() => setScanFirst({ kind: 'job', r2Key: file.r2_key, name: file.name })}>
+                    <ScanLine size={13} />
+                    {t(lang, 'scan')}
+                  </Btn>
+                )}
                 <DownloadButton r2Key={file.r2_key} filename={file.name} lang={lang} />
                 {canDelete?.(file) && (
                   <button
@@ -207,23 +213,41 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
           })}
         </ul>
       )}
-      {canUpload && (
-        <>
-          <input type="file" ref={fileRef} onChange={handleFiles} multiple accept={accept} className="hidden" />
-          <Btn variant="secondary" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            <Camera size={13} />
-            {uploading ? t(lang, 'uploading') : t(lang, 'attachFiles')}
-          </Btn>
-        </>
+      {(canUpload || scannable) && (
+        <div className="flex flex-wrap gap-2">
+          {canUpload && (
+            <>
+              <input type="file" ref={fileRef} onChange={handleFiles} multiple accept={accept} className="hidden" />
+              <Btn variant="secondary" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <Camera size={13} />
+                {uploading ? t(lang, 'uploading') : t(lang, 'attachFiles')}
+              </Btn>
+            </>
+          )}
+          {scannable && (
+            <>
+              <input type="file" ref={scanRef} accept="image/*" capture="environment" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setScanFirst({ kind: 'file', file: f }) }} />
+              <Btn variant="secondary" size="sm" onClick={() => scanRef.current?.click()}>
+                <ScanLine size={13} />
+                {t(lang, 'scan')}
+              </Btn>
+            </>
+          )}
+        </div>
       )}
-      {!canUpload && files.length === 0 && (
+      {scanFirst && (
+        <ScanModal lang={lang} jobTitle={jobTitle} first={scanFirst} jobImages={jobImages}
+          canSave={canUpload} onSave={saveScan} onClose={() => setScanFirst(null)} />
+      )}
+      {!canUpload && !scannable && files.length === 0 && (
         <p className="text-sm text-muted italic">None</p>
       )}
     </div>
   )
 }
 
-export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files, jobStatus, completedAt, bare = false }: Props) {
+export function ProductionReadySection({ register, watch, setValue, readOnly, role, lang, jobId, userId, files, jobStatus, completedAt, jobTitle = null, bare = false }: Props) {
   const isInstaller         = role === 'installer'
   const isDesigner          = role === 'designer'
   // Designer is view-only; installer reads instructions but cannot edit them.
@@ -308,6 +332,8 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
           lang={lang}
           accept="image/*,.pdf"
           canDelete={canDelete}
+          scannable
+          jobTitle={jobTitle}
         />
       )}
 

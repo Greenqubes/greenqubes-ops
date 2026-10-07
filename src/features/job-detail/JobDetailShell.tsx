@@ -1398,6 +1398,7 @@ export function JobDetailShell({
                 )}
                 jobStatus={job.status}
                 completedAt={job.completed_at}
+                jobTitle={job.project_title}
               />
             </CollapseCard>
           </div>
