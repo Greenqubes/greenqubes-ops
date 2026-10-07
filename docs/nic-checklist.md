@@ -37,6 +37,8 @@ _Last updated: 2026-09-28 (chore-config — **your checklist is short again.** W
 
 _Last updated: 2026-09-30 (infra-config — **a Supabase notice handled, and the Speed Insights button undone.** Supabase is changing how NEW database tables get opened up to the app from 30 October. Your existing tables are unaffected and nothing needed changing today; a rule is now in Claude's instructions so every future table gets the right access written in — signed-in users and our server only, never signed-out visitors unless you say so. The Speed Insights setup you pressed by accident had made two branches on GitHub; neither ever reached the app, and both are deleted. You downgraded Speed Insights Plus. Nothing on the website changed.)_
 
+_Last updated: 2026-10-07 (feat-files — **Signed DO has a Scan button. Live at 4:52pm.** Take a photo of a signed DO (or press Scan on one already on the job) and it becomes a clean, straight A4 PDF with white paper and the blue stamp still blue — like the scan I made of your Mustafa DO. On your PC the PDF also downloads, ready for the invoice. The app finds the paper's corners by itself about half the time; when it doesn't, you drag the four dots — you said that's fine. **Bonus fix the review found:** error messages anywhere in the app were hiding behind pop-ups, so a failed save inside one looked like nothing happened. They now always show on top. The "What's new" popup tells the team, including the tip to put the paper on something dark. **Two slips of mine:** I pushed the design documents to dev without asking first, and I gave you a wrong preview link once (missing "-projects").)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
@@ -75,6 +77,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] Clean up files left in storage by old deleted jobs (dry run first)
 - [ ] Security tidy-up — 3 small fixes (secret checks refuse by default, block fake notifications, escape text in Telegram messages)
 - [ ] Telegram watchdog: alert when the backup or vault sync silently stops
+- [ ] Scanner polish: lower memory use per page, translated error text, "Camera or file" opens only the camera on Android
 
 ### Only you
 - [ ] Get the team to tap profile picture → **Connect Summary** (Firoz, Aroze, Halim and CK need Connect Telegram first); watch Vercel logs for `chat not found`
@@ -94,6 +97,16 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - Sub-jobs under a main job
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
+- Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-07, feat-files — Signed DO Scanner, LIVE)
+
+- [x] **[Nic] Your Mustafa DO scanned** — saved as Downloads\DO260080-scan.jpg.
+- [x] **[Nic] Signed DO Scan button — LIVE 4:52pm**, after you checked the preview. Phone: photo → corners → Save PDF. PC: Scan on any DO photo on a job → saved and downloaded. Everyone can use it; designers get Download instead of Save.
+- [x] **[Nic] 4 of 9 automatic corners accepted** — dragging the dots covers the rest. No OpenCV.
+- [x] **[Nic] Error messages no longer hide behind pop-ups** — app-wide.
+- [x] **[Nic] GitHub command-line tool installed**; you chose not to sign in. Nothing else needs it.
+- [x] **[Nic] `feat-do-scan` branch deleted on GitHub** — everything is in main.
 
 ## Done This Session ✓ (2026-09-30, infra-config — Supabase Grants Rule + Speed Insights Cleanup)
 
