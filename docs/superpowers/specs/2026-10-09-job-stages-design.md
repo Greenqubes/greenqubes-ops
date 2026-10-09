@@ -28,6 +28,8 @@ Completed is unchanged.
 
 ### Moving between stages
 
+**A Draft is the full job form with no field restrictions** (Nic, 2026-10-09). Every field is there, and nothing is required to save one, not even the date. "Notepad" describes how the Drafts tab behaves (private, a plain list), not a different or smaller form. The same form serves all three stages. Only the buttons and their required fields change.
+
 | From → To | Button | Needs |
 |---|---|---|
 | Draft → Pending | Save as Pending | title, company, client, contact no., location (date optional) |
