@@ -50,5 +50,14 @@ for (const k of CHROME_KEYS) {
   assert(`chrome ${k} in bn`, k in bn)
 }
 
+// Job stages (2026-10-09): the roles that create jobs are shown their new
+// private Drafts tab, immediately before Pending (which now means the
+// office-visible "date to be confirmed" stage).
+for (const role of ['sales', 'coordinator'] as const) {
+  const ids = (TOUR_SCRIPTS[role] ?? []).map(st => st.id)
+  assert(`${role}: has a drafts step`, ids.includes('drafts'))
+  assert(`${role}: drafts comes right before pending`, ids.indexOf('drafts') + 1 === ids.indexOf('pending'))
+}
+
 if (failures) { console.error(`\n${failures} check(s) FAILED`); process.exit(1) }
 console.log('\nAll script checks passed')

@@ -107,7 +107,7 @@ export const TOOL_DEFINITIONS: Anthropic.Messages.Tool[] = [
   },
   {
     name: 'create_pending_job',
-    description: 'Create a new job in pending status — the only write action available. Call ONLY after you have presented the job details to the user in this conversation and they clearly agreed. The job is saved as pending for the user to review and push to the schedule; this tool can never schedule it. Optionally files attachments from this conversation into the new job\'s buckets.',
+    description: 'Create a new job as a private draft — the only write action available. Call ONLY after you have presented the job details to the user in this conversation and they clearly agreed. The job is saved as a draft (only the user and its sharers can see it) for them to review and push to the schedule; this tool can never schedule it. Optionally files attachments from this conversation into the new job\'s buckets.',
     input_schema: {
       type: 'object',
       properties: {
