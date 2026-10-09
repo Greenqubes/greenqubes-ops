@@ -26,7 +26,7 @@ export const en = {
   viewWeek: 'Week',
   viewMonth: 'Month',
   columnsLabel: 'Cards per row',
-  briefLockedUntilScheduled: 'Push this job to the schedule first — designers only see scheduled jobs.',
+  briefLockedUntilScheduled: 'Save this job as Pending first — designers cannot see drafts.',
   oneColumn: '1 per row',
   twoColumns: '2 per row',
   threeColumns: '3 per row',
@@ -701,6 +701,7 @@ export const en = {
   stagePending: "Pending",
   stageScheduled: "Scheduled",
   myJobsEmpty: "No jobs of yours yet",
+  saveChangesFirst: 'Save your changes first',
 }
 
 export type Translations = typeof en

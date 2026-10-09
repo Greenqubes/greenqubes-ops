@@ -169,7 +169,7 @@ export type JobMessage = {
 export type JobDetail = {
   id:                      string
   status:                  JobStatus
-  date:                    string
+  date:                    string | null  // null on a Draft or Pending job (2026-10-09)
   date_end:                string | null
   time_start:              string | null
   time_end:                string | null

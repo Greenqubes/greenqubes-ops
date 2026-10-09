@@ -47,6 +47,9 @@ import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { stageOf, type Stage } from '@/lib/utils/job-stage'
+import { canMoveStage, canEditAtStage } from '@/lib/utils/job-stage-rules'
+import { StageActions } from './StageActions'
 
 export type FormValues = {
   project_title:           string
@@ -169,7 +172,7 @@ export function JobDetailShell({
   // demote coordinator to suggest-only everywhere it's read below.
   const isSales       = role === 'sales'
   const isCoordinator = role === 'coordinator'
-  const canAssign      = role === 'scheduler'
+  // canAssign is defined below `status` — it also depends on the stage.
   // Who may edit the core / team fields (title, dates, POC, coordinators, notes).
   const canEditCore = (['sales', 'scheduler', 'coordinator', 'admin'] as Role[]).includes(role)
   // Edit 6: assigned designers may reopen a completed design themselves —
@@ -190,6 +193,18 @@ export function JobDetailShell({
   // on a finished job, and the Reopen button never appeared. handleStatusChange
   // does not router.refresh(), so nothing corrected it until a manual reload.
   const completed = status === 'completed'
+  // Draft / Pending / Scheduled / Completed — the raw status words are NOT
+  // what people see (raw 'pending' is a Draft); see src/lib/utils/job-stage.ts.
+  const stage: Stage = stageOf(status)
+  // No confirmed crew on a Pending job (spec 2026-10-09): crew is confirmed
+  // once it is on the schedule, so an installer can never see a Pending job.
+  // The scheduler suggests there instead (schedulerCanSuggest below).
+  const canAssign      = role === 'scheduler' && stage !== 'pending'
+  const stageRulesJob = {
+    status, created_by: job.created_by ?? null, sales_poc_id: job.sales_poc_id ?? null,
+    coordinatorIds: initialCoordinatorIds,
+  }
+  const stageViewer = { id: userId, role }
 
   const readOnly  = completed
   // HR / Finance (and any future read-only office role) sees the job form the
@@ -198,7 +213,10 @@ export function JobDetailShell({
   // reads it that way (e.g. canAssign && !readOnly) — so the lock rides on a
   // separate flag that only the display props consume.
   const isReadOnlyRole = isReadOnlyOfficeRole(role)
-  const formReadOnly   = readOnly || isReadOnlyRole
+  // A Pending job is visible to the whole office but edited only by its
+  // creator, PIC, coordinators on it, schedulers and admin (spec 2026-10-09).
+  const pendingNotMine = stage === 'pending' && !canEditAtStage(stageViewer, stageRulesJob)
+  const formReadOnly   = readOnly || isReadOnlyRole || pendingNotMine
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
@@ -244,7 +262,7 @@ export function JobDetailShell({
   const [jumpToDetails, setJumpToDetails] = useState(0)
   // Required-field gate on Push to Schedule (Nic, 2026-09-10). Saving stays
   // ungated — only putting a job on the schedule demands the six fields.
-  const { missingFields, checkRequired, checkNotCleared } = useRequiredFields(
+  const { missingFields, checkRequired, checkForStage, checkNotClearedAtStage } = useRequiredFields(
     () => setJumpToDetails(n => n + 1),
   )
   const briefCardRef = useRef<HTMLDivElement>(null)
@@ -598,7 +616,9 @@ export function JobDetailShell({
     // 2026-09-10) — an emptied field leaves the job incomplete for whoever
     // works it. A field that was already blank (a parked draft) is not the
     // rule's business, so those still save and can be finished later.
-    if (!checkNotCleared(defaultValues ?? {}, values)) {
+    // At the job's CURRENT stage: a Draft requires nothing, a Pending job may
+    // clear its date, a Scheduled one may not (spec 2026-10-09).
+    if (!checkNotClearedAtStage(stage, defaultValues ?? {}, values)) {
       showError(t(lang, 'requiredFieldCleared'))
       return
     }
@@ -1038,7 +1058,7 @@ export function JobDetailShell({
   // (no jobs DELETE RLS policy for sales — the DELETE call returns ok with
   // zero rows affected rather than an error). Coordinator inherits that same
   // pre-existing gap by parity; not fixed here (out of scope, RLS-level).
-  const showDelete         = (['sales', 'coordinator'].includes(role) && status === 'pending') || role === 'scheduler'
+  const showDelete         = (['sales', 'coordinator'].includes(role) && (stage === 'draft' || stage === 'pending')) || role === 'scheduler'
   // Sales close their OWN job (Nic, 2026-09-07). The overdue alert is sent to
   // the sales POC (api/notifications/overdue), so sales were being nagged about
   // jobs only the scheduler could close. Scheduler still closes anything,
@@ -1130,6 +1150,29 @@ export function JobDetailShell({
   const isAnyDirty = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty || isBriefDirty
   dirtyRef.current = isAnyDirty
 
+  // Stage moves (StageActions) act on what is SAVED — the server reads the
+  // row — so unsaved edits must be saved first rather than silently left
+  // behind. Draft → Pending also needs its five fields (spec 2026-10-09).
+  const beforeStageMove = async (to: Stage): Promise<boolean> => {
+    if (isAnyDirty) {
+      showError(t(lang, 'saveChangesFirst'))
+      return false
+    }
+    if (to === 'pending' && stage === 'draft' && !checkForStage('pending', getValues())) {
+      showError(t(lang, 'requiredFieldsMissingPending'))
+      return false
+    }
+    return true
+  }
+
+  const onStageMoved = (newStatus: string) => {
+    // Scheduled → Pending clears the date on the server; mirror it so the
+    // form is not left showing a date that no longer exists.
+    if (stage === 'scheduled' && stageOf(newStatus) === 'pending') reset({ ...getValues(), date: '' })
+    setStatus(newStatus as JobStatus)
+    router.refresh()
+  }
+
   // Same rule the leave guard below uses, told to the auto-refresh watcher:
   // unsaved edits turn a post-deploy refresh into a bar the person taps when
   // they are ready (Nic, 2026-09-10).
@@ -1218,6 +1261,9 @@ export function JobDetailShell({
   // on scheduled jobs (Addendum §2's "Save & notify" bar), just downgraded
   // from formally assigning to suggesting only.
   const coordinatorCanSuggest = isCoordinator && !readOnly
+  // On a Pending job the scheduler suggests too — nobody confirms crew until
+  // it is on the schedule (spec 2026-10-09).
+  const schedulerCanSuggest = role === 'scheduler' && stage === 'pending' && !readOnly
 
   const installerStateOf = (id: string): InstallerCardState => {
     if (canAssign) {
@@ -1232,7 +1278,7 @@ export function JobDetailShell({
 
   const installerOnToggle =
     canAssign && !readOnly                        ? toggleFormal :
-    (salesCanSuggest || coordinatorCanSuggest)     ? toggleSuggestion :
+    (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) ? toggleSuggestion :
     undefined
 
   // Sales/coordinator cannot un-assign a formally assigned installer — only
@@ -1264,7 +1310,7 @@ export function JobDetailShell({
 
   const subOnToggle =
     canAssign && !readOnly                    ? toggleSubFormal :
-    (salesCanSuggest || coordinatorCanSuggest) ? toggleSubSuggestion :
+    (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) ? toggleSubSuggestion :
     undefined
 
   // Sales/coordinator cannot un-assign a confirmed sub — only their own suggestions.
@@ -1309,7 +1355,7 @@ export function JobDetailShell({
   const clearSubs = () => {
     if (canAssign) {
       setSelectedSubIds([])
-    } else if (salesCanSuggest || coordinatorCanSuggest) {
+    } else if (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) {
       for (const id of [...suggestedSubIds]) void toggleSubSuggestion(id)
     }
   }
@@ -1417,9 +1463,10 @@ export function JobDetailShell({
             ref={briefCardRef}
             jobId={job.id}
             lang={lang}
-            /* Locked until the job is ON the schedule (Nic, 2026-09-15):
-               migration 0060 stops designers seeing pending jobs, so a
-               brief written on one would be invisible to its designer. */
+            /* Locked on a Draft, open once Pending or Scheduled (spec
+               2026-10-09): designers cannot see drafts (0062), so a brief —
+               or a designer picked here — would be invisible to them. The
+               lock also locks the designer picker inside this card. */
             readOnly={!designBriefEditable({ status, readOnly: formReadOnly })}
             lockedNote={designBriefEditable({ status, readOnly: formReadOnly }) || formReadOnly
               ? undefined
@@ -1524,6 +1571,9 @@ export function JobDetailShell({
               Support crew bucket below. */}
           <div className="border-t border-line px-4 pt-3 pb-4">
             <p className="text-[13px] font-semibold uppercase tracking-wide text-muted mb-3">Drivers</p>
+            {stage === 'pending' && !isInstaller && (
+              <p className="text-xs text-muted -mt-2 mb-3">{t(lang, 'crewNeedsSchedule')}</p>
+            )}
             {isInstaller ? (
               /* installer sees only the confirmed (formal) assignees, read-only */
               <InstallerGrid
@@ -1578,7 +1628,7 @@ export function JobDetailShell({
               onLeaveOf={isOnLeave}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
-              canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}
+              canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest}
             />
           )}
 
@@ -1641,7 +1691,7 @@ export function JobDetailShell({
             completedAt={job.completed_at}
             initialMessages={initialMessages}
             chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
-            preScheduleLocked={status === 'pending' || status === 'awaiting_approval'}
+            preScheduleLocked={stage === 'draft' || stage === 'pending'}
           />
         )}
       />
@@ -1652,6 +1702,18 @@ export function JobDetailShell({
       {!isReadOnlyRole && (
       <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
+          {/* Draft → Pending, Pending → Draft, Scheduled → Pending (spec
+              2026-10-09). Renders nothing for anyone who may not move it. */}
+          {!isInstaller && !readOnly && (
+            <StageActions
+              jobId={job.id}
+              stage={stage}
+              lang={lang}
+              canMove={to => canMoveStage(stageViewer, stageRulesJob, to)}
+              beforeMove={beforeStageMove}
+              onMoved={onStageMoved}
+            />
+          )}
           {isInstaller ? (
             <>
               {installerCompleteBtn !== 'hidden' && (

@@ -265,7 +265,9 @@ export function CoreSection({
               {installerView ? roBox(dateDisplay, true) : (
                 <Input
                   type="date"
-                  {...register('date', { required: t(lang, 'requiredField') })}
+                  // Not required here: a Draft or Pending job may have no date. The
+                  // stage rules (job-stage-rules.ts) demand it at Push to Schedule.
+                  {...register('date')}
                   error={!!errors.date || isMissing('date')}
                   disabled={coreLocked}
                 />

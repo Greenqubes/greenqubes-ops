@@ -14,7 +14,7 @@ export const zh: Partial<Translations> = {
   companySchedule: '公司排程',
   viewBoard: '司机',
   columnsLabel: '每行卡片数',
-  briefLockedUntilScheduled: '请先将此任务推送到排程 — 设计师只能看到已排程的任务。',
+  briefLockedUntilScheduled: '请先将此工作保存为待定 — 设计师看不到草稿。',
   oneColumn: '每行 1 个',
   twoColumns: '每行 2 个',
   threeColumns: '每行 3 个',
@@ -591,4 +591,5 @@ export const zh: Partial<Translations> = {
   stagePending: "待定",
   stageScheduled: "已排程",
   myJobsEmpty: "暂无你的工作",
+  saveChangesFirst: '请先保存修改',
 }

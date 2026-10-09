@@ -28,7 +28,9 @@ export async function POST(
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  if (!['sales', 'coordinator'].includes(effectiveRole)) {
+  // Scheduler (and admin, who resolves to scheduler) since 2026-10-09: on a
+  // Pending job nobody may confirm crew, so the scheduler suggests too.
+  if (!['sales', 'coordinator', 'scheduler'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -27,7 +27,7 @@ type Entry = {
 
 type Props = { lang: LangCode; isAdmin: boolean; role: Role; navRole: Role }
 
-const PILL_STATUSES = ['pending', 'awaiting_approval', 'scheduled', 'completed'] as const
+const PILL_STATUSES = ['pending', 'awaiting_approval', 'awaiting_date', 'scheduled', 'completed'] as const
 type PillStatus = typeof PILL_STATUSES[number]
 
 /** '2026-09-28T02:05:00Z' → '28 Sep 2026, 10:05' in Singapore time, English. */
