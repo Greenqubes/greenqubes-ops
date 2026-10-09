@@ -71,6 +71,10 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
   - Settle: can a no-login page write into job chat? Which attachments can a contractor see?
 - [ ] **External installers on the New Job form** (currently only on the edit form — Support crew went on it 2026-09-28, along with the Support crew role buttons)
 - [ ] **Focus rings** — show the brand green instead of Chrome's blue
+- [ ] **A test database separate from the live one** (asked 2026-10-09) — so previews stop sharing production's database
+  - Option A: Supabase Branching — a fresh test database per branch; needs the Pro plan + a small hourly charge per branch
+  - Option B: a second free Supabase project kept as "staging"; changes applied to it by hand
+  - Both start EMPTY (no real jobs or users) and need Google sign-in + test accounts set up — check current pricing first
 
 ### Quiet-session cleanups
 - [ ] Remove unused database columns: `job_external_contacts.status`, `users.years_experience`, `users.skills`
