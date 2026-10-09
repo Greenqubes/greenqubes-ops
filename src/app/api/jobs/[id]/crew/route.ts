@@ -5,6 +5,7 @@ import { getJobNotifData, getJobRecipients, recordCrewChange } from '@/lib/supab
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplJobAssigned, tplInstallerAssigned } from '@/lib/telegram/templates'
 import type { Role } from '@/lib/supabase/types'
+import { formalCrewAllowed } from '@/lib/utils/job-stage-rules'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
@@ -68,6 +69,11 @@ export async function POST(
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (job.status === 'completed') {
     return NextResponse.json({ error: 'This job is completed — reopen it first.' }, { status: 409 })
+  }
+  // No formal crew on a Pending job: crew is confirmed once it is on the
+  // schedule, so an installer can never see a Pending job (spec 2026-10-09).
+  if (!formalCrewAllowed(job.status ?? '')) {
+    return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
   }
 
   // ── What changed, before we write ───────────────────────────────────────

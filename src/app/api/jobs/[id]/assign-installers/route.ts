@@ -8,6 +8,8 @@ import { timesOverlap } from '@/lib/utils/clash-detection'
 import { onLeaveIds, leaveBlocksJob, leaveDatesLabel, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { CheckClash } from '@/features/job-detail/EditClashModal'
 import type { Role } from '@/lib/supabase/types'
+import { formalCrewAllowed } from '@/lib/utils/job-stage-rules'
+import { loadJobStatus } from '@/lib/supabase/queries/job-status'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
@@ -184,6 +186,11 @@ export async function POST(
   // edit 8; this is the one and only mutation gate in the route.
   if (!['scheduler', 'admin'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  // No formal crew on a Pending job: crew is confirmed once it is on the
+  // schedule, so an installer can never see a Pending job (spec 2026-10-09).
+  if (!formalCrewAllowed(await loadJobStatus(supabase, jobId) ?? '')) {
+    return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
   }
 
   // Which installers are newly added (for their "Job Assigned" notification)?

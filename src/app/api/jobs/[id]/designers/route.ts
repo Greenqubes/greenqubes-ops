@@ -8,6 +8,8 @@ import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignAssigned } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
 import type { Role } from '@/lib/supabase/types'
+import { designersAllowed } from '@/lib/utils/job-stage-rules'
+import { loadJobStatus } from '@/lib/supabase/queries/job-status'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
 
@@ -50,6 +52,12 @@ export async function POST(
   const { userIds } = await req.json().catch(() => ({})) as { userIds?: string[] }
   if (!Array.isArray(userIds)) {
     return NextResponse.json({ error: 'userIds required' }, { status: 400 })
+  }
+
+  // A designer on a Draft could not see it (0062) yet would be Telegrammed.
+  // Removing designers from a Draft stays allowed (spec 2026-10-09).
+  if (userIds.length > 0 && !designersAllowed((await loadJobStatus(supabase, jobId)) ?? '')) {
+    return NextResponse.json({ error: 'Designers can be added once the job is Pending.' }, { status: 409 })
   }
 
   const { added } = await setJobDesigners(jobId, userIds)

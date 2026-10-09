@@ -50,15 +50,20 @@ export async function POST(
   // reopening is the Revert button's job (/revert-complete), which restores the
   // FCFS rank too. Without this guard the button reported success on a finished
   // job and Telegrammed every scheduler about a push that never happened.
-  type StatusRow = { status: string }
+  type StatusRow = { status: string; date: string | null }
   const { data: current } = await supabase
     .from('jobs')
-    .select('status')
+    .select('status, date')
     .eq('id', jobId)
     .maybeSingle() as { data: StatusRow | null; error: unknown }
   if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (current.status === 'completed') {
     return NextResponse.json({ error: 'job_completed' }, { status: 409 })
+  }
+  // A Pending job may have no date; the schedule needs one (spec 2026-10-09).
+  // The DB check constraint would refuse it anyway — this gives a clear reason.
+  if (!newDate && !current.date) {
+    return NextResponse.json({ error: 'date_required' }, { status: 422 })
   }
 
   // Workflow V2: no approval step — sales pushes directly onto the schedule.

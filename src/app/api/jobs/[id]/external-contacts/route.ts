@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { Role } from '@/lib/supabase/types'
+import { formalCrewAllowed } from '@/lib/utils/job-stage-rules'
+import { loadJobStatus } from '@/lib/supabase/queries/job-status'
 
 // Assign / suggest / unassign an external contact on one job.
 //
@@ -68,6 +70,11 @@ export async function POST(
   if (!contactId) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
 
   if (MANAGE_ROLES.includes(effectiveRole)) {
+    // No formal crew on a Pending job: crew is confirmed once it is on the
+    // schedule, so an installer can never see a Pending job (spec 2026-10-09).
+    if (!formalCrewAllowed(await loadJobStatus(supabase, jobId) ?? '')) {
+      return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
+    }
     // Real link. Upsert so confirming an existing sales suggestion upgrades
     // the same row (PK job_id+contact_id) instead of failing.
     const { error } = await supabase
