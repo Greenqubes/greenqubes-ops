@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { stageOf } from '@/lib/utils/job-stage'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
@@ -102,11 +103,16 @@ export function JobCardContent({ job, lang }: { job: DesignLoadJob; lang: LangCo
         {job.projectTitle || t(lang, 'untitledJob')}
       </p>
       <p className="text-xs text-muted truncate">{job.client || 'Untitled'}</p>
+      {/* Designers start on Pending jobs before the install date is set
+          (spec 2026-10-09) — say so, so nobody reads it as scheduled. */}
+      {stageOf(job.status) === 'pending' && (
+        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-blue-soft text-brand-blue">Pending</span>
+      )}
       {job.pocName && (
         <p className="text-[11px] text-ink2 mt-1 truncate">{t(lang, 'salesPOC')}: {job.pocName}</p>
       )}
       <div className="flex flex-col gap-0.5 mt-1.5 text-[11px] text-ink2">
-        <span>Install: {fmtDate(job.installDate)}</span>
+        <span>Install: {job.installDate ? fmtDate(job.installDate) : 'TBC'}</span>
         <span>Due: {fmtDate(job.dueDate)}</span>
         <span className="text-muted">Created: {fmtDate(job.createdAt)}</span>
       </div>

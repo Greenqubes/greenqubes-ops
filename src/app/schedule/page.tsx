@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getScheduleJobs, getDrivers, getSupportPool } from '@/lib/supabase/queries/jobs'
+import { getScheduleJobs, getDrivers, getSupportPool, getStageJobs } from '@/lib/supabase/queries/jobs'
 import { getLeaveForSchedule, getHolidays, getCompanyEvents } from '@/lib/supabase/queries/leave'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
@@ -12,10 +12,10 @@ export default async function SchedulePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  type ProfileRow = { role: Role; lang: string }
+  type ProfileRow = { id: string; role: Role; lang: string }
   const { data: profile } = await supabase
     .from('users')
-    .select('role, lang')
+    .select('id, role, lang')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
 
@@ -27,9 +27,15 @@ export default async function SchedulePage() {
   const navRole      = await getNavRole(profile.role)
   if (effectiveRole === 'installer') redirect('/installer')
 
-  const [jobs, leaves, holidays, events, drivers, supportPool] = await Promise.all([
+  // My Jobs panel: the roles that create and run jobs (Nic, 2026-10-08).
+  // A plain admin resolves to 'scheduler' here, so admins get it too.
+  const showMyJobs = ['sales', 'coordinator', 'scheduler'].includes(effectiveRole)
+  const [jobs, leaves, holidays, events, drivers, supportPool, myJobsSource] = await Promise.all([
     getScheduleJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(),
     getDrivers(), getSupportPool(),
+    showMyJobs
+      ? getStageJobs(['pending', 'awaiting_approval', 'awaiting_date', 'scheduled']) // raw status — see job-stage.ts
+      : Promise.resolve(undefined),
   ])
 
   return (
@@ -43,6 +49,8 @@ export default async function SchedulePage() {
       lang={(profile.lang as LangCode) ?? 'en'}
       role={effectiveRole}
       navRole={navRole}
+      myJobsSource={myJobsSource}
+      userId={profile.id}
     />
   )
 }

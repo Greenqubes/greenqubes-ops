@@ -25,7 +25,8 @@ import {
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
-import type { ScheduleJob, CrewMember } from '@/lib/supabase/queries/jobs'
+import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
+import { MyJobsPanel } from './MyJobsPanel'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { LangCode } from '@/lib/i18n'
@@ -54,9 +55,15 @@ interface ScheduleShellProps {
   leaves?:   Array<LeaveRecord & { user_name: string }>
   holidays?: Holiday[]
   events?:   CompanyEvent[]
+  /** My Jobs panel (Nic's screenshot, 2026-10-08) — only the live schedule
+   *  passes these, and only for sales / coordinator / scheduler. */
+  myJobsSource?: StageJob[]
+  userId?:       string
 }
 
-export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [] }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [], myJobsSource, userId }: ScheduleShellProps) {
+  // On a PC the open My Jobs panel takes the right edge; the page makes room.
+  const [panelOpen, setPanelOpen] = useState(false)
   const today  = toISO(new Date())
   const router = useRouter()
 
@@ -335,7 +342,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className={cn('min-h-screen bg-bg', panelOpen && 'lg:pr-72')}>
 
       <CompanyBar lang={lang} role={role ?? 'sales'} navRole={navRole} />
 
@@ -628,6 +635,11 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
             </>
           )}
         </div>
+      )}
+
+      {pageMode === 'schedule' && userId && myJobsSource && (
+        <MyJobsPanel jobs={myJobsSource} userId={userId} lang={lang}
+          onPickDate={setSelectedDate} onOpenChange={setPanelOpen} />
       )}
 
       {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
