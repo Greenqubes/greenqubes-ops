@@ -1626,6 +1626,11 @@ export function MyJobsPanel({ jobs, userId, lang, onPickDate }: {
 
 ## Release (after Task 13; each step on Nic's word)
 
+**Shared-database window (final review #9, 2026-10-09).** From the moment 0064/0065 are applied until `main` ships, today's production code reads anything the preview creates. Old production shows `awaiting_date` jobs on the schedule as if they were scheduled, its crew routes have no Pending guard, and its 6pm cron crashes on a job with no date. So:
+- Applying the migrations, the preview check, dev and main happen **in one evening**.
+- Test Scheduled → Pending **only on jobs with no crew**.
+- **Delete every test Pending job before 6pm SGT.**
+
 1. Ask Nic before pushing. Push `feat-job-stages` → branch preview `greenqubes-ops-git-feat-job-stages-greenqubes-projects.vercel.app`. Verify `/api/version` matches the commit hash. Give Nic the URL.
 2. **Nic's real-login checks on the preview** (the database is shared and the migrations are already applied):
    - From his sales login, a colleague's draft is not under Drafts.
