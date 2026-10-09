@@ -6,13 +6,16 @@ import {
   clearedRequiredFields,
   type RequiredJobField,
 } from '@/lib/utils/job-form-rules'
+import { missingForStage, clearedForStage } from '@/lib/utils/job-stage-rules'
+import type { Stage } from '@/lib/utils/job-stage'
 
 /**
  * The required-field gate on Push to Schedule, shared by the new-job and edit
  * forms so both refuse in exactly the same way (Nic, 2026-09-10).
  *
- * Saving is deliberately NOT gated — a half-filled job can still be parked as
- * a draft. Only putting it on the schedule demands the six fields.
+ * Saving a Draft is deliberately NOT gated — a half-filled job can still be
+ * parked. Save as Pending needs five fields (no date); putting it on the
+ * schedule demands all six (spec 2026-10-09).
  */
 
 // Field titles sit above their box, so centre the field and the title is on
@@ -61,7 +64,21 @@ export function useRequiredFields(reveal: () => void) {
     [flag],
   )
 
+  /** The fields a move INTO `stage` needs (spec 2026-10-09). */
+  const checkForStage = useCallback(
+    (stage: Stage, values: FormLike): boolean => flag(missingForStage(stage, values)),
+    [flag],
+  )
+
+  /** Edit form save: fields required at the job's CURRENT stage may be
+   *  replaced, never emptied. A Draft requires nothing, so nothing is checked. */
+  const checkNotClearedAtStage = useCallback(
+    (stage: Stage, original: FormLike, values: FormLike): boolean =>
+      flag(clearedForStage(stage, original, values)),
+    [flag],
+  )
+
   const clearMissing = useCallback(() => setMissingFields([]), [])
 
-  return { missingFields, checkRequired, checkNotCleared, clearMissing }
+  return { missingFields, checkRequired, checkNotCleared, checkForStage, checkNotClearedAtStage, clearMissing }
 }

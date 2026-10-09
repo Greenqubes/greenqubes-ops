@@ -34,6 +34,7 @@ import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { Role } from '@/lib/supabase/types'
+import { STAGE_STATUS, type Stage } from '@/lib/utils/job-stage'
 
 interface Props {
   userId:          string
@@ -81,7 +82,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
   // Bumped when Push to Schedule is refused: switches the phone to the Details
   // tab and opens the Job Details card if it was folded away on PC.
   const [revealDetails,         setRevealDetails]        = useState(0)
-  const { missingFields, checkRequired } = useRequiredFields(
+  const { missingFields, checkForStage } = useRequiredFields(
     () => setRevealDetails(n => n + 1),
   )
 
@@ -151,19 +152,29 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
   // silent: admin-only quiet push — the schedulers are not Telegrammed.
   // Held in state as well as passed, because a clash sends the user through
   // the modal and the push that follows must stay just as quiet.
-  async function saveJob(mode: 'pending' | 'push_to_schedule', silent = false) {
+  async function saveJob(mode: 'draft' | 'pending' | 'push_to_schedule', silent = false) {
     if (mode === 'push_to_schedule') setPushSilent(silent)
     const values = watch()
 
-    // The six required fields are enforced here and only here (Nic,
-    // 2026-09-10): a draft may be saved half-filled, but a job going onto the
-    // schedule may not. This form calls saveJob directly rather than through
-    // handleSubmit, so react-hook-form's own rules never ran — that is why an
-    // empty New Job form used to push straight through.
-    if (mode === 'push_to_schedule' && !checkRequired(values)) {
-      showError(t(lang, 'requiredFieldsMissing'))
+    // Required fields are enforced here and only here: a Draft needs nothing,
+    // Save as Pending needs five (no date), Push needs all six (Nic,
+    // 2026-09-10 / spec 2026-10-09). This form calls saveJob directly rather
+    // than through handleSubmit, so react-hook-form's own rules never run —
+    // that is why an empty New Job form used to push straight through.
+    const target: Stage = mode === 'push_to_schedule' ? 'scheduled' : mode
+    if (!checkForStage(target, values)) {
+      showError(t(lang, target === 'pending' ? 'requiredFieldsMissingPending' : 'requiredFieldsMissing'))
       return
     }
+    // A designer on a Draft could not see it, yet would be Telegrammed
+    // (spec 2026-10-09). The route refuses it too.
+    if (mode === 'draft' && selectedDesignerIds.length > 0) {
+      showError(t(lang, 'designersNeedPending'))
+      return
+    }
+    // A Pending job takes no confirmed crew — only suggestions — so no
+    // installer can ever see it. Push and Draft keep the role's usual rule.
+    const crewAsSuggestion = suggestMode || mode === 'pending'
 
     setSaving(true)
     const supabase = createClient()
@@ -171,12 +182,13 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       const { data: job, error: insertError } = await (supabase
         .from('jobs')
         .insert({
-          // Always insert as pending — the submit route flips it to
-          // scheduled and notifies schedulers when pushing.
-          status: 'pending',
+          // Save as Pending writes the office-visible stage; Draft and Push
+          // insert a private Draft (raw 'pending' — see job-stage.ts), and the
+          // submit route flips a push to scheduled and notifies schedulers.
+          status: mode === 'pending' ? STAGE_STATUS.pending : STAGE_STATUS.draft,
           sales_poc_id:            values.sales_poc_id || userId,
           project_title:           values.project_title || null,
-          date:                    values.date,
+          date:                    values.date || null,
           date_end:                values.date_end || null,
           time_start:              values.time_start || null,
           time_end:                values.time_end || null,
@@ -245,8 +257,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           selectedIds.map(uid => ({
             job_id:        job.id,
             user_id:       uid,
-            is_suggestion: suggestMode,
-            suggested_by:  suggestMode ? userId : null,
+            is_suggestion: crewAsSuggestion,
+            suggested_by:  crewAsSuggestion ? userId : null,
           })) as never,
         )
       }
@@ -262,8 +274,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           selectedSubIds.map(uid => ({
             job_id:           job.id,
             user_id:          uid,
-            is_suggestion:    suggestMode,
-            suggested_by:     suggestMode ? userId : null,
+            is_suggestion:    crewAsSuggestion,
+            suggested_by:     crewAsSuggestion ? userId : null,
             is_sub_installer: true,
           })) as never,
         )
@@ -592,7 +604,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
 
       {/* ── Action bar (sticky bottom, same chrome as the edit page) ── */}
       <div data-tour="job-actions" className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
-        <div className="max-w-2xl lg:max-w-6xl mx-auto flex gap-2">
+        <div className="max-w-2xl lg:max-w-6xl mx-auto flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => {
@@ -609,13 +621,23 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           >
             Cancel
           </button>
+          {/* Draft = private notepad, nothing required. Pending = shared with the
+              office while the install date is open (spec 2026-10-09). */}
+          <button
+            type="button"
+            onClick={() => saveJob('draft')}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-line bg-paper text-sm font-semibold text-ink2 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving…' : t(lang, 'saveDraftBtn')}
+          </button>
           <button
             type="button"
             onClick={() => saveJob('pending')}
             disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving…' : 'Save as pending'}
+            {saving ? 'Saving…' : t(lang, 'saveAsPendingBtn')}
           </button>
           <button
             type="button"
