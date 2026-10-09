@@ -516,3 +516,51 @@ export async function getSupportPool(): Promise<CrewMember[]> {
     .order('name') as { data: CrewMember[] | null }
   return data ?? []
 }
+
+// ── Drafts / Pending / My Jobs (spec 2026-10-09) ─────────────────────────────
+
+export type StageJob = {
+  id:             string
+  /** Raw job_status — read it through stageOf() (src/lib/utils/job-stage.ts). */
+  status:         JobStatus
+  date:           string | null
+  date_end:       string | null
+  project_title:  string | null
+  client:         string
+  location:       string
+  created_by:     string | null
+  sales_poc_id:   string | null
+  created_at:     string
+  coordinatorIds: string[]
+  designerNames:  string[]
+}
+
+// The date may be null here, which is why this is its own type rather than
+// ScheduleJob. Visibility is RLS's job: other people's drafts never come back
+// (0062). Designer names come from a follow-up query — never embed users onto
+// jobs in a PostgREST select (standing rule, broke twice).
+export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
+  const supabase = await createClient()
+  type Row = Omit<StageJob, 'coordinatorIds' | 'designerNames'> & {
+    job_coordinators: Array<{ user_id: string }>
+    job_designers:    Array<{ user_id: string }>
+  }
+  const { data, error } = await supabase.from('jobs')
+    .select('id, status, date, date_end, project_title, client, location, created_by, sales_poc_id, created_at, job_coordinators(user_id), job_designers(user_id)')
+    .in('status', statuses) // raw status — see job-stage.ts
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  const rows = (data ?? []) as unknown as Row[]
+  const designerIds = [...new Set(rows.flatMap(r => r.job_designers.map(d => d.user_id)))]
+  const names = new Map<string, string>()
+  if (designerIds.length) {
+    const { data: us } = await supabase.from('users').select('id, name').in('id', designerIds) as
+      { data: Array<{ id: string; name: string }> | null }
+    for (const u of us ?? []) names.set(u.id, u.name)
+  }
+  return rows.map(({ job_coordinators, job_designers, ...r }) => ({
+    ...r,
+    coordinatorIds: job_coordinators.map(c => c.user_id),
+    designerNames:  job_designers.map(d => names.get(d.user_id)).filter((n): n is string => !!n),
+  }))
+}

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { stageOf } from '@/lib/utils/job-stage'
 import { getDesignerUsers } from './designers'
 import type { JobStatus } from '@/lib/supabase/types'
 
@@ -11,6 +12,8 @@ export type DesignLoadJob = {
   location:     string
   installDate:  string | null
   createdAt:    string
+  /** Raw job_status — read it through stageOf() (src/lib/utils/job-stage.ts). */
+  status:       JobStatus
   assignedAt:   string
   pocName:      string
   complexity:   number | null
@@ -96,6 +99,7 @@ function toDesignLoadJob(row: JobDesignerRow, pocNames: Map<string, string>): De
     confidence:   job.design_confidence,
     reason:       job.design_score_reason,
     dueDate:      job.design_due_date,
+    status:       job.status,
   }
 }
 
@@ -115,7 +119,10 @@ export async function getDesignLoad(): Promise<DesignLoadData> {
   if (error) throw error
 
   const rows = ((data ?? []) as unknown as JobDesignerRow[]).filter(
-    r => r.jobs && r.jobs.design_completed_at === null && r.jobs.status !== 'completed',
+    r => r.jobs && r.jobs.design_completed_at === null && r.jobs.status !== 'completed'
+      // A designer on a Draft cannot see it (0062); the board must not show
+      // the office one either (spec 2026-10-09).
+      && stageOf(r.jobs.status) !== 'draft',
   )
 
   const pocNames = await attachPocNames(supabase, rows)
