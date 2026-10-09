@@ -152,7 +152,8 @@ export function tplDesignInstallShift(p: {
   jobUrl:         string
 }): string {
   return (
-    `📅 <b>Install Date Moved</b>\n` +
+    // A Pending job's first date is "set", a cleared one "removed" (2026-10-09).
+    `📅 <b>${!p.oldInstallDate ? 'Install Date Set' : !p.installDate ? 'Install Date Removed' : 'Install Date Moved'}</b>\n` +
     `<b>Project:</b> ${p.projectTitle}\n` +
     `<b>Client:</b> ${p.client}\n` +
     `<b>Install date:</b> ${formatDate(p.oldInstallDate)} → ${formatDate(p.installDate)}\n` +

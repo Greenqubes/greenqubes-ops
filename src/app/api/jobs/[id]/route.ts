@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { daysBetween, addDaysISO } from '@/lib/utils/design-urgency'
+import { designDateChange } from '@/lib/utils/design-date-change'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplDesignDueShift, tplDesignInstallShift, tplDesignDueRemoved, tplDesignDueSet } from '@/lib/telegram/templates'
 import { scoreDesignJob } from '@/lib/ai/design-score'
@@ -94,7 +95,7 @@ export async function PATCH(
   const effectiveRole = await getEffectiveRole(profile.role)
 
   const body = await req.json().catch(() => ({})) as {
-    date?:               string
+    date?:               string | null
     design_brief?:       string | null
     design_due_date?:    string | null
     design_due_manual?:  boolean
@@ -148,7 +149,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  type JobRow = { date: string; design_due_date: string | null; project_title: string | null; design_brief: string | null; client: string }
+  type JobRow = { date: string | null; design_due_date: string | null; project_title: string | null; design_brief: string | null; client: string }
   const { data: job } = await supabase
     .from('jobs')
     .select('date, design_due_date, project_title, design_brief, client')
@@ -176,9 +177,9 @@ export async function PATCH(
   // - due_set:       this save typed a new or changed due date by hand and it
   //                  stuck (edit 19, Nic 2026-09-01)
   type DueShiftNotify     = { kind: 'due_shift'; oldDue: string; newDue: string; installDate: string }
-  type InstallShiftNotify = { kind: 'install_shift'; oldInstallDate: string; installDate: string; dueDate: string | null }
-  type DueRemovedNotify   = { kind: 'due_removed'; oldDue: string; oldInstallDate: string; installDate: string }
-  type DueSetNotify       = { kind: 'due_set'; oldDue: string | null; newDue: string; oldInstallDate: string; installDate: string }
+  type InstallShiftNotify = { kind: 'install_shift'; oldInstallDate: string | null; installDate: string | null; dueDate: string | null }
+  type DueRemovedNotify   = { kind: 'due_removed'; oldDue: string; oldInstallDate: string | null; installDate: string | null }
+  type DueSetNotify       = { kind: 'due_set'; oldDue: string | null; newDue: string; oldInstallDate: string | null; installDate: string | null }
   let notify: DueShiftNotify | InstallShiftNotify | DueRemovedNotify | DueSetNotify | null = null
 
   // What the body says about the due date: undefined = not sent, null =
@@ -190,9 +191,15 @@ export async function PATCH(
   const dueCleared = bodyDue === null && !!job.design_due_date
   const dueTyped   = typeof bodyDue === 'string' && bodyDue !== job.design_due_date
 
-  if (body.date && body.date !== job.date) {
-    updates.date = body.date
+  // A first date on a dateless Pending job, or a cleared one, is not a MOVE:
+  // there is nothing to measure the shift from or to, so the due date stays
+  // put and the designers just hear the install date was set / removed
+  // (spec 2026-10-09).
+  const newInstallDate = 'date' in body ? (body.date || null) : job.date
+  const change = designDateChange(job.date, 'date' in body ? body.date : undefined)
+  if (change !== 'none') updates.date = newInstallDate
 
+  if (change === 'moved' && job.date && body.date) {
     // Auto-shift (spec, Nic 2026-08-26): preserve the lead-time gap by moving
     // the due date the same signed delta the install date moved, regardless
     // of design_due_manual. Clamped at today (SGT) — never shifted into the
@@ -220,6 +227,9 @@ export async function PATCH(
       const dueAfterSave = ('design_due_date' in updates ? updates.design_due_date : job.design_due_date) as string | null
       notify = { kind: 'install_shift', oldInstallDate: job.date, installDate: body.date, dueDate: dueAfterSave }
     }
+  } else if ((change === 'set' || change === 'cleared') && !dueCleared && !dueTyped) {
+    const dueAfterSave = ('design_due_date' in updates ? updates.design_due_date : job.design_due_date) as string | null
+    notify = { kind: 'install_shift', oldInstallDate: job.date, installDate: newInstallDate, dueDate: dueAfterSave }
   }
 
   // Edit 18: a cleared due date wins over any move in the same save — the
@@ -228,14 +238,14 @@ export async function PATCH(
   // whitelist above; design_due_manual arrives true from the client, so the
   // AI scorer never re-proposes over it — cleared stays cleared.
   if (dueCleared && job.design_due_date) {
-    notify = { kind: 'due_removed', oldDue: job.design_due_date, oldInstallDate: job.date, installDate: body.date ?? job.date }
+    notify = { kind: 'due_removed', oldDue: job.design_due_date, oldInstallDate: job.date, installDate: newInstallDate }
   } else if (dueTyped && typeof bodyDue === 'string' && notify?.kind !== 'due_shift') {
     // Edit 19: a hand-typed date that survived this save tells the designers
     // "set" (no previous date) or "changed" (old → new), with a same-save
     // install move on the install line. When the auto-shift ran instead
     // ("use shifted date" — the typed value is discarded), the due_shift
     // notification above already covers it.
-    notify = { kind: 'due_set', oldDue: job.design_due_date, newDue: bodyDue, oldInstallDate: job.date, installDate: body.date ?? job.date }
+    notify = { kind: 'due_set', oldDue: job.design_due_date, newDue: bodyDue, oldInstallDate: job.date, installDate: newInstallDate }
   }
 
   if (Object.keys(updates).length > 0) {
@@ -246,7 +256,7 @@ export async function PATCH(
   // feeds the model changed; resubmitting identical values must not re-score.
   // Brief-change wins over date-change when both moved in the same save.
   const briefChanged = body.design_brief !== undefined && body.design_brief !== job.design_brief
-  const dateChanged   = body.date !== undefined && body.date !== job.date
+  const dateChanged   = change !== 'none'
   if (briefChanged || dateChanged) {
     after(() => scoreDesignJob(jobId, briefChanged ? 'brief_change' : 'date_change'))
   }

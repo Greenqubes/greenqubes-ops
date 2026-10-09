@@ -303,7 +303,10 @@ export function JobDetailShell({
   // dismiss (backdrop/X) → false, the safe default — automatic shift wins.
   const [dueConflictPrompt, setDueConflictPrompt] = useState<{ typed: string; shifted: string } | null>(null)
   const dueConflictResolveRef = useRef<((keep: boolean) => void) | null>(null)
-  const resolveDueConflict = (newDate: string): Promise<boolean> => {
+  const resolveDueConflict = (newDate: string | null): Promise<boolean> => {
+    // No shift happens from or to a missing install date (design-date-change.ts),
+    // so there is nothing to ask about (2026-10-09).
+    if (!job.date || !newDate) return Promise.resolve(false)
     if (!dueEditedThisSessionRef.current || dueDate == null || newDate === job.date || dueDateBaseline == null) {
       return Promise.resolve(false)
     }
@@ -489,7 +492,7 @@ export function JobDetailShell({
   // invisible in the UI until the next full reload and (b) let a second save
   // PATCH the stale pre-shift date straight back over the server's shift.
   const saveDesignBriefFields = async (
-    newDate: string,
+    newDate: string | null,
     opts: { keepManualDue?: boolean } = {},
   ): Promise<void> => {
     const designRes = await fetch(`/api/jobs/${job.id}`, {
@@ -499,7 +502,7 @@ export function JobDetailShell({
         design_brief:      briefText || null,
         design_due_date:   dueDate,
         design_due_manual: dueManual,
-        ...(newDate !== job.date ? { date: newDate } : {}),
+        ...(newDate !== job.date ? { date: newDate || null } : {}),
         ...(opts.keepManualDue ? { keepManualDue: true } : {}),
       }),
     })
@@ -516,8 +519,8 @@ export function JobDetailShell({
     bumpSuppression()
     setSaving(true)
     try {
-      if (isBriefDirty || values.date !== job.date) {
-        await saveDesignBriefFields(values.date, { keepManualDue })
+      if (isBriefDirty || (values.date || null) !== job.date) {
+        await saveDesignBriefFields(values.date || null, { keepManualDue })
       }
 
       const [, addedCoordinatorIds] = await Promise.all([
@@ -925,7 +928,7 @@ export function JobDetailShell({
       // path also writes `date` (below, via saveValues) and previously
       // skipped both entirely (react-hook-form's isDirty knows nothing about
       // briefText/dueDate/dueManual, which live outside the form).
-      if (isBriefDirty || pushDate !== job.date) await saveDesignBriefFields(pushDate, { keepManualDue })
+      if (isBriefDirty || (pushDate || null) !== job.date) await saveDesignBriefFields(pushDate || null, { keepManualDue })
       if (isDirty) await saveValues(getValues())
       // Still a draft here, so a PIC change goes through the handover route
       // before the push (after it, the job is scheduled and the route refuses).
