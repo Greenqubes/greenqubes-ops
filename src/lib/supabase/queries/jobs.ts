@@ -93,6 +93,10 @@ export async function getScheduleJobs(): Promise<ScheduleJob[]> {
   const { data, error } = await supabase
     .from('jobs')
     .select(SCHEDULE_SELECT)
+    // The schedule only ever draws scheduled jobs (ScheduleShell's own filter
+    // dropped the rest), and narrowing here keeps ScheduleJob.date a non-null
+    // string now that Drafts and Pending jobs may have no date (2026-10-09).
+    .eq('status', 'scheduled') // raw status — see job-stage.ts
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error

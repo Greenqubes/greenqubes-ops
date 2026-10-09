@@ -5,8 +5,10 @@ type PillVariant = JobStatus | Role | 'overdue'
 
 const styles: Record<PillVariant, string> = {
   scheduled:         'bg-brand-blue-soft  text-brand-blue',
+  // raw 'pending' is a private Draft — see src/lib/utils/job-stage.ts
   pending:           'bg-brand-amber-soft text-brand-amber',
   awaiting_approval: 'bg-brand-amber-soft text-brand-amber',
+  awaiting_date:     'bg-brand-blue-soft  text-brand-blue',
   completed:         'bg-brand-green-soft text-brand-green',
   overdue:           'bg-bad text-white',
   sales:             'bg-brand-blue-soft  text-brand-blue',
@@ -21,8 +23,9 @@ const styles: Record<PillVariant, string> = {
 
 const label: Record<PillVariant, string> = {
   scheduled:         'Scheduled',
-  pending:           'Pending',
-  awaiting_approval: 'Awaiting Approval',
+  pending:           'Draft',
+  awaiting_approval: 'Draft',
+  awaiting_date:     'Pending',
   completed:         'Completed',
   overdue:           'Overdue',
   sales:             'Sales',

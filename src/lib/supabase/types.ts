@@ -8,7 +8,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 // 2026-09-04). If they are ever split, add 'finance' here and update
 // src/lib/auth/capabilities.ts; nothing else should test for 'hr' directly.
 export type Role        = 'sales' | 'scheduler' | 'installer' | 'admin' | 'designer' | 'coordinator' | 'production' | 'hr'
-export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'completed'
+export type JobStatus   = 'scheduled' | 'pending' | 'awaiting_approval' | 'awaiting_date' | 'completed'
 export type FileKind    = 'photo' | 'voice' | 'do' | 'attachment' | 'completion' | 'url_link' | 'production_instructions' | 'external_verification' | 'design_brief'
 export type MessageKind = 'text' | 'voice'
 export type LangCode    = 'en' | 'zh' | 'bn'
@@ -50,7 +50,7 @@ export interface Database {
           id:                      string
           status:                  JobStatus
           project_title:           string | null
-          date:                    string
+          date:                    string | null
           date_end:                string | null
           time_start:              string | null
           time_end:                string | null

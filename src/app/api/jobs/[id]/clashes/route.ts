@@ -140,16 +140,21 @@ export async function GET(
   }
 
   type JobRow = {
-    date: string; date_end: string | null; time_start: string | null; time_end: string | null
+    date: string | null; date_end: string | null; time_start: string | null; time_end: string | null
     job_assignees: Array<{ user_id: string; is_sub_installer: boolean; users: { id: string; name: string } | null }>
   }
-  const { data: job } = await supabase
+  const { data: jobRow } = await supabase
     .from('jobs')
     .select('date, date_end, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
-  if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!jobRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // A Draft or Pending job may have no date yet (2026-10-09). Nothing can
+  // clash with an undated job, and every caller checks the date is filled
+  // before pushing — so this only guards a direct call.
+  if (!jobRow.date) return NextResponse.json({ error: 'date_required' }, { status: 422 })
+  const job = { ...jobRow, date: jobRow.date }
 
   // Sub-installers are excluded from clash detection (Phase 3 rule).
   const assignees = job.job_assignees
