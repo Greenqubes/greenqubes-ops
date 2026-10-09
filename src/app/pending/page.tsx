@@ -1,12 +1,16 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getPendingJobs } from '@/lib/supabase/queries/jobs'
-import { ScheduleShell } from '@/features/schedule/ScheduleShell'
+import { getStageJobs } from '@/lib/supabase/queries/jobs'
+import { StageListShell } from '@/features/stages/StageListShell'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
-import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
+// Pending tab (spec 2026-10-09): confirmed projects waiting for an install
+// date, visible to the whole office. In the database this stage is status
+// 'awaiting_date' — 'pending' there means a private Draft (see
+// src/lib/utils/job-stage.ts). Before 2026-10-09 this page listed drafts.
 export default async function PendingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,33 +26,18 @@ export default async function PendingPage() {
   if (!profile) redirect('/login')
 
   const effectiveRole = await getEffectiveRole(profile.role)
-  // Nav only: a plain admin navigates with their own tabs. Permissions below
-  // keep using effectiveRole exactly as before.
-  const navRole      = await getNavRole(profile.role)
-  // Installers never see pending jobs — they see the work they are formally
-  // assigned to, and a pending job has nobody on it yet. RLS already returned
-  // them an empty list, but the page was reachable by URL while /schedule and
-  // /fcfs both bounce them; this closes the odd one out (Nic, 2026-09-15).
+  const navRole       = await getNavRole(profile.role)
+  // Installers never see Pending jobs: crew is confirmed only once a job is
+  // on the schedule, so they are never on one (Nic, 2026-09-15 / 2026-10-09).
+  // Designer, production and hr DO see Pending now — designers start work on
+  // these jobs before the date is set (2026-10-09; reverses 0060's page bar).
   if (effectiveRole === 'installer') redirect('/installer')
-  // Designer and production are off pending jobs too (Nic, 2026-09-15): a
-  // draft has unconfirmed dates and missing details, and production seeing
-  // one could mean signage built for a job that changes. Migration 0060
-  // enforces this in the database as well — until then they could SELECT
-  // every draft in the company and only lacked a link to the page.
-  if (effectiveRole === 'designer' || effectiveRole === 'production') redirect('/schedule')
-  // hr never sees pending jobs. RLS already returns zero rows for her (the
-  // jobs SELECT policy is scoped to non-pending statuses); this keeps the UI
-  // honest rather than showing her an empty list.
-  if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
-  const jobs = await getPendingJobs()
+
+  const jobs = await getStageJobs(['awaiting_date']) // raw status — see job-stage.ts
 
   return (
-    <ScheduleShell
-      jobs={jobs}
-      lang={(profile.lang as LangCode) ?? 'en'}
-      role={effectiveRole}
-      navRole={navRole}
-      pageMode="pending"
-    />
+    <Suspense>
+      <StageListShell jobs={jobs} stage="pending" lang={(profile.lang as LangCode) ?? 'en'} role={effectiveRole} navRole={navRole} />
+    </Suspense>
   )
 }

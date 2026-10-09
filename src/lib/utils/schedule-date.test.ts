@@ -64,13 +64,13 @@ check('29 February in a leap year is a real day', resolveScheduleDate('2028-02-2
 
 console.log('scheduleDateKey:')
 
-// ONE KEY PER TAB OF THE APP. The same shell draws /schedule, /pending and
-// /completed; sharing a key would make browsing Pending move the schedule's
-// date under the user, which is the annoyance this whole change removes.
+// ONE KEY PER TAB OF THE APP. The same shell draws /schedule and /completed;
+// sharing a key would make browsing Completed move the schedule's date under
+// the user, which is the annoyance this whole change removes. (/pending left
+// this shell on 2026-10-09 — it is a plain list with no date.)
 check('the schedule has its own key', scheduleDateKey('schedule'), 'gq-schedule-date:schedule')
-check('pending has its own key', scheduleDateKey('pending'), 'gq-schedule-date:pending')
 check('completed has its own key', scheduleDateKey('completed'), 'gq-schedule-date:completed')
-check('the three keys are all different', new Set([scheduleDateKey('schedule'), scheduleDateKey('pending'), scheduleDateKey('completed')]).size, 3)
+check('the two keys are different', scheduleDateKey('schedule') !== scheduleDateKey('completed'), true)
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed.`)

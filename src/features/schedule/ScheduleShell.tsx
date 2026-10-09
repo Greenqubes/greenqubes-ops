@@ -45,7 +45,7 @@ interface ScheduleShellProps {
   /** Nav-only role (getNavRole): an admin who is not previewing gets their
    *  own tabs. Defaults to `role` — unchanged for everyone else. */
   navRole?: Role
-  pageMode?: 'schedule' | 'pending' | 'completed'
+  pageMode?: 'schedule' | 'completed'
   /** Optional so the pending/completed pages compile and render unchanged —
    *  leave and holidays only belong on the live schedule. */
   /** Driver board — only the live schedule passes these. */
@@ -99,7 +99,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     try { sessionStorage.setItem(scheduleDateKey(pageMode), value) } catch { /* private window */ }
   }, [pageMode])
 
-  const canBulkDelete = role === 'scheduler' || (role === 'sales' && pageMode === 'pending') || (role === 'coordinator' && pageMode === 'pending')
+  // Sales/coordinator bulk delete lived on the old Pending list; it moved to
+  // the Drafts tab with it (StageListShell, 2026-10-09).
+  const canBulkDelete = role === 'scheduler'
   // Undo accidental completions straight from the Completed list, and mark
   // jobs complete in bulk from the Schedule list (Nic, 2026-08-19).
   const canBulkRevert   = role === 'scheduler' && pageMode === 'completed'
@@ -172,8 +174,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
 
   // ── Filtering ──
   const filtered = useMemo(() => jobs.filter(j => {
-    if (pageMode === 'schedule'  && (j.status === 'completed' || j.status === 'pending' || j.status === 'awaiting_approval')) return false
-    if (pageMode === 'pending'   && (j.status !== 'pending'   && j.status !== 'awaiting_approval')) return false
+    if (pageMode === 'schedule'  && j.status !== 'scheduled') return false // raw status — see job-stage.ts
     if (pageMode === 'completed' &&  j.status !== 'completed') return false
     if (query.trim()) {
       const q   = query.toLowerCase()

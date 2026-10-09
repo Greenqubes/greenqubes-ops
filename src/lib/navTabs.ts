@@ -1,4 +1,4 @@
-import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool, CalendarOff } from 'lucide-react'
+import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool, CalendarOff, FileText } from 'lucide-react'
 import type { Role } from '@/lib/supabase/types'
 
 export type NavTab = { href: string; label: string; Icon: typeof Calendar }
@@ -16,6 +16,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
     { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
@@ -24,6 +25,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
     { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
@@ -44,15 +46,18 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
     { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // HR / Finance: schedule view-only, the Leave tab she owns, and the
-  // assistant. No FCFS, no Pending, no Completed edits, no Admin — see
+  // HR / Finance: schedule view-only, the Leave tab she owns, Pending
+  // read-only (since 2026-10-09), and the assistant. No FCFS, no Drafts, no
+  // Completed edits, no Admin — see
   // src/lib/auth/capabilities.ts for the gates behind those.
   hr: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar     },
+    { href: '/pending',   label: 'Pending',   Icon: Clock        },
     { href: '/leave',     label: 'Leave',     Icon: CalendarOff  },
     { href: '/assistant', label: 'Assistant', Icon: Bot          },
   ],
@@ -61,19 +66,24 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
+    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
     { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
+  // Pending since 2026-10-09: designers start work on Pending jobs before
+  // the install date is set. No Drafts — they do not create jobs.
   designer: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
+    { href: '/pending',     label: 'Pending',   Icon: Clock         },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   production: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
+    { href: '/pending',   label: 'Pending',   Icon: Clock         },
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],

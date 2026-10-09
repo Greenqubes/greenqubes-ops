@@ -14,11 +14,12 @@
  * Pure and dependency-free so it can be run standalone by its test.
  */
 
-export type SchedulePageMode = 'schedule' | 'pending' | 'completed'
+export type SchedulePageMode = 'schedule' | 'completed'
 
-/** One key per tab of the app. The same shell draws /schedule, /pending and
- *  /completed, and a shared key would let browsing Pending move the schedule's
- *  date under the user — the same annoyance in a new place. */
+/** One key per tab of the app. The same shell draws /schedule and
+ *  /completed, and a shared key would let browsing Completed move the
+ *  schedule's date under the user — the same annoyance in a new place.
+ *  (/pending used this shell too until 2026-10-09; it is a plain list now.) */
 export function scheduleDateKey(pageMode: SchedulePageMode): string {
   return `gq-schedule-date:${pageMode}`
 }
