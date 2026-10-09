@@ -50,8 +50,8 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
         const rangeErr = validateRange(args.start_date, args.end_date)
         if (rangeErr) return bad(rangeErr)
         const status = args.status
-        if (status !== undefined && status !== 'scheduled' && status !== 'pending' && status !== 'completed') {
-          return bad('status must be scheduled, pending or completed')
+        if (status !== undefined && status !== 'scheduled' && status !== 'pending' && status !== 'draft' && status !== 'completed') {
+          return bad('status must be draft, pending, scheduled or completed')
         }
         return ok(await getScheduleRange(args.start_date, args.end_date, status))
       }

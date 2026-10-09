@@ -78,3 +78,53 @@ export function formalCrewAllowed(status: string): boolean {
 export function postponeNotifyNow(jobDate: string | null, todayISO: string): boolean {
   return jobDate === todayISO
 }
+
+// ── Review fixes (2026-10-09) ────────────────────────────────────────────────
+
+/** What the "Pending but not yours" lock covers. Designers are not sharers,
+ *  but an ASSIGNED designer must still use the files (the Designer JO is
+ *  what design-complete needs) — starting design on Pending jobs is the
+ *  point of the stage. Core fields stay locked for them, as everywhere. */
+export function pendingLocks(input: {
+  stage: Stage; canEdit: boolean; isAssignedDesigner: boolean
+}): { form: boolean; files: boolean } {
+  const form = input.stage === 'pending' && !input.canEdit
+  return { form, files: form && !input.isAssignedDesigner }
+}
+
+/** The job page's Delete button. DELETE /api/jobs/[id] bins only Drafts for
+ *  sales and coordinators; schedulers may delete any job. */
+export function canDeleteAtStage(role: string, stage: Stage): boolean {
+  if (role === 'scheduler' || role === 'admin') return true
+  if (role === 'sales' || role === 'coordinator') return stage === 'draft'
+  return false
+}
+
+/** Which client writes a stage move. A move INTO Draft hides the row from
+ *  a non-sharer (0062), and UPDATE … RETURNING on their own session then
+ *  fails — so it is written on the service key, after the session read and
+ *  canMoveStage authorised it (the handover route's pattern). */
+export function stageWriteVia(from: Stage, to: Stage): 'session' | 'service' {
+  void from
+  return to === 'draft' ? 'service' : 'session'
+}
+
+/** A job may not go back to Drafts while designers are on it: they could
+ *  not see it, yet the nightly reminders would keep finding it. */
+export function stageMoveBlocked(to: Stage, designerCount: number): 'designers_assigned' | null {
+  return to === 'draft' && designerCount > 0 ? 'designers_assigned' : null
+}
+
+/** How the New Job form saves each button. A push inserts a Draft that
+ *  /submit flips, so designers are attached AFTER it — on the Draft the
+ *  designers route refuses them. */
+export function newJobPlan(
+  mode: 'draft' | 'pending' | 'push_to_schedule',
+  roleSuggests: boolean,
+): { status: 'pending' | 'awaiting_date'; crewAsSuggestion: boolean; designersAfterPush: boolean } {
+  return {
+    status:             mode === 'pending' ? 'awaiting_date' : 'pending',
+    crewAsSuggestion:   roleSuggests || mode === 'pending',
+    designersAfterPush: mode === 'push_to_schedule',
+  }
+}

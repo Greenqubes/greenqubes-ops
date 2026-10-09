@@ -594,4 +594,6 @@ export const zh: Partial<Translations> = {
   stageScheduled: "已排程",
   myJobsEmpty: "暂无你的工作",
   saveChangesFirst: '请先保存修改',
+  designersNotSaved: '工作已保存，但设计师未保存 — 请在工作页面重新添加',
+  moveToDraftsDesigners: '请先移除设计师 — 设计师看不到草稿',
 }

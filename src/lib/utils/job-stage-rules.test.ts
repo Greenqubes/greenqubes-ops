@@ -7,6 +7,7 @@ import {
   REQUIRED_FOR_STAGE, missingForStage, clearedForStage,
   isStageMoveValid, canMoveStage, canEditAtStage,
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
+  pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
 } from './job-stage-rules'
 
 let failures = 0
@@ -82,6 +83,47 @@ console.log('postponing a job tells the crew now only if it was today:')
 check('dated today → now', postponeNotifyNow('2026-10-09', '2026-10-09'), true)
 check('dated tomorrow → 6pm summary', postponeNotifyNow('2026-10-10', '2026-10-09'), false)
 check('no date → 6pm summary', postponeNotifyNow(null, '2026-10-09'), false)
+
+console.log('review fixes (2026-10-09):')
+// #2: a designer is not a sharer, so the "read-only if not yours" lock caught
+// them too — they could not upload the Designer JO on a Pending job, which is
+// the whole reason the stage exists.
+check('an assigned designer may still use files on a Pending job',
+  pendingLocks({ stage: 'pending', canEdit: false, isAssignedDesigner: true }).files, false)
+check('…but not the core fields', pendingLocks({ stage: 'pending', canEdit: false, isAssignedDesigner: true }).form, true)
+check('a sales person who is not on it gets neither', pendingLocks({ stage: 'pending', canEdit: false, isAssignedDesigner: false }), { form: true, files: true })
+check('no lock on a Scheduled job from this rule', pendingLocks({ stage: 'scheduled', canEdit: false, isAssignedDesigner: false }), { form: false, files: false })
+check('no lock for an editor', pendingLocks({ stage: 'pending', canEdit: true, isAssignedDesigner: false }), { form: false, files: false })
+
+// #4: the delete route only bins raw 'pending' (Drafts) for sales/coordinator.
+check('sales may delete a Draft', canDeleteAtStage('sales', 'draft'), true)
+check('sales may NOT delete a Pending job (the route refuses it)', canDeleteAtStage('sales', 'pending'), false)
+check('coordinator may NOT delete a Pending job', canDeleteAtStage('coordinator', 'pending'), false)
+check('scheduler may delete a Pending job', canDeleteAtStage('scheduler', 'pending'), true)
+check('designer never', canDeleteAtStage('designer', 'draft'), false)
+
+// #5: once a job becomes a Draft, 0062 hides it from a non-sharer, and
+// UPDATE … RETURNING on their own session fails. A move INTO Draft is
+// written on the service key after the session read authorised it.
+check('Pending → Draft is written on the service key', stageWriteVia('pending', 'draft'), 'service')
+check('Draft → Pending stays on the session (RLS decides)', stageWriteVia('draft', 'pending'), 'session')
+check('Scheduled → Pending stays on the session', stageWriteVia('scheduled', 'pending'), 'session')
+
+// #6: a designer on a Draft cannot see it, so a job may not go back to
+// Drafts while designers are on it.
+check('Pending → Draft refused while a designer is on it', stageMoveBlocked('draft', 1), 'designers_assigned')
+check('Pending → Draft fine with no designers', stageMoveBlocked('draft', 0), null)
+check('other moves are not blocked by designers', stageMoveBlocked('pending', 2), null)
+
+// #3: a New Job push inserts a Draft and /submit flips it, so designers must
+// be attached AFTER the push — on the Draft the route refuses them (409) and
+// the form never checked, silently dropping them.
+check('push: insert a Draft, designers after the push', newJobPlan('push_to_schedule', false),
+  { status: 'pending', crewAsSuggestion: false, designersAfterPush: true })
+check('save as Pending: office stage, crew as suggestions, designers now', newJobPlan('pending', false),
+  { status: 'awaiting_date', crewAsSuggestion: true, designersAfterPush: false })
+check('draft: private, role decides crew, designers now (form refuses them)', newJobPlan('draft', true),
+  { status: 'pending', crewAsSuggestion: true, designersAfterPush: false })
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-stage-rules checks passed')

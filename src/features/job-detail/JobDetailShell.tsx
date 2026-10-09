@@ -24,7 +24,7 @@ import { DesignBriefSection } from './DesignBriefSection'
 import { JobFormLayout } from './JobFormLayout'
 import { CollapseCard } from './CollapseCard'
 import { useRequiredFields } from './useRequiredFields'
-import { designBriefEditable, pendingPicHandover } from '@/lib/utils/job-form-rules'
+import { designBriefEditable, pendingPicHandover, toDbDate } from '@/lib/utils/job-form-rules'
 import { rememberPreviousLocation, readPreviousLocation, forgetPreviousLocation } from './previous-location'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
@@ -48,7 +48,7 @@ import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { stageOf, type Stage } from '@/lib/utils/job-stage'
-import { canMoveStage, canEditAtStage } from '@/lib/utils/job-stage-rules'
+import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
 
 export type FormValues = {
@@ -215,8 +215,14 @@ export function JobDetailShell({
   const isReadOnlyRole = isReadOnlyOfficeRole(role)
   // A Pending job is visible to the whole office but edited only by its
   // creator, PIC, coordinators on it, schedulers and admin (spec 2026-10-09).
-  const pendingNotMine = stage === 'pending' && !canEditAtStage(stageViewer, stageRulesJob)
-  const formReadOnly   = readOnly || isReadOnlyRole || pendingNotMine
+  // An ASSIGNED designer keeps the files and tasks on a Pending job — the
+  // Designer JO is what design-complete needs (review fix, 2026-10-09).
+  const pendingLock    = pendingLocks({
+    stage, canEdit: canEditAtStage(stageViewer, stageRulesJob),
+    isAssignedDesigner: initialDesignerIds.includes(userId),
+  })
+  const formReadOnly   = readOnly || isReadOnlyRole || pendingLock.form
+  const filesReadOnly  = readOnly || isReadOnlyRole || pendingLock.files
   const [clashData,            setClashData]           = useState<ClashesResponse | null>(null)
   // Clash-on-edit of a scheduled job (Workflow V2 Task 19, extended to scheduler)
   const [editClashes,          setEditClashes]         = useState<CheckClash[] | null>(null)
@@ -412,7 +418,8 @@ export function JobDetailShell({
     const handover = pendingPicHandover({ status, originalPic: job.sales_poc_id, newPic: values.sales_poc_id })
     const { data: saved } = await supabase.from('jobs').update({
       project_title:           values.project_title || null,
-      date:                    values.date,
+      // '' would be refused by Postgres; an empty box is NULL (review fix).
+      date:                    toDbDate(values.date),
       date_end:                values.date_end || null,
       time_start:              values.time_start || null,
       time_end:                values.time_end || null,
@@ -1058,7 +1065,8 @@ export function JobDetailShell({
   // (no jobs DELETE RLS policy for sales — the DELETE call returns ok with
   // zero rows affected rather than an error). Coordinator inherits that same
   // pre-existing gap by parity; not fixed here (out of scope, RLS-level).
-  const showDelete         = (['sales', 'coordinator'].includes(role) && (stage === 'draft' || stage === 'pending')) || role === 'scheduler'
+  // The delete route bins only Drafts for sales/coordinators (review fix).
+  const showDelete         = canDeleteAtStage(role, stage)
   // Sales close their OWN job (Nic, 2026-09-07). The overdue alert is sent to
   // the sales POC (api/notifications/overdue), so sales were being nagged about
   // jobs only the scheduler could close. Scheduler still closes anything,
@@ -1667,7 +1675,7 @@ export function JobDetailShell({
                 jobId={job.id}
                 userId={userId}
                 lang={lang}
-                readOnly={formReadOnly || isInstaller || isProduction}
+                readOnly={filesReadOnly || isInstaller || isProduction}
                 refreshKey={bucketsRefreshKey}
                 onBucketsChange={setBuckets}
               />
@@ -1676,7 +1684,7 @@ export function JobDetailShell({
               jobId={job.id}
               role={role}
               lang={lang}
-              readOnly={formReadOnly}
+              readOnly={filesReadOnly}
               refreshKey={tasksRefreshKey}
             />
           </div>

@@ -704,6 +704,8 @@ export const en = {
   stageScheduled: "Scheduled",
   myJobsEmpty: "No jobs of yours yet",
   saveChangesFirst: 'Save your changes first',
+  designersNotSaved: 'The job saved, but the designers did not — add them on the job page',
+  moveToDraftsDesigners: 'Remove the designers first — designers cannot see drafts',
 }
 
 export type Translations = typeof en

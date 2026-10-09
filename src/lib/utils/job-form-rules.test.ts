@@ -19,6 +19,7 @@ import {
   endDateBeforeStart,
   mapsSearchUrl,
   composeAddress,
+  toDbDate,
 } from './job-form-rules'
 
 let failures = 0
@@ -327,6 +328,15 @@ check('legacy awaiting_approval counts as a draft', pendingPicHandover({ status:
 check('an unchanged PIC is not a handover', pendingPicHandover({ status: 'pending', originalPic: 'u-nic', newPic: 'u-nic' }), null)
 check('a scheduled job saves its PIC the ordinary way', pendingPicHandover({ status: 'scheduled', originalPic: 'u-nic', newPic: 'u-s2' }), null)
 check('setting a PIC where there was none is a handover', pendingPicHandover({ status: 'pending', originalPic: '', newPic: 'u-nic' }), { to: 'u-nic' })
+
+console.log('\ntoDbDate:')
+// REVIEW FINDING #1 (2026-10-09): the edit form sent the empty date box as ''
+// and Postgres refused it (22007), so every save of an undated Draft or
+// Pending job failed. An empty box must reach the database as NULL.
+check('an empty date box is NULL, not ""', toDbDate(''), null)
+check('whitespace is NULL', toDbDate('  '), null)
+check('undefined is NULL', toDbDate(undefined), null)
+check('a real date passes through', toDbDate('2026-10-15'), '2026-10-15')
 
 console.log(failures === 0 ? '\nAll job-form rule checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

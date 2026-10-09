@@ -11,6 +11,9 @@ import { useToast } from '@/components/Toast'
 import { DesignRatingSlider } from '@/features/job-detail/DesignRatingSlider'
 import { formatDate } from '@/lib/telegram/templates'
 import type { LangCode } from '@/lib/i18n'
+import {
+  parseAssignedBody, parseDueShiftBody, parseInstallShiftBody, parseDueRemovedBody, parseDueSetBody,
+} from './design-notif-bodies'
 
 type InAppNotif = {
   id:         string
@@ -64,84 +67,7 @@ async function errorCodeOf(res: Response): Promise<string | null> {
   }
 }
 
-// design_assigned / design_due_shift upgraded their `body` column to a JSON
-// blob (R2-T2 edit 4) so the drawer can show who assigned + client + install
-// date, and the due-shift line as "Due date: old → new". Pre-upgrade rows
-// carry a plain-text body (the project title, or "old → new") — JSON.parse
-// throws on those, so callers fall back to the original single-line
-// rendering and older rows still render sensibly.
-type AssignedBody  = { projectTitle: string; assignedBy: string; client: string; installDate: string }
-type DueShiftBody  = { projectTitle: string; oldDue: string; newDue: string; client: string; installDate: string }
-
-function parseAssignedBody(raw: string | null): AssignedBody | null {
-  if (!raw) return null
-  try {
-    const v = JSON.parse(raw) as Partial<AssignedBody> | null
-    if (v && typeof v === 'object' && typeof v.assignedBy === 'string' && typeof v.client === 'string' && typeof v.installDate === 'string') {
-      return v as AssignedBody
-    }
-  } catch { /* pre-upgrade plain-text row */ }
-  return null
-}
-
-function parseDueShiftBody(raw: string | null): DueShiftBody | null {
-  if (!raw) return null
-  try {
-    const v = JSON.parse(raw) as Partial<DueShiftBody> | null
-    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.newDue === 'string' && typeof v.client === 'string' && typeof v.installDate === 'string') {
-      return v as DueShiftBody
-    }
-  } catch { /* pre-upgrade plain-text row */ }
-  return null
-}
-
-// design_install_shift (edit 17, Nic 2026-09-01): the install date moved but
-// the design due date did NOT follow — kept via the "Install date moved"
-// prompt, or the job had none to shift. Born as JSON, so no plain-text
-// fallback rows exist for this type.
-type InstallShiftBody = { projectTitle: string; oldInstallDate: string; installDate: string; dueDate: string | null; client: string }
-
-function parseInstallShiftBody(raw: string | null): InstallShiftBody | null {
-  if (!raw) return null
-  try {
-    const v = JSON.parse(raw) as Partial<InstallShiftBody> | null
-    if (v && typeof v === 'object' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string' && (typeof v.dueDate === 'string' || v.dueDate === null)) {
-      return v as InstallShiftBody
-    }
-  } catch { /* malformed row */ }
-  return null
-}
-
-// design_due_removed (edit 18, Nic 2026-09-01): the office cleared the due
-// date. installDate/oldInstallDate differ only when the same save also
-// moved the install date.
-type DueRemovedBody = { projectTitle: string; oldDue: string; oldInstallDate: string; installDate: string; client: string }
-
-function parseDueRemovedBody(raw: string | null): DueRemovedBody | null {
-  if (!raw) return null
-  try {
-    const v = JSON.parse(raw) as Partial<DueRemovedBody> | null
-    if (v && typeof v === 'object' && typeof v.oldDue === 'string' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string') {
-      return v as DueRemovedBody
-    }
-  } catch { /* malformed row */ }
-  return null
-}
-
-// design_due_set (edit 19, Nic 2026-09-01): the office typed a due date by
-// hand — oldDue null means a first date, otherwise a change.
-type DueSetBody = { projectTitle: string; oldDue: string | null; newDue: string; oldInstallDate: string; installDate: string; client: string }
-
-function parseDueSetBody(raw: string | null): DueSetBody | null {
-  if (!raw) return null
-  try {
-    const v = JSON.parse(raw) as Partial<DueSetBody> | null
-    if (v && typeof v === 'object' && (typeof v.oldDue === 'string' || v.oldDue === null) && typeof v.newDue === 'string' && typeof v.oldInstallDate === 'string' && typeof v.installDate === 'string' && typeof v.client === 'string') {
-      return v as DueSetBody
-    }
-  } catch { /* malformed row */ }
-  return null
-}
+// Design-notification body readers live in ./design-notif-bodies.
 
 interface Props {
   lang: LangCode

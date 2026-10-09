@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { timesOverlap } from '@/lib/utils/clash-detection'
 import { leaveBlocksJob, type LeaveRecord } from '@/lib/utils/leave-overlap'
+import { statusesForStage, type Stage } from '@/lib/utils/job-stage'
 
 // Read-only lookups behind the assistant's tools (Phase 2). Every function
 // runs on the user-scoped client so RLS filters what the asker may see —
@@ -59,7 +60,7 @@ async function toToolJobs(
 }
 
 export async function getScheduleRange(
-  startDate: string, endDate: string, status?: 'scheduled' | 'pending' | 'completed',
+  startDate: string, endDate: string, status?: Stage,
 ): Promise<{ jobs: ToolJob[]; truncated: boolean }> {
   const supabase = await createClient()
   let q = supabase.from('jobs').select(JOB_SELECT)
@@ -67,9 +68,10 @@ export async function getScheduleRange(
     .order('date', { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
     .limit(101)
-  // 'pending' includes the legacy awaiting_approval status (same mapping as the app's Pending tab)
-  if (status === 'pending') q = q.in('status', ['pending', 'awaiting_approval'])
-  else if (status)          q = q.eq('status', status)
+  // Stages, not raw statuses: 'pending' is the office Pending stage
+  // (awaiting_date) and 'draft' the private one (raw 'pending') — see
+  // src/lib/utils/job-stage.ts (2026-10-09).
+  if (status) q = q.in('status', statusesForStage(status))
   const { data, error } = await q
   if (error) throw error
   const rows = (data ?? []) as unknown as JobRow[]

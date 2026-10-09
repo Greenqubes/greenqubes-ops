@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { stageOf, STAGE_STATUS, type Stage } from '@/lib/utils/job-stage'
-import { canMoveStage, isStageMoveValid, missingForStage, postponeNotifyNow } from '@/lib/utils/job-stage-rules'
+import { canMoveStage, isStageMoveValid, missingForStage, postponeNotifyNow, stageWriteVia, stageMoveBlocked } from '@/lib/utils/job-stage-rules'
 import { recordCrewChange } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplJobPostponed } from '@/lib/telegram/templates'
@@ -42,9 +42,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     project_title: string | null; client: string; client_poc_name: string | null
     client_poc_phone: string | null; location: string
     job_coordinators: Array<{ user_id: string }>
+    job_designers:    Array<{ user_id: string }>
   }
   const { data: job } = await supabase.from('jobs')
-    .select('id, status, date, scheduled_at, created_by, sales_poc_id, project_title, client, client_poc_name, client_poc_phone, location, job_coordinators(user_id)')
+    .select('id, status, date, scheduled_at, created_by, sales_poc_id, project_title, client, client_poc_name, client_poc_phone, location, job_coordinators(user_id), job_designers(user_id)')
     .eq('id', jobId).maybeSingle() as { data: JobRow | null; error: unknown }
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
   }
 
+  // Designers cannot see a Draft (0062), yet design-daily would keep
+  // reminding them about it — take them off first (review fix, 2026-10-09).
+  const blocked = stageMoveBlocked(to, job.job_designers.length)
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 409 })
+
   if (to === 'pending') {
     const missing = missingForStage('pending', job)
     if (missing.length) return NextResponse.json({ error: 'missing_fields', fields: missing }, { status: 422 })
@@ -70,9 +76,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // 1. The job itself, on the caller's OWN client — RLS has the final say on
   //    whether they may change it. .select('id'): an UPDATE filtered by RLS is
   //    not an error (the trap this repo has shipped four times).
-  const { data: updated } = await supabase.from('jobs').update(patch as never)
-    .eq('id', jobId).select('id').throwOnError()
-  if (!updated?.length) return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
+  //    Exception: a move INTO Draft. The row then becomes hidden from a
+  //    non-sharer (0062) and UPDATE … RETURNING on their session fails, so it
+  //    is written on the service key — the session read above and
+  //    canMoveStage already authorised it (the handover route's pattern).
+  const { data: updated, error: updErr } = stageWriteVia(from, to) === 'service'
+    ? await createServiceClient().from('jobs').update(patch as never).eq('id', jobId).select('id')
+    : await supabase.from('jobs').update(patch as never).eq('id', jobId).select('id')
+  if (updErr || !updated?.length) return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
 
   // 2. The crew, on the service client, only AFTER the move was allowed.
   //    job_assignees has no UPDATE policy at all and sales cannot delete

@@ -34,7 +34,9 @@ import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { Role } from '@/lib/supabase/types'
-import { STAGE_STATUS, type Stage } from '@/lib/utils/job-stage'
+import type { Stage } from '@/lib/utils/job-stage'
+import { newJobPlan } from '@/lib/utils/job-stage-rules'
+import { toDbDate } from '@/lib/utils/job-form-rules'
 
 interface Props {
   userId:          string
@@ -174,7 +176,8 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
     }
     // A Pending job takes no confirmed crew — only suggestions — so no
     // installer can ever see it. Push and Draft keep the role's usual rule.
-    const crewAsSuggestion = suggestMode || mode === 'pending'
+    const plan = newJobPlan(mode, suggestMode)
+    const crewAsSuggestion = plan.crewAsSuggestion
 
     setSaving(true)
     const supabase = createClient()
@@ -185,10 +188,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           // Save as Pending writes the office-visible stage; Draft and Push
           // insert a private Draft (raw 'pending' — see job-stage.ts), and the
           // submit route flips a push to scheduled and notifies schedulers.
-          status: mode === 'pending' ? STAGE_STATUS.pending : STAGE_STATUS.draft,
+          status: plan.status,
           sales_poc_id:            values.sales_poc_id || userId,
           project_title:           values.project_title || null,
-          date:                    values.date || null,
+          date:                    toDbDate(values.date),
           date_end:                values.date_end || null,
           time_start:              values.time_start || null,
           time_end:                values.time_end || null,
@@ -294,13 +297,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       }
 
       // Attach selected designers — the route itself notifies each one
-      // (bell + Telegram), same as the edit form's save handler.
-      if (selectedDesignerIds.length > 0) {
-        await fetch(`/api/jobs/${job.id}/designers`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userIds: selectedDesignerIds }),
-        })
-      }
+      // (bell + Telegram). A push inserts a Draft, which the designers route
+      // refuses, so for a push they are attached AFTER /submit succeeds
+      // (review fix, 2026-10-09 — they used to be dropped silently).
+      if (!plan.designersAfterPush) await attachDesigners(job.id)
 
       // Push onto the schedule — but first check for installer
       // double-bookings, exactly like the edit form does.
@@ -334,6 +334,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           router.push(`/jobs/${job.id}`)
           return
         }
+        await attachDesigners(job.id)
         setShowPushedModal(true)
         return
       }
@@ -342,6 +343,20 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
     } catch {
       showError(t(lang, 'saveError'))
       setSaving(false)
+    }
+  }
+
+  // Designers, checked: a refused or failed call is reported, never dropped.
+  async function attachDesigners(jobId: string): Promise<void> {
+    if (selectedDesignerIds.length === 0) return
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/designers`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: selectedDesignerIds }),
+      })
+      if (!res.ok) showError(t(lang, 'designersNotSaved'))
+    } catch {
+      showError(t(lang, 'designersNotSaved'))
     }
   }
 
@@ -377,6 +392,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
         body: JSON.stringify(pushSilent ? { silent: true } : {}),
       })
       if (!res.ok) throw new Error()
+      await attachDesigners(pushJobId)
       setClashData(null)
       setShowPushedModal(true)
     } catch {
@@ -396,7 +412,10 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       })
       if (!res.ok) throw new Error()
       setClashData(null)
-      showSuccess('Scheduler notified — job kept pending')
+      // The job stays a Draft, which designers cannot see — say so rather
+      // than drop the picks silently.
+      if (selectedDesignerIds.length > 0) showError(t(lang, 'designersNeedPending'))
+      showSuccess('Scheduler notified — job kept as a draft')
       router.push('/schedule')
     } catch {
       showError(t(lang, 'saveError'))

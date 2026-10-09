@@ -294,3 +294,13 @@ export function pendingPicHandover(input: {
   const to   = input.newPic || null
   return from === to ? null : { to }
 }
+
+/**
+ * What a date box sends to the database. An empty box is NULL, never '' —
+ * Postgres refuses '' as a date (22007), which made every save of an undated
+ * Draft or Pending job fail (review finding, 2026-10-09).
+ */
+export function toDbDate(value: MaybeText): string | null {
+  const v = (value ?? '').trim()
+  return v === '' ? null : v
+}

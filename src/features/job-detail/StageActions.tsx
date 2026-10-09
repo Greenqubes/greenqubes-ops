@@ -35,6 +35,7 @@ export function StageActions({ jobId, stage, canMove, beforeMove, onMoved, lang 
       if (!res.ok || !data.status) {
         showError(
           data.error === 'missing_fields' ? t(lang, 'requiredFieldsMissingPending')
+          : data.error === 'designers_assigned' ? t(lang, 'moveToDraftsDesigners')
           : data.error === 'not_permitted' ? t(lang, 'saveBlocked')
           : t(lang, 'saveError'),
         )

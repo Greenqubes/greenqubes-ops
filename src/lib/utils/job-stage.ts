@@ -34,3 +34,13 @@ export const STAGE_STATUS: Record<Stage, 'pending' | 'awaiting_date' | 'schedule
   scheduled: 'scheduled',
   completed: 'completed',
 }
+
+/** The raw statuses that make up a stage — for query filters. */
+export function statusesForStage(stage: Stage): string[] {
+  switch (stage) {
+    case 'draft':     return [...DRAFT_STATUSES]
+    case 'pending':   return ['awaiting_date']
+    case 'scheduled': return ['scheduled']
+    case 'completed': return ['completed']
+  }
+}

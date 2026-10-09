@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/utils/job-stage.test.ts
  * Exits 1 on any failure.
  */
-import { stageOf, STAGE_STATUS, DRAFT_STATUSES, NOT_YET_SCHEDULED_STATUSES } from './job-stage'
+import { stageOf, STAGE_STATUS, DRAFT_STATUSES, NOT_YET_SCHEDULED_STATUSES, statusesForStage } from './job-stage'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -33,6 +33,13 @@ check('into Scheduled writes scheduled', STAGE_STATUS.scheduled, 'scheduled')
 console.log('lists:')
 check('draft statuses', DRAFT_STATUSES, ['pending', 'awaiting_approval'])
 check('not yet scheduled', NOT_YET_SCHEDULED_STATUSES, ['pending', 'awaiting_approval', 'awaiting_date'])
+
+console.log('statusesForStage:')
+// REVIEW FINDING #8: the assistant's 'pending' filter meant raw 'pending',
+// which is now a Draft — office Pending jobs were unreachable.
+check('Pending is awaiting_date', statusesForStage('pending'), ['awaiting_date'])
+check('Draft is both draft statuses', statusesForStage('draft'), ['pending', 'awaiting_approval'])
+check('Scheduled', statusesForStage('scheduled'), ['scheduled'])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-stage checks passed')
