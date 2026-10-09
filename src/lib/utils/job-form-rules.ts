@@ -5,6 +5,8 @@
  * From Nic's marked-up screenshot, 2026-09-10.
  */
 
+import { stageOf } from './job-stage'
+
 export type RequiredJobField =
   | 'project_title'
   | 'date'
@@ -248,7 +250,8 @@ export function shouldNotifyOnPush(input: {
 /**
  * Whether the Design brief card can be filled in yet.
  *
- * Locked until the job is ON the schedule (Nic, 2026-09-15). This follows
+ * Locked on a Draft; open once the job is Pending or Scheduled (spec
+ * 2026-10-09 — until then it was scheduled-only, Nic 2026-09-15). This follows
  * directly from migration 0060: designers no longer see pending jobs, so a
  * brief written on one — or a designer attached to one — would be invisible
  * to the very person it is for, with nothing on screen to say why.
@@ -262,7 +265,11 @@ export function designBriefEditable(input: {
 }): boolean {
   const { status, readOnly } = input
   if (readOnly) return false
-  return status === 'scheduled'
+  // Pending (awaiting_date) unlocks it: designers start work before the
+  // install date is confirmed (spec 2026-10-09). A Draft stays locked —
+  // designers cannot see drafts.
+  const stage = stageOf(status)
+  return stage === 'pending' || stage === 'scheduled'
 }
 
 /**

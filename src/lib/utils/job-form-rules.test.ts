@@ -303,6 +303,9 @@ check('a missing flag is a normal push', shouldNotifyOnPush({ realRole: 'admin',
 // jobs, so a brief written on one — or a designer attached to one — would be
 // invisible to the person it is for. The card unlocks when the job is pushed.
 console.log('\ndesignBriefEditable:')
+// OLD RULE (until 2026-10-09): scheduled only. A Pending job was locked.
+check('brief unlocks on a Pending job (awaiting_date)', designBriefEditable({ status: 'awaiting_date', readOnly: false }), true)
+check('brief stays locked on a Draft (raw pending)', designBriefEditable({ status: 'pending', readOnly: false }), false)
 
 check('a scheduled job can be briefed', designBriefEditable({ status: 'scheduled', readOnly: false }), true)
 check('a pending job cannot', designBriefEditable({ status: 'pending', readOnly: false }), false)
