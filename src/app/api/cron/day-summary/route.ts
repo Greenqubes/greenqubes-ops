@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendSummaryTelegram } from '@/lib/telegram/bot'
+import { changeDateLabel } from '@/lib/utils/day-summary-label'
 import {
   buildUnassignedSummary, buildInstallerSummary, formatDayDate, formatTimeRange,
   splitForTelegram, type TomorrowRow, type UnassignedJob,
@@ -165,7 +166,7 @@ export async function GET(req: NextRequest) {
     pendingCount  = pending.length
 
     const jobIds = [...new Set(pending.map(c => c.target_id))]
-    type JobLite = { id: string; project_title: string | null; client: string; date: string; location: string }
+    type JobLite = { id: string; project_title: string | null; client: string; date: string | null; location: string }
     const { data: jobRows } = jobIds.length === 0
       ? { data: [] as JobLite[] }
       : await db.from('jobs').select('id, project_title, client, date, location').in('id', jobIds) as
@@ -226,7 +227,7 @@ export async function GET(req: NextRequest) {
       const entry: Entry = {
         id:        job.id,
         title:     job.project_title || job.client || 'Untitled job',
-        dateLabel: formatDayDate(job.date),
+        dateLabel: changeDateLabel(job.date, formatDayDate),
         role:      c.payload.as_support ? 'support' : 'driver',
         location:  job.location ?? '',
       }

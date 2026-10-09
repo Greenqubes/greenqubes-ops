@@ -1,6 +1,8 @@
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string | null | undefined): string {
+  // A Pending job (awaiting_date) may have no install date yet (2026-10-09).
+  if (!iso) return 'To be confirmed'
   const [y, m, d] = iso.split('-').map(Number)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${d} ${months[m - 1]} ${y}`
@@ -17,7 +19,7 @@ function pocLines(name: string | null, phone: string | null): string {
   return `POC: ${name ?? '(NIL)'}\nContact: ${phone ?? '(NIL)'}`
 }
 
-function dateLine(date: string, timeStart: string | null, timeEnd: string | null): string {
+function dateLine(date: string | null, timeStart: string | null, timeEnd: string | null): string {
   return timeStart && timeEnd
     ? `${formatDate(date)}, ${formatTime(timeStart)} – ${formatTime(timeEnd)}`
     : formatDate(date)
@@ -30,7 +32,7 @@ export function tplNewJobCreated(p: {
   jobClient:    string
   pocName:      string | null
   pocPhone:     string | null
-  jobDate:      string
+  jobDate:      string | null
   timeStart:    string | null
   timeEnd:      string | null
   location:     string
@@ -54,7 +56,7 @@ export function tplJobAssigned(p: {
   jobClient:    string
   pocName:      string | null
   pocPhone:     string | null
-  jobDate:      string
+  jobDate:      string | null
   timeStart:    string | null
   timeEnd:      string | null
   location:     string
@@ -77,7 +79,7 @@ export function tplJobAssigned(p: {
 export function tplJobCompleted(p: {
   projectTitle:  string | null
   jobClient:     string
-  jobDate:       string
+  jobDate:       string | null
   timeStart:     string | null
   timeEnd:       string | null
   location:      string
@@ -101,7 +103,7 @@ export function tplJobCompleted(p: {
 export function tplDesignAssigned(p: {
   projectTitle: string
   client:       string
-  date:         string
+  date:         string | null
   assignedBy:   string
   jobUrl:       string
 }): string {
@@ -124,7 +126,7 @@ export function tplDesignDueShift(p: {
   oldDue:       string
   newDue:       string
   client:       string
-  installDate:  string
+  installDate:  string | null
   jobUrl:       string
 }): string {
   return (
@@ -144,8 +146,8 @@ export function tplDesignDueShift(p: {
 export function tplDesignInstallShift(p: {
   projectTitle:   string
   client:         string
-  oldInstallDate: string
-  installDate:    string
+  oldInstallDate: string | null
+  installDate:    string | null
   dueDate:        string | null
   jobUrl:         string
 }): string {
@@ -166,8 +168,8 @@ export function tplDesignDueRemoved(p: {
   projectTitle:   string
   client:         string
   oldDue:         string
-  oldInstallDate: string
-  installDate:    string
+  oldInstallDate: string | null
+  installDate:    string | null
   jobUrl:         string
 }): string {
   const installLine = p.oldInstallDate === p.installDate
@@ -191,8 +193,8 @@ export function tplDesignDueSet(p: {
   client:         string
   oldDue:         string | null
   newDue:         string
-  oldInstallDate: string
-  installDate:    string
+  oldInstallDate: string | null
+  installDate:    string | null
   jobUrl:         string
 }): string {
   const installLine = p.oldInstallDate === p.installDate
@@ -218,7 +220,7 @@ export function tplSubInstallerAssigned(p: {
   jobClient:      string
   pocName:        string | null
   pocPhone:       string | null
-  jobDate:        string
+  jobDate:        string | null
   timeStart:      string | null
   timeEnd:        string | null
   location:       string
@@ -245,7 +247,7 @@ export function tplSubInstallerAssigned(p: {
 export function tplInstallerAssigned(p: {
   projectTitle:   string | null
   jobClient:      string
-  jobDate:        string
+  jobDate:        string | null
   timeStart:      string | null
   timeEnd:        string | null
   location:       string
@@ -274,7 +276,7 @@ export function tplInstallerAssigned(p: {
 export function tplClashNeedsReview(p: {
   projectTitle: string | null
   jobClient:    string
-  jobDate:      string
+  jobDate:      string | null
   timeStart:    string | null
   timeEnd:      string | null
   location:     string
@@ -301,7 +303,7 @@ export function tplJobOverdue(p: {
   jobClient:    string
   pocName:      string | null
   pocPhone:     string | null
-  jobDate:      string
+  jobDate:      string | null
   timeEnd:      string
   location:     string
   jobUrl:       string
@@ -323,7 +325,7 @@ export function tplJobMessage(p: {
   jobClient:    string
   pocName:      string | null
   pocPhone:     string | null
-  jobDate:      string
+  jobDate:      string | null
   authorName:   string
   sentAt:       string
   preview:      string
@@ -347,7 +349,7 @@ export function tplJobVoiceNote(p: {
   jobClient:    string
   pocName:      string | null
   pocPhone:     string | null
-  jobDate:      string
+  jobDate:      string | null
   authorName:   string
   sentAt:       string
   jobUrl:       string
@@ -368,7 +370,7 @@ export function tplJobChatBatch(p: {
   count:        number
   projectTitle: string | null
   jobClient:    string
-  jobDate:      string
+  jobDate:      string | null
   timeStart:    string | null
   timeEnd:      string | null
   location:     string
@@ -510,7 +512,7 @@ export function tplLeaveClash(p: {
   leaveDates:   string
   projectTitle: string | null
   jobClient:    string
-  jobDate:      string
+  jobDate:      string | null
   timeStart:    string | null
   timeEnd:      string | null
   location:     string
@@ -523,6 +525,28 @@ export function tplLeaveClash(p: {
     `Client: ${p.jobClient}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
     `📍 ${p.location}\n\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
+// Sent immediately to crew taken off a job that was dated TODAY when it was
+// moved back to Pending (postponed, date to be confirmed). Any other day,
+// the 6pm summary tells them instead (spec 2026-10-09).
+export function tplJobPostponed(p: {
+  projectTitle: string | null
+  jobClient:    string
+  oldDate:      string
+  location:     string
+  jobUrl:       string
+}): string {
+  return (
+    `⏸ <b>Job Postponed</b>\n` +
+    `<b>Project:</b> ${p.projectTitle ?? p.jobClient}\n` +
+    `<b>Client:</b> ${p.jobClient}\n` +
+    `<b>Was:</b> ${formatDate(p.oldDate)}\n` +
+    `<b>New date:</b> ${formatDate(null)}\n` +
+    `<b>Location:</b> ${p.location}\n\n` +
+    `You are no longer on this job.\n` +
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
