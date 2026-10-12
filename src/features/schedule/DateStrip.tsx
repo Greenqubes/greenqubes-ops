@@ -7,6 +7,7 @@ import { t as tr } from '@/lib/i18n'
 import { dayLabel, getWeekDays, getMonthDays, shiftDate, shiftMonth, isOverdue } from './utils'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
+import type { AwayTrip } from '@/lib/utils/away-overlap'
 
 type StripMode = 'week' | 'month'
 const MODE_KEY = 'gq-strip-mode'
@@ -19,12 +20,13 @@ interface DateStripProps {
   /** Optional: only the live schedule passes these; installer views don't. */
   leaveNamesByDate?: Record<string, string[]>
   holidayByDate?:    Record<string, string>
+  awayByDate?:       Record<string, AwayTrip[]>
   onSelectDate: (date: string) => void
 }
 
 export function DateStrip({
   jobsByDate, selectedDate, today, lang,
-  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate,
+  leaveNamesByDate = {}, holidayByDate = {}, awayByDate = {}, onSelectDate,
 }: DateStripProps) {
   const [mode,   setMode]   = useState<StripMode>('week')
   const [anchor, setAnchor] = useState(selectedDate)
@@ -153,7 +155,8 @@ export function DateStrip({
               )}
 
               {/* Bottom-LEFT markers, mirroring the job dots top-right so the
-                  two never collide: blue = someone away, green = holiday. */}
+                  two never collide: blue = on leave, green = holiday.
+                  Amber bottom-RIGHT = someone away on work (2026-10-09). */}
               {(leaveNamesByDate[d] ?? []).length > 0 && (
                 <span className={cn(
                   'absolute bottom-1.5 w-1.5 h-1.5 rounded-full',
@@ -165,6 +168,12 @@ export function DateStrip({
                 <span className={cn(
                   'absolute bottom-1.5 left-1.5 w-1.5 h-1.5 rounded-full',
                   active ? 'bg-white' : 'bg-brand-green',
+                )} />
+              )}
+              {(awayByDate[d] ?? []).length > 0 && (
+                <span className={cn(
+                  'absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
+                  active ? 'bg-white' : 'bg-brand-amber',
                 )} />
               )}
             </button>

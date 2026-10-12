@@ -82,7 +82,14 @@ export function awayDates(trip: AwaySpan): string[] {
   return out
 }
 
-export type AwayConflict = { personId: string; personName: string; jobId: string; trip: AwayTrip }
+/** date -> trips covering it. A trip shows on every day it actually covers. */
+export function buildAwayByDate(trips: AwayTrip[]): Record<string, AwayTrip[]> {
+  const acc: Record<string, AwayTrip[]> = {}
+  for (const trip of trips) for (const d of awayDates(trip)) (acc[d] ??= []).push(trip)
+  return acc
+}
+
+export type AwayConflict ={ personId: string; personName: string; jobId: string; trip: AwayTrip }
 
 export type AwayCheckableJob = {
   id:         string

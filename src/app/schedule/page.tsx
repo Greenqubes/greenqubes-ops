@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getScheduleJobs, getDrivers, getSupportPool } from '@/lib/supabase/queries/jobs'
 import { getLeaveForSchedule, getHolidays, getCompanyEvents } from '@/lib/supabase/queries/leave'
+import { getAwayTrips } from '@/lib/supabase/queries/away'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -27,9 +28,9 @@ export default async function SchedulePage() {
   const navRole      = await getNavRole(profile.role)
   if (effectiveRole === 'installer') redirect('/installer')
 
-  const [jobs, leaves, holidays, events, drivers, supportPool] = await Promise.all([
+  const [jobs, leaves, holidays, events, drivers, supportPool, awayTrips] = await Promise.all([
     getScheduleJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(),
-    getDrivers(), getSupportPool(),
+    getDrivers(), getSupportPool(), getAwayTrips(),
   ])
 
   return (
@@ -38,6 +39,7 @@ export default async function SchedulePage() {
       leaves={leaves}
       holidays={holidays}
       events={events}
+      awayTrips={awayTrips}
       drivers={drivers}
       supportPool={supportPool}
       lang={(profile.lang as LangCode) ?? 'en'}

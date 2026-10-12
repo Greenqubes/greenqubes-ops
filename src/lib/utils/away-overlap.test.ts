@@ -2,7 +2,7 @@
 // Exits 1 on failure (repo convention — no test framework).
 import {
   awayWindowOnDate, awayBlocksJob, awayDates, awayConflictsForJobs, awayTripFor,
-  awayWhenLabel, pairKey, newPairs, type AwayTrip,
+  awayWhenLabel, pairKey, newPairs, buildAwayByDate, type AwayTrip,
 } from './away-overlap'
 
 let failed = 0
@@ -56,6 +56,13 @@ eq('awayTripFor miss', awayTripFor('u3', '2026-10-14', null, null, null, trips),
 console.log('awayWhenLabel')
 eq('multi-day', awayWhenLabel(mk({})), 'Tue 13 Oct 2026, 2:00pm → Thu 15 Oct 2026, 12:00pm')
 eq('same day', awayWhenLabel(mk({ end_date: '2026-10-13', end_time: '17:30' })), 'Tue 13 Oct 2026, 2:00pm – 5:30pm')
+
+console.log('buildAwayByDate — the strip shows a trip on every day it covers')
+const byDate = buildAwayByDate([mk({ id: 'a' }), mk({ id: 'b', start_date: '2026-10-15', end_date: '2026-10-15', start_time: '13:00', end_time: '15:00' })])
+eq('first day has trip a only', (byDate['2026-10-13'] ?? []).map(x => x.id), ['a'])
+eq('shared day has both', (byDate['2026-10-15'] ?? []).map(x => x.id), ['a', 'b'])
+eq('day after has none', byDate['2026-10-16'] ?? [], [])
+eq('midnight end leaves the last day empty', buildAwayByDate([mk({ end_time: '00:00' })])['2026-10-15'] ?? [], [])
 
 console.log('newPairs — only newly affected are re-notified')
 const before = new Set([pairKey('u1', 'j1')])

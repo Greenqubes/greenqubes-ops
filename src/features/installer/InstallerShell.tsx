@@ -21,6 +21,7 @@ import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
+import { buildAwayByDate, type AwayTrip } from '@/lib/utils/away-overlap'
 import type { LangCode } from '@/lib/i18n'
 
 type Tab      = 'today' | 'next' | 'week'
@@ -43,9 +44,11 @@ interface Props {
   leaves?:   Array<LeaveRecord & { user_name: string }>
   holidays?: Holiday[]
   events?:   CompanyEvent[]
+  /** Courses / business trips — public by design (Nic, 2026-10-09). */
+  awayTrips?: AwayTrip[]
 }
 
-export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [], events = [] }: Props) {
+export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [], events = [], awayTrips = [] }: Props) {
   const router = useRouter()
 
   // A newly assigned job appears on its own. RLS scopes events to this
@@ -54,7 +57,8 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
   useLiveChannel({
     name:    'installer-jobs-live',
     tables:  [{ table: 'jobs' }, { table: 'job_assignees' },
-              { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' }],
+              { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' },
+              { table: 'away_trips' }, { table: 'away_trip_people' }],
     onEvent: () => router.refresh(),
     poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
   })
@@ -141,6 +145,8 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
     }
     return acc
   }, [events])
+
+  const awayByDate = useMemo(() => buildAwayByDate(awayTrips), [awayTrips])
 
   // ── Week / month views ──
   // Cast is safe: InstallerJob now has all fields JobRow reads
@@ -328,6 +334,9 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
             onLeaveLabel={t(lang, 'onLeaveLabel')}
             holidayLabel={t(lang, 'publicHolidayLabel')}
             eventLabel={t(lang, 'companyEventLabel')}
+            awayTrips={awayByDate[today] ?? []}
+            awayLabel={t(lang, 'awayLabel')}
+            lang={lang}
             className="mb-0"
           />
           {visibleJobs.length === 0 ? (
@@ -360,6 +369,8 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
           onLeaveLabel={t(lang, 'onLeaveLabel')}
           holidayLabel={t(lang, 'publicHolidayLabel')}
           eventLabel={t(lang, 'companyEventLabel')}
+          awayByDate={awayByDate}
+          awayLabel={t(lang, 'awayLabel')}
         />
       )}
 
@@ -372,6 +383,7 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
           lang={lang}
           leaveNamesByDate={leaveNamesByDate}
           holidayByDate={holidayByDate}
+          awayByDate={awayByDate}
           onSelectDate={setSelectedDate}
           onDrillDown={drillDown}
         />

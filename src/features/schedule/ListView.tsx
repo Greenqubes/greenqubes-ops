@@ -7,6 +7,7 @@ import { DateStrip } from './DateStrip'
 import { DayNotices } from './DayNotices'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
+import type { AwayTrip } from '@/lib/utils/away-overlap'
 
 interface ListStrings {
   noJobs:         string
@@ -16,6 +17,7 @@ interface ListStrings {
   onLeave?:       string
   publicHoliday?: string
   companyEvent?:  string
+  away?:          string
 }
 
 interface ListViewProps {
@@ -28,6 +30,7 @@ interface ListViewProps {
   leaveNamesByDate?: Record<string, string[]>
   holidayByDate?:    Record<string, string>
   eventsByDate?:     Record<string, string[]>
+  awayByDate?:       Record<string, AwayTrip[]>
   onSelectDate: (date: string) => void
   selectable?:  boolean
   selectedIds?: Set<string>
@@ -39,7 +42,7 @@ interface ListViewProps {
 
 export function ListView({
   jobsByDate, selectedDate, today, lang, strings,
-  leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {}, onSelectDate,
+  leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {}, awayByDate = {}, onSelectDate,
   selectable, selectedIds, onToggle, columns = 1,
 }: ListViewProps) {
   const dayJobs    = jobsByDate[selectedDate] ?? []
@@ -88,6 +91,7 @@ export function ListView({
         lang={lang}
         leaveNamesByDate={leaveNamesByDate}
         holidayByDate={holidayByDate}
+        awayByDate={awayByDate}
         onSelectDate={onSelectDate}
       />
 
@@ -105,6 +109,9 @@ export function ListView({
           onLeaveLabel={strings.onLeave}
           holidayLabel={strings.publicHoliday}
           eventLabel={strings.companyEvent}
+          awayTrips={awayByDate[selectedDate] ?? []}
+          awayLabel={strings.away}
+          lang={lang}
         />
         {dayJobs.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">
