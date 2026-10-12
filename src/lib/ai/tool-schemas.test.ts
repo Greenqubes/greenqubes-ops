@@ -51,5 +51,10 @@ check('create requires client+date', createSchema.required?.slice().sort(), ['cl
 check('bucket enum matches defaults', createSchema.properties?.files?.items?.properties?.bucket?.enum, [...JOB_BUCKETS])
 check('four default buckets', JOB_BUCKETS.length, 4)
 
+// 7. check_clashes tells the model an away trip is a WARNING, not a clash
+//    (Nic, 2026-10-09) — otherwise it would report a course as a double-booking.
+const clashTool = TOOL_DEFINITIONS.find(t => t.name === 'check_clashes')!
+check('check_clashes explains the away field', /"away".*warning only/i.test(clashTool.description ?? ''), true)
+
 if (failures > 0) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll tool-schema checks passed')

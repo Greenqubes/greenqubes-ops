@@ -93,7 +93,7 @@ export const TOOL_DEFINITIONS: Anthropic.Messages.Tool[] = [
   },
   {
     name: 'check_clashes',
-    description: 'Check whether an installer already has bookings overlapping a proposed date and time window. Give the installer by name. Omit times to check the whole day. A job with no start time is a whole-day booking and overlaps everything that day. Also reports if the installer is on recorded leave for that date — dates and half-days only, never the reason for the leave.',
+    description: 'Check whether an installer already has bookings overlapping a proposed date and time window. Give the installer by name. Omit times to check the whole day. A job with no start time is a whole-day booking and overlaps everything that day. Also reports if the installer is on recorded leave for that date — dates and half-days only, never the reason for the leave. The result\'s "away" field means the person is away on a course or business trip: report it as "X is away (title) — warning only", never as a clash.',
     input_schema: {
       type: 'object',
       properties: {
