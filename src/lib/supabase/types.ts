@@ -617,6 +617,35 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['company_events']['Insert']>
         Relationships: []
       }
+      away_trips: {
+        Row: {
+          id:         string
+          title:      string
+          business:   string | null
+          location:   string | null
+          start_date: string
+          start_time: string
+          end_date:   string
+          end_time:   string
+          note:       string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['away_trips']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?:         string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['away_trips']['Insert']>
+        Relationships: []
+      }
+      away_trip_people: {
+        Row:    { trip_id: string; user_id: string }
+        Insert: { trip_id: string; user_id: string }
+        Update: Partial<{ trip_id: string; user_id: string }>
+        Relationships: []
+      }
     }
 
     Views: Record<string, never>
