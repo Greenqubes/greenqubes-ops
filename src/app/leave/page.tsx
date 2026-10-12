@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { canManageLeave, gateRole } from '@/lib/auth/capabilities'
 import { getLeave, getHolidays, getCompanyEvents, getActiveUsers } from '@/lib/supabase/queries/leave'
+import { getAwayTrips } from '@/lib/supabase/queries/away'
 import { LeaveShell } from '@/features/leave/LeaveShell'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
@@ -27,8 +28,8 @@ export default async function LeavePage() {
   // page they own.
   if (!canManageLeave(gateRole(profile.role, effectiveRole))) redirect('/schedule')
 
-  const [leave, holidays, events, users] = await Promise.all([
-    getLeave(), getHolidays(), getCompanyEvents(), getActiveUsers(),
+  const [leave, holidays, events, users, trips] = await Promise.all([
+    getLeave(), getHolidays(), getCompanyEvents(), getActiveUsers(), getAwayTrips(),
   ])
   const navRole: Role = effectiveRole === 'hr' ? 'hr' : 'admin'
 
@@ -37,6 +38,7 @@ export default async function LeavePage() {
       initialLeave={leave}
       initialHolidays={holidays}
       initialEvents={events}
+      initialTrips={trips}
       users={users}
       lang={(profile.lang as LangCode) ?? 'en'}
       role={navRole}

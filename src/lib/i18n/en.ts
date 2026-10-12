@@ -676,6 +676,26 @@ export const en = {
   hideTranslation: 'Hide translation',
   translationLabel: 'Translation',
   translateFailed: 'Could not translate — try again',
+  // Away — courses & business trips (2026-10-09)
+  awayLabel: 'Away',
+  awayChip: 'Away',
+  awayCardTitle: 'Away — courses & business trips',
+  awayCardHint: 'Staff away on work. Shown on everyone\'s schedule; jobs over it get a warning, never a block.',
+  awayAddShort: 'Away',
+  awayNone: 'No trips recorded',
+  awayPast: 'Past trips',
+  awayFormNew: 'Add trip',
+  awayFormEdit: 'Edit trip',
+  awayPeople: 'Staff going',
+  awayTitleField: 'Title',
+  awayBusiness: 'Business / organisation',
+  awayLocation: 'Address',
+  awayStarts: 'Starts',
+  awayEnds: 'Ends',
+  awayNote: 'Note',
+  awayConfirmDelete: 'Delete this trip?',
+  awayOpenMaps: 'Open Maps',
+  awayWarningOnly: 'warning only',
 }
 
 export type Translations = typeof en
