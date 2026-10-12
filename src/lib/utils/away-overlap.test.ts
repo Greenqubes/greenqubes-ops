@@ -2,7 +2,7 @@
 // Exits 1 on failure (repo convention — no test framework).
 import {
   awayWindowOnDate, awayBlocksJob, awayDates, awayConflictsForJobs, awayTripFor,
-  awayWhenLabel, pairKey, newPairs, buildAwayByDate, type AwayTrip,
+  awayWhenLabel, pairKey, newPairs, buildAwayByDate, awayIdsFor, type AwayTrip,
 } from './away-overlap'
 
 let failed = 0
@@ -63,6 +63,12 @@ eq('first day has trip a only', (byDate['2026-10-13'] ?? []).map(x => x.id), ['a
 eq('shared day has both', (byDate['2026-10-15'] ?? []).map(x => x.id), ['a', 'b'])
 eq('day after has none', byDate['2026-10-16'] ?? [], [])
 eq('midnight end leaves the last day empty', buildAwayByDate([mk({ end_time: '00:00' })])['2026-10-15'] ?? [], [])
+
+console.log('awayIdsFor — the crew pickers\' amber tag')
+const pickerTrips = [mk({ people: [{ id: 'u1', name: 'Halim' }, { id: 'u2', name: 'Rintu' }] })]
+eq('both away mid-trip', [...awayIdsFor(pickerTrips, '2026-10-14', null, '09:00', '10:00')].sort(), ['u1', 'u2'])
+eq('nobody before it starts', [...awayIdsFor(pickerTrips, '2026-10-13', null, '09:00', '12:00')], [])
+eq('no date yet → nobody', [...awayIdsFor(pickerTrips, '', null, null, null)], [])
 
 console.log('newPairs — only newly affected are re-notified')
 const before = new Set([pairKey('u1', 'j1')])

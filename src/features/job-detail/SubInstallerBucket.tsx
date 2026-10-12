@@ -26,6 +26,8 @@ interface Props {
   /** Support crew get the leave flag too — exempt from booking clashes, never
    *  from leave (a person who is away is away whatever their role here). */
   onLeaveOf?:  (id: string) => boolean
+  /** Away on a course / business trip then — amber chip, warning only. */
+  awayOf?:     (id: string) => boolean
   /** Clear every sub selection and collapse the bucket ("Remove"). */
   onClear?:    () => void
   /** Open on first render (a job that already has subs). */
@@ -40,7 +42,7 @@ interface Props {
 // green-confirmed rules as the main grid, everyone stored with the
 // is_sub_installer flag — hidden behind a dashed "+ Support crew" trigger.
 export function SubInstallerBucket({
-  lang, installers, keepIds, subCount, stateOf, onToggle, disabledOf, noteOf, onLeaveOf,
+  lang, installers, keepIds, subCount, stateOf, onToggle, disabledOf, noteOf, onLeaveOf, awayOf,
   onClear, defaultOpen, canEdit,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen)
@@ -120,6 +122,7 @@ export function SubInstallerBucket({
           disabledOf={disabledOf}
           noteOf={noteOf}
           onLeaveOf={onLeaveOf}
+          awayOf={awayOf}
         />
       )}
     </div>

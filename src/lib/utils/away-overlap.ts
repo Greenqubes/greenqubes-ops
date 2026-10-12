@@ -112,6 +112,21 @@ export function awayTripFor(
   return null
 }
 
+/** Everyone a trip puts away during this date/time — the crew pickers' tag.
+ *  No date yet (a blank New Job form) means nobody. */
+export function awayIdsFor(
+  trips: AwayTrip[], jobDate: string, jobDateEnd: string | null,
+  timeStart: string | null, timeEnd: string | null,
+): Set<string> {
+  const out = new Set<string>()
+  if (!jobDate) return out
+  for (const trip of trips) {
+    if (!awayBlocksJob(trip, jobDate, jobDateEnd, timeStart, timeEnd)) continue
+    for (const p of trip.people) out.add(p.id)
+  }
+  return out
+}
+
 /** One conflict per (person, job) — the first trip wins. */
 export function awayConflictsForJobs(jobs: AwayCheckableJob[], trips: AwayTrip[]): AwayConflict[] {
   const out: AwayConflict[] = []

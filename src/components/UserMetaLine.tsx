@@ -37,6 +37,16 @@ export function LeaveChip({ label }: { label: string }) {
   )
 }
 
+// Away on a course / business trip during the job — amber, a warning only
+// (Nic, 2026-10-09). "On leave" takes priority when both apply.
+export function AwayChip({ label }: { label: string }) {
+  return (
+    <span className="text-[10px] font-medium bg-brand-amber-soft text-brand-amber border border-brand-amber rounded-full px-1.5 py-px shrink-0">
+      {label}
+    </span>
+  )
+}
+
 // Chip rows under the name: subrole chip, then qualification chips on their
 // own row (Nic's card layout, 2026-09-04). Falls back to the role name as the
 // subrole chip when a caller passes `role` and no subrole is set.

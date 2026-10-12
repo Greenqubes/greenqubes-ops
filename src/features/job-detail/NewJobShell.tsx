@@ -33,6 +33,7 @@ import { Btn } from '@/components/Btn'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
+import { awayIdsFor, type AwayTrip } from '@/lib/utils/away-overlap'
 import type { Role } from '@/lib/supabase/types'
 
 interface Props {
@@ -45,6 +46,8 @@ interface Props {
   supportUsers:        InstallerUser[]
   /** Every leave row (ids + dates), filtered client-side against the form. */
   leaves?:             LeaveRecord[]
+  /** Every away trip — filtered client-side against the form, like leave. */
+  awayTrips?:          AwayTrip[]
   role:                Role
   /** Real role, not the preview-aware one — gates the quiet push. */
   isAdmin?:            boolean
@@ -52,7 +55,7 @@ interface Props {
   designerOptions?:    Array<{ id: string; label: string }>
 }
 
-export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supportUsers, leaves = [], role, isAdmin = false, coordinatorOptions = [], designerOptions = [] }: Props) {
+export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supportUsers, leaves = [], awayTrips = [], role, isAdmin = false, coordinatorOptions = [], designerOptions = [] }: Props) {
   const router = useRouter()
   const { error: showError, success: showSuccess } = useToast()
   const [saving,                setSaving]               = useState(false)
@@ -146,6 +149,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       watchedStart || null, watchedEnd || null, leaves,
     ),
     [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
+  )
+  // Away on work — re-evaluated as the date/time fields move, like leave.
+  const awaySet = useMemo(
+    () => awayIdsFor(awayTrips, watchedDate, watchedDateEnd || null, watchedStart || null, watchedEnd || null),
+    [awayTrips, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
   )
 
   // silent: admin-only quiet push — the schedulers are not Telegrammed.
@@ -543,6 +551,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
                   }}
                   noteOf={id => (suggestMode && selectedIds.includes(id)) ? 'Suggested' : null}
                   onLeaveOf={id => onLeaveSet.has(id)}
+                  awayOf={id => awaySet.has(id)}
                 />
               )}
             </div>
@@ -560,6 +569,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
               )}
               noteOf={id => (suggestMode && selectedSubIds.includes(id)) ? 'Suggested' : null}
               onLeaveOf={id => onLeaveSet.has(id)}
+              awayOf={id => awaySet.has(id)}
               onClear={() => setSelectedSubIds([])}
               defaultOpen={false}
               canEdit

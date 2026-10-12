@@ -18,6 +18,7 @@ import { CoreSection } from './CoreSection'
 import { FinancialSection } from './FinancialSection'
 import { isReadOnlyOfficeRole, showsFinancialsCard } from '@/lib/auth/capabilities'
 import { onLeaveIds, type LeaveRecord } from '@/lib/utils/leave-overlap'
+import { awayIdsFor, type AwayTrip } from '@/lib/utils/away-overlap'
 import { AttachmentBuckets } from './AttachmentBuckets'
 import { DesignRatingSlider } from './DesignRatingSlider'
 import { DesignBriefSection } from './DesignBriefSection'
@@ -122,6 +123,8 @@ interface Props {
   /** Every leave row (ids + dates). Filtered client-side against the form's
    *  live date, which can change without a page load. */
   leaves?:                LeaveRecord[]
+  /** Every away trip — filtered client-side against the live date, like leave. */
+  awayTrips?:             AwayTrip[]
   initialMessages:        JobMessage[]
   salesPocOptions:        SelectOption[]
   initialCoordinatorIds?: string[]
@@ -136,7 +139,7 @@ interface Props {
 }
 
 export function JobDetailShell({
-  job, role, isAdmin = false, userId, userName, lang, installers, supportUsers, leaves = [], initialMessages, salesPocOptions,
+  job, role, isAdmin = false, userId, userName, lang, installers, supportUsers, leaves = [], awayTrips = [], initialMessages, salesPocOptions,
   initialCoordinatorIds = [], coordinatorOptions = [],
   initialDesignerIds = [], designerOptions = [], createdByName = null,
   backHref = '/schedule', initialTab,
@@ -358,6 +361,12 @@ export function JobDetailShell({
     [leaves, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
   )
   const isOnLeave = (id: string) => onLeaveSet.has(id)
+  // Away on work — re-evaluated as the date/time fields move, like leave.
+  const awaySet = useMemo(
+    () => awayIdsFor(awayTrips, watchedDate, watchedDateEnd || null, watchedStart || null, watchedEnd || null),
+    [awayTrips, watchedDate, watchedDateEnd, watchedStart, watchedEnd],
+  )
+  const isAway = (id: string) => awaySet.has(id)
 
   // A job arrived at by Duplicate has a blank Location on purpose, and the
   // address it came from waiting in sessionStorage (Nic, 2026-09-15). Offer it
@@ -1546,6 +1555,7 @@ export function JobDetailShell({
                 disabledOf={installerDisabledOf}
                 noteOf={installerNoteOf}
                 onLeaveOf={isOnLeave}
+                awayOf={isAway}
               />
             )}
           </div>
@@ -1582,6 +1592,7 @@ export function JobDetailShell({
               disabledOf={subDisabledOf}
               noteOf={subNoteOf}
               onLeaveOf={isOnLeave}
+              awayOf={isAway}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
               canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}
