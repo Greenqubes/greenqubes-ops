@@ -43,6 +43,21 @@ _Last updated: 2026-10-07 (feat-files — **Signed DO has a Scan button. Live at
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
 
+### Away (courses & business trips) — ✅ LIVE on production 2026-10-12, NOT YET TESTED
+_Raise this first at the next session start (Nic, 2026-10-12). Test on production — it shares the database with the previews — and title the test trip "TEST" so the team knows to ignore it._
+- [ ] **As HR or admin, on the Leave page:** add a trip for two people, with an address. It appears in the Away box, and the form fits on screen with Save reachable.
+- [ ] **Schedule, on a day the trip covers:** an amber Away strip under On leave and an amber dot on the date. Tapping it shows the people, business, times, address and Open Maps.
+- [ ] **Push a job onto one of them during the trip:** an amber Away note appears, and Push to Schedule still goes through.
+- [ ] **Edit a scheduled job's time into the trip:** the pop-up says "Heads-up before saving" and Save anyway works. Check as a coordinator too.
+- [ ] **FCFS board that day:** an amber outline on their bar, plus an amber chip and an Away entry in the clash list.
+- [ ] **Job form crew pickers:** an amber "Away" tag on their tile.
+- [ ] **Bell and Telegram:** the bell shows "Away: …", and the job's person-in-charge gets ONE Telegram for that job, even with two people on the trip.
+- [ ] **Edit only the trip's note:** no new Telegram goes out.
+- [ ] **Installer login:** the strip shows and the pop-up opens.
+- [ ] **Delete the TEST trip.**
+- [ ] **Decide:** the strip shows one line per trip ("Halim, Rintu · course"), not one line per person. Keep it?
+- [ ] **Tell the other agent (feat-job-stages):** its migrations 0064 and 0065 now need `npx supabase db push --include-all`, because 0066 (Away) was applied ahead of them.
+
 ### Pending privacy + the Job Bin — ✅ LIVE on production 2026-09-28
 
 _Checklist page (your ticks and notes are saved there): https://claude.ai/artifact/FV3Dt9w3v2vWZiJZeZ6m2z_
