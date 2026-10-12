@@ -7,7 +7,7 @@ import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
 import { buildUserMeta } from '@/lib/utils/user-meta'
-import { EditClashModal, type CheckClash, type LeaveCheckClash } from '@/features/job-detail/EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash, type AwayCheckClash } from '@/features/job-detail/EditClashModal'
 import { onLeaveIds, type LeaveConflict, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
@@ -67,6 +67,7 @@ export function AssignmentPanel({ job, clashes, leaveClashes, leaves, installers
   const [error,          setError]          = useState(false)
   const [clashPrompt,    setClashPrompt]    = useState<CheckClash[] | null>(null)
   const [leavePrompt,    setLeavePrompt]    = useState<LeaveCheckClash[]>([])
+  const [awayPrompt,     setAwayPrompt]     = useState<AwayCheckClash[]>([])
 
   // Reset local edits whenever a different job is opened.
   useEffect(() => {
@@ -78,6 +79,8 @@ export function AssignmentPanel({ job, clashes, leaveClashes, leaves, installers
     setSaving(false)
     setError(false)
     setClashPrompt(null)
+    setLeavePrompt([])
+    setAwayPrompt([])
   }, [job?.id])
 
   const formal      = useMemo(() => (job?.assignees ?? []).filter(a => !a.is_suggestion), [job])
@@ -189,10 +192,15 @@ export function AssignmentPanel({ job, clashes, leaveClashes, leaves, installers
         body:    JSON.stringify({ installer_ids: finalIds }),
       })
       if (!res.ok) throw new Error()
-      const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
-      if (data.hasClash) {
+      const data: {
+        hasClash: boolean; clashes: CheckClash[]
+        leaveClashes?: LeaveCheckClash[]; awayClashes?: AwayCheckClash[]
+      } = await res.json()
+      // Away is a warning, not part of hasClash — still shown before saving.
+      if (data.hasClash || (data.awayClashes ?? []).length > 0) {
         setSaving(false)
         setLeavePrompt(data.leaveClashes ?? [])
+        setAwayPrompt(data.awayClashes ?? [])
         // clashPrompt is the modal's open/closed signal, so it is set last and
         // may legitimately be an empty array when only leave is the problem.
         setClashPrompt(data.clashes)
@@ -489,11 +497,12 @@ export function AssignmentPanel({ job, clashes, leaveClashes, leaves, installers
         isOpen={clashPrompt !== null}
         clashes={clashPrompt ?? []}
         leaveClashes={leavePrompt}
+        awayClashes={awayPrompt}
         role={role}
         lang={lang}
         onAlertScheduler={alertSchedulerAndSave}
-        onProceed={() => { setClashPrompt(null); setLeavePrompt([]); doSave() }}
-        onClose={() => { setClashPrompt(null); setLeavePrompt([]) }}
+        onProceed={() => { setClashPrompt(null); setLeavePrompt([]); setAwayPrompt([]); doSave() }}
+        onClose={() => { setClashPrompt(null); setLeavePrompt([]); setAwayPrompt([]) }}
       />
     </div>
   )

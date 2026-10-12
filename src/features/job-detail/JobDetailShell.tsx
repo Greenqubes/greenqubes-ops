@@ -35,7 +35,7 @@ import { SubInstallerBucket } from './SubInstallerBucket'
 import { TaskListSection } from './TaskListSection'
 import { ExternalPOCBucket } from './ExternalPOCBucket'
 import { ClashResolutionModal } from '@/features/approvals/ClashResolutionModal'
-import { EditClashModal, type CheckClash, type LeaveCheckClash } from './EditClashModal'
+import { EditClashModal, type CheckClash, type LeaveCheckClash, type AwayCheckClash } from './EditClashModal'
 import { Modal } from '@/components/Modal'
 import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
@@ -205,6 +205,7 @@ export function JobDetailShell({
   // Leave rides beside the booking clashes — the modal opens when EITHER is
   // present, and editClashes stays the open/closed signal.
   const [editLeaveClashes,     setEditLeaveClashes]    = useState<LeaveCheckClash[]>([])
+  const [editAwayClashes,      setEditAwayClashes]     = useState<AwayCheckClash[]>([])
   const pendingValuesRef = useRef<FormValues | null>(null)
   // Due-date-conflict decision made BEFORE the installer clash check (below)
   // ran — carried alongside pendingValuesRef so resumeSaveAfterClash can
@@ -669,12 +670,20 @@ export function JobDetailShell({
           }),
         })
         if (res.ok) {
-          const data: { hasClash: boolean; clashes: CheckClash[]; leaveClashes?: LeaveCheckClash[] } = await res.json()
-          if (data.hasClash) {
+          const data: {
+            hasClash: boolean; clashes: CheckClash[]
+            leaveClashes?: LeaveCheckClash[]; awayClashes?: AwayCheckClash[]
+          } = await res.json()
+          // Away on work is not part of hasClash (it never blocks), but it is
+          // still shown before saving so nobody is surprised (Nic, 2026-10-09).
+          if (data.hasClash || (data.awayClashes ?? []).length > 0) {
             pendingValuesRef.current = values
             pendingKeepManualDueRef.current = keepManualDue
-            setEditClashes(data.clashes)
             setEditLeaveClashes(data.leaveClashes ?? [])
+            setEditAwayClashes(data.awayClashes ?? [])
+            // Set last: it is the modal's open/closed signal, and may be an
+            // empty array when only leave or away is the issue.
+            setEditClashes(data.clashes)
             setSaving(false)
             return
           }
@@ -933,7 +942,7 @@ export function JobDetailShell({
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
-      if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0 && data.leaveClashes.length === 0) {
+      if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0 && data.leaveClashes.length === 0 && (data.awayClashes ?? []).length === 0) {
         const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
@@ -1902,11 +1911,12 @@ export function JobDetailShell({
         isOpen={editClashes !== null}
         clashes={editClashes ?? []}
         leaveClashes={editLeaveClashes}
+        awayClashes={editAwayClashes}
         role={role}
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
       />
       {clashData && (
         <ClashResolutionModal
@@ -1917,6 +1927,7 @@ export function JobDetailShell({
           softClashes={clashData.softClashes}
           travelWarnings={clashData.travelWarnings}
           leaveClashes={clashData.leaveClashes}
+          awayClashes={clashData.awayClashes ?? []}
           substitutes={clashData.substitutes}
           weekDays={clashData.weekDays}
           lang={lang}
