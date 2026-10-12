@@ -107,7 +107,9 @@ export function AwayFormModal({ isOpen, onClose, onSaved, lang, users, editing }
   const shown = users.filter(u => userIds.includes(u.id) || u.name.toLowerCase().includes(q))
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, editing ? 'awayFormEdit' : 'awayFormNew')}>
+    // scrollBody: the form is taller than a laptop screen. Safe here — both
+    // dropdowns in it (TimeSelect, LocationInput) portal to <body>.
+    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, editing ? 'awayFormEdit' : 'awayFormNew')} scrollBody>
       <div className="flex flex-col gap-3">
         <Field label={`${t(lang, 'awayPeople')} *`}>
           <input className={INPUT_CN} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" />
