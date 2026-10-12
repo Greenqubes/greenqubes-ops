@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
 import { leaveDatesLabel, type LeaveConflict } from '@/lib/utils/leave-overlap'
+import { awayWhenLabel, type AwayConflict } from '@/lib/utils/away-overlap'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
 import type { LangCode } from '@/lib/i18n'
@@ -25,6 +26,8 @@ interface ClashDrawerProps {
   isOpen:       boolean
   clashes:      InstallerClash[]
   leaveClashes: LeaveConflict[]
+  /** Away on work — amber, listed last. */
+  awayClashes?: AwayConflict[]
   /** The board's jobs, so a leave row can render the job it affects. */
   jobs:         FCFSJob[]
   lang:         LangCode
@@ -56,7 +59,7 @@ function JobCard({ job, label, first, lang }: { job: FCFSJob; label: string; fir
   )
 }
 
-export function ClashDrawer({ isOpen, clashes, leaveClashes, jobs, lang, onClose, onOpenJob, onDismiss }: ClashDrawerProps) {
+export function ClashDrawer({ isOpen, clashes, leaveClashes, awayClashes = [], jobs, lang, onClose, onOpenJob, onDismiss }: ClashDrawerProps) {
   if (!isOpen) return null
 
   return (
@@ -71,7 +74,7 @@ export function ClashDrawer({ isOpen, clashes, leaveClashes, jobs, lang, onClose
           {t(lang, 'fcfsClashDrawerTitle')}
         </h3>
 
-        {clashes.length === 0 && leaveClashes.length === 0 && (
+        {clashes.length === 0 && leaveClashes.length === 0 && awayClashes.length === 0 && (
           <p className="text-sm text-muted py-6 text-center">{t(lang, 'fcfsNoClashes')}</p>
         )}
 
@@ -143,6 +146,30 @@ export function ClashDrawer({ isOpen, clashes, leaveClashes, jobs, lang, onClose
               </div>
             </div>
           ))}
+
+          {/* Away on work — last and amber: a heads-up, not a conflict, so
+              no Re-assign push and no Dismiss to manage (Nic, 2026-10-09). */}
+          {awayClashes.map(a => {
+            const job = jobs.find(j => j.id === a.jobId)
+            return (
+              <div key={`away-${a.personId}-${a.jobId}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={13} className="text-brand-amber" />
+                  <p className="text-sm font-semibold text-brand-amber">
+                    {a.personName} — {t(lang, 'awayChip')} ({t(lang, 'awayWarningOnly')})
+                  </p>
+                </div>
+                {job && (
+                  <div className="flex gap-3 mb-3">
+                    <JobCard job={job} label={`#${job.fcfs_rank}`} first={false} lang={lang} />
+                  </div>
+                )}
+                <div className="rounded-[10px] border border-brand-amber bg-brand-amber-soft px-3 py-2">
+                  <p className="text-xs text-ink">{a.trip.title} · {awayWhenLabel(a.trip)}</p>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
