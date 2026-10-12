@@ -2,7 +2,7 @@
 // Exits 1 on failure (repo convention — no test framework).
 import {
   awayWindowOnDate, awayBlocksJob, awayDates, awayConflictsForJobs, awayTripFor,
-  awayWhenLabel, pairKey, newPairs, buildAwayByDate, awayIdsFor, type AwayTrip,
+  awayWhenLabel, pairKey, newPairs, buildAwayByDate, awayIdsFor, groupPairsByJob, type AwayTrip,
 } from './away-overlap'
 
 let failed = 0
@@ -75,6 +75,16 @@ const before = new Set([pairKey('u1', 'j1')])
 const after  = new Set([pairKey('u1', 'j1'), pairKey('u2', 'j1')])
 eq('new pair only', [...newPairs(before, after)], [pairKey('u2', 'j1')])
 eq('unchanged edit → nothing', [...newPairs(after, after)], [])
+
+console.log('groupPairsByJob — one message per JOB, not per person (review I1)')
+const grouped = groupPairsByJob([
+  { personId: 'u1', jobId: 'j1' }, { personId: 'u2', jobId: 'j1' }, { personId: 'u3', jobId: 'j1' },
+  { personId: 'u1', jobId: 'j2' },
+])
+eq('two jobs, not four messages', [...grouped.keys()], ['j1', 'j2'])
+eq('j1 carries all three people', grouped.get('j1'), ['u1', 'u2', 'u3'])
+eq('j2 carries one', grouped.get('j2'), ['u1'])
+eq('nothing new → nothing to send', [...groupPairsByJob([]).keys()], [])
 
 if (failed > 0) { console.error(`\n${failed} failed`); process.exit(1) }
 console.log('\nall passed')

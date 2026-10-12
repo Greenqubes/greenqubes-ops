@@ -5,7 +5,7 @@ import { Modal } from '@/components/Modal'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
-import { editClashActions } from './edit-clash-rules'
+import { editClashActions, editClashTitleKey } from './edit-clash-rules'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -79,7 +79,7 @@ export function EditClashModal({
     editClashActions(role, { clashes: clashes.length, leave: leaveClashes.length }) === 'alert-scheduler'
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, 'fcfsClashDetected')}>
+    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, editClashTitleKey({ clashes: clashes.length, leave: leaveClashes.length }))}>
       <div className="flex flex-col gap-2 mb-5">
         {/* Leave first — the hardest of the red flags: a double-booking can be
             argued about, an absent person cannot. The role-branched buttons

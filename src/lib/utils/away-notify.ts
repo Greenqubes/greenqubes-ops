@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getSchedulers } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplAwayClash } from '@/lib/telegram/templates'
-import { awayBlocksJob, awayWhenLabel, pairKey, newPairs, type AwayTrip } from './away-overlap'
+import { awayBlocksJob, awayWhenLabel, pairKey, newPairs, groupPairsByJob, type AwayTrip } from './away-overlap'
 
 // Same two levels as leave-notify (spec §7), approved by Nic 2026-10-09:
 //   1. Every new or changed trip -> bell card to schedulers. No Telegram.
@@ -66,12 +66,18 @@ async function announce(trip: AwayTrip): Promise<string[]> {
   return schedulers.map(s => s.id)
 }
 
-/** Level 2 — bell + Telegram per affected job. */
+/** Level 2 — ONE bell + Telegram per affected job, naming everyone on the
+ *  trip who is on it (review I1: per-pair messages multiplied fast). */
 async function escalate(trip: AwayTrip, schedulerIds: string[], pairs: Pair[]) {
   const svc = createServiceClient()
   const when = awayWhenLabel(trip)
-  for (const { personId, job } of pairs) {
-    const personName = trip.people.find(p => p.id === personId)?.name ?? 'Someone'
+  const jobById = new Map(pairs.map(p => [p.job.id, p.job]))
+  const byJob = groupPairsByJob(pairs.map(p => ({ personId: p.personId, jobId: p.job.id })))
+  for (const [jobId, personIds] of byJob) {
+    const job = jobById.get(jobId)!
+    const names = personIds.map(id => trip.people.find(p => p.id === id)?.name ?? 'Someone')
+    const personName = names.join(', ')
+    const verb = names.length > 1 ? 'are' : 'is'
     const { data: coords } = await svc.from('job_coordinators').select('user_id').eq('job_id', job.id)
     const ids = new Set<string>(schedulerIds)
     if (job.sales_poc_id) ids.add(job.sales_poc_id)
@@ -83,7 +89,7 @@ async function escalate(trip: AwayTrip, schedulerIds: string[], pairs: Pair[]) {
       type:    'away_clash',
       job_id:  job.id,
       title:   `Away: ${personName}`,
-      body:    `${personName} is away (${trip.title}, ${when}) but is on "${jobName}". Warning only.`,
+      body:    `${personName} ${verb} away (${trip.title}, ${when}) but on "${jobName}". Warning only.`,
     })) as never)
 
     const { data: chatRows } = await svc.from('users')
@@ -98,7 +104,7 @@ async function escalate(trip: AwayTrip, schedulerIds: string[], pairs: Pair[]) {
       continue
     }
     const msg = tplAwayClash({
-      personName, tripTitle: trip.title, tripWhen: when,
+      personNames: names, tripTitle: trip.title, tripWhen: when,
       projectTitle: job.project_title, jobClient: job.client, jobDate: job.date,
       timeStart: job.time_start, timeEnd: job.time_end, location: job.location,
       jobUrl: `${APP_URL}/jobs/${job.id}`,

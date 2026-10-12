@@ -170,6 +170,18 @@ export function pairKey(personId: string, jobId: string): string {
   return `${personId}:${jobId}`
 }
 
+/** jobId -> the people on it the trip affects, in first-seen order. A trip is
+ *  multi-person, so messaging per (person, job) multiplies — three people on
+ *  one job would send everyone three messages about the same job. */
+export function groupPairsByJob(pairs: Array<{ personId: string; jobId: string }>): Map<string, string[]> {
+  const out = new Map<string, string[]>()
+  for (const { personId, jobId } of pairs) {
+    const list = out.get(jobId)
+    if (list) { if (!list.includes(personId)) list.push(personId) } else { out.set(jobId, [personId]) }
+  }
+  return out
+}
+
 /** Warnings present after an edit that were not present before it. */
 export function newPairs(before: Set<string>, after: Set<string>): Set<string> {
   return new Set([...after].filter(k => !before.has(k)))

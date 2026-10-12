@@ -41,20 +41,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const current  = new Set(before.people.map(p => p.id))
   const toRemove = [...current].filter(u => !wanted.has(u))
   const toAdd    = [...wanted].filter(u => !current.has(u))
+  // Adds before removes, so a failure part-way never leaves a trip with
+  // nobody on it. Either failure is reported AFTER the notification below:
+  // the trip row has already changed, so the people it now affects must
+  // still be told — otherwise a retry would read the new dates as "before"
+  // and those warnings would never go out (review I2).
+  let peopleError: string | null = null
   if (toAdd.length > 0) {
     const { error: addErr } = await supabase.from('away_trip_people')
       .insert(toAdd.map(user_id => ({ trip_id: id, user_id })) as never)
-    if (addErr) return NextResponse.json({ error: 'Save failed — could not add people' }, { status: 500 })
+    if (addErr) peopleError = 'Saved the dates, but could not add everyone — check the people and save again'
   }
-  if (toRemove.length > 0) {
+  if (!peopleError && toRemove.length > 0) {
     const { error: rmErr } = await supabase.from('away_trip_people')
       .delete().eq('trip_id', id).in('user_id', toRemove)
-    if (rmErr) return NextResponse.json({ error: 'Save failed — could not remove people' }, { status: 500 })
+    if (rmErr) peopleError = 'Saved the dates, but could not remove everyone — check the people and save again'
   }
 
-  const { data: afterRaw } = await supabase.from('away_trips').select(TRIP_SELECT).eq('id', id).single()
+  // Re-read what is actually stored now, whatever happened above.
+  const { data: afterRaw } = await supabase.from('away_trips').select(TRIP_SELECT).eq('id', id).maybeSingle()
+  if (!afterRaw) return NextResponse.json({ error: peopleError ?? 'Saved, but could not reload the trip' }, { status: 500 })
   const after = mapTripRows([afterRaw as unknown as TripRow])[0]
   await notifyAwayEdited(before, after)   // awaited — see the POST route
+  if (peopleError) return NextResponse.json({ error: peopleError }, { status: 500 })
   return NextResponse.json({ trip: after })
 }
 

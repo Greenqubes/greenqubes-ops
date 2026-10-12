@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getInstallerJobs } from '@/lib/supabase/queries/installer'
 import { getLeaveForSchedule, getHolidays, getCompanyEvents } from '@/lib/supabase/queries/leave'
-import { getAwayTrips } from '@/lib/supabase/queries/away'
+import { awayTripsOrEmpty } from '@/lib/supabase/queries/away'
 import { InstallerShell } from '@/features/installer/InstallerShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -30,7 +30,7 @@ export default async function InstallerPage() {
   // leave and all public holidays"). Names only; the reason is never fetched.
   // Away trips too (2026-10-09) — public by design, unlike a leave reason.
   const [jobs, leaves, holidays, events, awayTrips] = await Promise.all([
-    getInstallerJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(), getAwayTrips(),
+    getInstallerJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(), awayTripsOrEmpty(),
   ])
 
   return (

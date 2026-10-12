@@ -2,11 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import type { AwayTrip } from '@/lib/utils/away-overlap'
 import type { Punctuality } from '@/lib/supabase/types'
-import { getAwayTripsInRange } from './away'
+import { awayTripsInRangeOrEmpty } from './away'
 
 // Away trips covering the board's one day — readable by every role.
 export async function getAwayForDate(date: string): Promise<AwayTrip[]> {
-  return getAwayTripsInRange(date, date)
+  return awayTripsInRangeOrEmpty(date, date)
 }
 
 // ── FCFS board ──────────────────────────────────────────────────────────────

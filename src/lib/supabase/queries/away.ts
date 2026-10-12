@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import type { AwayTrip } from '@/lib/utils/away-overlap'
+import { orEmpty } from '@/lib/utils/or-empty'
 
 // Away trips are readable by every signed-in role (RLS) — who is away on a
 // course and where is ordinary team information. Names come through the
@@ -38,6 +39,14 @@ export async function getAwayTrips(): Promise<AwayTrip[]> {
   if (error) throw error
   return mapTripRows((data ?? []) as unknown as TripRow[])
 }
+
+// Fail-soft versions for every surface where Away is only a notice or a
+// warning (schedule, job form, clash checks, FCFS, assistant): a failed read
+// shows no trips rather than breaking the page (review I3). The Leave page and
+// HR's own list route keep the strict versions, so HR sees a real error.
+export const awayTripsOrEmpty = () => orEmpty(getAwayTrips, '[away] trips')
+export const awayTripsInRangeOrEmpty = (from: string, to: string) =>
+  orEmpty(() => getAwayTripsInRange(from, to), '[away] trips in range')
 
 /** Trips whose dates touch [from, to] (inclusive both ends). */
 export async function getAwayTripsInRange(from: string, to: string): Promise<AwayTrip[]> {

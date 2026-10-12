@@ -696,6 +696,7 @@ export const en = {
   awayConfirmDelete: 'Delete this trip?',
   awayOpenMaps: 'Open Maps',
   awayWarningOnly: 'warning only',
+  awayHeadsUpTitle: 'Heads-up before saving',
 }
 
 export type Translations = typeof en

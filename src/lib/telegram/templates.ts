@@ -535,7 +535,8 @@ const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').re
 // AMBER warning (Nic, 2026-10-09) — the message says so, so nobody treats it
 // as a booking that has to be undone.
 export function tplAwayClash(p: {
-  personName:   string
+  /** Everyone on the trip who is on THIS job — one message per job (review I1). */
+  personNames:  string[]
   tripTitle:    string
   tripWhen:     string
   projectTitle: string | null
@@ -548,7 +549,8 @@ export function tplAwayClash(p: {
 }): string {
   return (
     `🧳 <b>Away — heads-up</b>\n` +
-    `${escHtml(p.personName)} is away (${escHtml(p.tripTitle)}, ${escHtml(p.tripWhen)}) but is on this job:\n` +
+    `${p.personNames.map(escHtml).join(', ')} ${p.personNames.length > 1 ? 'are' : 'is'} away ` +
+    `(${escHtml(p.tripTitle)}, ${escHtml(p.tripWhen)}) but on this job:\n` +
     (p.projectTitle ? `<b>${escHtml(p.projectTitle)}</b>\n` : '') +
     `Client: ${escHtml(p.jobClient)}\n` +
     `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { getAllLeaveRecords } from '@/lib/supabase/queries/leave'
-import { getAwayTrips } from '@/lib/supabase/queries/away'
+import { awayTripsOrEmpty } from '@/lib/supabase/queries/away'
 import { getInstallerUsers, getSupportUsers } from '@/lib/supabase/queries/jobs'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
@@ -41,7 +41,7 @@ export default async function NewJobPage() {
     getSupportUsers(),
     getDesignerUsers(),
     getAllLeaveRecords(),
-    getAwayTrips(),
+    awayTripsOrEmpty(),
   ])
 
   const salesPocOptions: SelectOption[] = officeUsers

@@ -7,7 +7,7 @@ import {
   type LeaveRecord,
 } from '@/lib/utils/leave-overlap'
 import { awayTripFor, awayWhenLabel } from '@/lib/utils/away-overlap'
-import { getAwayTripsInRange } from '@/lib/supabase/queries/away'
+import { awayTripsInRangeOrEmpty } from '@/lib/supabase/queries/away'
 import type { Role } from '@/lib/supabase/types'
 
 export interface ClashInstaller {
@@ -216,7 +216,7 @@ export async function GET(
     .filter(a => !a.is_suggestion)
     .map(a => ({ id: a.user_id, name: a.users?.name ?? '' }))
     .filter(p => p.name)
-  const awayTrips = formalPeople.length === 0 ? [] : await getAwayTripsInRange(job.date, jobEndDate)
+  const awayTrips = formalPeople.length === 0 ? [] : await awayTripsInRangeOrEmpty(job.date, jobEndDate)
   const awayClashes: AwayClashEntry[] = formalPeople.flatMap(p => {
     const trip = awayTripFor(p.id, job.date, job.date_end ?? null, job.time_start, job.time_end, awayTrips)
     return trip ? [{ person: p, title: trip.title, when: awayWhenLabel(trip) }] : []

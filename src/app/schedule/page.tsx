@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getScheduleJobs, getDrivers, getSupportPool } from '@/lib/supabase/queries/jobs'
 import { getLeaveForSchedule, getHolidays, getCompanyEvents } from '@/lib/supabase/queries/leave'
-import { getAwayTrips } from '@/lib/supabase/queries/away'
+import { awayTripsOrEmpty } from '@/lib/supabase/queries/away'
 import { ScheduleShell } from '@/features/schedule/ScheduleShell'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -30,7 +30,7 @@ export default async function SchedulePage() {
 
   const [jobs, leaves, holidays, events, drivers, supportPool, awayTrips] = await Promise.all([
     getScheduleJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(),
-    getDrivers(), getSupportPool(), getAwayTrips(),
+    getDrivers(), getSupportPool(), awayTripsOrEmpty(),
   ])
 
   return (

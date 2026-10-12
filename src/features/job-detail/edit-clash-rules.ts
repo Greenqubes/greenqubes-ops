@@ -7,6 +7,12 @@
 
 export type EditClashActions = 'alert-scheduler' | 'save-anyway'
 
+/** The pop-up's title. An away-only result is a heads-up, so it must never
+ *  be headed "Clash detected" (review, 2026-10-12). */
+export function editClashTitleKey(counts: { clashes: number; leave: number }): 'fcfsClashDetected' | 'awayHeadsUpTitle' {
+  return counts.clashes > 0 || counts.leave > 0 ? 'fcfsClashDetected' : 'awayHeadsUpTitle'
+}
+
 export function editClashActions(
   role: string,
   counts: { clashes: number; leave: number },

@@ -586,4 +586,5 @@ export const zh: Partial<Translations> = {
   awayConfirmDelete: '删除此外出记录？',
   awayOpenMaps: '打开地图',
   awayWarningOnly: '仅提醒',
+  awayHeadsUpTitle: '保存前提醒',
 }

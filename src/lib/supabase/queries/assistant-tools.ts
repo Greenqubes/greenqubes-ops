@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { timesOverlap } from '@/lib/utils/clash-detection'
 import { leaveBlocksJob, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import { awayTripFor, awayWhenLabel } from '@/lib/utils/away-overlap'
-import { getAwayTripsInRange } from './away'
+import { awayTripsInRangeOrEmpty } from './away'
 
 // Read-only lookups behind the assistant's tools (Phase 2). Every function
 // runs on the user-scoped client so RLS filters what the asker may see —
@@ -252,7 +252,7 @@ export async function checkInstallerClashes(
   const blocking = leaves.find(l => leaveBlocksJob(l, date, null, timeStart, timeEnd))
 
   // Away trips — public information, same user-scoped client.
-  const trips = await getAwayTripsInRange(date, date)
+  const trips = await awayTripsInRangeOrEmpty(date, date)
   const trip  = awayTripFor(person.id, date, null, timeStart, timeEnd, trips)
 
   return {

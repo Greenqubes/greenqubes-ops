@@ -7,7 +7,7 @@ import { tplJobAssigned, tplInstallerAssigned, formatDate } from '@/lib/telegram
 import { timesOverlap } from '@/lib/utils/clash-detection'
 import { onLeaveIds, leaveBlocksJob, leaveDatesLabel, type LeaveRecord } from '@/lib/utils/leave-overlap'
 import { awayTripFor, awayWhenLabel } from '@/lib/utils/away-overlap'
-import { getAwayTripsInRange } from '@/lib/supabase/queries/away'
+import { awayTripsInRangeOrEmpty } from '@/lib/supabase/queries/away'
 import type { CheckClash, AwayCheckClash } from '@/features/job-detail/EditClashModal'
 import type { Role } from '@/lib/supabase/types'
 
@@ -176,7 +176,7 @@ export async function POST(
 
     // Away on work — amber, never part of hasClash (spec §6). The ids sent are
     // the crew the user is about to save, so they are formal by definition.
-    const awayTrips = installerIds.length === 0 ? [] : await getAwayTripsInRange(date, jobEndDate)
+    const awayTrips = installerIds.length === 0 ? [] : await awayTripsInRangeOrEmpty(date, jobEndDate)
     const awayClashes: AwayCheckClash[] = installerIds.flatMap(id => {
       const trip = awayTripFor(id, date, dateEnd, timeStart, timeEnd, awayTrips)
       return trip
