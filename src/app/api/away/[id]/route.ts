@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { guardHr } from '@/lib/utils/leave-guard'
 import { TRIP_SELECT, mapTripRows, type TripRow } from '@/lib/supabase/queries/away'
 import { validateTrip, cleanText as clean, type TripBody } from '@/lib/utils/away-validate'
+import { notifyAwayEdited } from '@/lib/utils/away-notify'
 
 // Edit / delete one trip. The form always sends the whole trip, so PATCH
 // validates exactly like POST. People are replaced as a set: rows not in the
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: afterRaw } = await supabase.from('away_trips').select(TRIP_SELECT).eq('id', id).single()
   const after = mapTripRows([afterRaw as unknown as TripRow])[0]
+  await notifyAwayEdited(before, after)   // awaited — see the POST route
   return NextResponse.json({ trip: after })
 }
 

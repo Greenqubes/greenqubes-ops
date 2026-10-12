@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { guardHr } from '@/lib/utils/leave-guard'
 import { getAwayTrips, TRIP_SELECT, mapTripRows, type TripRow } from '@/lib/supabase/queries/away'
 import { validateTrip, cleanText as clean, type TripBody } from '@/lib/utils/away-validate'
+import { notifyAwayCreated } from '@/lib/utils/away-notify'
 
 // Away trips — list (for the Leave page) and create. Writes run on the
 // USER-SCOPED client so RLS is the real gate; guardHr() turns a refusal into a
@@ -53,5 +54,8 @@ export async function POST(req: NextRequest) {
 
   const { data: full } = await supabase.from('away_trips').select(TRIP_SELECT).eq('id', tripId).single()
   const trip = mapTripRows([full as unknown as TripRow])[0]
+  // Awaited — Vercel freezes the function once the response returns, which
+  // silently kills fire-and-forget work (the 2026-08-18 vault lesson).
+  await notifyAwayCreated(trip)
   return NextResponse.json({ trip })
 }
