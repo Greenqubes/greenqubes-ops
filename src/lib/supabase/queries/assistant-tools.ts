@@ -70,7 +70,7 @@ export async function getScheduleRange(
     .order('date', { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
     .limit(101)
-  // Stages, not raw statuses: 'pending' is the office Pending stage
+  // Stages, not raw statuses: 'pending' is the office Ongoing stage
   // (awaiting_date) and 'draft' the private one (raw 'pending') — see
   // src/lib/utils/job-stage.ts (2026-10-09).
   if (status) q = q.in('status', statusesForStage(status))

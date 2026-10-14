@@ -9,7 +9,7 @@ export type MyJobInput = {
   id: string; status: string; date: string | null
   created_by: string | null; sales_poc_id: string | null; coordinatorIds: string[]
 }
-export type MyJobsGroups<T> = { draft: T[]; pending: T[]; scheduled: T[] }
+export type MyJobsGroups<T> = { draft: T[]; ongoing: T[]; scheduled: T[] }
 
 const byDate = (a: { date: string | null }, b: { date: string | null }) => {
   if (a.date && b.date) return a.date.localeCompare(b.date)
@@ -19,7 +19,7 @@ const byDate = (a: { date: string | null }, b: { date: string | null }) => {
 }
 
 export function myJobs<T extends MyJobInput>(jobs: T[], userId: string): MyJobsGroups<T> {
-  const out: MyJobsGroups<T> = { draft: [], pending: [], scheduled: [] }
+  const out: MyJobsGroups<T> = { draft: [], ongoing: [], scheduled: [] }
   for (const job of jobs) {
     const mine = job.created_by === userId || job.sales_poc_id === userId || job.coordinatorIds.includes(userId)
     if (!mine) continue
@@ -29,6 +29,6 @@ export function myJobs<T extends MyJobInput>(jobs: T[], userId: string): MyJobsG
   }
   // Array.prototype.sort is stable: undated jobs keep their input order
   // (newest first, from getStageJobs).
-  out.draft.sort(byDate); out.pending.sort(byDate); out.scheduled.sort(byDate)
+  out.draft.sort(byDate); out.ongoing.sort(byDate); out.scheduled.sort(byDate)
   return out
 }

@@ -103,10 +103,10 @@ export function JobCardContent({ job, lang }: { job: DesignLoadJob; lang: LangCo
         {job.projectTitle || t(lang, 'untitledJob')}
       </p>
       <p className="text-xs text-muted truncate">{job.client || 'Untitled'}</p>
-      {/* Designers start on Pending jobs before the install date is set
+      {/* Designers start on Ongoing jobs before the install date is set
           (spec 2026-10-09) — say so, so nobody reads it as scheduled. */}
-      {stageOf(job.status) === 'pending' && (
-        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-blue-soft text-brand-blue">Pending</span>
+      {stageOf(job.status) === 'ongoing' && (
+        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand-blue-soft text-brand-blue">Ongoing</span>
       )}
       {job.pocName && (
         <p className="text-[11px] text-ink2 mt-1 truncate">{t(lang, 'salesPOC')}: {job.pocName}</p>

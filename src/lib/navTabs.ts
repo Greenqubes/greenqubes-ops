@@ -17,7 +17,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   sales: [
@@ -26,7 +26,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   // No FCFS for installers — the board is a scheduler/coordinator planning tool.
@@ -47,17 +47,17 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
     { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // HR / Finance: schedule view-only, the Leave tab she owns, Pending
+  // HR / Finance: schedule view-only, the Leave tab she owns, Ongoing
   // read-only (since 2026-10-09), and the assistant. No FCFS, no Drafts, no
   // Completed edits, no Admin — see
   // src/lib/auth/capabilities.ts for the gates behind those.
   hr: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar     },
-    { href: '/pending',   label: 'Pending',   Icon: Clock        },
+    { href: '/ongoing',   label: 'Ongoing',   Icon: Clock        },
     { href: '/leave',     label: 'Leave',     Icon: CalendarOff  },
     { href: '/assistant', label: 'Assistant', Icon: Bot          },
   ],
@@ -67,23 +67,23 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // Pending since 2026-10-09: designers start work on Pending jobs before
+  // Ongoing since 2026-10-09: designers start work on Ongoing jobs before
   // the install date is set. No Drafts — they do not create jobs.
   designer: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/pending',     label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   production: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/pending',   label: 'Pending',   Icon: Clock         },
+    { href: '/ongoing',   label: 'Ongoing',   Icon: Clock         },
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],

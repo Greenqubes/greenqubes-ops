@@ -161,7 +161,7 @@ export async function GET(
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
   if (!jobRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  // A Draft or Pending job may have no date yet (2026-10-09). Nothing can
+  // A Draft or Ongoing job may have no date yet (2026-10-09). Nothing can
   // clash with an undated job, and every caller checks the date is filled
   // before pushing — so this only guards a direct call.
   if (!jobRow.date) return NextResponse.json({ error: 'date_required' }, { status: 422 })

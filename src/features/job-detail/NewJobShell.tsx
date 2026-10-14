@@ -162,27 +162,27 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
   // silent: admin-only quiet push — the schedulers are not Telegrammed.
   // Held in state as well as passed, because a clash sends the user through
   // the modal and the push that follows must stay just as quiet.
-  async function saveJob(mode: 'draft' | 'pending' | 'push_to_schedule', silent = false) {
+  async function saveJob(mode: 'draft' | 'ongoing' | 'push_to_schedule', silent = false) {
     if (mode === 'push_to_schedule') setPushSilent(silent)
     const values = watch()
 
     // Required fields are enforced here and only here: a Draft needs nothing,
-    // Save as Pending needs five (no date), Push needs all six (Nic,
+    // Save as Ongoing needs five (no date), Push needs all six (Nic,
     // 2026-09-10 / spec 2026-10-09). This form calls saveJob directly rather
     // than through handleSubmit, so react-hook-form's own rules never run —
     // that is why an empty New Job form used to push straight through.
     const target: Stage = mode === 'push_to_schedule' ? 'scheduled' : mode
     if (!checkForStage(target, values)) {
-      showError(t(lang, target === 'pending' ? 'requiredFieldsMissingPending' : 'requiredFieldsMissing'))
+      showError(t(lang, target === 'ongoing' ? 'requiredFieldsMissingOngoing' : 'requiredFieldsMissing'))
       return
     }
     // A designer on a Draft could not see it, yet would be Telegrammed
     // (spec 2026-10-09). The route refuses it too.
     if (mode === 'draft' && selectedDesignerIds.length > 0) {
-      showError(t(lang, 'designersNeedPending'))
+      showError(t(lang, 'designersNeedOngoing'))
       return
     }
-    // A Pending job takes no confirmed crew — only suggestions — so no
+    // A Ongoing job takes no confirmed crew — only suggestions — so no
     // installer can ever see it. Push and Draft keep the role's usual rule.
     const plan = newJobPlan(mode, suggestMode)
     const crewAsSuggestion = plan.crewAsSuggestion
@@ -193,7 +193,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       const { data: job, error: insertError } = await (supabase
         .from('jobs')
         .insert({
-          // Save as Pending writes the office-visible stage; Draft and Push
+          // Save as Ongoing writes the office-visible stage; Draft and Push
           // insert a private Draft (raw 'pending' — see job-stage.ts), and the
           // submit route flips a push to scheduled and notifies schedulers.
           status: plan.status,
@@ -422,7 +422,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
       setClashData(null)
       // The job stays a Draft, which designers cannot see — say so rather
       // than drop the picks silently.
-      if (selectedDesignerIds.length > 0) showError(t(lang, 'designersNeedPending'))
+      if (selectedDesignerIds.length > 0) showError(t(lang, 'designersNeedOngoing'))
       showSuccess('Scheduler notified — job kept as a draft')
       router.push('/schedule')
     } catch {
@@ -650,7 +650,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           >
             Cancel
           </button>
-          {/* Draft = private notepad, nothing required. Pending = shared with the
+          {/* Draft = private notepad, nothing required. Ongoing = shared with the
               office while the install date is open (spec 2026-10-09). */}
           <button
             type="button"
@@ -662,11 +662,11 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
           </button>
           <button
             type="button"
-            onClick={() => saveJob('pending')}
+            onClick={() => saveJob('ongoing')}
             disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-amber-400 bg-amber-50 text-sm font-semibold text-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving…' : t(lang, 'saveAsPendingBtn')}
+            {saving ? 'Saving…' : t(lang, 'saveAsOngoingBtn')}
           </button>
           <button
             type="button"

@@ -3,7 +3,8 @@
  * translated into what people see (spec 2026-10-09-job-stages-design.md).
  *
  * In the database, `pending` means a PRIVATE DRAFT (migration 0062 keeps it
- * private) and `awaiting_date` is the office-visible Pending stage. The words
+ * private) and `awaiting_date` is the office-visible Ongoing stage (called
+ * Pending until Nic renamed it, 2026-10-14). The words
  * are the wrong way round on purpose: drafts kept the status they already
  * had, so going live moved no rows and opened no privacy gap while preview
  * and production shared one database (Nic, 2026-10-09).
@@ -12,7 +13,7 @@
  * and in query filters (marked `// raw status — see job-stage.ts`).
  */
 
-export type Stage = 'draft' | 'pending' | 'scheduled' | 'completed'
+export type Stage = 'draft' | 'ongoing' | 'scheduled' | 'completed'
 
 export const DRAFT_STATUSES = ['pending', 'awaiting_approval'] as const
 export const NOT_YET_SCHEDULED_STATUSES = ['pending', 'awaiting_approval', 'awaiting_date'] as const
@@ -20,7 +21,7 @@ export const NOT_YET_SCHEDULED_STATUSES = ['pending', 'awaiting_approval', 'awai
 /** Unknown or missing statuses fall to Draft — the most private stage. */
 export function stageOf(status: string | null | undefined): Stage {
   switch (status) {
-    case 'awaiting_date': return 'pending'
+    case 'awaiting_date': return 'ongoing'
     case 'scheduled':     return 'scheduled'
     case 'completed':     return 'completed'
     default:              return 'draft'
@@ -30,7 +31,7 @@ export function stageOf(status: string | null | undefined): Stage {
 /** The status a move INTO each stage writes. */
 export const STAGE_STATUS: Record<Stage, 'pending' | 'awaiting_date' | 'scheduled' | 'completed'> = {
   draft:     'pending',
-  pending:   'awaiting_date',
+  ongoing:   'awaiting_date',
   scheduled: 'scheduled',
   completed: 'completed',
 }
@@ -39,7 +40,7 @@ export const STAGE_STATUS: Record<Stage, 'pending' | 'awaiting_date' | 'schedule
 export function statusesForStage(stage: Stage): string[] {
   switch (stage) {
     case 'draft':     return [...DRAFT_STATUSES]
-    case 'pending':   return ['awaiting_date']
+    case 'ongoing':   return ['awaiting_date']
     case 'scheduled': return ['scheduled']
     case 'completed': return ['completed']
   }

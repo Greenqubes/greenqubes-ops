@@ -27,7 +27,7 @@ function label(iso: string | null, tbc: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-type Group = 'draft' | 'pending' | 'scheduled'
+type Group = 'draft' | 'ongoing' | 'scheduled'
 
 export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
   jobs:          StageJob[]
@@ -79,7 +79,7 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
   }
 
   const groups = useMemo(() => myJobs(jobs, userId), [jobs, userId])
-  const total = groups.draft.length + groups.pending.length + groups.scheduled.length
+  const total = groups.draft.length + groups.ongoing.length + groups.scheduled.length
 
   const pick = (j: StageJob, group: Group) => {
     if (group === 'scheduled' && j.date) {
@@ -87,7 +87,7 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
       if (!isDesktop) toggle(false)
       return
     }
-    router.push(`/${group === 'draft' ? 'drafts' : 'pending'}?highlight=${j.id}`)
+    router.push(`/${group === 'draft' ? 'drafts' : 'ongoing'}?highlight=${j.id}`)
   }
 
   const section = (title: string, list: StageJob[], group: Group) =>
@@ -135,7 +135,7 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
           </div>
           {total === 0 && <p className="px-3 py-6 text-sm text-muted">{t(lang, 'myJobsEmpty')}</p>}
           {section(t(lang, 'stageDrafts'), groups.draft, 'draft')}
-          {section(t(lang, 'stagePending'), groups.pending, 'pending')}
+          {section(t(lang, 'stageOngoing'), groups.ongoing, 'ongoing')}
           {section(t(lang, 'stageScheduled'), groups.scheduled, 'scheduled')}
         </aside>
       )}

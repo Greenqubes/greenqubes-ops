@@ -191,7 +191,7 @@ export async function PATCH(
   const dueCleared = bodyDue === null && !!job.design_due_date
   const dueTyped   = typeof bodyDue === 'string' && bodyDue !== job.design_due_date
 
-  // A first date on a dateless Pending job, or a cleared one, is not a MOVE:
+  // A first date on a dateless Ongoing job, or a cleared one, is not a MOVE:
   // there is nothing to measure the shift from or to, so the due date stays
   // put and the designers just hear the install date was set / removed
   // (spec 2026-10-09).

@@ -1,7 +1,7 @@
 // The bell's readers for design-notification bodies — pure, so they can be
 // tested on their own (moved out of NotificationDrawer.tsx, 2026-10-09).
 //
-// Install dates may be null: a Pending job can have no date yet (2026-10-09),
+// Install dates may be null: a Ongoing job can have no date yet (2026-10-09),
 // and a reader that demanded a string made the bell print raw JSON.
 const dateOrNull = (v: unknown): boolean => typeof v === 'string' || v === null
 

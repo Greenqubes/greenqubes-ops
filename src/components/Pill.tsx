@@ -25,7 +25,7 @@ const label: Record<PillVariant, string> = {
   scheduled:         'Scheduled',
   pending:           'Draft',
   awaiting_approval: 'Draft',
-  awaiting_date:     'Pending',
+  awaiting_date:     'Ongoing',
   completed:         'Completed',
   overdue:           'Overdue',
   sales:             'Sales',

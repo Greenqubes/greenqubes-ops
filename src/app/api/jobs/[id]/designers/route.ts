@@ -57,7 +57,7 @@ export async function POST(
   // A designer on a Draft could not see it (0062) yet would be Telegrammed.
   // Removing designers from a Draft stays allowed (spec 2026-10-09).
   if (userIds.length > 0 && !designersAllowed((await loadJobStatus(supabase, jobId)) ?? '')) {
-    return NextResponse.json({ error: 'Designers can be added once the job is Pending.' }, { status: 409 })
+    return NextResponse.json({ error: 'Designers can be added once the job is Ongoing.' }, { status: 409 })
   }
 
   const { added } = await setJobDesigners(jobId, userIds)

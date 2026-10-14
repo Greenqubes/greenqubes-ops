@@ -1,7 +1,7 @@
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function formatDate(iso: string | null | undefined): string {
-  // A Pending job (awaiting_date) may have no install date yet (2026-10-09).
+  // A Ongoing job (awaiting_date) may have no install date yet (2026-10-09).
   if (!iso) return 'To be confirmed'
   const [y, m, d] = iso.split('-').map(Number)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -152,7 +152,7 @@ export function tplDesignInstallShift(p: {
   jobUrl:         string
 }): string {
   return (
-    // A Pending job's first date is "set", a cleared one "removed" (2026-10-09).
+    // A Ongoing job's first date is "set", a cleared one "removed" (2026-10-09).
     `📅 <b>${!p.oldInstallDate ? 'Install Date Set' : !p.installDate ? 'Install Date Removed' : 'Install Date Moved'}</b>\n` +
     `<b>Project:</b> ${p.projectTitle}\n` +
     `<b>Client:</b> ${p.client}\n` +
@@ -564,7 +564,7 @@ export function tplAwayClash(p: {
 }
 
 // Sent immediately to crew taken off a job that was dated TODAY when it was
-// moved back to Pending (postponed, date to be confirmed). Any other day,
+// moved back to Ongoing (postponed, date to be confirmed). Any other day,
 // the 6pm summary tells them instead (spec 2026-10-09).
 export function tplJobPostponed(p: {
   projectTitle: string | null

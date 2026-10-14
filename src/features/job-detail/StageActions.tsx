@@ -8,7 +8,7 @@ import type { Stage } from '@/lib/utils/job-stage'
 
 /**
  * Stage moves on the edit form that are not Push to Schedule (spec
- * 2026-10-09): Draft → Pending, Pending → Draft, Scheduled → Pending.
+ * 2026-10-09): Draft → Ongoing, Ongoing → Draft, Scheduled → Ongoing.
  * Server-checked by /api/jobs/[id]/stage; these buttons are a convenience.
  */
 export function StageActions({ jobId, stage, canMove, beforeMove, onMoved, lang }: {
@@ -34,7 +34,7 @@ export function StageActions({ jobId, stage, canMove, beforeMove, onMoved, lang 
       const data = await res.json().catch(() => ({})) as { status?: string; error?: string }
       if (!res.ok || !data.status) {
         showError(
-          data.error === 'missing_fields' ? t(lang, 'requiredFieldsMissingPending')
+          data.error === 'missing_fields' ? t(lang, 'requiredFieldsMissingOngoing')
           : data.error === 'designers_assigned' ? t(lang, 'moveToDraftsDesigners')
           : data.error === 'not_permitted' ? t(lang, 'saveBlocked')
           : t(lang, 'saveError'),
@@ -51,31 +51,31 @@ export function StageActions({ jobId, stage, canMove, beforeMove, onMoved, lang 
     }
   }
 
-  const showToPending   = stage === 'draft'     && canMove('pending')
-  const showToDrafts    = stage === 'pending'   && canMove('draft')
-  const showPostpone    = stage === 'scheduled' && canMove('pending')
-  if (!showToPending && !showToDrafts && !showPostpone) return null
+  const showToOngoing   = stage === 'draft'     && canMove('ongoing')
+  const showToDrafts    = stage === 'ongoing'   && canMove('draft')
+  const showPostpone    = stage === 'scheduled' && canMove('ongoing')
+  if (!showToOngoing && !showToDrafts && !showPostpone) return null
 
   const btn = 'flex-1 flex items-center justify-center px-4 py-2.5 rounded-[10px] border border-line bg-paper text-sm font-medium text-ink2 hover:bg-bg disabled:opacity-40'
   return (
     <div className="flex flex-wrap gap-2 mb-2">
-      {showToPending && (
-        <button type="button" className={btn} disabled={busy} onClick={() => move('pending')}>{t(lang, 'saveAsPendingBtn')}</button>
+      {showToOngoing && (
+        <button type="button" className={btn} disabled={busy} onClick={() => move('ongoing')}>{t(lang, 'saveAsOngoingBtn')}</button>
       )}
       {showToDrafts && (
         <button type="button" className={btn} disabled={busy} onClick={() => move('draft')}>{t(lang, 'moveBackToDrafts')}</button>
       )}
       {showPostpone && (
-        <button type="button" className={btn} disabled={busy} onClick={() => setConfirmPostpone(true)}>{t(lang, 'moveBackToPending')}</button>
+        <button type="button" className={btn} disabled={busy} onClick={() => setConfirmPostpone(true)}>{t(lang, 'moveBackToOngoing')}</button>
       )}
-      <Modal isOpen={confirmPostpone} onClose={() => setConfirmPostpone(false)} title={t(lang, 'moveBackToPending')}>
+      <Modal isOpen={confirmPostpone} onClose={() => setConfirmPostpone(false)} title={t(lang, 'moveBackToOngoing')}>
         <div className="space-y-4">
           <p className="text-sm text-ink2">{t(lang, 'postponeConfirmBody')}</p>
           <div className="flex gap-2">
             <button type="button" className={btn} onClick={() => setConfirmPostpone(false)}>{t(lang, 'cancel')}</button>
-            <button type="button" disabled={busy} onClick={() => move('pending')}
+            <button type="button" disabled={busy} onClick={() => move('ongoing')}
               className="flex-1 px-4 py-2.5 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40">
-              {t(lang, 'moveBackToPending')}
+              {t(lang, 'moveBackToOngoing')}
             </button>
           </div>
         </div>

@@ -70,8 +70,8 @@ export async function POST(
   if (job.status === 'completed') {
     return NextResponse.json({ error: 'This job is completed — reopen it first.' }, { status: 409 })
   }
-  // No formal crew on a Pending job: crew is confirmed once it is on the
-  // schedule, so an installer can never see a Pending job (spec 2026-10-09).
+  // No formal crew on a Ongoing job: crew is confirmed once it is on the
+  // schedule, so an installer can never see a Ongoing job (spec 2026-10-09).
   if (!formalCrewAllowed(job.status ?? '')) {
     return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
   }

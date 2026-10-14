@@ -2,6 +2,8 @@
 
 _Designed with Nic, 2026-10-08 → 09. Branch `feat-job-stages`._
 
+> **Renamed 2026-10-14 (Nic): the office stage this spec calls "Pending" is shown as `Ongoing`** — tab, address (`/ongoing`, with `/pending` redirecting), buttons, pill, tour and assistant. In code the stage is `ongoing` (`job-stage.ts`); the database status stays `awaiting_date`, and raw `pending` is still a Draft. Read "Pending" below as "Ongoing".
+
 ## Why
 
 A sales colleague asked: *"if i ever get a project with no confirmed date yet which is still pending, shouldnt i be able to create that job first, then assign designer to do its work first while waiting for client confirmation on the job installation date?"*

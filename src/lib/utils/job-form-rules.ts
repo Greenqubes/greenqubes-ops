@@ -250,7 +250,7 @@ export function shouldNotifyOnPush(input: {
 /**
  * Whether the Design brief card can be filled in yet.
  *
- * Locked on a Draft; open once the job is Pending or Scheduled (spec
+ * Locked on a Draft; open once the job is Ongoing or Scheduled (spec
  * 2026-10-09 — until then it was scheduled-only, Nic 2026-09-15). This follows
  * directly from migration 0060: designers no longer see pending jobs, so a
  * brief written on one — or a designer attached to one — would be invisible
@@ -265,11 +265,11 @@ export function designBriefEditable(input: {
 }): boolean {
   const { status, readOnly } = input
   if (readOnly) return false
-  // Pending (awaiting_date) unlocks it: designers start work before the
+  // Ongoing (awaiting_date) unlocks it: designers start work before the
   // install date is confirmed (spec 2026-10-09). A Draft stays locked —
   // designers cannot see drafts.
   const stage = stageOf(status)
-  return stage === 'pending' || stage === 'scheduled'
+  return stage === 'ongoing' || stage === 'scheduled'
 }
 
 /**
@@ -298,7 +298,7 @@ export function pendingPicHandover(input: {
 /**
  * What a date box sends to the database. An empty box is NULL, never '' —
  * Postgres refuses '' as a date (22007), which made every save of an undated
- * Draft or Pending job fail (review finding, 2026-10-09).
+ * Draft or Ongoing job fail (review finding, 2026-10-09).
  */
 export function toDbDate(value: MaybeText): string | null {
   const v = (value ?? '').trim()

@@ -14,7 +14,7 @@ import type { Stage } from '@/lib/utils/job-stage'
  * forms so both refuse in exactly the same way (Nic, 2026-09-10).
  *
  * Saving a Draft is deliberately NOT gated — a half-filled job can still be
- * parked. Save as Pending needs five fields (no date); putting it on the
+ * parked. Save as Ongoing needs five fields (no date); putting it on the
  * schedule demands all six (spec 2026-10-09).
  */
 

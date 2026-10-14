@@ -29,12 +29,12 @@ const g = myJobs(jobs, ME)
 const ids = (xs: Array<{ id: string }>) => xs.map(x => x.id)
 
 // THE TRAP: raw 'pending' is a Draft. Grouping by raw status would put
-// my-draft under Pending.
+// my-draft under Ongoing.
 check('raw pending lands in Drafts', ids(g.draft), ['my-draft'])
-check('Pending: dated first, undated last', ids(g.pending), ['dated-pend', 'coord-on'])
+check('Ongoing: dated first, undated last', ids(g.ongoing), ['dated-pend', 'coord-on'])
 check('Scheduled: soonest first, creator AND PIC included', ids(g.scheduled), ['my-pic', 'made-by-me'])
-check("someone else's job is not mine", [...g.draft, ...g.pending, ...g.scheduled].some(x => x.id === 'not-mine'), false)
-check('completed drops off', [...g.draft, ...g.pending, ...g.scheduled].some(x => x.id === 'done'), false)
+check("someone else's job is not mine", [...g.draft, ...g.ongoing, ...g.scheduled].some(x => x.id === 'not-mine'), false)
+check('completed drops off', [...g.draft, ...g.ongoing, ...g.scheduled].some(x => x.id === 'done'), false)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall my-jobs checks passed')

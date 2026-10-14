@@ -29,7 +29,7 @@ export async function POST(
 
   const effectiveRole = await getEffectiveRole(profile.role)
   // Scheduler (and admin, who resolves to scheduler) since 2026-10-09: on a
-  // Pending job nobody may confirm crew, so the scheduler suggests too.
+  // Ongoing job nobody may confirm crew, so the scheduler suggests too.
   if (!['sales', 'coordinator', 'scheduler'].includes(effectiveRole)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

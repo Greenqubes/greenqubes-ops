@@ -7,7 +7,7 @@ export const coordinatorSteps: TourStep[] = [
   scheduleViewsStep,
   dateStripStep,
   { id: 'drafts', before: 'open-nav-drawer', targets: ['nav-drafts'], titleKey: 'tourDraftsTitle', bodyKey: 'tourDraftsBody' },
-  { id: 'pending', before: 'open-nav-drawer', targets: ['nav-pending'], titleKey: 'tourCoordPendingTitle', bodyKey: 'tourCoordPendingBody' },
+  { id: 'ongoing', before: 'open-nav-drawer', targets: ['nav-ongoing'], titleKey: 'tourCoordOngoingTitle', bodyKey: 'tourCoordOngoingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourCoordSuggestTitle', bodyKey: 'tourCoordSuggestBody' },

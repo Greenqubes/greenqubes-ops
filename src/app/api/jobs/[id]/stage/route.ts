@@ -13,13 +13,13 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.verce
 
 /**
  * Stage moves that are not "push to schedule" (spec 2026-10-09):
- *   Draft → Pending, Pending → Draft, Scheduled → Pending (postponed).
+ *   Draft → Ongoing, Ongoing → Draft, Scheduled → Ongoing (postponed).
  * Push to Schedule keeps its own route (/submit): it carries the clash flow
  * and the scheduler Telegram.
  *
- * Scheduled → Pending clears the date and takes the whole crew off — crew
+ * Scheduled → Ongoing clears the date and takes the whole crew off — crew
  * are confirmed once a job is on the schedule, and an installer must never
- * see a Pending job. Removed crew are told at 6pm, or now if it was today.
+ * see a Ongoing job. Removed crew are told at 6pm, or now if it was today.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: jobId } = await params
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const body = await req.json().catch(() => ({})) as { to?: string }
   const to = body.to
-  if (to !== 'draft' && to !== 'pending') return NextResponse.json({ error: 'bad_target' }, { status: 400 })
+  if (to !== 'draft' && to !== 'ongoing') return NextResponse.json({ error: 'bad_target' }, { status: 400 })
 
   type JobRow = {
     id: string; status: string; date: string | null; scheduled_at: string | null; created_by: string | null; sales_poc_id: string | null
@@ -64,12 +64,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const blocked = stageMoveBlocked(to, job.job_designers.length)
   if (blocked) return NextResponse.json({ error: blocked }, { status: 409 })
 
-  if (to === 'pending') {
-    const missing = missingForStage('pending', job)
+  if (to === 'ongoing') {
+    const missing = missingForStage('ongoing', job)
     if (missing.length) return NextResponse.json({ error: 'missing_fields', fields: missing }, { status: 422 })
   }
 
-  const postponing = from === 'scheduled' && to === 'pending'
+  const postponing = from === 'scheduled' && to === 'ongoing'
   const patch: Record<string, unknown> = { status: STAGE_STATUS[to as Stage] }
   if (postponing) patch.date = null
 
@@ -88,13 +88,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // 2. The crew, on the service client, only AFTER the move was allowed.
   //    job_assignees has no UPDATE policy at all and sales cannot delete
   //    outside-contractor rows (0039), so on the caller's client these writes
-  //    would silently do nothing — and an installer could then see a Pending
+  //    would silently do nothing — and an installer could then see a Ongoing
   //    job. Every write is checked; on failure the move is undone.
   const svc = createServiceClient()
   let removed: Array<{ user_id: string; is_sub_installer: boolean }> = []
   try {
     if (postponing) {
-      // Scheduled → Pending: crew are confirmed on the schedule, so the
+      // Scheduled → Ongoing: crew are confirmed on the schedule, so the
       // confirmed crew and contractors come off. Suggestions stay.
       const { data: gone, error } = await svc.from('job_assignees').delete()
         .eq('job_id', jobId).eq('is_suggestion', false).select('user_id, is_sub_installer')
@@ -103,9 +103,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const { error: extErr } = await svc.from('job_external_contacts').delete()
         .eq('job_id', jobId).eq('is_suggestion', false)
       if (extErr) throw extErr
-    } else if (from === 'draft' && to === 'pending') {
+    } else if (from === 'draft' && to === 'ongoing') {
       // A scheduler may have confirmed crew on the draft, hidden from the
-      // installers only while it was a draft (0062). On a Pending job crew
+      // installers only while it was a draft (0062). On a Ongoing job crew
       // may only be suggested, so confirmed picks become suggestions — they
       // come back as picks to confirm once it is pushed.
       const { error } = await svc.from('job_assignees')

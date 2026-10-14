@@ -14,8 +14,8 @@ import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
 /**
- * Drafts and Pending tabs (spec 2026-10-09). Plain lists, not the date strip:
- * many jobs here have no date. Drafts = newest first. Pending = dated first
+ * Drafts and Ongoing tabs (spec 2026-10-09). Plain lists, not the date strip:
+ * many jobs here have no date. Drafts = newest first. Ongoing = dated first
  * (soonest first), then "Date to be confirmed" (newest first).
  *
  * ?highlight=<jobId> rings and scrolls to one row — the My Jobs panel on the
@@ -29,7 +29,7 @@ function dayLabel(iso: string): string {
 }
 
 export function StageListShell({ jobs, stage, lang, role, navRole }: {
-  jobs: StageJob[]; stage: 'draft' | 'pending'; lang: LangCode; role: Role; navRole: Role
+  jobs: StageJob[]; stage: 'draft' | 'ongoing'; lang: LangCode; role: Role; navRole: Role
 }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -39,7 +39,7 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
 
-  // Bulk delete as the old Pending list had it: sales and coordinators on
+  // Bulk delete as the old Ongoing list had it: sales and coordinators on
   // their drafts, schedulers anywhere. Deletes go to the Bin.
   const canBulkDelete = role === 'scheduler' || (stage === 'draft' && (role === 'sales' || role === 'coordinator'))
 
@@ -48,8 +48,8 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
     return q ? jobs.filter(j => [j.project_title ?? '', j.client, j.location].join(' ').toLowerCase().includes(q)) : jobs
   }, [jobs, query])
 
-  const dated   = stage === 'pending' ? filtered.filter(j => j.date).sort((a, b) => a.date!.localeCompare(b.date!)) : filtered
-  const undated = stage === 'pending' ? filtered.filter(j => !j.date) : []
+  const dated   = stage === 'ongoing' ? filtered.filter(j => j.date).sort((a, b) => a.date!.localeCompare(b.date!)) : filtered
+  const undated = stage === 'ongoing' ? filtered.filter(j => !j.date) : []
 
   // From the My Jobs panel: scroll only if the row is off screen, then blink
   // it twice — the same as on the schedule (Nic, 2026-10-14).
@@ -85,7 +85,7 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
       <Link href={`/jobs/${j.id}`} className="flex-1 min-w-0">
         <p className="font-display text-sm font-semibold text-ink truncate">{j.project_title || j.client || 'Untitled job'}</p>
         <p className="text-xs text-muted truncate">{j.client}</p>
-        {stage === 'pending' && j.designerNames.length > 0 && (
+        {stage === 'ongoing' && j.designerNames.length > 0 && (
           <p className="text-[11px] text-ink2 truncate">{tr(lang, 'stageDesigner')}: {j.designerNames.join(', ')}</p>
         )}
       </Link>
@@ -98,8 +98,8 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
       <CompanyBar lang={lang} role={role} navRole={navRole} />
       <div className="mx-auto max-w-3xl px-4 pt-4 space-y-4">
         <div>
-          <h1 className="font-display text-xl text-ink">{tr(lang, stage === 'draft' ? 'draftsTitle' : 'pendingTitle')}</h1>
-          <p className="text-xs text-muted">{tr(lang, stage === 'draft' ? 'draftsSubtitle' : 'pendingSubtitle')}</p>
+          <h1 className="font-display text-xl text-ink">{tr(lang, stage === 'draft' ? 'draftsTitle' : 'ongoingTitle')}</h1>
+          <p className="text-xs text-muted">{tr(lang, stage === 'draft' ? 'draftsSubtitle' : 'ongoingSubtitle')}</p>
         </div>
         <label className="flex items-center gap-2 rounded-[10px] border border-line bg-paper px-3 py-2">
           <Search size={14} className="text-muted" />

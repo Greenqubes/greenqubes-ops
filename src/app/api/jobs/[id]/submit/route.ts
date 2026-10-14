@@ -60,7 +60,7 @@ export async function POST(
   if (current.status === 'completed') {
     return NextResponse.json({ error: 'job_completed' }, { status: 409 })
   }
-  // A Pending job may have no date; the schedule needs one (spec 2026-10-09).
+  // A Ongoing job may have no date; the schedule needs one (spec 2026-10-09).
   // The DB check constraint would refuse it anyway — this gives a clear reason.
   if (!newDate && !current.date) {
     return NextResponse.json({ error: 'date_required' }, { status: 422 })

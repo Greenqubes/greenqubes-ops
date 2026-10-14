@@ -56,7 +56,7 @@ export const TOOL_DEFINITIONS: Anthropic.Messages.Tool[] = [
       properties: {
         start_date: { type: 'string', description: 'YYYY-MM-DD' },
         end_date:   { type: 'string', description: 'YYYY-MM-DD' },
-        status:     { type: 'string', enum: ['draft', 'pending', 'scheduled', 'completed'], description: 'Optional stage filter; omit for all. draft = private unfinished jobs; pending = confirmed, install date not set yet (jobs with no date are not in any date range)' },
+        status:     { type: 'string', enum: ['draft', 'ongoing', 'scheduled', 'completed'], description: 'Optional stage filter; omit for all. draft = private unfinished jobs; ongoing = confirmed, install date not set yet (jobs with no date are not in any date range)' },
       },
       required: ['start_date', 'end_date'],
     },

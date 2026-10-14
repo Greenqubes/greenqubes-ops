@@ -9,11 +9,11 @@ import { stageOf, type Stage } from './job-stage'
 type MaybeText = string | null | undefined
 type Values = Partial<Record<RequiredJobField, MaybeText>>
 
-/** Draft = the full form with nothing required (Nic, 2026-10-09). Pending =
+/** Draft = the full form with nothing required (Nic, 2026-10-09). Ongoing =
  *  everything but the date. Scheduled = all six, as since 2026-09-10. */
 export const REQUIRED_FOR_STAGE: Record<Stage, RequiredJobField[]> = {
   draft:     [],
-  pending:   REQUIRED_JOB_FIELDS.filter(f => f !== 'date'),
+  ongoing:   REQUIRED_JOB_FIELDS.filter(f => f !== 'date'),
   scheduled: [...REQUIRED_JOB_FIELDS],
   completed: [...REQUIRED_JOB_FIELDS],
 }
@@ -30,9 +30,9 @@ export function clearedForStage(stage: Stage, original: Values, current: Values)
 }
 
 const MOVES: ReadonlyArray<[Stage, Stage]> = [
-  ['draft', 'pending'], ['draft', 'scheduled'],
-  ['pending', 'scheduled'], ['pending', 'draft'],
-  ['scheduled', 'pending'],
+  ['draft', 'ongoing'], ['draft', 'scheduled'],
+  ['ongoing', 'scheduled'], ['ongoing', 'draft'],
+  ['scheduled', 'ongoing'],
 ]
 export function isStageMoveValid(from: Stage, to: Stage): boolean {
   return MOVES.some(([a, b]) => a === from && b === to)
@@ -51,7 +51,7 @@ function isSharer(v: StageViewer, j: StageJob4Rules): boolean {
 }
 
 /** Creator, sales PIC, coordinators on it, schedulers, admin (spec). Scheduled
- *  and Draft jobs keep their existing gates; this answers for Pending. */
+ *  and Draft jobs keep their existing gates; this answers for Ongoing. */
 export function canEditAtStage(v: StageViewer, j: StageJob4Rules): boolean {
   if (OFFICE_ALL.includes(v.role)) return true
   return SHARER_ROLES.includes(v.role) && isSharer(v, j)
@@ -67,13 +67,13 @@ export function designersAllowed(status: string): boolean {
   return stageOf(status) !== 'draft'
 }
 
-/** Formal crew is confirmed once a job is on the schedule. On a Pending job
+/** Formal crew is confirmed once a job is on the schedule. On a Ongoing job
  *  only suggestions are allowed, so no installer (0037) can ever see one. */
 export function formalCrewAllowed(status: string): boolean {
-  return stageOf(status) !== 'pending'
+  return stageOf(status) !== 'ongoing'
 }
 
-/** Scheduled → Pending: crew hear immediately only for a job dated today;
+/** Scheduled → Ongoing: crew hear immediately only for a job dated today;
  *  otherwise the 6pm summary tells them (same split as a board drag). */
 export function postponeNotifyNow(jobDate: string | null, todayISO: string): boolean {
   return jobDate === todayISO
@@ -81,14 +81,14 @@ export function postponeNotifyNow(jobDate: string | null, todayISO: string): boo
 
 // ── Review fixes (2026-10-09) ────────────────────────────────────────────────
 
-/** What the "Pending but not yours" lock covers. Designers are not sharers,
+/** What the "Ongoing but not yours" lock covers. Designers are not sharers,
  *  but an ASSIGNED designer must still use the files (the Designer JO is
- *  what design-complete needs) — starting design on Pending jobs is the
+ *  what design-complete needs) — starting design on Ongoing jobs is the
  *  point of the stage. Core fields stay locked for them, as everywhere. */
 export function pendingLocks(input: {
   stage: Stage; canEdit: boolean; isAssignedDesigner: boolean
 }): { form: boolean; files: boolean } {
-  const form = input.stage === 'pending' && !input.canEdit
+  const form = input.stage === 'ongoing' && !input.canEdit
   return { form, files: form && !input.isAssignedDesigner }
 }
 
@@ -119,12 +119,12 @@ export function stageMoveBlocked(to: Stage, designerCount: number): 'designers_a
  *  /submit flips, so designers are attached AFTER it — on the Draft the
  *  designers route refuses them. */
 export function newJobPlan(
-  mode: 'draft' | 'pending' | 'push_to_schedule',
+  mode: 'draft' | 'ongoing' | 'push_to_schedule',
   roleSuggests: boolean,
 ): { status: 'pending' | 'awaiting_date'; crewAsSuggestion: boolean; designersAfterPush: boolean } {
   return {
-    status:             mode === 'pending' ? 'awaiting_date' : 'pending',
-    crewAsSuggestion:   roleSuggests || mode === 'pending',
+    status:             mode === 'ongoing' ? 'awaiting_date' : 'pending',
+    crewAsSuggestion:   roleSuggests || mode === 'ongoing',
     designersAfterPush: mode === 'push_to_schedule',
   }
 }

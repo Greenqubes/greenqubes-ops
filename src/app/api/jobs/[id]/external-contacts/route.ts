@@ -70,8 +70,8 @@ export async function POST(
   if (!contactId) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
 
   if (MANAGE_ROLES.includes(effectiveRole)) {
-    // No formal crew on a Pending job: crew is confirmed once it is on the
-    // schedule, so an installer can never see a Pending job (spec 2026-10-09).
+    // No formal crew on a Ongoing job: crew is confirmed once it is on the
+    // schedule, so an installer can never see a Ongoing job (spec 2026-10-09).
     if (!formalCrewAllowed(await loadJobStatus(supabase, jobId) ?? '')) {
       return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
     }

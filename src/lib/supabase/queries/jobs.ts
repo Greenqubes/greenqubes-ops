@@ -95,7 +95,7 @@ export async function getScheduleJobs(): Promise<ScheduleJob[]> {
     .select(SCHEDULE_SELECT)
     // The schedule only ever draws scheduled jobs (ScheduleShell's own filter
     // dropped the rest), and narrowing here keeps ScheduleJob.date a non-null
-    // string now that Drafts and Pending jobs may have no date (2026-10-09).
+    // string now that Drafts and Ongoing jobs may have no date (2026-10-09).
     .eq('status', 'scheduled') // raw status — see job-stage.ts
     .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
@@ -110,18 +110,6 @@ export async function getCompletedJobs(): Promise<ScheduleJob[]> {
     .select(SCHEDULE_SELECT)
     .eq('status', 'completed')
     .order('date',       { ascending: false })
-    .order('time_start', { ascending: true, nullsFirst: false })
-  if (error) throw error
-  return attachSalesNames(supabase, stripSuggestions((data ?? []) as unknown as ScheduleJob[]))
-}
-
-export async function getPendingJobs(): Promise<ScheduleJob[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('jobs')
-    .select(SCHEDULE_SELECT)
-    .in('status', ['pending', 'awaiting_approval'])
-    .order('date',       { ascending: true })
     .order('time_start', { ascending: true, nullsFirst: false })
   if (error) throw error
   return attachSalesNames(supabase, stripSuggestions((data ?? []) as unknown as ScheduleJob[]))
@@ -169,7 +157,7 @@ export type JobMessage = {
 export type JobDetail = {
   id:                      string
   status:                  JobStatus
-  date:                    string | null  // null on a Draft or Pending job (2026-10-09)
+  date:                    string | null  // null on a Draft or Ongoing job (2026-10-09)
   date_end:                string | null
   time_start:              string | null
   time_end:                string | null
@@ -517,7 +505,7 @@ export async function getSupportPool(): Promise<CrewMember[]> {
   return data ?? []
 }
 
-// ── Drafts / Pending / My Jobs (spec 2026-10-09) ─────────────────────────────
+// ── Drafts / Ongoing / My Jobs (spec 2026-10-09) ─────────────────────────────
 
 export type StageJob = {
   id:             string
