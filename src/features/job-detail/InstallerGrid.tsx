@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
-import { LinkDot, DriverChip, LeaveChip, UserMetaLine } from '@/components/UserMetaLine'
+import { LinkDot, DriverChip, LeaveChip, AwayChip, UserMetaLine } from '@/components/UserMetaLine'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -33,9 +33,11 @@ interface Props {
   noteOf?:      (id: string) => string | null
   /** Away on the job's date(s) — renders a red On-leave chip beside the name. */
   onLeaveOf?:   (id: string) => boolean
+  /** Away on a course / business trip then — an amber Away chip (warning only). */
+  awayOf?:      (id: string) => boolean
 }
 
-export function InstallerGrid({ installers, lang, stateOf, onToggle, disabledOf, noteOf, onLeaveOf }: Props) {
+export function InstallerGrid({ installers, lang, stateOf, onToggle, disabledOf, noteOf, onLeaveOf, awayOf }: Props) {
   const scrollRef  = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
   const gridReadOnly = !onToggle
@@ -107,6 +109,7 @@ export function InstallerGrid({ installers, lang, stateOf, onToggle, disabledOf,
                     <span className="truncate">{inst.name}</span>
                     {inst.is_driver && <DriverChip label={t(lang, 'metaDriver')} />}
                     {onLeaveOf?.(inst.id) && <LeaveChip label={t(lang, 'fcfsOnLeaveChip')} />}
+                    {!onLeaveOf?.(inst.id) && awayOf?.(inst.id) && <AwayChip label={t(lang, 'awayChip')} />}
                   </p>
                   <UserMetaLine
                     user={{ role: inst.role, subrole: inst.subrole, qualifications: inst.qualifications }}

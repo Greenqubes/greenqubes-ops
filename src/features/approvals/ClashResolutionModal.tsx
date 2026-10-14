@@ -7,7 +7,7 @@ import { TimeSelect } from '@/features/job-detail/TimeSelect'
 import { WeekWorkloadChart } from './WeekWorkloadChart'
 import { cn } from '@/lib/utils/cn'
 import { buildUserMeta } from '@/lib/utils/user-meta'
-import type { Clash, Substitute, WeekDay, LeaveClashEntry } from '@/app/api/jobs/[id]/clashes/route'
+import type { Clash, Substitute, WeekDay, LeaveClashEntry, AwayClashEntry } from '@/app/api/jobs/[id]/clashes/route'
 import type { LangCode } from '@/lib/i18n'
 
 interface Props {
@@ -18,6 +18,9 @@ interface Props {
   softClashes:       Clash[]
   travelWarnings:    Clash[]
   leaveClashes:      LeaveClashEntry[]
+  /** Away on work — amber, never counted as unresolved. Optional: an older
+   *  server response may not carry it. */
+  awayClashes?:      AwayClashEntry[]
   substitutes:       Substitute[]
   weekDays:          WeekDay[]
   lang:              LangCode
@@ -65,7 +68,7 @@ function timesOverlap(
 
 export function ClashResolutionModal({
   jobDate, jobTimeStart, jobTimeEnd,
-  clashes, softClashes, travelWarnings, leaveClashes, substitutes, weekDays,
+  clashes, softClashes, travelWarnings, leaveClashes, awayClashes = [], substitutes, weekDays,
   onSendToScheduler, onNotifyScheduler, onCancel,
 }: Props) {
   const [replacements, setReplacements] = useState<Record<string, string | 'keep'>>({})
@@ -275,6 +278,22 @@ export function ClashResolutionModal({
                     {' already has an all-day job with '}
                     <span className="font-semibold">{w.conflictingJob.client}</span>
                     {' (no fixed time). Are you sure they can take this on?'}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Away on work — amber, non-blocking: never counted in
+                unresolvedCount, so Push stays available (Nic, 2026-10-09). */}
+            {awayClashes.length > 0 && (
+              <div className="rounded-lg border border-brand-amber bg-brand-amber-soft px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-amber">Away</p>
+                {awayClashes.map(a => (
+                  <p key={a.person.id} className="text-sm text-ink">
+                    <span className="font-semibold">{a.person.name}</span>
+                    {' is away — '}
+                    <span className="font-semibold">{a.title}</span>
+                    {`, ${a.when}.`}
                   </p>
                 ))}
               </div>

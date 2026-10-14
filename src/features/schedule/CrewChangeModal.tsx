@@ -22,6 +22,8 @@ type ClashReport = {
   hasClash: boolean
   clashes:      Array<{ installerName: string; severity: 'hard' | 'soft'; conflict: { projectTitle: string | null; client: string } }>
   leaveClashes: Array<{ installerName: string; dates: string }>
+  /** Away on work — amber, not part of hasClash. Optional for older servers. */
+  awayClashes?: Array<{ installerName: string; title: string; when: string }>
 }
 
 /**
@@ -84,7 +86,7 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
         })
         if (res.ok) {
           const data = await res.json() as ClashReport
-          if (data.hasClash) { setReport(data); setChecking(false); return }
+          if (data.hasClash || (data.awayClashes ?? []).length > 0) { setReport(data); setChecking(false); return }
         }
       } catch {
         // A failed check must not block the scheduler — they are told, and
@@ -226,23 +228,31 @@ export function CrewChangeModal({ plan, job, drivers, supportPool, externals, on
           Lands in <span className="font-semibold text-ink">{landingLabel}</span>.
         </p>
 
-        {report && (
-          <div className="rounded-xl border border-bad bg-bad-soft p-3 space-y-1">
-            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-bad">
-              <AlertTriangle size={14} /> Conflicts found
-            </p>
-            {report.clashes.map((c, i) => (
-              <p key={`c${i}`} className="text-[12px] text-ink2">
-                {c.installerName} is already on {c.conflict.projectTitle || c.conflict.client}
-                {c.severity === 'hard' ? ' at the same time' : ' in an overlapping window'}.
+        {report && (() => {
+          // Red only for a real conflict; an away-only report is amber.
+          const blocking = report.clashes.length > 0 || report.leaveClashes.length > 0
+          return (
+            <div className={cn('rounded-xl border p-3 space-y-1',
+              blocking ? 'border-bad bg-bad-soft' : 'border-brand-amber bg-brand-amber-soft')}>
+              <p className={cn('flex items-center gap-1.5 text-[13px] font-semibold', blocking ? 'text-bad' : 'text-brand-amber')}>
+                <AlertTriangle size={14} /> {blocking ? 'Conflicts found' : 'Heads-up'}
               </p>
-            ))}
-            {report.leaveClashes.map((l, i) => (
-              <p key={`l${i}`} className="text-[12px] text-ink2">{l.installerName} is on leave ({l.dates}).</p>
-            ))}
-            <p className="text-[12px] text-ink2 pt-1">Save anyway, or go back and pick someone else.</p>
-          </div>
-        )}
+              {report.clashes.map((c, i) => (
+                <p key={`c${i}`} className="text-[12px] text-ink2">
+                  {c.installerName} is already on {c.conflict.projectTitle || c.conflict.client}
+                  {c.severity === 'hard' ? ' at the same time' : ' in an overlapping window'}.
+                </p>
+              ))}
+              {report.leaveClashes.map((l, i) => (
+                <p key={`l${i}`} className="text-[12px] text-ink2">{l.installerName} is on leave ({l.dates}).</p>
+              ))}
+              {(report.awayClashes ?? []).map((a, i) => (
+                <p key={`a${i}`} className="text-[12px] text-ink2">{a.installerName} is away then — {a.title} ({a.when}).</p>
+              ))}
+              <p className="text-[12px] text-ink2 pt-1">Save anyway, or go back and pick someone else.</p>
+            </div>
+          )
+        })()}
 
         {error && <p className="text-[13px] font-medium text-bad">{error}</p>}
 

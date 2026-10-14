@@ -13,6 +13,8 @@ import { FCFSTimeline } from './FCFSTimeline'
 import { AssignmentPanel } from './AssignmentPanel'
 import { ClashDrawer } from './ClashDrawer'
 import { leaveClashesForJobs, type LeaveConflict, type LeaveRecord } from '@/lib/utils/leave-overlap'
+import { awayConflictsForJobs, buildAwayByDate, type AwayConflict, type AwayTrip } from '@/lib/utils/away-overlap'
+import { AwayStrip } from '@/features/schedule/AwayStrip'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { FCFSJob } from '@/lib/supabase/queries/fcfs'
 import type { InstallerUser } from '@/lib/supabase/queries/jobs'
@@ -41,6 +43,8 @@ const clashKey = (c: InstallerClash) => `${c.installerId}-${c.jobA.id}-${c.jobB.
 interface FCFSShellProps {
   initialJobs:   FCFSJob[]
   initialLeaves: LeaveRecord[]
+  /** Courses / business trips covering the day — amber, warning only. */
+  initialAway?:  AwayTrip[]
   initialDate:   string
   installers:    InstallerUser[]
   role:          Role
@@ -50,10 +54,11 @@ interface FCFSShellProps {
   lang:          LangCode
 }
 
-export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers, role, navRole, lang }: FCFSShellProps) {
+export function FCFSShell({ initialJobs, initialLeaves, initialAway = [], initialDate, installers, role, navRole, lang }: FCFSShellProps) {
   const [date, setDate]           = useState(initialDate)
   const [jobs, setJobs]           = useState<FCFSJob[]>(initialJobs)
   const [leaves, setLeaves]       = useState<LeaveRecord[]>(initialLeaves)
+  const [away, setAway]           = useState<AwayTrip[]>(initialAway)
   const [loading, setLoading]     = useState(false)
   const [range, setRange]         = useState<TimeRange>('ampm')
   const [panelJobId, setPanelJobId] = useState<string | null>(null)
@@ -79,10 +84,11 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
     try {
       const res = await fetch(`/api/fcfs?date=${target}`)
       if (!res.ok) return
-      const data: { jobs: FCFSJob[]; leaves: LeaveRecord[] } = await res.json()
+      const data: { jobs: FCFSJob[]; leaves: LeaveRecord[]; away?: AwayTrip[] } = await res.json()
       if (dateRef.current === target) {
         setJobs(data.jobs)
         setLeaves(data.leaves)
+        setAway(data.away ?? [])
       }
     } finally {
       if (showSpinner) setLoading(false)
@@ -101,7 +107,8 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
   // 0043 adds the table to the realtime publication.
   useLiveChannel({
     name:    'fcfs-live',
-    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }, { table: 'user_leaves' }],
+    tables:  [{ table: 'jobs' }, { table: 'job_assignees' }, { table: 'user_leaves' },
+              { table: 'away_trips' }, { table: 'away_trip_people' }],
     onEvent: () => refetch(dateRef.current, false),
     poll:    { ms: 2 * 60 * 1000, fn: () => refetch(dateRef.current, false) },
   })
@@ -122,11 +129,19 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
       people: j.assignees.map(a => ({ id: a.user_id, name: a.name })),
     })), leaves), [jobs, leaves])
 
+  // Away on work — formal crew only (suggestions excluded), amber, warning only.
+  const awayClashes = useMemo<AwayConflict[]>(() => awayConflictsForJobs(
+    jobs.map(j => ({
+      id: j.id, date: j.date, date_end: null,
+      time_start: j.time_start, time_end: j.time_end,
+      people: j.assignees.filter(a => !a.is_suggestion).map(a => ({ id: a.user_id, name: a.name })),
+    })), away), [jobs, away])
+
   // One toolbar chip per installer with an active confirmed clash.
   const clashChips = useMemo(() => {
-    const byInstaller = new Map<string, { name: string; count: number; hard: boolean; leave: boolean }>()
+    const byInstaller = new Map<string, { name: string; count: number; hard: boolean; leave: boolean; away: boolean }>()
     for (const c of boardClashes) {
-      const entry = byInstaller.get(c.installerId) ?? { name: c.installerName, count: 0, hard: false, leave: false }
+      const entry = byInstaller.get(c.installerId) ?? { name: c.installerName, count: 0, hard: false, leave: false, away: false }
       entry.count += 1
       entry.hard ||= c.severity === 'hard'
       byInstaller.set(c.installerId, entry)
@@ -134,13 +149,29 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
     // Leave folds into the same chip when the person already has one, so a
     // person never gets two chips; otherwise it adds its own red chip.
     for (const l of leaveClashes) {
-      const entry = byInstaller.get(l.personId) ?? { name: l.personName, count: 0, hard: false, leave: false }
+      const entry = byInstaller.get(l.personId) ?? { name: l.personName, count: 0, hard: false, leave: false, away: false }
       entry.leave = true
       entry.hard  = true
       byInstaller.set(l.personId, entry)
     }
+    // Away folds in the same way. It never sets `hard`, so an away-only chip
+    // stays amber.
+    for (const a of awayClashes) {
+      const entry = byInstaller.get(a.personId) ?? { name: a.personName, count: 0, hard: false, leave: false, away: false }
+      entry.away = true
+      byInstaller.set(a.personId, entry)
+    }
     return [...byInstaller.values()]
-  }, [boardClashes, leaveClashes])
+  }, [boardClashes, leaveClashes, awayClashes])
+
+  // Chip text: leave / clash count as before, with "Away" appended or alone.
+  const chipLabel = (chip: { count: number; leave: boolean; away: boolean }) => {
+    const parts: string[] = []
+    if (chip.leave) parts.push(t(lang, 'fcfsOnLeaveChip'))
+    if (chip.count > 0) parts.push(`${chip.count} ${t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}`)
+    if (chip.away) parts.push(t(lang, 'awayChip'))
+    return parts.join(' · ')
+  }
 
   const panelJob = panelJobId ? jobs.find(j => j.id === panelJobId) ?? null : null
   const cfg = RANGES[range]
@@ -191,11 +222,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
                   )}
                 >
                   <AlertTriangle size={12} />
-                  {chip.name} — {chip.leave
-                    ? (chip.count > 0
-                        ? `${t(lang, 'fcfsOnLeaveChip')} · ${chip.count} ${t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}`
-                        : t(lang, 'fcfsOnLeaveChip'))
-                    : `${chip.count} ${t(lang, chip.count > 1 ? 'fcfsClashes' : 'fcfsClash')}`}
+                  {chip.name} — {chipLabel(chip)}
                 </button>
               ))}
             </div>
@@ -224,6 +251,12 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
           gone below lg now (nav drawer instead — R2-T5 / F1), so mobile only
           needs a modest breathing-room pb. lg: keeps the original value. */}
       <main data-tour="fcfs-board" className="pb-8 lg:pb-24">
+        {/* Who is away on work today — above the board, like the schedule. */}
+        {(buildAwayByDate(away)[date] ?? []).length > 0 && (
+          <div className="px-4 pt-3">
+            <AwayStrip trips={buildAwayByDate(away)[date] ?? []} label={t(lang, 'awayLabel')} lang={lang} />
+          </div>
+        )}
         {loading ? (
           <p className="text-center text-sm text-muted py-12">{t(lang, 'loading')}</p>
         ) : jobs.length === 0 ? (
@@ -233,6 +266,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
             jobs={jobs}
             clashes={boardClashes}
             leaveClashes={leaveClashes}
+            awayClashes={awayClashes}
             startH={cfg.startH}
             endH={cfg.endH}
             lang={lang}
@@ -248,6 +282,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
             ['bg-bad',                                               'fcfsLegendHard'],
             ['bg-punct-flex border-2 border-dashed border-brand-amber', 'fcfsLegendSoft'],
             ['bg-brand-amber opacity-90',                            'fcfsLegendSuggestion'],
+            ['bg-punct-flex ring-2 ring-brand-amber',                'awayLabel'],
           ] as const).map(([swatch, key]) => (
             <span key={key} className="flex items-center gap-1.5 text-[11px] text-ink2">
               <span className={cn('inline-block w-6 h-3.5 rounded-[3px]', swatch)} />
@@ -273,6 +308,7 @@ export function FCFSShell({ initialJobs, initialLeaves, initialDate, installers,
         isOpen={drawerOpen}
         clashes={boardClashes}
         leaveClashes={leaveClashes}
+        awayClashes={awayClashes}
         jobs={jobs}
         lang={lang}
         onClose={() => setDrawerOpen(false)}

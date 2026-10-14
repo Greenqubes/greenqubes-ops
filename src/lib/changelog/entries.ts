@@ -34,6 +34,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-12',
+    // 18:16 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1791800219629, captured the moment /api/version flipped to
+    // 2b1450939704 (commit f9cb986). Never the local clock (CLAUDE.md).
+    time: '18:16',
+    added: [
+      'HR can record staff away on courses or work trips, on the Leave page.',
+      'An amber "Away" strip shows under On leave; tap it for the trip details.',
+      'Scheduling someone who is away gives an amber warning — you can still assign them.',
+    ],
+  },
+  {
     date: '2026-10-07',
     // 16:52 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1791363160237, captured the moment /api/version flipped to

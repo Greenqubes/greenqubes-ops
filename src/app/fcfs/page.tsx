@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
-import { getFCFSDay, getLeaveForDate } from '@/lib/supabase/queries/fcfs'
+import { getFCFSDay, getLeaveForDate, getAwayForDate } from '@/lib/supabase/queries/fcfs'
 import { getInstallerUsers } from '@/lib/supabase/queries/jobs'
 import { FCFSShell } from '@/features/fcfs/FCFSShell'
 import type { LangCode } from '@/lib/i18n'
@@ -39,14 +39,15 @@ export default async function FCFSPage() {
   if (isReadOnlyOfficeRole(effectiveRole)) redirect('/schedule')
 
   const date = todaySGT()
-  const [jobs, installers, leaves] = await Promise.all([
-    getFCFSDay(date), getInstallerUsers(), getLeaveForDate(date),
+  const [jobs, installers, leaves, away] = await Promise.all([
+    getFCFSDay(date), getInstallerUsers(), getLeaveForDate(date), getAwayForDate(date),
   ])
 
   return (
     <FCFSShell
       initialJobs={jobs}
       initialLeaves={leaves}
+      initialAway={away}
       initialDate={date}
       installers={installers}
       role={effectiveRole}

@@ -6,6 +6,7 @@ import { fmtTime } from '@/features/schedule/utils'
 import { clashesForInstaller } from '@/lib/utils/clash-detection'
 import type { InstallerClash } from '@/lib/utils/clash-detection'
 import type { LeaveConflict } from '@/lib/utils/leave-overlap'
+import type { AwayConflict } from '@/lib/utils/away-overlap'
 import type { FCFSJob, FCFSAssignee } from '@/lib/supabase/queries/fcfs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -91,13 +92,15 @@ interface FCFSTimelineProps {
   jobs:         FCFSJob[]
   clashes:      InstallerClash[]
   leaveClashes: LeaveConflict[]
+  /** Away on work — an amber outline on the bar, never a red state. */
+  awayClashes?: AwayConflict[]
   startH:       number
   endH:         number
   lang:         LangCode
   onJobClick:   (job: FCFSJob) => void
 }
 
-export function FCFSTimeline({ jobs, clashes, leaveClashes, startH, endH, lang, onJobClick }: FCFSTimelineProps) {
+export function FCFSTimeline({ jobs, clashes, leaveClashes, awayClashes = [], startH, endH, lang, onJobClick }: FCFSTimelineProps) {
   const hours    = Array.from({ length: endH - startH }, (_, i) => startH + i)
   const minWidth = JOB_COL_W + hours.length * HOUR_W
 
@@ -194,6 +197,10 @@ export function FCFSTimeline({ jobs, clashes, leaveClashes, startH, endH, lang, 
                   const span = barSpan(a, job, startH, endH)
                   if (!span) return null
                   const variant = barVariant(job, a, clashes, leaveClashes)
+                  // Amber outline for away-on-work, unless the bar is already
+                  // red for leave or a hard clash — red outranks a warning.
+                  const isAway = variant !== 'leave' && variant !== 'strict-clash' &&
+                    awayClashes.some(x => x.personId === a.user_id && x.jobId === job.id)
                   const timeLabel = span.allDay
                     ? t(lang, 'fcfsAllDay')
                     : `${fmtTime(job.time_start)}${job.time_end ? `–${fmtTime(job.time_end)}` : ''}`
@@ -203,6 +210,7 @@ export function FCFSTimeline({ jobs, clashes, leaveClashes, startH, endH, lang, 
                       className={cn(
                         'absolute rounded flex items-center gap-1.5 px-2 overflow-hidden z-[2]',
                         BAR_CLASS[variant],
+                        isAway && 'ring-2 ring-brand-amber',
                       )}
                       style={{
                         left:   span.left,

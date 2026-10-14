@@ -29,6 +29,7 @@ import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/j
 import { MyJobsPanel } from './MyJobsPanel'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
+import { buildAwayByDate, type AwayTrip } from '@/lib/utils/away-overlap'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -55,13 +56,15 @@ interface ScheduleShellProps {
   leaves?:   Array<LeaveRecord & { user_name: string }>
   holidays?: Holiday[]
   events?:   CompanyEvent[]
+  /** Courses / business trips — amber, shown to every role. */
+  awayTrips?: AwayTrip[]
   /** My Jobs panel (Nic's screenshot, 2026-10-08) — only the live schedule
    *  passes these, and only for sales / coordinator / scheduler. */
   myJobsSource?: StageJob[]
   userId?:       string
 }
 
-export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [], myJobsSource, userId }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [], awayTrips = [], myJobsSource, userId }: ScheduleShellProps) {
   // On a PC the open My Jobs panel takes the right edge; the page makes room.
   const [panelOpen, setPanelOpen] = useState(false)
   const today  = toISO(new Date())
@@ -72,7 +75,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   // (selected date, view mode, filters) — no visible disruption to the user.
   useLiveChannel({
     name:    'schedule-jobs-live',
-    tables:  [{ table: 'jobs' }, { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' }],
+    tables:  [{ table: 'jobs' }, { table: 'user_leaves' }, { table: 'public_holidays' }, { table: 'company_events' },
+              { table: 'away_trips' }, { table: 'away_trip_people' }],
     onEvent: () => router.refresh(),
     poll:    { ms: 2 * 60 * 1000, fn: () => router.refresh() },
   })
@@ -245,6 +249,10 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     return acc
   }, [events])
 
+  // A trip shows on every day it actually covers (a trip ending at 00:00 does
+  // not mark its last date).
+  const awayByDate = useMemo(() => buildAwayByDate(awayTrips), [awayTrips])
+
   const weekDays   = useMemo(() => getWeekDays(selectedDate),   [selectedDate])
   const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate])
 
@@ -339,6 +347,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     onLeave:       tr(lang, 'onLeaveLabel'),
     publicHoliday: tr(lang, 'publicHolidayLabel'),
     companyEvent:  tr(lang, 'companyEventLabel'),
+    away:          tr(lang, 'awayLabel'),
   }
 
   return (
@@ -485,6 +494,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           leaveNamesByDate={leaveNamesByDate}
           holidayByDate={holidayByDate}
           eventsByDate={eventsByDate}
+          awayByDate={awayByDate}
           onSelectDate={setSelectedDate}
           selectable={canBulkDelete}
           selectedIds={selectedIds}
@@ -501,6 +511,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
             lang={lang}
             leaveNamesByDate={leaveNamesByDate}
             holidayByDate={holidayByDate}
+            awayByDate={awayByDate}
             onSelectDate={setSelectedDate}
           />
           <div className="px-4 pb-8 lg:pb-24">
@@ -513,6 +524,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
               onLeaveLabel={listStrings.onLeave}
               holidayLabel={listStrings.publicHoliday}
               eventLabel={listStrings.companyEvent}
+              awayTrips={awayByDate[selectedDate] ?? []}
+              awayLabel={listStrings.away}
+              lang={lang}
             />
             <DriverBoard
               jobs={jobsByDate[selectedDate] ?? []}
@@ -539,6 +553,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           onLeaveLabel={listStrings.onLeave}
           holidayLabel={listStrings.publicHoliday}
           eventLabel={listStrings.companyEvent}
+          awayByDate={awayByDate}
+          awayLabel={listStrings.away}
         />
       )}
       {viewMode === 'month' && (
@@ -550,6 +566,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           lang={lang}
           leaveNamesByDate={leaveNamesByDate}
           holidayByDate={holidayByDate}
+          awayByDate={awayByDate}
           onSelectDate={setSelectedDate}
           onDrillDown={drillDown}
         />

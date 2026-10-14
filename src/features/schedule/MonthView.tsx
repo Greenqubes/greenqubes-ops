@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
+import type { AwayTrip } from '@/lib/utils/away-overlap'
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] // always English
 
@@ -15,13 +16,14 @@ interface MonthViewProps {
    *  this component and renders unchanged without them. */
   leaveNamesByDate?: Record<string, string[]>
   holidayByDate?:    Record<string, string>
+  awayByDate?:       Record<string, AwayTrip[]>
   onSelectDate: (date: string) => void
   onDrillDown:  (date: string) => void  // select date + switch to list view
 }
 
 export function MonthView({
   monthCells, jobsByDate, selectedDate, today, lang,
-  leaveNamesByDate = {}, holidayByDate = {}, onSelectDate, onDrillDown,
+  leaveNamesByDate = {}, holidayByDate = {}, awayByDate = {}, onSelectDate, onDrillDown,
 }: MonthViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
@@ -75,6 +77,13 @@ export function MonthView({
                 <span className={cn(
                   'absolute top-0.5 right-0.5 w-1 h-1 rounded-full',
                   isSelected ? 'bg-white' : 'bg-brand-green',
+                )} />
+              )}
+              {/* Amber bottom-right = someone away on work (2026-10-09). */}
+              {(awayByDate[d] ?? []).length > 0 && (
+                <span className={cn(
+                  'absolute bottom-0.5 right-0.5 w-1 h-1 rounded-full',
+                  isSelected ? 'bg-white' : 'bg-brand-amber',
                 )} />
               )}
               {dots.length > 0 && (

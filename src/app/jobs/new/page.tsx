@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { getAllLeaveRecords } from '@/lib/supabase/queries/leave'
+import { awayTripsOrEmpty } from '@/lib/supabase/queries/away'
 import { getInstallerUsers, getSupportUsers } from '@/lib/supabase/queries/jobs'
 import { NewJobShell } from '@/features/job-detail/NewJobShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
@@ -34,12 +35,13 @@ export default async function NewJobPage() {
   // Person-in-Charge and Sub POC/Coordinators both offer every office role
   // (Nic, 2026-07-22) — the old sales/scheduler/admin filter hid newly
   // provisioned coordinators/designers/production. Same rule as /jobs/[id].
-  const [officeUsers, allInstallers, supportUsers, designerUsers, leaves] = await Promise.all([
+  const [officeUsers, allInstallers, supportUsers, designerUsers, leaves, awayTrips] = await Promise.all([
     getAllProvisionedUsers(),
     getInstallerUsers(),
     getSupportUsers(),
     getDesignerUsers(),
     getAllLeaveRecords(),
+    awayTripsOrEmpty(),
   ])
 
   const salesPocOptions: SelectOption[] = officeUsers
@@ -58,6 +60,7 @@ export default async function NewJobPage() {
       allInstallers={allInstallers}
       supportUsers={supportUsers}
       leaves={leaves}
+      awayTrips={awayTrips}
       role={role}
       /* The REAL role, not the effective one: getEffectiveRole returns
          'scheduler' for a plain admin, so a preview-aware role can never

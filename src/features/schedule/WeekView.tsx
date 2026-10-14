@@ -5,6 +5,7 @@ import { dayLabel } from './utils'
 import { DayNotices } from './DayNotices'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
+import type { AwayTrip } from '@/lib/utils/away-overlap'
 
 interface WeekViewProps {
   weekDays:   string[]
@@ -19,12 +20,15 @@ interface WeekViewProps {
   onLeaveLabel?:     string
   holidayLabel?:     string
   eventLabel?:       string
+  awayByDate?:       Record<string, AwayTrip[]>
+  awayLabel?:        string
 }
 
 export function WeekView({
   weekDays, jobsByDate, today, lang,
   leaveNamesByDate = {}, holidayByDate = {}, eventsByDate = {},
   onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', eventLabel = 'Company event',
+  awayByDate = {}, awayLabel = 'Away',
 }: WeekViewProps) {
   // pb-24 was mobile clearance for the fixed BottomNav; gone below lg now
   // (nav drawer instead — R2-T5 / F1). Shared by ScheduleShell and
@@ -66,6 +70,9 @@ export function WeekView({
               onLeaveLabel={onLeaveLabel}
               holidayLabel={holidayLabel}
               eventLabel={eventLabel}
+              awayTrips={awayByDate[d] ?? []}
+              awayLabel={awayLabel}
+              lang={lang}
               className="mb-2"
             />
 

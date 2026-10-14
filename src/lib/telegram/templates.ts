@@ -530,6 +530,39 @@ export function tplLeaveClash(p: {
   )
 }
 
+// Trip details are typed by HR — escape them, or a "<" in a business name makes
+// Telegram reject the whole message (the unclosed-tag lesson from Phase 4).
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// Away on a course / business trip during a job they are formally on. An
+// AMBER warning (Nic, 2026-10-09) — the message says so, so nobody treats it
+// as a booking that has to be undone.
+export function tplAwayClash(p: {
+  /** Everyone on the trip who is on THIS job — one message per job (review I1). */
+  personNames:  string[]
+  tripTitle:    string
+  tripWhen:     string
+  projectTitle: string | null
+  jobClient:    string
+  jobDate:      string
+  timeStart:    string | null
+  timeEnd:      string | null
+  location:     string
+  jobUrl:       string
+}): string {
+  return (
+    `🧳 <b>Away — heads-up</b>\n` +
+    `${p.personNames.map(escHtml).join(', ')} ${p.personNames.length > 1 ? 'are' : 'is'} away ` +
+    `(${escHtml(p.tripTitle)}, ${escHtml(p.tripWhen)}) but on this job:\n` +
+    (p.projectTitle ? `<b>${escHtml(p.projectTitle)}</b>\n` : '') +
+    `Client: ${escHtml(p.jobClient)}\n` +
+    `Date: ${dateLine(p.jobDate, p.timeStart, p.timeEnd)}\n` +
+    `📍 ${escHtml(p.location)}\n\n` +
+    `This is a warning only — the job is unchanged.\n` +
+    `<a href="${p.jobUrl}">View in app →</a>`
+  )
+}
+
 // Sent immediately to crew taken off a job that was dated TODAY when it was
 // moved back to Pending (postponed, date to be confirmed). Any other day,
 // the 6pm summary tells them instead (spec 2026-10-09).

@@ -4,6 +4,7 @@ import { getJobById, getInstallerUsers, getSupportUsers, getJobMessages, getCrea
 import { getJobCoordinators, getAllProvisionedUsers } from '@/lib/supabase/queries/coordinators'
 import { getJobDesigners, getDesignerUsers } from '@/lib/supabase/queries/designers'
 import { getAllLeaveRecords } from '@/lib/supabase/queries/leave'
+import { awayTripsOrEmpty } from '@/lib/supabase/queries/away'
 import { JobDetailShell } from '@/features/job-detail/JobDetailShell'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -34,7 +35,7 @@ export default async function JobDetailPage({
 
   const role = await getEffectiveRole(profile.role)
 
-  const [job, installers, supportUsers, messages, coordinators, officeUsers, designers, designerUsers, leaves] = await Promise.all([
+  const [job, installers, supportUsers, messages, coordinators, officeUsers, designers, designerUsers, leaves, awayTrips] = await Promise.all([
     getJobById(id),
     role === 'installer' ? Promise.resolve([]) : getInstallerUsers(),
     role === 'installer' ? Promise.resolve([]) : getSupportUsers(),
@@ -45,6 +46,7 @@ export default async function JobDetailPage({
     getDesignerUsers(),
     // Installers never see the crew pickers, so they never need this.
     role === 'installer' ? Promise.resolve([]) : getAllLeaveRecords(),
+    role === 'installer' ? Promise.resolve([]) : awayTripsOrEmpty(),
   ])
 
   if (!job) notFound()
@@ -71,6 +73,7 @@ export default async function JobDetailPage({
       installers={installers}
       supportUsers={supportUsers}
       leaves={leaves}
+      awayTrips={awayTrips}
       initialMessages={messages}
       salesPocOptions={salesPocOptions}
       initialCoordinatorIds={coordinators.map(c => c.id)}

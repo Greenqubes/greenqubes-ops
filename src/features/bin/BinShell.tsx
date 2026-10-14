@@ -44,6 +44,7 @@ function clashLines(c: ClashesResponse): string[] {
       `${x.installer.name} — also on ${x.conflictingJob.client} ${hh(x.conflictingJob.timeStart)}–${hh(x.conflictingJob.timeEnd)}`),
     ...c.travelWarnings.map(x => `${x.installer.name} — tight travel from ${x.conflictingJob.client}`),
     ...c.leaveClashes.map(x => `${x.person.name} — on leave ${x.dates}`),
+    ...(c.awayClashes ?? []).map(x => `${x.person.name} — away (${x.title}, ${x.when})`),
   ]
 }
 

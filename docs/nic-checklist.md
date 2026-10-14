@@ -39,9 +39,26 @@ _Last updated: 2026-09-30 (infra-config — **a Supabase notice handled, and the
 
 _Last updated: 2026-10-07 (feat-files — **Signed DO has a Scan button. Live at 4:52pm.** Take a photo of a signed DO (or press Scan on one already on the job) and it becomes a clean, straight A4 PDF with white paper and the blue stamp still blue — like the scan I made of your Mustafa DO. On your PC the PDF also downloads, ready for the invoice. The app finds the paper's corners by itself about half the time; when it doesn't, you drag the four dots — you said that's fine. **Bonus fix the review found:** error messages anywhere in the app were hiding behind pop-ups, so a failed save inside one looked like nothing happened. They now always show on top. The "What's new" popup tells the team, including the tip to put the paper on something dark. **Two slips of mine:** I pushed the design documents to dev without asking first, and I gave you a wrong preview link once (missing "-projects").)_
 
+_Last updated: 2026-10-12 (feat-hr — **Away is live at 6:16pm — and still needs your test.** HR can now record staff away on courses or work trips on the Leave page: one trip, several people, exact start and end times. Everyone sees an amber "Away" strip under On leave and can tap it for the details. Putting someone on a job during their trip gives an amber warning, never a block. The person-in-charge gets one Telegram per job affected. The full test list is at the top of Pending. **Fixed from your screenshot:** the Add trip pop-up ran off the screen; it now fits and scrolls. **One thing to pass on:** the other agent's database changes 0064 and 0065 now need `--include-all` when it applies them.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Away (courses & business trips) — ✅ LIVE on production 2026-10-12, NOT YET TESTED
+_Raise this first at the next session start (Nic, 2026-10-12). Test on production — it shares the database with the previews — and title the test trip "TEST" so the team knows to ignore it._
+- [ ] **As HR or admin, on the Leave page:** add a trip for two people, with an address. It appears in the Away box, and the form fits on screen with Save reachable.
+- [ ] **Schedule, on a day the trip covers:** an amber Away strip under On leave and an amber dot on the date. Tapping it shows the people, business, times, address and Open Maps.
+- [ ] **Push a job onto one of them during the trip:** an amber Away note appears, and Push to Schedule still goes through.
+- [ ] **Edit a scheduled job's time into the trip:** the pop-up says "Heads-up before saving" and Save anyway works. Check as a coordinator too.
+- [ ] **FCFS board that day:** an amber outline on their bar, plus an amber chip and an Away entry in the clash list.
+- [ ] **Job form crew pickers:** an amber "Away" tag on their tile.
+- [ ] **Bell and Telegram:** the bell shows "Away: …", and the job's person-in-charge gets ONE Telegram for that job, even with two people on the trip.
+- [ ] **Edit only the trip's note:** no new Telegram goes out.
+- [ ] **Installer login:** the strip shows and the pop-up opens.
+- [ ] **Delete the TEST trip.**
+- [ ] **Decide:** the strip shows one line per trip ("Halim, Rintu · course"), not one line per person. Keep it?
+- [ ] **Tell the other agent (feat-job-stages):** its migrations 0064 and 0065 now need `npx supabase db push --include-all`, because 0066 (Away) was applied ahead of them.
 
 ### Pending privacy + the Job Bin — ✅ LIVE on production 2026-09-28
 
@@ -102,6 +119,13 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-09 → 12, feat-hr — Away: Courses & Business Trips, LIVE)
+
+- [x] **[Nic] Away designed with you** — amber warning only, one trip for several people, exact times, same notifications as leave, shown to everyone.
+- [x] **[Nic] Database change 0066 applied** on your OK; checked that signed-out visitors can neither read nor write it.
+- [x] **[Nic] Preview checked; the Add trip pop-up fixed** after your screenshot showed it running off the screen.
+- [x] **[Nic] Live on production at 6:16pm**, plus the "What's new" entry. Testing is on Pending, top.
 
 ## Done This Session ✓ (2026-10-07, feat-files — Signed DO Scanner, LIVE)
 

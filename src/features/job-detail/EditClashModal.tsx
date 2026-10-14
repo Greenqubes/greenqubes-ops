@@ -5,6 +5,7 @@ import { Modal } from '@/components/Modal'
 import { cn } from '@/lib/utils/cn'
 import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
+import { editClashActions, editClashTitleKey } from './edit-clash-rules'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -46,11 +47,23 @@ export interface LeaveCheckClash {
   dates:         string
 }
 
+// Away on work — a warning, not a clash (Nic, 2026-10-09). Rides alongside
+// like leave, for the same reason: there is no second job to point at.
+export interface AwayCheckClash {
+  installerId:   string
+  installerName: string
+  title:         string
+  /** Pre-formatted, e.g. "Tue 13 Oct 2026, 2:00pm → Thu 15 Oct 2026, 12:00pm". */
+  when:          string
+}
+
 interface EditClashModalProps {
   isOpen:           boolean
   clashes:          CheckClash[]
   /** Optional so existing callers compile untouched. */
   leaveClashes?:    LeaveCheckClash[]
+  /** Away on work — amber. Optional so existing callers compile untouched. */
+  awayClashes?:     AwayCheckClash[]
   role:             Role
   lang:             LangCode
   onAlertScheduler: () => void
@@ -59,12 +72,14 @@ interface EditClashModalProps {
 }
 
 export function EditClashModal({
-  isOpen, clashes, leaveClashes = [], role, lang, onAlertScheduler, onProceed, onClose,
+  isOpen, clashes, leaveClashes = [], awayClashes = [], role, lang, onAlertScheduler, onProceed, onClose,
 }: EditClashModalProps) {
-  const isCoordinator = role === 'coordinator'
+  // An away-only result never escalates (Review Focus #5) — see edit-clash-rules.
+  const isCoordinator =
+    editClashActions(role, { clashes: clashes.length, leave: leaveClashes.length }) === 'alert-scheduler'
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, 'fcfsClashDetected')}>
+    <Modal isOpen={isOpen} onClose={onClose} title={t(lang, editClashTitleKey({ clashes: clashes.length, leave: leaveClashes.length }))}>
       <div className="flex flex-col gap-2 mb-5">
         {/* Leave first — the hardest of the red flags: a double-booking can be
             argued about, an absent person cannot. The role-branched buttons
@@ -101,6 +116,19 @@ export function EditClashModal({
                 <> · {fmtTime(c.conflict.timeStart)}{c.conflict.timeEnd ? `–${fmtTime(c.conflict.timeEnd)}` : ''}</>
               )}
             </p>
+          </div>
+        ))}
+        {/* Away on work — amber, last: a heads-up, not a conflict. */}
+        {awayClashes.map((a, i) => (
+          <div key={`away-${a.installerId}-${i}`} className="border border-line rounded-[10px] p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={13} className="text-brand-amber" />
+              <p className="text-sm font-semibold text-ink">{a.installerName}</p>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full ml-auto bg-brand-amber-soft text-brand-amber">
+                {t(lang, 'awayChip')}
+              </span>
+            </div>
+            <p className="text-xs text-ink2 mt-1.5">{a.title} · {a.when}</p>
           </div>
         ))}
       </div>

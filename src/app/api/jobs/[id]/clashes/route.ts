@@ -6,6 +6,8 @@ import {
   onLeaveIds, leaveBlocksJob, leaveWindowOnDate, leaveDatesLabel, addDays,
   type LeaveRecord,
 } from '@/lib/utils/leave-overlap'
+import { awayTripFor, awayWhenLabel } from '@/lib/utils/away-overlap'
+import { awayTripsInRangeOrEmpty } from '@/lib/supabase/queries/away'
 import type { Role } from '@/lib/supabase/types'
 
 export interface ClashInstaller {
@@ -49,6 +51,14 @@ export interface LeaveClashEntry {
   window: { start: string; end: string } | null
 }
 
+/** Away on work — an AMBER warning, never a blocker (Nic, 2026-10-09). */
+export interface AwayClashEntry {
+  person: ClashInstaller
+  title:  string
+  /** Pre-formatted, e.g. "Tue 13 Oct 2026, 2:00pm → Thu 15 Oct 2026, 12:00pm". */
+  when:   string
+}
+
 export interface InstallerDayJob {
   id:        string
   client:    string
@@ -74,6 +84,7 @@ export interface ClashesResponse {
   softClashes:    Clash[]
   travelWarnings: Clash[]
   leaveClashes:   LeaveClashEntry[]
+  awayClashes:    AwayClashEntry[]
   substitutes:    Substitute[]
   weekDays:       WeekDay[]
   jobDate:        string
@@ -141,11 +152,11 @@ export async function GET(
 
   type JobRow = {
     date: string | null; date_end: string | null; time_start: string | null; time_end: string | null
-    job_assignees: Array<{ user_id: string; is_sub_installer: boolean; users: { id: string; name: string } | null }>
+    job_assignees: Array<{ user_id: string; is_sub_installer: boolean; is_suggestion: boolean; users: { id: string; name: string } | null }>
   }
   const { data: jobRow } = await supabase
     .from('jobs')
-    .select('date, date_end, time_start, time_end, job_assignees(user_id, is_sub_installer, users(id, name))')
+    .select('date, date_end, time_start, time_end, job_assignees(user_id, is_sub_installer, is_suggestion, users(id, name))')
     .eq('id', jobId)
     .maybeSingle() as { data: JobRow | null; error: unknown }
 
@@ -202,6 +213,19 @@ export async function GET(
         window: blocksOtherDays ? null : win,
       }]
     })
+
+  // ── Away (courses / business trips) ─────────────────────────────────────
+  // Formal crew only — drivers AND support crew — never suggestions (spec §5).
+  // Amber: a warning only, so it is never part of the blocking count.
+  const formalPeople = job.job_assignees
+    .filter(a => !a.is_suggestion)
+    .map(a => ({ id: a.user_id, name: a.users?.name ?? '' }))
+    .filter(p => p.name)
+  const awayTrips = formalPeople.length === 0 ? [] : await awayTripsInRangeOrEmpty(job.date, jobEndDate)
+  const awayClashes: AwayClashEntry[] = formalPeople.flatMap(p => {
+    const trip = awayTripFor(p.id, job.date, job.date_end ?? null, job.time_start, job.time_end, awayTrips)
+    return trip ? [{ person: p, title: trip.title, when: awayWhenLabel(trip) }] : []
+  })
 
   type ConflictRow = {
     id: string; client: string; time_start: string | null; time_end: string | null
@@ -347,7 +371,7 @@ export async function GET(
   })
 
   return NextResponse.json({
-    clashes, softClashes, travelWarnings, leaveClashes, substitutes, weekDays,
+    clashes, softClashes, travelWarnings, leaveClashes, awayClashes, substitutes, weekDays,
     jobDate:      job.date,
     jobTimeStart: job.time_start,
     jobTimeEnd:   job.time_end,

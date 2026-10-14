@@ -1,5 +1,10 @@
+'use client'
+
 import { CalendarDays, UserMinus, Users } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { AwayStrip } from './AwayStrip'
+import type { AwayTrip } from '@/lib/utils/away-overlap'
+import type { LangCode } from '@/lib/i18n'
 
 // Public holiday and who-is-away banners for one day.
 //
@@ -24,15 +29,21 @@ interface Props {
   holidayLabel?: string
   /** Translated "Company event" label. */
   eventLabel?:   string
+  /** Trips (courses / business trips) covering that day — amber, tappable. */
+  awayTrips?:  AwayTrip[]
+  /** Translated "Away" label. */
+  awayLabel?:  string
+  lang?:       LangCode
   className?:  string
 }
 
 export function DayNotices({
   leaveNames = [], holiday, events = [],
   onLeaveLabel = 'On leave', holidayLabel = 'Public holiday', eventLabel = 'Company event',
+  awayTrips = [], awayLabel = 'Away', lang = 'en',
   className,
 }: Props) {
-  if (!holiday && leaveNames.length === 0 && events.length === 0) return null
+  if (!holiday && leaveNames.length === 0 && events.length === 0 && awayTrips.length === 0) return null
 
   return (
     <div className={cn('flex flex-col gap-2 mb-3', className)}>
@@ -71,6 +82,9 @@ export function DayNotices({
           </div>
         </div>
       )}
+
+      {/* Directly under On leave (Nic's sketch, 2026-10-09). */}
+      <AwayStrip trips={awayTrips} label={awayLabel} lang={lang} />
     </div>
   )
 }
