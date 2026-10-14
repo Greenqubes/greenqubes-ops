@@ -29,11 +29,12 @@ function label(iso: string | null, tbc: string): string {
 
 type Group = 'draft' | 'pending' | 'scheduled'
 
-export function MyJobsPanel({ jobs, userId, lang, onPickDate, onOpenChange }: {
+export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
   jobs:          StageJob[]
   userId:        string
   lang:          LangCode
-  onPickDate:    (iso: string) => void
+  /** Jump the schedule to this job's date, then scroll to and blink it. */
+  onPickJob:     (iso: string, jobId: string) => void
   /** Lets the schedule leave room for the panel on a PC. */
   onOpenChange?: (open: boolean) => void
 }) {
@@ -82,7 +83,7 @@ export function MyJobsPanel({ jobs, userId, lang, onPickDate, onOpenChange }: {
 
   const pick = (j: StageJob, group: Group) => {
     if (group === 'scheduled' && j.date) {
-      onPickDate(j.date)
+      onPickJob(j.date, j.id)
       if (!isDesktop) toggle(false)
       return
     }

@@ -105,3 +105,16 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Job card blink — My Jobs panel shortcut (Nic, 2026-10-14): two medium-speed
+   pulses of a brand-green ring, then back to normal. Used by blinkJobCards()
+   in src/features/schedule/job-jump.ts. Plain CSS rather than a Tailwind
+   colour/opacity class: the theme tokens are bare var()s, so slash-opacity
+   utilities on them never compile. */
+@keyframes gq-blink {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 0 3px var(--terracotta); }
+}
+.gq-blink {
+  animation: gq-blink 0.5s ease-in-out 2;
+}

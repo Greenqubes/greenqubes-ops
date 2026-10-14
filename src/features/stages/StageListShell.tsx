@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
 import { useToast } from '@/components/Toast'
+import { blinkJobCards } from '@/features/schedule/job-jump'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
@@ -51,9 +51,11 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
   const dated   = stage === 'pending' ? filtered.filter(j => j.date).sort((a, b) => a.date!.localeCompare(b.date!)) : filtered
   const undated = stage === 'pending' ? filtered.filter(j => !j.date) : []
 
+  // From the My Jobs panel: scroll only if the row is off screen, then blink
+  // it twice — the same as on the schedule (Nic, 2026-10-14).
   useEffect(() => {
     if (!highlight) return
-    document.getElementById(`stage-row-${highlight}`)?.scrollIntoView({ block: 'center' })
+    blinkJobCards(document, highlight)
   }, [highlight])
 
   async function bulkDelete() {
@@ -75,9 +77,8 @@ export function StageListShell({ jobs, stage, lang, role, navRole }: {
   })
 
   const row = (j: StageJob) => (
-    <li key={j.id} id={`stage-row-${j.id}`}
-      className={cn('flex items-center gap-3 rounded-[14px] border bg-paper px-4 py-3',
-        highlight === j.id ? 'border-terracotta ring-2 ring-terracotta' : 'border-line')}>
+    <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
+      className="scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4 py-3">
       {canBulkDelete && (
         <input type="checkbox" checked={selected.has(j.id)} aria-label="Select" onChange={() => toggle(j.id)} />
       )}

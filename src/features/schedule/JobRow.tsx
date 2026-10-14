@@ -146,8 +146,12 @@ export function JobRow({ job, currentDate, selectable, selected, onToggle, onDra
           className="flex-1 min-w-0 block group"
         >
           <div
+            // Found by the My Jobs panel to scroll to and blink (job-jump.ts).
+            // The scroll margins keep it clear of the sticky top bar and the
+            // fixed bottom menu when it is brought into view.
+            data-job-card={job.id}
             className={cn(
-              'rounded-card border p-4 transition-all group-hover:brightness-95',
+              'scroll-mt-20 scroll-mb-24 rounded-card border p-4 transition-all group-hover:brightness-95',
               isDraft    ? 'border-dashed'           : 'border-line',
               overdue    ? 'border-bad bg-bad-soft'
                          : isCompleted ? 'bg-paper opacity-70'

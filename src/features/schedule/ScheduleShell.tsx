@@ -27,6 +27,7 @@ import {
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
 import { MyJobsPanel } from './MyJobsPanel'
+import { viewAfterPick, blinkJobCards } from './job-jump'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import { buildAwayByDate, type AwayTrip } from '@/lib/utils/away-overlap'
@@ -271,6 +272,29 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     setSelectedDate(date)
     setViewMode('list')
   }
+
+  // My Jobs shortcut (Nic, 2026-10-14): land on the job's date, then scroll to
+  // its card only if it is off screen, and blink it twice. Month has no cards,
+  // so it switches to the day's List (like drillDown — not saved as a choice).
+  // The card renders after this state change, so the blink waits for it a few
+  // frames; a job hidden by the search box simply has nothing to blink.
+  const [blinkTarget, setBlinkTarget] = useState<{ id: string; n: number } | null>(null)
+  const pickJob = useCallback((iso: string, jobId: string) => {
+    setSelectedDate(iso)
+    setViewMode(v => viewAfterPick(v))
+    setBlinkTarget(prev => ({ id: jobId, n: (prev?.n ?? 0) + 1 }))
+  }, [setSelectedDate])
+  useEffect(() => {
+    if (!blinkTarget) return
+    let tries = 0
+    let raf = 0
+    const attempt = () => {
+      if (blinkJobCards(document, blinkTarget.id) > 0 || ++tries > 30) return
+      raf = requestAnimationFrame(attempt)
+    }
+    raf = requestAnimationFrame(attempt)
+    return () => cancelAnimationFrame(raf)
+  }, [blinkTarget])
 
   // ── Heading label ──
   const headingLabel = useMemo(() => {
@@ -662,7 +686,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
 
       {pageMode === 'schedule' && userId && myJobsSource && (
         <MyJobsPanel jobs={myJobsSource} userId={userId} lang={lang}
-          onPickDate={setSelectedDate} onOpenChange={setPanelOpen} />
+          onPickJob={pickJob} onOpenChange={setPanelOpen} />
       )}
 
       {/* Nav drawer (CompanyBar) replaces this below lg — R2-T5 / F1 */}
