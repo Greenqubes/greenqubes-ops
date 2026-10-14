@@ -115,18 +115,21 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
       <button type="button" onClick={() => toggle(!open)}
         aria-label={t(lang, open ? 'myJobsHide' : 'myJobsShow')}
         className={cn(
-          'fixed top-1/2 -translate-y-1/2 z-[61] rounded-l-lg border border-r-0 border-line bg-paper px-1 py-3 text-ink2 shadow',
+          'fixed top-1/2 -translate-y-1/2 z-[61] lg:z-[26] rounded-l-lg border border-r-0 border-line bg-paper px-1 py-3 text-ink2 shadow',
           open ? 'right-72' : 'right-0',
         )}>
         {open ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
       {/* Phone: full height over everything (overlay rule: above the bottom
           nav). PC: between the top bar and the bottom menu, measured above,
-          so the bell, profile and every tab stay where they are. */}
+          so the bell, profile and every tab stay where they are — and on
+          layer 25, UNDER the top bar (z-30), so the profile menu that drops
+          out of the bar draws over the panel (Nic, 2026-10-14). Nothing on
+          a PC needs it higher: it no longer overlaps the bottom menu. */}
       {open && (
         <aside
           style={isDesktop && box ? { top: box.top, bottom: box.bottom, height: 'auto' } : undefined}
-          className="fixed right-0 top-0 z-[60] h-dvh w-72 max-w-[85vw] bg-paper border-l border-line overflow-y-auto shadow-xl lg:shadow-none">
+          className="fixed right-0 top-0 z-[60] lg:z-[25] h-dvh w-72 max-w-[85vw] bg-paper border-l border-line overflow-y-auto shadow-xl lg:shadow-none">
           <div className="flex items-center justify-between px-3 py-3 border-b border-line">
             <h2 className="font-display text-sm font-semibold text-ink">{t(lang, 'myJobsTitle')}</h2>
             <button type="button" onClick={() => toggle(false)} aria-label={t(lang, 'myJobsHide')} className="p-1 text-muted">

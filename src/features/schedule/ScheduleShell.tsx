@@ -604,7 +604,12 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           unchanged); below lg the nav drawer replaces BottomNav (R2-T5 / F1)
           so this bar can sit flush with the viewport bottom instead. */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-0 lg:bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3">
+        <div className={cn(
+          "fixed bottom-0 lg:bottom-[57px] left-0 right-0 z-20 bg-paper border-t border-line px-4 py-3 flex items-center justify-between gap-3",
+          // Its buttons sit at the right end — keep them clear of an open
+          // My Jobs panel on a PC (2026-10-14).
+          panelOpen && "lg:right-72",
+        )}>
           {confirmBulk ? (
             <>
               <p className="text-sm font-medium text-ink">
