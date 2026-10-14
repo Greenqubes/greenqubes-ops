@@ -50,13 +50,14 @@ for (const k of CHROME_KEYS) {
   assert(`chrome ${k} in bn`, k in bn)
 }
 
-// Job stages (2026-10-09): the roles that create jobs are shown their new
-// private Drafts tab, immediately before Ongoing (which now means the
-// office-visible "date to be confirmed" stage).
+// Job stages: Drafts and Ongoing became ONE "Jobs" tab with a switch (Nic,
+// 2026-10-14), so the tour shows that one tab — a step pointing at the old
+// Drafts or Ongoing menu entries would spotlight nothing.
 for (const role of ['sales', 'coordinator'] as const) {
-  const ids = (TOUR_SCRIPTS[role] ?? []).map(st => st.id)
-  assert(`${role}: has a drafts step`, ids.includes('drafts'))
-  assert(`${role}: drafts comes right before ongoing`, ids.indexOf('drafts') + 1 === ids.indexOf('ongoing'))
+  const steps = TOUR_SCRIPTS[role] ?? []
+  assert(`${role}: no separate drafts step`, !steps.some(st => st.id === 'drafts'))
+  const jobs = steps.find(st => st.id === 'jobs')
+  assert(`${role}: one Jobs step on the Jobs tab`, !!jobs && (jobs.targets ?? []).includes('nav-job-list'))
 }
 
 if (failures) { console.error(`\n${failures} check(s) FAILED`); process.exit(1) }

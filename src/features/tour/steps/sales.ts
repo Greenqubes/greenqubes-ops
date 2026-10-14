@@ -1,13 +1,12 @@
 import type { TourStep } from '../engine'
 import { bellStep, dateStripStep, outroSteps, scheduleViewsStep } from './common'
 
-// Sales: create → push → suggest. 15 steps (Drafts added 2026-10-09).
+// Sales: create → push → suggest. 14 steps (Jobs tab replaced Pending, 2026-10-14).
 export const salesSteps: TourStep[] = [
   { id: 'intro', route: '/schedule', titleKey: 'tourSalesIntroTitle', bodyKey: 'tourSalesIntroBody' },
   scheduleViewsStep,
   dateStripStep,
-  { id: 'drafts', before: 'open-nav-drawer', targets: ['nav-drafts'], titleKey: 'tourDraftsTitle', bodyKey: 'tourDraftsBody' },
-  { id: 'ongoing', before: 'open-nav-drawer', targets: ['nav-ongoing'], titleKey: 'tourOngoingTitle', bodyKey: 'tourOngoingBody' },
+  { id: 'jobs', before: 'open-nav-drawer', targets: ['nav-job-list'], titleKey: 'tourOngoingTitle', bodyKey: 'tourOngoingBody' },
   { id: 'new-job', targets: ['new-job'], titleKey: 'tourNewJobTitle', bodyKey: 'tourNewJobBody' },
   { id: 'job-form', route: '/jobs/new', targets: ['job-details', 'job-tabs'], titleKey: 'tourJobFormTitle', bodyKey: 'tourJobFormBody' },
   { id: 'job-team', before: 'job-tab-team', targets: ['job-team'], titleKey: 'tourJobTeamTitle', bodyKey: 'tourJobTeamBody' },

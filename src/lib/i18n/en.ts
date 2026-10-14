@@ -555,10 +555,8 @@ export const en = {
   tourCompletedBody: 'Finished jobs live here, out of the way of the live schedule.',
   tourSalesIntroTitle: 'Your role: Sales',
   tourSalesIntroBody: 'You create jobs, push them onto the schedule, and suggest installers. This tour shows each step.',
-  tourDraftsTitle: "Your Drafts",
-  tourDraftsBody: "Your notepad. Save any job here half-finished. Only you, the person in charge and its coordinators can see it.",
-  tourOngoingTitle: "Your Ongoing tab",
-  tourOngoingBody: "Confirmed projects waiting for an install date. The whole office can see them, and designers can start work.",
+  tourOngoingTitle: "Your Jobs tab",
+  tourOngoingBody: "Ongoing: confirmed projects waiting for an install date. The whole office can see them, and designers can start work. Tap Drafts for your private, unfinished jobs.",
   tourNewJobTitle: 'Creating a job',
   tourNewJobBody: 'This button opens the New Job form. Let\'s have a look.',
   tourJobFormTitle: 'The job form',
@@ -582,8 +580,8 @@ export const en = {
   tourSuggestVsAssignBody: 'Sales and coordinators suggest installers (yellow). Only your formal assignment turns them green — installers only ever see green.',
   tourCoordinatorIntroTitle: 'Your role: Coordinator',
   tourCoordinatorIntroBody: 'You create and push jobs like sales, and coordinate the jobs you\'re assigned to.',
-  tourCoordOngoingTitle: "Ongoing jobs",
-  tourCoordOngoingBody: "Confirmed projects waiting for a date, visible to the whole office.",
+  tourCoordOngoingTitle: "The Jobs tab",
+  tourCoordOngoingBody: "Ongoing: confirmed projects waiting for a date, visible to the whole office. Drafts: your private, unfinished jobs.",
   tourCoordSuggestTitle: 'Suggesting installers',
   tourCoordSuggestBody: 'You suggest installers (yellow); the scheduler makes the formal assignment (green).',
   tourInstallerIntroTitle: 'Your role: Installer',
@@ -679,9 +677,7 @@ export const en = {
   translationLabel: 'Translation',
   translateFailed: 'Could not translate — try again',
   // Job stages — Drafts / Ongoing / My Jobs (2026-10-09; Pending renamed Ongoing 2026-10-14)
-  draftsTitle: "Drafts",
   draftsSubtitle: "Private to you, the person in charge and coordinators on the job",
-  ongoingTitle: "Ongoing",
   ongoingSubtitle: "Confirmed projects waiting for an install date",
   dateTbcHeading: "Date to be confirmed",
   dateTbc: "TBC",
@@ -727,6 +723,7 @@ export const en = {
   awayOpenMaps: 'Open Maps',
   awayWarningOnly: 'warning only',
   awayHeadsUpTitle: 'Heads-up before saving',
+  jobsTabTitle: "Jobs",
 }
 
 export type Translations = typeof en

@@ -3,6 +3,8 @@
 _Designed with Nic, 2026-10-08 → 09. Branch `feat-job-stages`._
 
 > **Renamed 2026-10-14 (Nic): the office stage this spec calls "Pending" is shown as `Ongoing`** — tab, address (`/ongoing`, with `/pending` redirecting), buttons, pill, tour and assistant. In code the stage is `ongoing` (`job-stage.ts`); the database status stays `awaiting_date`, and raw `pending` is still a Draft. Read "Pending" below as "Ongoing".
+>
+> **Combined 2026-10-14 (Nic): Drafts and Ongoing are ONE menu tab, "Jobs", at `/job-list`** — a [ Ongoing | Drafts ] switch at the top, opening on Ongoing, with a + New button. The switch shows only for roles that have drafts (sales, coordinator, scheduler, admin); designer, production and HR see the Ongoing list alone. `/ongoing`, `/pending` and `/drafts` redirect there. The address is not `/jobs` because every job page lives under `/jobs/…` and the menu lights a tab by address prefix. This replaces the separate Drafts tab described below.
 
 ## Why
 

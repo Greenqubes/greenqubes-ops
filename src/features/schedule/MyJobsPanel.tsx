@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { myJobs } from '@/lib/utils/my-jobs'
 import { desktopPanelBox } from './my-jobs-panel-box'
+import { jobListHref } from '@/features/stages/stage-view'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 
 /**
@@ -87,7 +88,7 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
       if (!isDesktop) toggle(false)
       return
     }
-    router.push(`/${group === 'draft' ? 'drafts' : 'ongoing'}?highlight=${j.id}`)
+    router.push(jobListHref(group === 'draft' ? 'drafts' : 'ongoing', j.id))
   }
 
   const section = (title: string, list: StageJob[], group: Group) =>

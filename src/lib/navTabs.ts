@@ -1,4 +1,4 @@
-import { Calendar, Bot, HardHat, CheckCircle2, Clock, LayoutGrid, PenTool, CalendarOff, FileText } from 'lucide-react'
+import { Calendar, Bot, HardHat, CheckCircle2, LayoutGrid, PenTool, CalendarOff, ClipboardList } from 'lucide-react'
 import type { Role } from '@/lib/supabase/types'
 
 export type NavTab = { href: string; label: string; Icon: typeof Calendar }
@@ -16,8 +16,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
-    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   sales: [
@@ -25,8 +24,7 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
-    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   // No FCFS for installers — the board is a scheduler/coordinator planning tool.
@@ -46,18 +44,17 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
-    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // HR / Finance: schedule view-only, the Leave tab she owns, Ongoing
+  // HR / Finance: schedule view-only, the Leave tab she owns, Jobs (Ongoing only)
   // read-only (since 2026-10-09), and the assistant. No FCFS, no Drafts, no
   // Completed edits, no Admin — see
   // src/lib/auth/capabilities.ts for the gates behind those.
   hr: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar     },
-    { href: '/ongoing',   label: 'Ongoing',   Icon: Clock        },
+    { href: '/job-list',  label: 'Jobs',      Icon: ClipboardList },
     { href: '/leave',     label: 'Leave',     Icon: CalendarOff  },
     { href: '/assistant', label: 'Assistant', Icon: Bot          },
   ],
@@ -66,24 +63,23 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
-    { href: '/drafts',      label: 'Drafts',    Icon: FileText      },
-    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // Ongoing since 2026-10-09: designers start work on Ongoing jobs before
+  // Jobs (Ongoing only) since 2026-10-09: designers start work on Ongoing jobs before
   // the install date is set. No Drafts — they do not create jobs.
   designer: [
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/ongoing',     label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   production: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
-    { href: '/ongoing',   label: 'Ongoing',   Icon: Clock         },
+    { href: '/job-list',  label: 'Jobs',      Icon: ClipboardList },
     { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
