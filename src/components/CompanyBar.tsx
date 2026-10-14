@@ -31,7 +31,7 @@ export function CompanyBar({ lang = 'en', role, navRole }: Props) {
   if (!role) {
     return (
       <>
-        <div className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
+        <div data-layout="top-bar" className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
           <TourProvider lang={lang} />
           <ChangelogModal lang={lang} />
           <Link href="/schedule" aria-label="Go to schedule">
@@ -50,7 +50,7 @@ export function CompanyBar({ lang = 'en', role, navRole }: Props) {
 
   return (
     <>
-    <div className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
+    <div data-layout="top-bar" className="sticky top-0 z-30 px-4 pt-3 pb-2.5 flex items-center justify-between border-b border-line bg-bg">
       <TourProvider lang={lang} role={role} />
       <ChangelogModal lang={lang} />
       {/* Mobile (<lg): hamburger — centered logo — bell. Two flex-1 side

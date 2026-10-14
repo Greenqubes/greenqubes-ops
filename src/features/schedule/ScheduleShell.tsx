@@ -351,9 +351,13 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   }
 
   return (
-    <div className={cn('min-h-screen bg-bg', panelOpen && 'lg:pr-72')}>
+    <div className="min-h-screen bg-bg">
 
       <CompanyBar lang={lang} role={role ?? 'sales'} navRole={navRole} />
+
+      {/* Only the schedule itself makes room for an open My Jobs panel — the
+          top bar and bottom menu stay full width (Nic, 2026-10-14). */}
+      <div className={cn(panelOpen && 'lg:pr-72')}>
 
       {/* ── Company schedule label ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
@@ -653,6 +657,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           )}
         </div>
       )}
+
+      </div>
 
       {pageMode === 'schedule' && userId && myJobsSource && (
         <MyJobsPanel jobs={myJobsSource} userId={userId} lang={lang}

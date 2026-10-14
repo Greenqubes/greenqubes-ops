@@ -16,7 +16,7 @@ export function BottomNav({ role }: { role: Role }) {
   const tabs = NAV_TABS[role]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-paper border-t border-line">
+    <nav data-layout="bottom-nav" className="fixed bottom-0 left-0 right-0 z-50 bg-paper border-t border-line">
       <div className="max-w-[480px] mx-auto flex pt-2 pb-[env(safe-area-inset-bottom,12px)]">
         {tabs.map(({ href, label, Icon }) => {
           const active = pathname.startsWith(href)
