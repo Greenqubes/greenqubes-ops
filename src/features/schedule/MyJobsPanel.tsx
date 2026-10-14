@@ -93,7 +93,11 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
   const section = (title: string, list: StageJob[], group: Group) =>
     list.length === 0 ? null : (
       <div key={group}>
-        <h3 className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-widest text-muted">{title} · {list.length}</h3>
+        {/* Larger, bold, with the count in its own badge (Nic, 2026-10-14). */}
+        <h3 className="flex items-center gap-2 px-3 pt-4 pb-1.5 text-[13px] font-bold uppercase tracking-wide text-ink">
+          {title}
+          <span className="rounded-full border border-line bg-bg px-2 py-[1px] text-[11px] font-semibold text-ink2">{list.length}</span>
+        </h3>
         <ul>
           {list.map(j => (
             <li key={`${group}-${j.id}`}>
