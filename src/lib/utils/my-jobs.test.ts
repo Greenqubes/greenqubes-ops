@@ -54,5 +54,26 @@ check('assigned Scheduled job listed; creating a job is not being assigned', ids
 check('completed drops off', [...dg.draft, ...dg.ongoing, ...dg.scheduled].some(x => x.id === 'd-done'), false)
 check('default mode is unchanged by designerIds', ids(myJobs(dJobs, D).scheduled), ['d-made'])
 
+console.log('scheduler mode:')
+// Nic, 2026-10-19: a scheduler arranges EVERYONE's work, so their "Not
+// scheduled" list is the whole company — their own drafts, then every Ongoing
+// job. NOT the company's scheduled jobs: "wont it flood his side bar?" Their
+// own scheduled jobs are under Mine instead.
+const S = 'u-sched'
+const sJobs = [
+  j('s-own-draft',   'pending',       null,         { created_by: S }),
+  j('s-other-draft', 'pending',       null,         { created_by: 'u-x' }),   // admin can read every draft — still not theirs
+  j('s-ongoing-any', 'awaiting_date', null),                                  // nobody's in particular
+  j('s-ongoing-dated', 'awaiting_date', '2026-11-02'),
+  j('s-sched-mine',  'scheduled',     '2026-10-30', { created_by: S }),
+  j('s-sched-other', 'scheduled',     '2026-10-30'),
+  j('s-done',        'completed',     '2026-10-25'),
+]
+const sg = myJobs(sJobs, S, 'scheduler')
+check('only their OWN drafts', ids(sg.draft), ['s-own-draft'])
+check('every Ongoing job, dated first', ids(sg.ongoing), ['s-ongoing-dated', 's-ongoing-any'])
+check('no scheduled jobs at all — not even their own (that is Mine)', ids(sg.scheduled), [])
+check('completed drops off', [...sg.draft, ...sg.ongoing, ...sg.scheduled].some(x => x.id === 's-done'), false)
+
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall my-jobs checks passed')

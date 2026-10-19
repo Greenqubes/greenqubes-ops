@@ -22,18 +22,28 @@ const byDate = (a: { date: string | null }, b: { date: string | null }) => {
 
 /** 'mine': jobs the viewer created, is PIC of or coordinates (sales, coordinator,
  *  scheduler, admin). 'designer': jobs the viewer is ASSIGNED to design, until
- *  the job is completed (Nic, 2026-10-19). */
-export type MyJobsMode = 'mine' | 'designer'
+ *  the job is completed (Nic, 2026-10-19). 'scheduler': the scheduler's "Not
+ *  scheduled" list — their own drafts plus EVERY Ongoing job in the company.
+ *  No scheduled jobs: the whole company's would flood the panel (Nic,
+ *  2026-10-19); their own are under 'mine'. */
+export type MyJobsMode = 'mine' | 'designer' | 'scheduler'
 
-export function myJobs<T extends MyJobInput>(jobs: T[], userId: string, mode: MyJobsMode = 'mine'): MyJobsGroups<T> {
+export function myJobs<T extends MyJobInput>(
+  jobs: T[], userId: string, mode: MyJobsMode = 'mine',
+): MyJobsGroups<T> {
   const out: MyJobsGroups<T> = { draft: [], ongoing: [], scheduled: [] }
   for (const job of jobs) {
-    const mine = mode === 'designer'
-      ? (job.designerIds ?? []).includes(userId)
-      : job.created_by === userId || job.sales_poc_id === userId || job.coordinatorIds.includes(userId)
-    if (!mine) continue
     const stage = stageOf(job.status)
     if (stage === 'completed') continue
+    const isMine = job.created_by === userId || job.sales_poc_id === userId || job.coordinatorIds.includes(userId)
+    const listed =
+      mode === 'designer'  ? (job.designerIds ?? []).includes(userId) :
+      mode === 'scheduler'
+        // Drafts stay their own — admin can read every draft, and a
+        // colleague's notepad is not work to arrange.
+        ? (stage === 'draft' ? isMine : stage === 'ongoing')
+        : isMine
+    if (!listed) continue
     out[stage].push(job)
   }
   // Array.prototype.sort is stable: undated jobs keep their input order

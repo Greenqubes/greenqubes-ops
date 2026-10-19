@@ -56,7 +56,7 @@ export default async function SchedulePage() {
       role={effectiveRole}
       navRole={navRole}
       myJobsSource={myJobsSource}
-      myJobsMode={isDesigner ? 'designer' : 'mine'}
+      myJobsMode={isDesigner ? 'designer' : effectiveRole === 'scheduler' ? 'scheduler' : 'mine'}
       userId={profile.id}
     />
   )

@@ -614,4 +614,6 @@ export const zh: Partial<Translations> = {
   awayWarningOnly: '仅提醒',
   awayHeadsUpTitle: '保存前提醒',
   jobsTabTitle: "工作",
+  myJobsTabMine: "我的",
+  myJobsTabUnscheduled: "未排程",
 }

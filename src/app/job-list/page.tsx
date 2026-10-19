@@ -51,7 +51,7 @@ export default async function JobListPage() {
   return (
     <Suspense>
       <StageListShell ongoing={ongoing} drafts={drafts} canCreate={hasDrafts}
-        panelJobs={panelJobs} panelMode={isDesigner ? 'designer' : 'mine'} userId={profile.id}
+        panelJobs={panelJobs} panelMode={isDesigner ? 'designer' : effectiveRole === 'scheduler' ? 'scheduler' : 'mine'} userId={profile.id}
         lang={(profile.lang as LangCode) ?? 'en'} role={effectiveRole} navRole={navRole} />
     </Suspense>
   )

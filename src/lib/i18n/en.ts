@@ -724,6 +724,8 @@ export const en = {
   awayWarningOnly: 'warning only',
   awayHeadsUpTitle: 'Heads-up before saving',
   jobsTabTitle: "Jobs",
+  myJobsTabMine: "Mine",
+  myJobsTabUnscheduled: "Not scheduled",
 }
 
 export type Translations = typeof en

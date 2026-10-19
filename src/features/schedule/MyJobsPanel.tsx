@@ -21,6 +21,9 @@ import type { StageJob } from '@/lib/supabase/queries/jobs'
  * server's: closed on the server, then restored.
  */
 const KEY = 'gq-my-jobs-open'
+// Scheduler / admin: which of the two lists they last looked at, per device.
+const TAB_KEY = 'gq-my-jobs-tab'
+type SchedTab = 'mine' | 'unscheduled'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 function label(iso: string | null, tbc: string): string {
@@ -100,8 +103,28 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
     if (isDesktop) { try { localStorage.setItem(KEY, next ? 'open' : 'closed') } catch { /* ignore */ } }
   }
 
-  const groups = useMemo(() => myJobs(jobs, userId, mode), [jobs, userId, mode])
+  // Schedulers (and admin) arrange everyone's work AND enter jobs themselves
+  // (Nic, 2026-10-19): two lists — Mine (the same as sales) and Not scheduled
+  // (their own drafts + every Ongoing job in the company). The company's
+  // scheduled jobs are left out on purpose: they would flood the panel. The
+  // last list used is remembered on this device.
+  const isScheduler = mode === 'scheduler'
+  const [schedTab, setSchedTab] = useState<SchedTab>('unscheduled')
+  useEffect(() => {
+    if (!isScheduler) return
+    let saved: string | null = null
+    try { saved = localStorage.getItem(TAB_KEY) } catch { /* private window */ }
+    if (saved === 'mine' || saved === 'unscheduled') setSchedTab(saved)
+  }, [isScheduler])
+  const chooseTab = (tab: SchedTab) => {
+    setSchedTab(tab)
+    try { localStorage.setItem(TAB_KEY, tab) } catch { /* ignore */ }
+  }
+  const mineGroups  = useMemo(() => myJobs(jobs, userId, isScheduler ? 'mine' : mode), [jobs, userId, mode, isScheduler])
+  const officeGroups = useMemo(() => isScheduler ? myJobs(jobs, userId, 'scheduler') : null, [jobs, userId, isScheduler])
+  const groups = !isScheduler || schedTab === 'mine' || !officeGroups ? mineGroups : officeGroups
   const total = groups.draft.length + groups.ongoing.length + groups.scheduled.length
+  const count = (g: typeof groups) => g.draft.length + g.ongoing.length + g.scheduled.length
 
   const pick = (j: StageJob, group: Group) => {
     // On a phone the panel covers the page — get it out of the way first.
@@ -164,6 +187,23 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
               <X size={14} />
             </button>
           </div>
+          {isScheduler && officeGroups && (
+            <div className="flex gap-1 px-3 pt-3">
+              {([
+                ['mine',        t(lang, 'myJobsTabMine'),        count(mineGroups)],
+                ['unscheduled', t(lang, 'myJobsTabUnscheduled'), count(officeGroups)],
+              ] as const).map(([tab, label, n]) => (
+                <button key={tab} type="button" onClick={() => chooseTab(tab)} aria-pressed={schedTab === tab}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-semibold transition-colors',
+                    schedTab === tab ? 'bg-ink text-paper' : 'border border-line text-ink2 hover:bg-bg',
+                  )}>
+                  {label}
+                  <span className={cn('rounded-full px-1.5 text-[10px]', schedTab === tab ? 'bg-paper text-ink' : 'bg-bg')}>{n}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {total === 0 && <p className="px-3 py-6 text-sm text-muted">{t(lang, 'myJobsEmpty')}</p>}
           {section(t(lang, 'stageDrafts'), groups.draft, 'draft')}
           {section(t(lang, 'stageOngoing'), groups.ongoing, 'ongoing')}
