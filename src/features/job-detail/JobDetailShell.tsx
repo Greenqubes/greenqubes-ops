@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils/cn'
 import { stageOf, type Stage } from '@/lib/utils/job-stage'
 import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
+import { canAttachFiles } from '@/lib/storage/job-file-permissions'
 
 export type FormValues = {
   project_title:           string
@@ -1696,6 +1697,9 @@ export function JobDetailShell({
                 userId={userId}
                 lang={lang}
                 readOnly={filesReadOnly || isInstaller || isProduction}
+                // Adding files is wider than managing them: on a job in progress
+                // every role but installers may attach (Nic, 2026-10-19).
+                canUpload={canAttachFiles(role, status)}
                 refreshKey={bucketsRefreshKey}
                 onBucketsChange={setBuckets}
               />

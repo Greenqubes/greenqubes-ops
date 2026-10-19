@@ -3,6 +3,8 @@
 // for everyone. The job form's three photo sections follow their own rule,
 // canDeleteJobFile below.
 
+import { stageOf } from '@/lib/utils/job-stage'
+
 export type FileManageDecision =
   | { allowed: true }
   | { allowed: false; reason: 'role' | 'completed' }
@@ -85,4 +87,26 @@ export function canDeleteJobFile(input: FileDeleteInput): FileDeleteDecision {
     return { allowed: false, reason: 'last-completion' }
   }
   return { allowed: true }
+}
+
+// ── Attaching files to a job's folders (Nic, 2026-10-19) ──
+//
+// An Ongoing job is progressing, so on Ongoing AND Scheduled jobs every role
+// except installers may ADD files and links — any designer (not only the
+// assigned one, so design can start before assignment), production and HR
+// included. Adding only: renaming or deleting folders and other people's files
+// keeps canManageJobFiles above. Drafts stay with the roles that share them
+// (designers, production and HR cannot see drafts); completed jobs stay locked.
+// Database side: migration 0067 lets designer and hr insert these rows.
+const DRAFT_ROLES = new Set(['sales', 'scheduler', 'coordinator', 'admin'])
+
+export function canAttachFiles(
+  role: string | null | undefined,
+  jobStatus: string | null | undefined,
+): boolean {
+  if (!role || role === 'installer') return false
+  const stage = stageOf(jobStatus)
+  if (stage === 'completed') return false
+  if (stage === 'draft') return DRAFT_ROLES.has(role)
+  return true
 }

@@ -44,6 +44,11 @@ interface Props {
   userId:      string   // app users.id — the FK target for files.uploader_id
   lang:        LangCode
   readOnly?:   boolean
+  /** May ADD files and links, separately from managing the folders. Defaults
+   *  to !readOnly. On a job in progress every role but installers may add
+   *  (canAttachFiles, Nic 2026-10-19) while renaming and deleting folders and
+   *  files stays with `readOnly`. */
+  canUpload?:  boolean
   refreshKey?: number   // bump to re-pull from the server (live job-form events)
   // Lifts this component's own fetched bucket state up to the host (Task 8:
   // JobDetailShell needs to know whether the DESIGNER JO bucket has >=1 file
@@ -52,7 +57,8 @@ interface Props {
   onBucketsChange?: (buckets: AttachmentBucket[]) => void
 }
 
-export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refreshKey, onBucketsChange }: Props) {
+export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, canUpload, refreshKey, onBucketsChange }: Props) {
+  const mayUpload = canUpload ?? !readOnly
   const [buckets,    setBuckets]    = useState<AttachmentBucket[]>([])
   const [loading,    setLoading]    = useState(true)
   const [lightbox,   setLightbox]   = useState<string | null>(null)
@@ -272,6 +278,7 @@ export function AttachmentBuckets({ jobId, userId, lang, readOnly = false, refre
           bucket={bucket}
           lang={lang}
           readOnly={readOnly}
+          canUpload={mayUpload}
           onRename={name => renameBucket(bucket.id, name)}
           onDelete={() => deleteBucket(bucket.id)}
           onUpload={(file, isImg) => uploadFile(bucket, file, isImg)}
@@ -303,6 +310,7 @@ interface BucketCardProps {
   bucket:         AttachmentBucket
   lang:           LangCode
   readOnly:       boolean
+  canUpload:      boolean
   onRename:       (name: string) => void
   onDelete:       () => void
   onUpload:       (file: File, isImage: boolean) => void
@@ -314,7 +322,7 @@ interface BucketCardProps {
 }
 
 function BucketCard({
-  bucket, lang, readOnly, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onMoveFile, onImageClick, getDownloadUrl,
+  bucket, lang, readOnly, canUpload, onRename, onDelete, onUpload, onAddUrl, onDeleteFile, onMoveFile, onImageClick, getDownloadUrl,
 }: BucketCardProps) {
   const [name,       setName]       = useState(bucket.name)
   const [urlModal,   setUrlModal]   = useState(false)
@@ -337,8 +345,9 @@ function BucketCard({
           title={protectedTitle}
           className="flex-1 bg-transparent text-[13px] font-semibold tracking-wide uppercase text-ink2 outline-none disabled:cursor-default"
         />
-        {!readOnly && (
+        {(canUpload || !readOnly) && (
           <div className="flex items-center gap-1 shrink-0">
+            {canUpload && (<>
             <input ref={imgRef} type="file" accept="image/*" multiple className="hidden"
               onChange={e => { [...(e.target.files ?? [])].forEach(f => onUpload(f, true)); e.target.value = '' }} />
             <ActionBtn icon={<ImageIcon size={11} />} label="Image" onClick={() => imgRef.current?.click()} />
@@ -348,8 +357,9 @@ function BucketCard({
             <ActionBtn icon={<Paperclip size={11} />} label="Attachment" onClick={() => fileRef.current?.click()} />
 
             <ActionBtn icon={<LinkIcon size={11} />} label="URL" onClick={() => setUrlModal(true)} />
+            </>)}
 
-            {protectedBucket ? (
+            {readOnly ? null : protectedBucket ? (
               <span title={protectedTitle} className="p-1.5 rounded-lg text-line cursor-not-allowed">
                 <Trash2 size={13} />
               </span>

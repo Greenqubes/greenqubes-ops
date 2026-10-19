@@ -4,7 +4,7 @@
  * Exits 1 on any failure.
  */
 
-import { canManageJobFiles, canDeleteJobFile } from './job-file-permissions'
+import { canManageJobFiles, canDeleteJobFile, canAttachFiles } from './job-file-permissions'
 
 let failures = 0
 
@@ -108,6 +108,24 @@ check('unknown role refused', del({ role: 'hacker' }), { allowed: false, reason:
 check('null role refused', del({ role: null }), { allowed: false, reason: 'role' })
 check('orphaned file: office may clean up', del({ role: 'admin', jobStatus: null, fileKind: 'attachment' }), { allowed: true })
 check('orphaned file: installer may not', del({ jobStatus: null }), { allowed: false, reason: 'role' })
+
+// ── Attaching files: everyone but installers on a job in progress ──
+// Nic, 2026-10-19: an Ongoing job is progressing, so a designer can start
+// before being assigned — and production and HR can drop files too.
+// THE OLD RULE, kept first: a designer could only attach on a job they were
+// assigned to, production saw the folders view-only, and HR could not attach.
+check('any designer attaches on an Ongoing job', canAttachFiles('designer', 'awaiting_date'), true)
+check('any designer attaches on a Scheduled job', canAttachFiles('designer', 'scheduled'), true)
+check('production attaches on an Ongoing job', canAttachFiles('production', 'awaiting_date'), true)
+check('HR attaches on a Scheduled job', canAttachFiles('hr', 'scheduled'), true)
+check('sales attaches on an Ongoing job', canAttachFiles('sales', 'awaiting_date'), true)
+// What does NOT change
+check('installer: never', canAttachFiles('installer', 'scheduled'), false)
+check('nobody on a completed job', canAttachFiles('sales', 'completed'), false)
+check('a Draft: the roles that share drafts', canAttachFiles('coordinator', 'pending'), true)
+check('a Draft: not a designer (they cannot see drafts)', canAttachFiles('designer', 'pending'), false)
+check('a Draft: not HR', canAttachFiles('hr', 'pending'), false)
+check('no role refused', canAttachFiles(null, 'scheduled'), false)
 
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)
