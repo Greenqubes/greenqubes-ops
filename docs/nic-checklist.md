@@ -41,9 +41,21 @@ _Last updated: 2026-10-07 (feat-files — **Signed DO has a Scan button. Live at
 
 _Last updated: 2026-10-12 (feat-hr — **Away is live at 6:16pm — and still needs your test.** HR can now record staff away on courses or work trips on the Leave page: one trip, several people, exact start and end times. Everyone sees an amber "Away" strip under On leave and can tap it for the details. Putting someone on a job during their trip gives an amber warning, never a block. The person-in-charge gets one Telegram per job affected. The full test list is at the top of Pending. **Fixed from your screenshot:** the Add trip pop-up ran off the screen; it now fits and scrolls. **One thing to pass on:** the other agent's database changes 0064 and 0065 now need `--include-all` when it applies them.)_
 
+_Last updated: 2026-10-19 (feat-jobs — **Job stages are live at 6:49pm.** A job now goes **Draft → Ongoing → Scheduled → Completed**. A Draft is your private notepad: the full job form, nothing required. Ongoing means the client has confirmed — the whole office sees it, designers can start, and the install date can come later. Drafts and Ongoing sit together in the new **Jobs** tab, which replaces Pending. The **My Jobs** panel on the right of Schedule and Jobs jumps to a job and blinks it twice; designers see the jobs assigned to them, and the scheduler gets Mine | Not scheduled. Everyone except installers can now attach files on Ongoing and Scheduled jobs. The "What's new" popup tells the team. **One thing to tell them yourself:** jobs that were Pending before today are now Drafts, still private, until someone moves each one to Ongoing.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Job stages — ✅ LIVE on production 2026-10-19
+_You checked each piece on the previews as it was built; these are the checks worth doing once on the live app with real logins. Title any test job "TEST" and delete it after (it goes to the Bin)._
+- [ ] **Tell the team:** the Pending tab is now **Jobs**. Old pending jobs are under Drafts — move each to Ongoing once the client confirms, or the office (and designers) won't see it.
+- [ ] **As sales:** make a job with only a title → Save draft. Fill the rest but no date → Save as Ongoing. Add the date → Push to Schedule.
+- [ ] **As a designer:** open an Ongoing job, attach a file, rename it, delete it. Your panel lists the jobs you're assigned to.
+- [ ] **As the scheduler:** the panel's Not scheduled list shows every Ongoing job; Mine shows their own.
+- [ ] **Move a Scheduled TEST job back to Ongoing** (one with no real crew): the crew comes off it and it leaves the schedule.
+- [ ] **As production or HR:** attach a file on a Scheduled job.
+- [ ] **Small things the review left for later, none urgent** (full list in the job-stages ledger): a postponed job is marked as "crew told" even if the Telegram fails; designers aren't told when an install date is removed; the panel's arrow button can sit on top of other pop-ups on a phone; tapping the same panel job twice doesn't blink it again.
 
 ### Away (courses & business trips) — ✅ LIVE on production 2026-10-12, NOT YET TESTED
 _Raise this first at the next session start (Nic, 2026-10-12). Test on production — it shares the database with the previews — and title the test trip "TEST" so the team knows to ignore it._
@@ -58,7 +70,7 @@ _Raise this first at the next session start (Nic, 2026-10-12). Test on productio
 - [ ] **Installer login:** the strip shows and the pop-up opens.
 - [ ] **Delete the TEST trip.**
 - [ ] **Decide:** the strip shows one line per trip ("Halim, Rintu · course"), not one line per person. Keep it?
-- [ ] **Tell the other agent (feat-job-stages):** its migrations 0064 and 0065 now need `npx supabase db push --include-all`, because 0066 (Away) was applied ahead of them.
+- [x] **[Nic] Tell the other agent (feat-job-stages):** done — 0064 and 0065 went in with `--include-all` this session, and no existing pending job was lost.
 
 ### Pending privacy + the Job Bin — ✅ LIVE on production 2026-09-28
 
@@ -101,6 +113,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] Scanner polish: lower memory use per page, translated error text, "Camera or file" opens only the camera on Android
 
 ### Only you
+- [ ] **Chinese staff with QQ email:** they're trying to make a Google account with their QQ address. If Google won't take it, tell Claude — the fallback is a sign-in by emailed code (not built yet).
 - [ ] Get the team to tap profile picture → **Connect Summary** (Firoz, Aroze, Halim and CK need Connect Telegram first); watch Vercel logs for `chat not found`
 - [ ] Watch the Monday digest; tell Claude about any wrong pick
 - [ ] Every January: HR adds that year's public holidays from the Leave page
@@ -119,6 +132,17 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-09 → 19, feat-jobs — Job Stages + Jobs Tab + My Jobs Panel, LIVE)
+
+- [x] **[Nic] Job stages designed with you** — Draft (private, nothing required), Ongoing (office sees it, date optional, designers start), then Scheduled. "Pending" renamed Ongoing on 14 Oct.
+- [x] **[Nic] Database changes 0064, 0065 and 0067 applied** on your OK, without touching the pending jobs already in the system.
+- [x] **[Nic] My Jobs panel** — your screenshot's quick links, plus the jump, scroll and blink (0.6s, twice); designer and scheduler versions; bigger bold headers with counts; the user menu now shows above it.
+- [x] **[Nic] Drafts and Ongoing combined into one Jobs tab**, opening on Ongoing, with +New inside.
+- [x] **[Nic] Files on Ongoing and Scheduled jobs** for every role but installers; any designer can also rename and delete.
+- [x] **[Nic] Separate test database** idea added to To build.
+- [x] **[Nic] Claude may now push feature branches and dev by itself**; production still needs your "push to main".
+- [x] **[Nic] Live on production at 6:49pm**, plus the "What's new" entry.
 
 ## Done This Session ✓ (2026-10-09 → 12, feat-hr — Away: Courses & Business Trips, LIVE)
 
