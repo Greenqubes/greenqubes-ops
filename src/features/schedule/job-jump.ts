@@ -3,6 +3,8 @@
  * bring the card into view only if it is off screen, and blink it twice.
  */
 
+import { resolveScheduleDate } from '@/lib/utils/schedule-date'
+
 export type ScheduleView = 'list' | 'board' | 'week' | 'month'
 
 /** Month shows dots, not cards — it switches to that day's List, the same as
@@ -61,4 +63,22 @@ export function blinkJobCards(root: ParentNode, jobId: string): number {
   }
   requestAnimationFrame(waitThenBlink)
   return cards.length
+}
+
+// ── Arriving on the Schedule page from elsewhere (Nic, 2026-10-19) ──────────
+// The Jobs tab's My Jobs panel sends a Scheduled job here: the link carries
+// the job and its date, and the page lands on that date and blinks the card.
+
+export function scheduleJumpHref(date: string, jobId: string): string {
+  return `/schedule?${new URLSearchParams({ jump: jobId, date }).toString()}`
+}
+
+/** The jump in a Schedule-page address, or null. The date is checked the same
+ *  way a remembered date is — an impossible one would render an empty day. */
+export function parseScheduleJump(search: string): { jobId: string; date: string } | null {
+  const q = new URLSearchParams(search)
+  const jobId = q.get('jump')
+  const date  = q.get('date')
+  if (!jobId || !date) return null
+  return resolveScheduleDate(date, '') === date ? { jobId, date } : null
 }

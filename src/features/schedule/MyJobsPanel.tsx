@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
-import { myJobs } from '@/lib/utils/my-jobs'
+import { myJobs, type MyJobsMode } from '@/lib/utils/my-jobs'
+import { scheduleJumpHref } from './job-jump'
 import { desktopPanelBox } from './my-jobs-panel-box'
 import { jobListHref } from '@/features/stages/stage-view'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
@@ -30,12 +31,17 @@ function label(iso: string | null, tbc: string): string {
 
 type Group = 'draft' | 'ongoing' | 'scheduled'
 
-export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
+export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOpenChange }: {
   jobs:          StageJob[]
   userId:        string
   lang:          LangCode
   /** Jump the schedule to this job's date, then scroll to and blink it. */
-  onPickJob:     (iso: string, jobId: string) => void
+  /** 'mine' (sales, coordinator, scheduler, admin) or 'designer' — the jobs
+   *  assigned to them (Nic, 2026-10-19). */
+  mode?:         MyJobsMode
+  /** On the Schedule page: jump in place. Elsewhere (the Jobs tab) leave it
+   *  out and a Scheduled job opens the Schedule page on its date instead. */
+  onPickJob?:    (iso: string, jobId: string) => void
   /** Lets the schedule leave room for the panel on a PC. */
   onOpenChange?: (open: boolean) => void
 }) {
@@ -79,13 +85,15 @@ export function MyJobsPanel({ jobs, userId, lang, onPickJob, onOpenChange }: {
     if (isDesktop) { try { localStorage.setItem(KEY, next ? 'open' : 'closed') } catch { /* ignore */ } }
   }
 
-  const groups = useMemo(() => myJobs(jobs, userId), [jobs, userId])
+  const groups = useMemo(() => myJobs(jobs, userId, mode), [jobs, userId, mode])
   const total = groups.draft.length + groups.ongoing.length + groups.scheduled.length
 
   const pick = (j: StageJob, group: Group) => {
+    // On a phone the panel covers the page — get it out of the way first.
+    if (!isDesktop) toggle(false)
     if (group === 'scheduled' && j.date) {
-      onPickJob(j.date, j.id)
-      if (!isDesktop) toggle(false)
+      if (onPickJob) onPickJob(j.date, j.id)
+      else router.push(scheduleJumpHref(j.date, j.id))
       return
     }
     router.push(jobListHref(group === 'draft' ? 'drafts' : 'ongoing', j.id))

@@ -27,7 +27,8 @@ import {
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
 import { MyJobsPanel } from './MyJobsPanel'
-import { viewAfterPick, blinkJobCards } from './job-jump'
+import { viewAfterPick, blinkJobCards, parseScheduleJump } from './job-jump'
+import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
 import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import { buildAwayByDate, type AwayTrip } from '@/lib/utils/away-overlap'
@@ -62,10 +63,11 @@ interface ScheduleShellProps {
   /** My Jobs panel (Nic's screenshot, 2026-10-08) — only the live schedule
    *  passes these, and only for sales / coordinator / scheduler. */
   myJobsSource?: StageJob[]
+  myJobsMode?:   MyJobsMode
   userId?:       string
 }
 
-export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [], awayTrips = [], myJobsSource, userId }: ScheduleShellProps) {
+export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule', drivers = [], supportPool = [], leaves = [], holidays = [], events = [], awayTrips = [], myJobsSource, myJobsMode = 'mine', userId }: ScheduleShellProps) {
   // On a PC the open My Jobs panel takes the right edge; the page makes room.
   const [panelOpen, setPanelOpen] = useState(false)
   const today  = toISO(new Date())
@@ -279,6 +281,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   // The card renders after this state change, so the blink waits for it a few
   // frames; a job hidden by the search box simply has nothing to blink.
   const [blinkTarget, setBlinkTarget] = useState<{ id: string; n: number } | null>(null)
+  // Set when the page was opened by a jump link, so restoring the saved view
+  // below cannot put Month (which has no cards to blink) back over it.
+  const jumpingRef = useRef(false)
   const pickJob = useCallback((iso: string, jobId: string) => {
     setSelectedDate(iso)
     setViewMode(v => viewAfterPick(v))
@@ -311,13 +316,24 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   // Nothing stored (first visit, or the tab was closed) resolves to today, and
   // a damaged value does too: every view indexes jobsByDate[selectedDate], so a
   // nonsense key would render an empty day with no explanation on it.
+  //
+  // Arriving from another page's My Jobs panel (?jump=<job>&date=<day>, Nic
+  // 2026-10-19) wins over the remembered date: land on the job's day and
+  // blink its card, then drop the parameters so a refresh does not jump again.
   useEffect(() => {
+    const jump = pageMode === 'schedule' ? parseScheduleJump(window.location.search) : null
+    if (jump) {
+      jumpingRef.current = true
+      pickJob(jump.date, jump.jobId)
+      window.history.replaceState(null, '', '/schedule')
+      return
+    }
     let saved: string | null = null
     try { saved = sessionStorage.getItem(scheduleDateKey(pageMode)) } catch { /* private window */ }
     const restored = resolveScheduleDate(saved, today)
     dateRef.current = restored
     setSelectedDateState(restored)
-  }, [pageMode, today])
+  }, [pageMode, today, pickJob])
 
   // How many job cards sit side by side, remembered per device. Read only
   // AFTER mount: /schedule is hydration-sensitive (#418), so the first render
@@ -337,7 +353,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
     if (saved === 'board' || saved === 'list' || saved === 'week' || saved === 'month') {
       // The board only exists on the live schedule — pending jobs have no
       // drivers and completed jobs must not be dragged.
-      setViewMode(saved === 'board' && pageMode !== 'schedule' ? 'list' : saved)
+      const v: ViewMode = saved === 'board' && pageMode !== 'schedule' ? 'list' : saved
+      setViewMode(jumpingRef.current ? viewAfterPick(v) : v)
       return
     }
     if (pageMode === 'schedule' && (role === 'scheduler' || navRole === 'admin')) setViewMode('board')
@@ -690,7 +707,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
       </div>
 
       {pageMode === 'schedule' && userId && myJobsSource && (
-        <MyJobsPanel jobs={myJobsSource} userId={userId} lang={lang}
+        <MyJobsPanel jobs={myJobsSource} userId={userId} lang={lang} mode={myJobsMode}
           onPickJob={pickJob} onOpenChange={setPanelOpen} />
       )}
 

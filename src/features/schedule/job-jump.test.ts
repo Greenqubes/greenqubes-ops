@@ -3,7 +3,7 @@
  * Run: npx tsx src/features/schedule/job-jump.test.ts
  * Exits 1 on any failure.
  */
-import { viewAfterPick, jobCardSelector, scrollSettled } from './job-jump'
+import { viewAfterPick, jobCardSelector, scrollSettled, scheduleJumpHref, parseScheduleJump } from './job-jump'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -36,6 +36,14 @@ check('too few samples → not settled yet', scrollSettled([300, 300]), false)
 check('scroll needed but not started yet → not settled', scrollSettled([0, 0, 0, 0, 0], 4, true), false)
 check('scroll needed, moved, then held → settled', scrollSettled([0, 0, 120, 300, 300, 300, 300], 4, true), true)
 check('no scroll needed → still frames are settled', scrollSettled([0, 0, 0, 0], 4, false), true)
+
+// Arriving on the Schedule page from another page's My Jobs panel (Nic,
+// 2026-10-19): the link carries the job and its date; the page lands there.
+check('jump link', scheduleJumpHref('2026-10-25', 'abc'), '/schedule?jump=abc&date=2026-10-25')
+check('reads a jump link back', parseScheduleJump('?jump=abc&date=2026-10-25'), { jobId: 'abc', date: '2026-10-25' })
+check('no jump in an ordinary visit', parseScheduleJump(''), null)
+check('a jump without a date is ignored', parseScheduleJump('?jump=abc'), null)
+check('an impossible date is ignored', parseScheduleJump('?jump=abc&date=2026-09-31'), null)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-jump checks passed')

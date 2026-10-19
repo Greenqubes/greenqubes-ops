@@ -21,10 +21,10 @@ export default async function JobListPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  type ProfileRow = { role: Role; lang: string }
+  type ProfileRow = { id: string; role: Role; lang: string }
   const { data: profile } = await supabase
     .from('users')
-    .select('role, lang')
+    .select('id, role, lang')
     .eq('auth_id', user.id)
     .maybeSingle() as { data: ProfileRow | null; error: unknown }
 
@@ -38,14 +38,20 @@ export default async function JobListPage() {
   if (effectiveRole === 'installer') redirect('/installer')
   const hasDrafts = DRAFT_ROLES.includes(effectiveRole)
 
-  const [ongoing, drafts] = await Promise.all([
+  // My Jobs panel here too (Nic, 2026-10-19): the same as on the Schedule page
+  // for the roles with drafts, and a designer's assigned jobs for designers.
+  const isDesigner = effectiveRole === 'designer'
+  const [ongoing, drafts, scheduledJobs] = await Promise.all([
     getStageJobs(['awaiting_date']),                                         // raw status — see job-stage.ts
     hasDrafts ? getStageJobs(['pending', 'awaiting_approval']) : Promise.resolve(null), // DRAFTS; RLS (0062) keeps them private
+    hasDrafts || isDesigner ? getStageJobs(['scheduled']) : Promise.resolve(null),     // for the panel only
   ])
+  const panelJobs = scheduledJobs ? [...ongoing, ...(drafts ?? []), ...scheduledJobs] : null
 
   return (
     <Suspense>
       <StageListShell ongoing={ongoing} drafts={drafts} canCreate={hasDrafts}
+        panelJobs={panelJobs} panelMode={isDesigner ? 'designer' : 'mine'} userId={profile.id}
         lang={(profile.lang as LangCode) ?? 'en'} role={effectiveRole} navRole={navRole} />
     </Suspense>
   )

@@ -12,9 +12,10 @@ function check(name: string, actual: unknown, expected: unknown) {
   else { console.error(`  ✗ ${name}\n      expected: ${e}\n      actual:   ${a}`); failures++ }
 }
 const ME = 'u-me', OTHER = 'u-other'
-const j = (id: string, status: string, date: string | null, o: Partial<{ created_by: string; sales_poc_id: string; coordinatorIds: string[] }> = {}) => ({
+const j = (id: string, status: string, date: string | null, o: Partial<{ created_by: string; sales_poc_id: string; coordinatorIds: string[]; designerIds: string[] }> = {}) => ({
   id, status, date, project_title: id, client: 'C',
   created_by: o.created_by ?? OTHER, sales_poc_id: o.sales_poc_id ?? OTHER, coordinatorIds: o.coordinatorIds ?? [],
+  designerIds: o.designerIds ?? [],
 })
 const jobs = [
   j('made-by-me',  'scheduled', '2026-10-20', { created_by: ME }),
@@ -35,6 +36,23 @@ check('Ongoing: dated first, undated last', ids(g.ongoing), ['dated-pend', 'coor
 check('Scheduled: soonest first, creator AND PIC included', ids(g.scheduled), ['my-pic', 'made-by-me'])
 check("someone else's job is not mine", [...g.draft, ...g.ongoing, ...g.scheduled].some(x => x.id === 'not-mine'), false)
 check('completed drops off', [...g.draft, ...g.ongoing, ...g.scheduled].some(x => x.id === 'done'), false)
+
+console.log('designer mode:')
+// Nic, 2026-10-19: a designer's panel lists the jobs ASSIGNED to them, Ongoing
+// and Scheduled, until the job is completed — not what they created.
+const D = 'u-designer'
+const dJobs = [
+  j('d-sched',   'scheduled',     '2026-10-25', { designerIds: [D] }),
+  j('d-ongoing', 'awaiting_date', null,         { designerIds: [D] }),
+  j('d-made',    'scheduled',     '2026-10-21', { created_by: D }),   // made it, not assigned
+  j('d-done',    'completed',     '2026-10-01', { designerIds: [D] }),
+  j('d-other',   'scheduled',     '2026-10-22', { designerIds: ['u-someone'] }),
+]
+const dg = myJobs(dJobs, D, 'designer')
+check('assigned Ongoing job listed', ids(dg.ongoing), ['d-ongoing'])
+check('assigned Scheduled job listed; creating a job is not being assigned', ids(dg.scheduled), ['d-sched'])
+check('completed drops off', [...dg.draft, ...dg.ongoing, ...dg.scheduled].some(x => x.id === 'd-done'), false)
+check('default mode is unchanged by designerIds', ids(myJobs(dJobs, D).scheduled), ['d-made'])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall my-jobs checks passed')

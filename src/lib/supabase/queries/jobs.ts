@@ -520,6 +520,7 @@ export type StageJob = {
   sales_poc_id:   string | null
   created_at:     string
   coordinatorIds: string[]
+  designerIds:    string[]
   designerNames:  string[]
 }
 
@@ -529,7 +530,7 @@ export type StageJob = {
 // jobs in a PostgREST select (standing rule, broke twice).
 export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
   const supabase = await createClient()
-  type Row = Omit<StageJob, 'coordinatorIds' | 'designerNames'> & {
+  type Row = Omit<StageJob, 'coordinatorIds' | 'designerIds' | 'designerNames'> & {
     job_coordinators: Array<{ user_id: string }>
     job_designers:    Array<{ user_id: string }>
   }
@@ -549,6 +550,7 @@ export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
   return rows.map(({ job_coordinators, job_designers, ...r }) => ({
     ...r,
     coordinatorIds: job_coordinators.map(c => c.user_id),
+    designerIds:    job_designers.map(d => d.user_id),
     designerNames:  job_designers.map(d => names.get(d.user_id)).filter((n): n is string => !!n),
   }))
 }

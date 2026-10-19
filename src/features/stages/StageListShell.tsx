@@ -11,6 +11,8 @@ import { BottomNav } from '@/components/BottomNav'
 import { useToast } from '@/components/Toast'
 import { blinkJobCards } from '@/features/schedule/job-jump'
 import { resolveStageView, jobListHref, type StageView } from './stage-view'
+import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
+import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
@@ -35,10 +37,14 @@ function dayLabel(iso: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-export function StageListShell({ ongoing, drafts, canCreate, lang, role, navRole }: {
+export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMode, userId, lang, role, navRole }: {
   ongoing:   StageJob[]
   drafts:    StageJob[] | null
   canCreate: boolean
+  /** My Jobs panel (Nic, 2026-10-19): null = no panel for this role. */
+  panelJobs: StageJob[] | null
+  panelMode: MyJobsMode
+  userId:    string
   lang:      LangCode
   role:      Role
   navRole:   Role
@@ -52,6 +58,8 @@ export function StageListShell({ ongoing, drafts, canCreate, lang, role, navRole
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
+  // On a PC the open My Jobs panel takes the right edge; the list makes room.
+  const [panelOpen, setPanelOpen] = useState(false)
 
   // Bulk delete as the old Pending list had it: sales and coordinators on
   // their drafts, schedulers anywhere. Deletes go to the Bin.
@@ -127,6 +135,7 @@ export function StageListShell({ ongoing, drafts, canCreate, lang, role, navRole
   return (
     <div className="min-h-screen bg-bg pb-24">
       <CompanyBar lang={lang} role={role} navRole={navRole} />
+      <div className={cn(panelOpen && 'lg:pr-72')}>
       <div className="mx-auto max-w-3xl px-4 pt-4 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -167,6 +176,14 @@ export function StageListShell({ ongoing, drafts, canCreate, lang, role, navRole
           </>
         )}
       </div>
+      </div>
+
+      {/* Tapping a Draft or Ongoing job switches the list here; a Scheduled
+          one opens the Schedule page on its date (no onPickJob). */}
+      {panelJobs && (
+        <MyJobsPanel jobs={panelJobs} userId={userId} lang={lang} mode={panelMode} onOpenChange={setPanelOpen} />
+      )}
+
       {/* Nav drawer (CompanyBar) replaces this below lg — same as ScheduleShell */}
       <div className="hidden lg:block"><BottomNav role={navRole} /></div>
     </div>

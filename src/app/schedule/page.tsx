@@ -31,12 +31,16 @@ export default async function SchedulePage() {
   // My Jobs panel: the roles that create and run jobs (Nic, 2026-10-08).
   // A plain admin resolves to 'scheduler' here, so admins get it too.
   const showMyJobs = ['sales', 'coordinator', 'scheduler'].includes(effectiveRole)
+  // Designers get theirs too: the jobs assigned to them (Nic, 2026-10-19).
+  const isDesigner = effectiveRole === 'designer'
   const [jobs, leaves, holidays, events, drivers, supportPool, awayTrips, myJobsSource] = await Promise.all([
     getScheduleJobs(), getLeaveForSchedule(), getHolidays(), getCompanyEvents(),
     getDrivers(), getSupportPool(), awayTripsOrEmpty(),
     showMyJobs
       ? getStageJobs(['pending', 'awaiting_approval', 'awaiting_date', 'scheduled']) // raw status — see job-stage.ts
-      : Promise.resolve(undefined),
+      : isDesigner
+        ? getStageJobs(['awaiting_date', 'scheduled'])                              // designers have no drafts
+        : Promise.resolve(undefined),
   ])
 
   return (
@@ -52,6 +56,7 @@ export default async function SchedulePage() {
       role={effectiveRole}
       navRole={navRole}
       myJobsSource={myJobsSource}
+      myJobsMode={isDesigner ? 'designer' : 'mine'}
       userId={profile.id}
     />
   )

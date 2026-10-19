@@ -8,6 +8,8 @@ import { stageOf } from './job-stage'
 export type MyJobInput = {
   id: string; status: string; date: string | null
   created_by: string | null; sales_poc_id: string | null; coordinatorIds: string[]
+  /** Designers on the job — for a designer's panel (2026-10-19). */
+  designerIds?: string[]
 }
 export type MyJobsGroups<T> = { draft: T[]; ongoing: T[]; scheduled: T[] }
 
@@ -18,10 +20,17 @@ const byDate = (a: { date: string | null }, b: { date: string | null }) => {
   return 0
 }
 
-export function myJobs<T extends MyJobInput>(jobs: T[], userId: string): MyJobsGroups<T> {
+/** 'mine': jobs the viewer created, is PIC of or coordinates (sales, coordinator,
+ *  scheduler, admin). 'designer': jobs the viewer is ASSIGNED to design, until
+ *  the job is completed (Nic, 2026-10-19). */
+export type MyJobsMode = 'mine' | 'designer'
+
+export function myJobs<T extends MyJobInput>(jobs: T[], userId: string, mode: MyJobsMode = 'mine'): MyJobsGroups<T> {
   const out: MyJobsGroups<T> = { draft: [], ongoing: [], scheduled: [] }
   for (const job of jobs) {
-    const mine = job.created_by === userId || job.sales_poc_id === userId || job.coordinatorIds.includes(userId)
+    const mine = mode === 'designer'
+      ? (job.designerIds ?? []).includes(userId)
+      : job.created_by === userId || job.sales_poc_id === userId || job.coordinatorIds.includes(userId)
     if (!mine) continue
     const stage = stageOf(job.status)
     if (stage === 'completed') continue
