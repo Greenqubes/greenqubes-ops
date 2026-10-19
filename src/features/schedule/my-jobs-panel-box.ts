@@ -15,3 +15,10 @@ export function desktopPanelBox(input: {
   const bottom = input.navTop == null ? 0 : Math.max(0, Math.round(input.viewportHeight - input.navTop))
   return { top, bottom }
 }
+
+/** A bar's measured edge, or null when it has no layout box — the bottom menu
+ *  is display:none below laptop width and measures 0, which squeezed the panel
+ *  to zero height (review #2, 2026-10-19). */
+export function measuredEdge(input: { hasLayoutBox: boolean; edge: number }): number | null {
+  return input.hasLayoutBox ? input.edge : null
+}

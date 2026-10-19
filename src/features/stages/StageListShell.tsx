@@ -80,9 +80,14 @@ export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMod
     blinkJobCards(document, highlight)
   }, [highlight, view])
 
+  // A tick on one list must never delete from the other. Cleared on EVERY
+  // list change — the switch, the My Jobs panel, the back button — because
+  // a search-param change keeps this component's state, and ticks carried
+  // over were invisible yet still counted by Delete (review #1, 2026-10-19).
+  useEffect(() => { setSelected(new Set()) }, [view])
+
   const switchTo = (next: StageView) => {
     if (next === view) return
-    setSelected(new Set())   // a tick on one list must not delete from the other
     router.replace(jobListHref(next))
   }
 

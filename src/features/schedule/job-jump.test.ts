@@ -23,7 +23,13 @@ check('Week stays (its columns hold cards)', viewAfterPick('week'), 'week')
 // Every copy of the card — a job shared with an outside contractor shows twice
 // on the Drivers board, and both blink.
 check('selector finds a card by job id', jobCardSelector('abc-123'), '[data-job-card="abc-123"]')
-check('selector escapes quotes', jobCardSelector('a"b'), '[data-job-card="a\\"b"]')
+// REVIEW #4 (2026-10-19): a crafted ?highlight= with a line break made
+// querySelectorAll throw and crashed the Jobs tab. Every character outside
+// [A-Za-z0-9_-] is CSS-escaped as a hex code, so no value can break out.
+check('a real job id (uuid) is unchanged', jobCardSelector('18f90896-aa11-4b2c-9d3e-0123456789ab'), '[data-job-card="18f90896-aa11-4b2c-9d3e-0123456789ab"]')
+check('selector escapes quotes', jobCardSelector('a"b'), '[data-job-card="a\\22 b"]')
+check('selector escapes a line break', jobCardSelector('a\nb'), '[data-job-card="a\\a b"]')
+check('selector escapes a backslash', jobCardSelector('a\\b'), '[data-job-card="a\\5c b"]')
 
 // Nic, 2026-10-14: "it's blinking already when still scrolling". The blink
 // waits until the page's scroll position has held still for a few frames.

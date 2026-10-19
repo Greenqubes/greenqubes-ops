@@ -138,7 +138,7 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
             files_filed:   result.filed,
             files_skipped: result.skipped + unknownIds.length,
             ...(unknownIds.length ? { unknown_file_ids: unknownIds } : {}),
-            note: 'Saved as a private draft. Tell the user it is on the Drafts tab, ready to review, then Save as Ongoing or Push to Schedule.',
+            note: 'Saved as a private draft. Tell the user it is under Drafts on the Jobs tab, ready to review, then Save as Ongoing or Push to Schedule.',
           }),
           jobCreated: { id: result.jobId, title },
         }

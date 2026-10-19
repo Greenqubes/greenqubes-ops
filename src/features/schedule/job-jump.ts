@@ -16,7 +16,12 @@ export function viewAfterPick(view: ScheduleView): ScheduleView {
 /** Every copy of a job's card (a job shared with an outside contractor shows
  *  twice on the Drivers board). JobRow tags its card with data-job-card. */
 export function jobCardSelector(jobId: string): string {
-  return `[data-job-card="${jobId.replace(/["\\]/g, '\\$&')}"]`
+  // The id can arrive from the address bar (?highlight=), so anything outside
+  // [A-Za-z0-9_-] is CSS-escaped as a hex code — a line break used to make
+  // querySelectorAll throw and crash the page (review #4, 2026-10-19).
+  // Real ids are uuids and pass through unchanged.
+  const safe = jobId.replace(/[^A-Za-z0-9_-]/g, c => `\\${c.charCodeAt(0).toString(16)} `)
+  return `[data-job-card="${safe}"]`
 }
 
 /** True once the scroll position has held still for the last 4 frames —

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { myJobs, type MyJobsMode } from '@/lib/utils/my-jobs'
 import { scheduleJumpHref } from './job-jump'
-import { desktopPanelBox } from './my-jobs-panel-box'
+import { desktopPanelBox, measuredEdge } from './my-jobs-panel-box'
 import { jobListHref } from '@/features/stages/stage-view'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 
@@ -55,11 +55,16 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
   useEffect(() => {
     if (!open || !isDesktop) return
     const measure = () => {
-      const bar = document.querySelector('[data-layout="top-bar"]')
-      const nav = document.querySelector('[data-layout="bottom-nav"]')
+      // A bar that is display:none (the bottom menu below laptop width) has no
+      // layout box and must not count as sitting at the top (review #2).
+      const edge = (sel: string, side: 'top' | 'bottom') => {
+        const el = document.querySelector(sel)
+        if (!el) return null
+        return measuredEdge({ hasLayoutBox: el.getClientRects().length > 0, edge: el.getBoundingClientRect()[side] })
+      }
       setBox(desktopPanelBox({
-        topBarBottom:   bar ? bar.getBoundingClientRect().bottom : null,
-        navTop:         nav ? nav.getBoundingClientRect().top : null,
+        topBarBottom:   edge('[data-layout="top-bar"]', 'bottom'),
+        navTop:         edge('[data-layout="bottom-nav"]', 'top'),
         viewportHeight: window.innerHeight,
       }))
     }
@@ -76,12 +81,22 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
     // Phone: hidden by default (spec). PC: remembered, open the first time.
     const initial = desktop ? saved !== 'closed' : false
     setOpen(initial)
-    onOpenChange?.(initial && desktop)
-  }, [onOpenChange])
+  }, [])
+
+  // Follow the window across laptop width (snapping a PC window to half the
+  // screen) instead of deciding once at load (review #2, 2026-10-19).
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const onChange = () => setIsDesktop(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  // The page makes room for the panel only while it is open on a PC.
+  useEffect(() => { onOpenChange?.(open && isDesktop) }, [open, isDesktop, onOpenChange])
 
   const toggle = (next: boolean) => {
     setOpen(next)
-    onOpenChange?.(next && isDesktop)
     if (isDesktop) { try { localStorage.setItem(KEY, next ? 'open' : 'closed') } catch { /* ignore */ } }
   }
 
