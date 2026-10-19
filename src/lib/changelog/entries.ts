@@ -34,6 +34,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-19',
+    // 18:49 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1792406957136, captured the moment /api/version flipped to
+    // commit 40f1bfe. Never the local clock (CLAUDE.md).
+    time: '18:49',
+    headsUp: [
+      'The Pending tab is now Jobs. Your old pending jobs are under Drafts.',
+      'Drafts stay private. Move a job to Ongoing once the client confirms — the office then sees it.',
+      'Moving a Scheduled job back to Ongoing takes its crew off the job.',
+    ],
+    added: [
+      'Ongoing jobs: client confirmed, install date can come later.',
+      'Designers can start work on Ongoing jobs before the install date is set.',
+      'My Jobs panel on Schedule and Jobs — tap a job to jump to it.',
+      'Schedulers get a Not scheduled list showing every Ongoing job.',
+      'Designers see the jobs assigned to them in the panel until completed.',
+      'Designers, production and HR can attach files on Ongoing and Scheduled jobs.',
+    ],
+  },
+  {
     date: '2026-10-12',
     // 18:16 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1791800219629, captured the moment /api/version flipped to
