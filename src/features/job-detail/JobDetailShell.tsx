@@ -219,11 +219,11 @@ export function JobDetailShell({
   const isReadOnlyRole = isReadOnlyOfficeRole(role)
   // A Ongoing job is visible to the whole office but edited only by its
   // creator, PIC, coordinators on it, schedulers and admin (spec 2026-10-09).
-  // An ASSIGNED designer keeps the files and tasks on a Ongoing job — the
+  // ANY designer keeps the files and tasks on an Ongoing job (Nic, 2026-10-19) — the
   // Designer JO is what design-complete needs (review fix, 2026-10-09).
   const pendingLock    = pendingLocks({
     stage, canEdit: canEditAtStage(stageViewer, stageRulesJob),
-    isAssignedDesigner: initialDesignerIds.includes(userId),
+    isDesigner: role === 'designer',
   })
   const formReadOnly   = readOnly || isReadOnlyRole || pendingLock.form
   const filesReadOnly  = readOnly || isReadOnlyRole || pendingLock.files

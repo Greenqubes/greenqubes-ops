@@ -88,12 +88,14 @@ console.log('review fixes (2026-10-09):')
 // #2: a designer is not a sharer, so the "read-only if not yours" lock caught
 // them too — they could not upload the Designer JO on a Ongoing job, which is
 // the whole reason the stage exists.
-check('an assigned designer may still use files on a Ongoing job',
-  pendingLocks({ stage: 'ongoing', canEdit: false, isAssignedDesigner: true }).files, false)
-check('…but not the core fields', pendingLocks({ stage: 'ongoing', canEdit: false, isAssignedDesigner: true }).form, true)
-check('a sales person who is not on it gets neither', pendingLocks({ stage: 'ongoing', canEdit: false, isAssignedDesigner: false }), { form: true, files: true })
-check('no lock on a Scheduled job from this rule', pendingLocks({ stage: 'scheduled', canEdit: false, isAssignedDesigner: false }), { form: false, files: false })
-check('no lock for an editor', pendingLocks({ stage: 'ongoing', canEdit: true, isAssignedDesigner: false }), { form: false, files: false })
+// Nic, 2026-10-19: ANY designer — not only the assigned one — adds, renames
+// and deletes files on an Ongoing job, as they already could on Scheduled ones.
+check('any designer may manage files on an Ongoing job',
+  pendingLocks({ stage: 'ongoing', canEdit: false, isDesigner: true }).files, false)
+check('…but not the core fields', pendingLocks({ stage: 'ongoing', canEdit: false, isDesigner: true }).form, true)
+check('a sales person who is not on it gets neither', pendingLocks({ stage: 'ongoing', canEdit: false, isDesigner: false }), { form: true, files: true })
+check('no lock on a Scheduled job from this rule', pendingLocks({ stage: 'scheduled', canEdit: false, isDesigner: false }), { form: false, files: false })
+check('no lock for an editor', pendingLocks({ stage: 'ongoing', canEdit: true, isDesigner: false }), { form: false, files: false })
 
 // #4: the delete route only bins raw 'pending' (Drafts) for sales/coordinator.
 check('sales may delete a Draft', canDeleteAtStage('sales', 'draft'), true)

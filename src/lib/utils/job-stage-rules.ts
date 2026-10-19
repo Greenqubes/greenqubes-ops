@@ -82,14 +82,15 @@ export function postponeNotifyNow(jobDate: string | null, todayISO: string): boo
 // ── Review fixes (2026-10-09) ────────────────────────────────────────────────
 
 /** What the "Ongoing but not yours" lock covers. Designers are not sharers,
- *  but an ASSIGNED designer must still use the files (the Designer JO is
- *  what design-complete needs) — starting design on Ongoing jobs is the
- *  point of the stage. Core fields stay locked for them, as everywhere. */
+ *  but ANY designer keeps full use of the files — add, rename, delete — the
+ *  same as on a Scheduled job: starting design on Ongoing jobs is the point
+ *  of the stage (Nic, 2026-10-19; was assigned designers only). Core fields
+ *  stay locked for them, as everywhere. */
 export function pendingLocks(input: {
-  stage: Stage; canEdit: boolean; isAssignedDesigner: boolean
+  stage: Stage; canEdit: boolean; isDesigner: boolean
 }): { form: boolean; files: boolean } {
   const form = input.stage === 'ongoing' && !input.canEdit
-  return { form, files: form && !input.isAssignedDesigner }
+  return { form, files: form && !input.isDesigner }
 }
 
 /** The job page's Delete button. DELETE /api/jobs/[id] bins only Drafts for
