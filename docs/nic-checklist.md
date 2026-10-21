@@ -43,6 +43,8 @@ _Last updated: 2026-10-12 (feat-hr — **Away is live at 6:16pm — and still ne
 
 _Last updated: 2026-10-19 (feat-jobs — **Job stages are live at 6:49pm.** A job now goes **Draft → Ongoing → Scheduled → Completed**. A Draft is your private notepad: the full job form, nothing required. Ongoing means the client has confirmed — the whole office sees it, designers can start, and the install date can come later. Drafts and Ongoing sit together in the new **Jobs** tab, which replaces Pending. The **My Jobs** panel on the right of Schedule and Jobs jumps to a job and blinks it twice; designers see the jobs assigned to them, and the scheduler gets Mine | Not scheduled. Everyone except installers can now attach files on Ongoing and Scheduled jobs. The "What's new" popup tells the team. **One thing to tell them yourself:** jobs that were Pending before today are now Drafts, still private, until someone moves each one to Ongoing.)_
 
+_Last updated: 2026-10-21 (fix-jobs — **your scheduler can now push Ongoing jobs onto the schedule, with crew, in one go. Live.** Three fixes from your messages: the job page now has **Push to Schedule** for schedulers (only admin had it); schedulers **can't move a sales person's job back to Drafts** any more, only jobs they made themselves; and crew he picks on an Ongoing job **show green and are confirmed by the push** — installers get their Telegram the moment it lands on the schedule, never before. "What's new" tells the team. One check for you is under Job stages below.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
@@ -53,6 +55,7 @@ _You checked each piece on the previews as it was built; these are the checks wo
 - [ ] **As sales:** make a job with only a title → Save draft. Fill the rest but no date → Save as Ongoing. Add the date → Push to Schedule.
 - [ ] **As a designer:** open an Ongoing job, attach a file, rename it, delete it. Your panel lists the jobs you're assigned to.
 - [ ] **As the scheduler:** the panel's Not scheduled list shows every Ongoing job; Mine shows their own.
+- [ ] **As the scheduler (fixed 2026-10-21):** on an Ongoing TEST job, add the date, pick an installer (green), press Push to Schedule — it lands on the schedule with that installer confirmed. A sales person's Ongoing job has no "Move back to Drafts"; one he made himself does.
 - [ ] **Move a Scheduled TEST job back to Ongoing** (one with no real crew): the crew comes off it and it leaves the schedule.
 - [ ] **As production or HR:** attach a file on a Scheduled job.
 - [ ] **Small things the review left for later, none urgent** (full list in the job-stages ledger): a postponed job is marked as "crew told" even if the Telegram fails; designers aren't told when an install date is removed; the panel's arrow button can sit on top of other pop-ups on a phone; tapping the same panel job twice doesn't blink it again.
@@ -132,6 +135,13 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-21, fix-jobs — Scheduler Push + Own-Drafts Rule + Crew on Push, LIVE)
+
+- [x] **[Nic] Push to Schedule for schedulers on the job page** — it was only drawn for admin, so a dated Ongoing job had no way onto the schedule. Live 12:56pm.
+- [x] **[Nic] Schedulers can't move a sales person's job back to Drafts** — your "it's sabotaging" rule; their own jobs they still can. Scheduled → Ongoing unchanged.
+- [x] **[Nic] Crew picks on an Ongoing job are green and confirmed by the push** — clash/leave/away check first, then onto the schedule, then the crew. Installers are still never told about a job before it is on the schedule.
+- [x] **[Nic] "What's new" entry for today** — added on your word.
 
 ## Done This Session ✓ (2026-10-09 → 19, feat-jobs — Job Stages + Jobs Tab + My Jobs Panel, LIVE)
 
