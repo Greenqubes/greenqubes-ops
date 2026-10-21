@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     status: job.status, created_by: job.created_by, sales_poc_id: job.sales_poc_id,
     coordinatorIds: job.job_coordinators.map(c => c.user_id),
   }
-  if (!canMoveStage({ id: profile.id, role }, rulesJob, to)) {
+  if (!canMoveStage({ id: profile.id, role, isAdmin: profile.role === 'admin' }, rulesJob, to)) {
     return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
   }
 

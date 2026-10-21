@@ -49,7 +49,7 @@ import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { stageOf, type Stage } from '@/lib/utils/job-stage'
-import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage } from '@/lib/utils/job-stage-rules'
+import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
 import { canAttachFiles } from '@/lib/storage/job-file-permissions'
 
@@ -208,7 +208,7 @@ export function JobDetailShell({
     status, created_by: job.created_by ?? null, sales_poc_id: job.sales_poc_id ?? null,
     coordinatorIds: initialCoordinatorIds,
   }
-  const stageViewer = { id: userId, role }
+  const stageViewer = { id: userId, role, isAdmin }
 
   const readOnly  = completed
   // HR / Finance (and any future read-only office role) sees the job form the
@@ -1953,37 +1953,37 @@ export function JobDetailShell({
                     <Bell size={14} />
                     {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
                   </button>
-                  {/* Admin push, on a job not yet scheduled. This bar never had
-                      a Push to Schedule at all: the old StatusSection carried
-                      the status actions, stopped being rendered when this
-                      action bar replaced it, and sat unused until it was
+                  {/* Scheduler/admin push, on a job not yet scheduled. This bar
+                      never had a Push to Schedule at all: the old StatusSection
+                      carried the status actions, stopped being rendered when
+                      this action bar replaced it, and sat unused until it was
                       deleted on 2026-09-15 — so an admin could not push a
                       pending job from the edit form without previewing as
-                      sales. Both buttons are here: the normal one, and Nic's
-                      quiet one that skips the Telegram to the schedulers.
-                      Schedulers still have no push button here — that is a
-                      permissions question, deliberately left open. */}
+                      sales. Schedulers got it 2026-10-21 (Nic): they add the
+                      date to Ongoing jobs and must be able to push them.
+                      Nic's quiet one, which skips the Telegram to the
+                      schedulers, stays admin only. */}
+                  {schedulerCanPush(role, isAdmin, stage) && (
+                    <button
+                      type="button"
+                      onClick={() => handlePushToSchedule()}
+                      disabled={saving}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Bell size={14} />
+                      {saving ? t(lang, 'loading') : 'Push to Schedule'}
+                    </button>
+                  )}
                   {isAdmin && status !== 'scheduled' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handlePushToSchedule()}
-                        disabled={saving}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Bell size={14} />
-                        {saving ? t(lang, 'loading') : 'Push to Schedule'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handlePushToSchedule(true)}
-                        disabled={saving}
-                        title="Puts the job on the schedule without Telegramming the schedulers"
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-bad bg-bad-soft text-sm font-semibold text-bad disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 transition-all"
-                      >
-                        {saving ? t(lang, 'loading') : 'Push — no Telegram'}
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => handlePushToSchedule(true)}
+                      disabled={saving}
+                      title="Puts the job on the schedule without Telegramming the schedulers"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] border border-bad bg-bad-soft text-sm font-semibold text-bad disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-95 transition-all"
+                    >
+                      {saving ? t(lang, 'loading') : 'Push — no Telegram'}
+                    </button>
                   )}
                   {markCompleteBtn}
                 </div>

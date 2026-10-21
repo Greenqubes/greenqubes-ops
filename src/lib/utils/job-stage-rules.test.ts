@@ -8,6 +8,7 @@ import {
   isStageMoveValid, canMoveStage, canEditAtStage,
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
   pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
+  schedulerCanPush,
 } from './job-stage-rules'
 
 let failures = 0
@@ -126,6 +127,27 @@ check('save as Ongoing: office stage, crew as suggestions, designers now', newJo
   { status: 'awaiting_date', crewAsSuggestion: true, designersAfterPush: false })
 check('draft: private, role decides crew, designers now (form refuses them)', newJobPlan('draft', true),
   { status: 'pending', crewAsSuggestion: true, designersAfterPush: false })
+
+console.log('schedulers push forward, never back to Drafts (Nic, 2026-10-21):')
+// THE OLD RULES, kept first: only admin had Push to Schedule on the job page,
+// so a scheduler could add an Ongoing job's date and then had no way to put it
+// on the schedule; and a scheduler could send any sales job back to Drafts,
+// hiding it from the office — "its sabotaging to push back to draft".
+check('a scheduler can push an Ongoing job', schedulerCanPush('scheduler', false, 'ongoing'), true)
+check('a scheduler may NOT move a sales job back to Drafts',
+  canMoveStage({ id: OTHER, role: 'scheduler' }, pending, 'draft'), false)
+check('not even one they created',
+  canMoveStage({ id: NIC, role: 'scheduler' }, pending, 'draft'), false)
+check('a scheduler still moves a Scheduled job back to Ongoing',
+  canMoveStage({ id: OTHER, role: 'scheduler' }, sched, 'ongoing'), true)
+check('a plain admin (who reads as scheduler) still may',
+  canMoveStage({ id: OTHER, role: 'scheduler', isAdmin: true }, pending, 'draft'), true)
+check('the sales PIC still may', canMoveStage({ id: NIC, role: 'sales' }, pending, 'draft'), true)
+check('a scheduler can push their own Draft', schedulerCanPush('scheduler', false, 'draft'), true)
+check('admin can push', schedulerCanPush('scheduler', true, 'ongoing'), true)
+check('nothing to push once Scheduled', schedulerCanPush('scheduler', false, 'scheduled'), false)
+check('or Completed', schedulerCanPush('scheduler', false, 'completed'), false)
+check('production never pushes', schedulerCanPush('production', false, 'ongoing'), false)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-stage-rules checks passed')

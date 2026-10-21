@@ -41,7 +41,9 @@ export function isStageMoveValid(from: Stage, to: Stage): boolean {
 export type StageJob4Rules = {
   status: string; created_by: string | null; sales_poc_id: string | null; coordinatorIds: string[]
 }
-export type StageViewer = { id: string; role: string }
+/** isAdmin is the REAL role: a plain admin reads as 'scheduler' through
+ *  getEffectiveRole, so `role` alone cannot tell the two apart. */
+export type StageViewer = { id: string; role: string; isAdmin?: boolean }
 
 const OFFICE_ALL = ['scheduler', 'admin']
 const SHARER_ROLES = ['sales', 'coordinator']
@@ -59,7 +61,20 @@ export function canEditAtStage(v: StageViewer, j: StageJob4Rules): boolean {
 
 export function canMoveStage(v: StageViewer, j: StageJob4Rules, to: Stage): boolean {
   if (!isStageMoveValid(stageOf(j.status), to)) return false
+  // Schedulers push forward and back to Ongoing, never into Drafts (Nic,
+  // 2026-10-21): a Draft is private, so moving a sales job there hides it
+  // from the office and its designers — "its sabotaging to push back to draft".
+  if (to === 'draft' && v.role === 'scheduler' && !v.isAdmin) return false
   return canEditAtStage(v, j)
+}
+
+/** Push to Schedule on the job page's scheduler/admin bar. Only admin had
+ *  one (2026-09-15), which Ongoing turned into a dead end: the scheduler's
+ *  panel lists every Ongoing job and they may add its date, but could not
+ *  then put it on the schedule (Nic, 2026-10-21). They see only their own
+ *  Drafts (0062), so pushing a Draft is pushing their own. */
+export function schedulerCanPush(role: string, isAdmin: boolean, stage: Stage): boolean {
+  return (role === 'scheduler' || isAdmin) && (stage === 'draft' || stage === 'ongoing')
 }
 
 /** A designer on a Draft could not see it (0062) yet would be Telegrammed. */
