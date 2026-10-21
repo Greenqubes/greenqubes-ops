@@ -77,6 +77,19 @@ export function schedulerCanPush(role: string, isAdmin: boolean, stage: Stage): 
   return (role === 'scheduler' || isAdmin) && (stage === 'draft' || stage === 'ongoing')
 }
 
+/** What Push to Schedule does with a scheduler's unsaved crew picks (Nic,
+ *  2026-10-21: "his role should allow him to add installer and push to
+ *  schedule straight away"). They are confirmed BY the push — written once
+ *  the job is on the schedule, never while it is Ongoing (formalCrewAllowed)
+ *  — after the same clash check a Scheduled job's Save & notify runs. With
+ *  no picks, the push keeps its own clash step over the crew already on it. */
+export function pushCrewPlan(input: {
+  assignsCrew: boolean; installerDirty: boolean; subDirty: boolean; installerCount: number
+}): { confirmCrew: boolean; checkPicks: boolean } {
+  const confirmCrew = input.assignsCrew && (input.installerDirty || input.subDirty)
+  return { confirmCrew, checkPicks: confirmCrew && input.installerCount > 0 }
+}
+
 /** A designer on a Draft could not see it (0062) yet would be Telegrammed. */
 export function designersAllowed(status: string): boolean {
   return stageOf(status) !== 'draft'

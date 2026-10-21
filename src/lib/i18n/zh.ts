@@ -245,6 +245,8 @@ export const zh: Partial<Translations> = {
   savedSuccessfully: '已保存',
   saveBlocked: '无法保存 — 您没有权限修改此工作。请联系排程人员。',
   saveError: '保存失败，请重试',
+  crewConfirmedOnPush: '已保存。推送到排程时才会确认人员。',
+  pushedCrewNotSaved: '已推送到排程，但人员未保存 — 请按 Save & notify。',
   notificationsNone: '一切正常 — 无逾期工作',
   overdueCount: '逾期',
 

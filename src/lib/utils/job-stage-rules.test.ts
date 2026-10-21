@@ -8,7 +8,7 @@ import {
   isStageMoveValid, canMoveStage, canEditAtStage,
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
   pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
-  schedulerCanPush,
+  schedulerCanPush, pushCrewPlan,
 } from './job-stage-rules'
 
 let failures = 0
@@ -149,6 +149,22 @@ check('admin can push', schedulerCanPush('scheduler', true, 'ongoing'), true)
 check('nothing to push once Scheduled', schedulerCanPush('scheduler', false, 'scheduled'), false)
 check('or Completed', schedulerCanPush('scheduler', false, 'completed'), false)
 check('production never pushes', schedulerCanPush('production', false, 'ongoing'), false)
+
+console.log('a scheduler\'s crew picks are confirmed by the push (Nic, 2026-10-21):')
+// THE OLD RULE, kept first: on an Ongoing job a scheduler's picks went in as
+// yellow suggestions and the push left them that way, so every pick had to be
+// confirmed again on the schedule — "his role should allow him to add
+// installer and push to schedule straight away".
+const picks = { assignsCrew: true, installerDirty: true, subDirty: false, installerCount: 2 }
+check('picked crew is confirmed by the push', pushCrewPlan(picks).confirmCrew, true)
+check('and checked for clashes first', pushCrewPlan(picks).checkPicks, true)
+check('support crew alone is confirmed too',
+  pushCrewPlan({ ...picks, installerDirty: false, subDirty: true, installerCount: 0 }),
+  { confirmCrew: true, checkPicks: false })
+check('no picks: the push keeps its own clash step',
+  pushCrewPlan({ ...picks, installerDirty: false }), { confirmCrew: false, checkPicks: false })
+check('sales picks stay suggestions',
+  pushCrewPlan({ ...picks, assignsCrew: false }), { confirmCrew: false, checkPicks: false })
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-stage-rules checks passed')

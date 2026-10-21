@@ -49,7 +49,7 @@ import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { stageOf, type Stage } from '@/lib/utils/job-stage'
-import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush } from '@/lib/utils/job-stage-rules'
+import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush, formalCrewAllowed, pushCrewPlan } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
 import { canAttachFiles } from '@/lib/storage/job-file-permissions'
 
@@ -200,10 +200,14 @@ export function JobDetailShell({
   // Draft / Ongoing / Scheduled / Completed — the raw status words are NOT
   // what people see (raw 'pending' is a Draft); see src/lib/utils/job-stage.ts.
   const stage: Stage = stageOf(status)
-  // No confirmed crew on a Ongoing job (spec 2026-10-09): crew is confirmed
-  // once it is on the schedule, so an installer can never see a Ongoing job.
-  // The scheduler suggests there instead (schedulerCanSuggest below).
-  const canAssign      = role === 'scheduler' && stage !== 'ongoing'
+  // The scheduler picks crew green at every stage — on an Ongoing job too
+  // (Nic, 2026-10-21: his picks used to go in yellow, so a pushed job still
+  // needed every one confirmed). What the stage decides is WHEN they are
+  // written: crew is confirmed once the job is on the schedule, so an
+  // installer can never see an Ongoing job (spec 2026-10-09) — there the
+  // picks wait for Push to Schedule (pushCrewPlan).
+  const canAssign      = role === 'scheduler'
+  const crewSavesNow   = canAssign && formalCrewAllowed(status)
   const stageRulesJob = {
     status, created_by: job.created_by ?? null, sales_poc_id: job.sales_poc_id ?? null,
     coordinatorIds: initialCoordinatorIds,
@@ -239,6 +243,9 @@ export function JobDetailShell({
   // ran — carried alongside pendingValuesRef so resumeSaveAfterClash can
   // still apply it once the clash is resolved (Task 14 addendum §1).
   const pendingKeepManualDueRef = useRef(false)
+  // Set when the crew check opened EditClashModal for a PUSH rather than a
+  // save — "Save anyway" then carries on with the push.
+  const pendingPushRef = useRef<{ keepManualDue: boolean } | null>(null)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
@@ -551,6 +558,33 @@ export function JobDetailShell({
     dueEditedThisSessionRef.current = false
   }
 
+  // The scheduler's crew picks, written as confirmed crew. Shared by the save
+  // and by Push to Schedule, which calls it once the job is on the schedule.
+  const saveCrewPicks = async () => {
+    // Formal installer assignment (scheduler / admin). The route clears sales
+    // suggestions, sets the formal list, and notifies installers + sales POC
+    // + coordinators.
+    if (isInstallerDirty) {
+      const res = await fetch(`/api/jobs/${job.id}/assign-installers`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ installer_ids: selectedInstallerIds }),
+      })
+      if (!res.ok) throw new Error()
+    }
+
+    // Sub-installer bucket (Phase 4) — separate route, sub rows only.
+    // Newly-confirmed subs get their job link via Telegram.
+    if (isSubDirty) {
+      const res = await fetch(`/api/jobs/${job.id}/sub-installers`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ installer_ids: selectedSubIds }),
+      })
+      if (!res.ok) throw new Error()
+    }
+  }
+
   const performSave = async (values: FormValues, keepManualDue = false) => {
     bumpSuppression()
     setSaving(true)
@@ -563,28 +597,10 @@ export function JobDetailShell({
         saveValues(values), saveCoordinatorDiff(),
       ])
 
-      // Formal installer assignment (coordinator / scheduler / admin). The route
-      // clears sales suggestions, sets the formal list, and notifies installers
-      // + sales POC + coordinators.
-      if (canAssign && isInstallerDirty) {
-        const res = await fetch(`/api/jobs/${job.id}/assign-installers`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ installer_ids: selectedInstallerIds }),
-        })
-        if (!res.ok) throw new Error()
-      }
-
-      // Sub-installer bucket (Phase 4) — separate route, sub rows only.
-      // Newly-confirmed subs get their job link via Telegram.
-      if (canAssign && isSubDirty) {
-        const res = await fetch(`/api/jobs/${job.id}/sub-installers`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ installer_ids: selectedSubIds }),
-        })
-        if (!res.ok) throw new Error()
-      }
+      // On an Ongoing job the picks wait for Push to Schedule — the route
+      // would refuse them, and the person is told so below.
+      if (crewSavesNow) await saveCrewPicks()
+      const crewWaitsForPush = canAssign && !crewSavesNow && (isInstallerDirty || isSubDirty)
 
       // Design-team assignment (sales / scheduler / coordinator / admin).
       // Unlike coordinators, this has a dedicated route — it diffs against
@@ -611,7 +627,7 @@ export function JobDetailShell({
       }
 
       const stillVisible = await handOverDraft(values)
-      showSuccess(t(lang, 'savedSuccessfully'))
+      showSuccess(t(lang, crewWaitsForPush ? 'crewConfirmedOnPush' : 'savedSuccessfully'))
       if (!stillVisible) { router.push(backHref); return }
       router.refresh()
     } catch (err) {
@@ -695,50 +711,65 @@ export function JobDetailShell({
 
     if (needsCheck) {
       setSaving(true)
-      try {
-        const res = await fetch(`/api/jobs/${job.id}/assign-installers?checkOnly=true`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            installer_ids: selectedInstallerIds,
-            date:          values.date,
-            // Sent so the leave check spans the whole job, not just day one.
-            date_end:      values.date_end,
-            time_start:    values.time_start,
-            time_end:      values.time_end,
-            punctuality:   values.punctuality,
-          }),
-        })
-        if (res.ok) {
-          const data: {
-            hasClash: boolean; clashes: CheckClash[]
-            leaveClashes?: LeaveCheckClash[]; awayClashes?: AwayCheckClash[]
-          } = await res.json()
-          // Away on work is not part of hasClash (it never blocks), but it is
-          // still shown before saving so nobody is surprised (Nic, 2026-10-09).
-          if (data.hasClash || (data.awayClashes ?? []).length > 0) {
-            pendingValuesRef.current = values
-            pendingKeepManualDueRef.current = keepManualDue
-            setEditLeaveClashes(data.leaveClashes ?? [])
-            setEditAwayClashes(data.awayClashes ?? [])
-            // Set last: it is the modal's open/closed signal, and may be an
-            // empty array when only leave or away is the issue.
-            setEditClashes(data.clashes)
-            setSaving(false)
-            return
-          }
-        }
-        // A failed check never blocks the save — fall through.
-      } catch {
-        // ignore — fall through to the normal save
-      }
+      const shown = await showCrewClashes(values)
       setSaving(false)
+      if (shown) {
+        pendingValuesRef.current = values
+        pendingKeepManualDueRef.current = keepManualDue
+        return
+      }
     }
 
     await performSave(values, keepManualDue)
   }
 
+  // The read-only crew check (assign-installers?checkOnly) against the date
+  // and time on screen, shared by Save & notify and Push to Schedule. Opens
+  // EditClashModal and answers true when there is something to show. A
+  // failed check never blocks — it answers false and the caller carries on.
+  const showCrewClashes = async (values: FormValues): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/assign-installers?checkOnly=true`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          installer_ids: selectedInstallerIds,
+          date:          values.date,
+          // Sent so the leave check spans the whole job, not just day one.
+          date_end:      values.date_end,
+          time_start:    values.time_start,
+          time_end:      values.time_end,
+          punctuality:   values.punctuality,
+        }),
+      })
+      if (!res.ok) return false
+      const data: {
+        hasClash: boolean; clashes: CheckClash[]
+        leaveClashes?: LeaveCheckClash[]; awayClashes?: AwayCheckClash[]
+      } = await res.json()
+      // Away on work is not part of hasClash (it never blocks), but it is
+      // still shown before saving so nobody is surprised (Nic, 2026-10-09).
+      if (!data.hasClash && (data.awayClashes ?? []).length === 0) return false
+      setEditLeaveClashes(data.leaveClashes ?? [])
+      setEditAwayClashes(data.awayClashes ?? [])
+      // Set last: it is the modal's open/closed signal, and may be an
+      // empty array when only leave or away is the issue.
+      setEditClashes(data.clashes)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const resumeSaveAfterClash = async (alertSchedulers: boolean) => {
+    // A push that stopped for the crew check carries on as a push.
+    const push = pendingPushRef.current
+    if (push) {
+      pendingPushRef.current = null
+      setEditClashes(null)
+      await runPush(push.keepManualDue, true)
+      return
+    }
     const values         = pendingValuesRef.current
     const keepManualDue  = pendingKeepManualDueRef.current
     const names  = [...new Set((editClashes ?? []).map(c => c.installerName).filter(Boolean))]
@@ -964,11 +995,36 @@ export function JobDetailShell({
 
     // Same due-date-conflict detection as onSubmit, before touching saving
     // state — this path shares saveDesignBriefFields (Task 14 addendum §1).
-    const pushDate       = getValues().date
-    const keepManualDue  = await resolveDueConflict(pushDate)
+    const keepManualDue  = await resolveDueConflict(getValues().date)
 
+    // A scheduler's crew picks are confirmed BY the push (pushCrewPlan) —
+    // checked first, exactly as a Scheduled job's Save & notify checks them.
+    const plan = pushCrewPlan({
+      assignsCrew: canAssign, installerDirty: isInstallerDirty, subDirty: isSubDirty,
+      installerCount: selectedInstallerIds.length,
+    })
+    if (plan.checkPicks) {
+      setSaving(true)
+      const shown = await showCrewClashes(getValues())
+      setSaving(false)
+      if (shown) { pendingPushRef.current = { keepManualDue }; return }
+    }
+    await runPush(keepManualDue, plan.confirmCrew)
+  }
+
+  const submitPush = async () => {
+    const res = await fetch(`/api/jobs/${job.id}/submit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
+    })
+    if (!res.ok) throw new Error()
+  }
+
+  const runPush = async (keepManualDue: boolean, confirmCrew: boolean) => {
+    const pushDate = getValues().date
     bumpSuppression()
     setSaving(true)
+    let pushed = false
     try {
       // Same design-brief persistence + auto-shift performSave gets — this
       // path also writes `date` (below, via saveValues) and previously
@@ -979,22 +1035,32 @@ export function JobDetailShell({
       // Still a draft here, so a PIC change goes through the handover route
       // before the push (after it, the job is scheduled and the route refuses).
       await handOverDraft(getValues())
+      if (confirmCrew) {
+        // The picks were checked above. The push's own clash step is skipped:
+        // it reads the crew already on the job, not these picks, and the
+        // write below replaces that crew. Crew is written only once the job
+        // is on the schedule — never while an installer could see it Ongoing.
+        await submitPush()
+        pushed = true
+        setStatus('scheduled')
+        await saveCrewPicks()
+        setShowSuccessModal(true)
+        return
+      }
       const res = await fetch(`/api/jobs/${job.id}/clashes`)
       if (!res.ok) throw new Error()
       const data: ClashesResponse = await res.json()
       if (data.clashes.length === 0 && data.softClashes.length === 0 && data.travelWarnings.length === 0 && data.leaveClashes.length === 0 && (data.awayClashes ?? []).length === 0) {
-        const submitRes = await fetch(`/api/jobs/${job.id}/submit`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pushSilentRef.current ? { silent: true } : {}),
-        })
-        if (!submitRes.ok) throw new Error()
+        await submitPush()
         setStatus('scheduled')
         setShowSuccessModal(true)
       } else {
         setClashData(data)
       }
     } catch {
-      showError(t(lang, 'saveError'))
+      // On the schedule but the crew did not save: the picks are still on
+      // screen, and Save & notify now writes them.
+      showError(t(lang, pushed ? 'pushedCrewNotSaved' : 'saveError'))
     } finally {
       setSaving(false)
     }
@@ -1288,9 +1354,6 @@ export function JobDetailShell({
   // on scheduled jobs (Addendum §2's "Save & notify" bar), just downgraded
   // from formally assigning to suggesting only.
   const coordinatorCanSuggest = isCoordinator && !readOnly
-  // On a Ongoing job the scheduler suggests too — nobody confirms crew until
-  // it is on the schedule (spec 2026-10-09).
-  const schedulerCanSuggest = role === 'scheduler' && stage === 'ongoing' && !readOnly
 
   const installerStateOf = (id: string): InstallerCardState => {
     if (canAssign) {
@@ -1305,7 +1368,7 @@ export function JobDetailShell({
 
   const installerOnToggle =
     canAssign && !readOnly                        ? toggleFormal :
-    (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) ? toggleSuggestion :
+    (salesCanSuggest || coordinatorCanSuggest) ? toggleSuggestion :
     undefined
 
   // Sales/coordinator cannot un-assign a formally assigned installer — only
@@ -1337,7 +1400,7 @@ export function JobDetailShell({
 
   const subOnToggle =
     canAssign && !readOnly                    ? toggleSubFormal :
-    (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) ? toggleSubSuggestion :
+    (salesCanSuggest || coordinatorCanSuggest) ? toggleSubSuggestion :
     undefined
 
   // Sales/coordinator cannot un-assign a confirmed sub — only their own suggestions.
@@ -1382,7 +1445,7 @@ export function JobDetailShell({
   const clearSubs = () => {
     if (canAssign) {
       setSelectedSubIds([])
-    } else if (salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest) {
+    } else if (salesCanSuggest || coordinatorCanSuggest) {
       for (const id of [...suggestedSubIds]) void toggleSubSuggestion(id)
     }
   }
@@ -1657,7 +1720,7 @@ export function JobDetailShell({
               awayOf={isAway}
               onClear={clearSubs}
               defaultOpen={subBucketDefaultOpen}
-              canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest || schedulerCanSuggest}
+              canEdit={(canAssign && !readOnly) || salesCanSuggest || coordinatorCanSuggest}
             />
           )}
 
@@ -1951,7 +2014,7 @@ export function JobDetailShell({
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Bell size={14} />
-                    {saving ? t(lang, 'loading') : (canAssign ? 'Save & notify' : 'Save Changes')}
+                    {saving ? t(lang, 'loading') : (crewSavesNow ? 'Save & notify' : 'Save Changes')}
                   </button>
                   {/* Scheduler/admin push, on a job not yet scheduled. This bar
                       never had a Push to Schedule at all: the old StatusSection
@@ -2004,7 +2067,7 @@ export function JobDetailShell({
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false; pendingPushRef.current = null }}
       />
       {clashData && (
         <ClashResolutionModal

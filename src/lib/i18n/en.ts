@@ -363,6 +363,8 @@ export const en = {
   savedSuccessfully: 'Saved',
   saveBlocked: "Couldn't save — you don't have permission to change this job. Ask the scheduler.",
   saveError: 'Save failed — try again',
+  crewConfirmedOnPush: 'Saved. Crew is confirmed when you push to schedule.',
+  pushedCrewNotSaved: 'Pushed to schedule, but the crew did not save — press Save & notify.',
 
   // ── Common actions ─────────────────────────────────────────────────────────
   add: 'Add',
