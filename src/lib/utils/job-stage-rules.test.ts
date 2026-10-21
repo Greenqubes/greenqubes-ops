@@ -128,16 +128,17 @@ check('save as Ongoing: office stage, crew as suggestions, designers now', newJo
 check('draft: private, role decides crew, designers now (form refuses them)', newJobPlan('draft', true),
   { status: 'pending', crewAsSuggestion: true, designersAfterPush: false })
 
-console.log('schedulers push forward, never back to Drafts (Nic, 2026-10-21):')
+console.log('schedulers push forward; only their own jobs back to Drafts (Nic, 2026-10-21):')
 // THE OLD RULES, kept first: only admin had Push to Schedule on the job page,
 // so a scheduler could add an Ongoing job's date and then had no way to put it
 // on the schedule; and a scheduler could send any sales job back to Drafts,
-// hiding it from the office — "its sabotaging to push back to draft".
+// hiding it from the office — "its sabotaging to push back to draft". Their
+// OWN job is theirs to move (Nic, same day).
 check('a scheduler can push an Ongoing job', schedulerCanPush('scheduler', false, 'ongoing'), true)
 check('a scheduler may NOT move a sales job back to Drafts',
   canMoveStage({ id: OTHER, role: 'scheduler' }, pending, 'draft'), false)
-check('not even one they created',
-  canMoveStage({ id: NIC, role: 'scheduler' }, pending, 'draft'), false)
+check('a scheduler may move their OWN Ongoing job back to Drafts',
+  canMoveStage({ id: OTHER, role: 'scheduler' }, { ...pending, created_by: OTHER }, 'draft'), true)
 check('a scheduler still moves a Scheduled job back to Ongoing',
   canMoveStage({ id: OTHER, role: 'scheduler' }, sched, 'ongoing'), true)
 check('a plain admin (who reads as scheduler) still may',

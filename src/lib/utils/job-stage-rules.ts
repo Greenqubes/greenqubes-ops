@@ -61,10 +61,10 @@ export function canEditAtStage(v: StageViewer, j: StageJob4Rules): boolean {
 
 export function canMoveStage(v: StageViewer, j: StageJob4Rules, to: Stage): boolean {
   if (!isStageMoveValid(stageOf(j.status), to)) return false
-  // Schedulers push forward and back to Ongoing, never into Drafts (Nic,
-  // 2026-10-21): a Draft is private, so moving a sales job there hides it
-  // from the office and its designers — "its sabotaging to push back to draft".
-  if (to === 'draft' && v.role === 'scheduler' && !v.isAdmin) return false
+  // Schedulers move only their OWN jobs into Drafts (Nic, 2026-10-21): a
+  // Draft is private, so moving a sales job there hides it from the office
+  // and its designers — "its sabotaging to push back to draft".
+  if (to === 'draft' && v.role === 'scheduler' && !v.isAdmin && v.id !== j.created_by) return false
   return canEditAtStage(v, j)
 }
 
