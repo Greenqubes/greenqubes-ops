@@ -35,15 +35,17 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-21',
-    // 12:56 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch 1792558586200, captured the moment /api/version flipped to
-    // c6eb5e442210 (commit ec96881). Never the local clock (CLAUDE.md).
-    time: '12:56',
+    // 15:14 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1792566844307, captured the moment /api/version flipped to
+    // 210699131799 (commit 195b2df). The first release of the day was 12:56
+    // (ec96881). Never the local clock (CLAUDE.md).
+    time: '15:14',
     headsUp: [
       'Schedulers can only move jobs they created back to Drafts.',
     ],
     fixed: [
       'Schedulers can push Ongoing jobs to the schedule from the job page.',
+      'Crew a scheduler picks on an Ongoing job is confirmed when it is pushed.',
     ],
   },
   {
