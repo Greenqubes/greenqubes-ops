@@ -618,4 +618,9 @@ export const zh: Partial<Translations> = {
   jobsTabTitle: "工作",
   myJobsTabMine: "我的",
   myJobsTabUnscheduled: "未排程",
+  myJobsSearch: "搜索标题、公司、客户或地点",
+  myJobsClearSearch: "清除搜索",
+  myJobsNoMatch: "没有符合的工作",
+  myJobsFold: "收起",
+  myJobsUnfold: "展开",
 }

@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { myJobs, type MyJobsMode } from '@/lib/utils/my-jobs'
+import { parseFolded, searchMyJobs, sectionOpen } from '@/lib/utils/my-jobs-search'
 import { scheduleJumpHref } from './job-jump'
 import { desktopPanelBox, measuredEdge } from './my-jobs-panel-box'
 import { jobListHref } from '@/features/stages/stage-view'
@@ -23,6 +24,8 @@ import type { StageJob } from '@/lib/supabase/queries/jobs'
 const KEY = 'gq-my-jobs-open'
 // Scheduler / admin: which of the two lists they last looked at, per device.
 const TAB_KEY = 'gq-my-jobs-tab'
+// Sections folded shut on this device (Nic's screenshot, 2026-10-26).
+const FOLD_KEY = 'gq-my-jobs-folded'
 type SchedTab = 'mine' | 'unscheduled'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -33,6 +36,14 @@ function label(iso: string | null, tbc: string): string {
 }
 
 type Group = 'draft' | 'ongoing' | 'scheduled'
+// Each section wears its own soft colour so the three read apart at a glance
+// (Nic picked "whole section tinted", 2026-10-26). Soft tokens, not slash
+// opacity — the theme colours are bare var() and `bg-x/20` never compiles.
+const TINT: Record<Group, string> = {
+  draft:     'bg-brand-amber-soft',
+  ongoing:   'bg-brand-blue-soft',
+  scheduled: 'bg-terracotta-soft',
+}
 
 export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOpenChange }: {
   jobs:          StageJob[]
@@ -120,10 +131,29 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
     setSchedTab(tab)
     try { localStorage.setItem(TAB_KEY, tab) } catch { /* ignore */ }
   }
-  const mineGroups  = useMemo(() => myJobs(jobs, userId, isScheduler ? 'mine' : mode), [jobs, userId, mode, isScheduler])
-  const officeGroups = useMemo(() => isScheduler ? myJobs(jobs, userId, 'scheduler') : null, [jobs, userId, isScheduler])
+  // Search: every word typed must appear in the title, company, client or
+  // location (Nic, 2026-10-26). Kept while the panel is used; a reload clears it.
+  const [query, setQuery] = useState('')
+  const searching = query.trim() !== ''
+  // Folded sections, per device — read after mount like the settings above.
+  const [folded, setFolded] = useState<Group[]>([])
+  useEffect(() => {
+    let saved: string | null = null
+    try { saved = localStorage.getItem(FOLD_KEY) } catch { /* private window */ }
+    setFolded(parseFolded(saved))
+  }, [])
+  const toggleFold = (group: Group) => {
+    const next = folded.includes(group) ? folded.filter(g => g !== group) : [...folded, group]
+    setFolded(next)
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }
+
+  const mineGroups  = useMemo(() => searchMyJobs(myJobs(jobs, userId, isScheduler ? 'mine' : mode), query), [jobs, userId, mode, isScheduler, query])
+  const officeGroups = useMemo(() => isScheduler ? searchMyJobs(myJobs(jobs, userId, 'scheduler'), query) : null, [jobs, userId, isScheduler, query])
   const groups = !isScheduler || schedTab === 'mine' || !officeGroups ? mineGroups : officeGroups
   const total = groups.draft.length + groups.ongoing.length + groups.scheduled.length
+  // While searching, the tab counts are the matches, so a job in the other
+  // list is still findable.
   const count = (g: typeof groups) => g.draft.length + g.ongoing.length + g.scheduled.length
 
   const pick = (j: StageJob, group: Group) => {
@@ -137,28 +167,41 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
     router.push(jobListHref(group === 'draft' ? 'drafts' : 'ongoing', j.id))
   }
 
-  const section = (title: string, list: StageJob[], group: Group) =>
-    list.length === 0 ? null : (
-      <div key={group}>
-        {/* Larger, bold, with the count in its own badge (Nic, 2026-10-14). */}
-        <h3 className="flex items-center gap-2 px-3 pt-4 pb-1.5 text-[13px] font-bold uppercase tracking-wide text-ink">
-          {title}
-          <span className="rounded-full border border-line bg-bg px-2 py-[1px] text-[11px] font-semibold text-ink2">{list.length}</span>
+  const section = (title: string, list: StageJob[], group: Group) => {
+    if (list.length === 0) return null
+    // A folded section opens while searching — a match must never hide inside it.
+    const isOpen = sectionOpen(folded.includes(group), searching)
+    return (
+      <div key={group} className={cn(TINT[group], 'border-b border-line')}>
+        {/* Larger, bold, with the count in its own badge (Nic, 2026-10-14);
+            the whole heading folds the section (2026-10-26). */}
+        <h3>
+          <button type="button" onClick={() => toggleFold(group)} disabled={searching}
+            aria-expanded={isOpen} aria-label={`${title} — ${t(lang, isOpen ? 'myJobsFold' : 'myJobsUnfold')}`}
+            className="flex w-full items-center gap-2 px-3 pt-3 pb-2 text-left text-[13px] font-bold uppercase tracking-wide text-ink disabled:cursor-default">
+            {title}
+            <span className="rounded-full border border-line bg-paper px-2 py-[1px] text-[11px] font-semibold text-ink2">{list.length}</span>
+            <ChevronDown size={14} className={cn('text-ink2 transition-transform', !isOpen && '-rotate-90')} />
+          </button>
         </h3>
-        <ul>
-          {list.map(j => (
-            <li key={`${group}-${j.id}`}>
-              <button type="button" onClick={() => pick(j, group)}
-                className="w-full text-left px-3 py-2 hover:bg-bg rounded-lg">
-                <span className="block text-[11px] text-ink2">{label(j.date, t(lang, 'dateTbc'))}</span>
-                <span className="block text-sm font-medium text-ink truncate">{j.project_title || j.client || 'Untitled job'}</span>
-                <span className="block text-xs text-muted truncate">{j.client}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isOpen && (
+          <ul className="px-1 pb-2">
+            {list.map(j => (
+              <li key={`${group}-${j.id}`}>
+                <button type="button" onClick={() => pick(j, group)}
+                  className="w-full text-left px-2 py-2 hover:bg-paper rounded-lg">
+                  <span className="block text-[11px] text-ink2">{label(j.date, t(lang, 'dateTbc'))}</span>
+                  {/* Long titles wrap to two lines, then "…" (Nic, 2026-10-26). */}
+                  <span className="line-clamp-2 text-sm font-medium text-ink">{j.project_title || j.client || 'Untitled job'}</span>
+                  <span className="block text-xs text-muted truncate">{j.client}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     )
+  }
 
   return (
     <>
@@ -181,14 +224,26 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
         <aside
           style={isDesktop && box ? { top: box.top, bottom: box.bottom, height: 'auto' } : undefined}
           className="fixed right-0 top-0 z-[60] lg:z-[25] h-dvh w-72 max-w-[85vw] bg-paper border-l border-line overflow-y-auto shadow-xl lg:shadow-none">
-          <div className="flex items-center justify-between px-3 py-3 border-b border-line">
+          {/* The search box replaced the ✕ (Nic, 2026-10-26) — the arrow tab
+              on the panel's edge opens and closes it. */}
+          <div className="px-3 py-3 border-b border-line">
             <h2 className="font-display text-sm font-semibold text-ink">{t(lang, 'myJobsTitle')}</h2>
-            <button type="button" onClick={() => toggle(false)} aria-label={t(lang, 'myJobsHide')} className="p-1 text-muted">
-              <X size={14} />
-            </button>
+            <div className="relative mt-2">
+              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+              <input type="search" value={query} onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') setQuery('') }}
+                placeholder={t(lang, 'myJobsSearch')} aria-label={t(lang, 'myJobsSearch')}
+                className="w-full rounded-lg border border-line bg-bg py-1.5 pl-8 pr-7 text-sm text-ink placeholder:text-muted focus:border-terracotta focus:outline-none [&::-webkit-search-cancel-button]:hidden" />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} aria-label={t(lang, 'myJobsClearSearch')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-ink">
+                  <X size={13} />
+                </button>
+              )}
+            </div>
           </div>
           {isScheduler && officeGroups && (
-            <div className="flex gap-1 px-3 pt-3">
+            <div className="flex gap-1 px-3 py-3 border-b border-line">
               {([
                 ['mine',        t(lang, 'myJobsTabMine'),        count(mineGroups)],
                 ['unscheduled', t(lang, 'myJobsTabUnscheduled'), count(officeGroups)],
@@ -204,7 +259,7 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
               ))}
             </div>
           )}
-          {total === 0 && <p className="px-3 py-6 text-sm text-muted">{t(lang, 'myJobsEmpty')}</p>}
+          {total === 0 && <p className="px-3 py-6 text-sm text-muted">{t(lang, searching ? 'myJobsNoMatch' : 'myJobsEmpty')}</p>}
           {section(t(lang, 'stageDrafts'), groups.draft, 'draft')}
           {section(t(lang, 'stageOngoing'), groups.ongoing, 'ongoing')}
           {section(t(lang, 'stageScheduled'), groups.scheduled, 'scheduled')}

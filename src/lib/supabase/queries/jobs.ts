@@ -515,6 +515,8 @@ export type StageJob = {
   date_end:       string | null
   project_title:  string | null
   client:         string
+  /** The client's contact person — searched by the My Jobs panel (2026-10-26). */
+  client_poc_name: string | null
   location:       string
   created_by:     string | null
   sales_poc_id:   string | null
@@ -535,7 +537,7 @@ export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
     job_designers:    Array<{ user_id: string }>
   }
   const { data, error } = await supabase.from('jobs')
-    .select('id, status, date, date_end, project_title, client, location, created_by, sales_poc_id, created_at, job_coordinators(user_id), job_designers(user_id)')
+    .select('id, status, date, date_end, project_title, client, client_poc_name, location, created_by, sales_poc_id, created_at, job_coordinators(user_id), job_designers(user_id)')
     .in('status', statuses) // raw status — see job-stage.ts
     .order('created_at', { ascending: false })
   if (error) throw error

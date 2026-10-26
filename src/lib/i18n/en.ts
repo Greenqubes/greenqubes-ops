@@ -728,6 +728,11 @@ export const en = {
   jobsTabTitle: "Jobs",
   myJobsTabMine: "Mine",
   myJobsTabUnscheduled: "Not scheduled",
+  myJobsSearch: "Search title, company, client or location",
+  myJobsClearSearch: "Clear search",
+  myJobsNoMatch: "No jobs match",
+  myJobsFold: "Fold section",
+  myJobsUnfold: "Open section",
 }
 
 export type Translations = typeof en
