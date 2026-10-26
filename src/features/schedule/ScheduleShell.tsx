@@ -27,6 +27,8 @@ import {
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
 import { MyJobsPanel } from './MyJobsPanel'
+import { ScheduleSearchResults } from './ScheduleSearchResults'
+import { scheduleSearchResults } from '@/lib/utils/schedule-search'
 import { viewAfterPick, blinkJobCards, parseScheduleJump } from './job-jump'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { Holiday, CompanyEvent } from '@/lib/supabase/queries/leave'
@@ -190,16 +192,18 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   const filtered = useMemo(() => jobs.filter(j => {
     if (pageMode === 'schedule'  && j.status !== 'scheduled') return false // raw status — see job-stage.ts
     if (pageMode === 'completed' &&  j.status !== 'completed') return false
-    if (query.trim()) {
-      const q   = query.toLowerCase()
-      const hay = [
-        j.client, j.description ?? '', j.location,
-        ...j.job_assignees.map(a => a.users?.name ?? ''),
-      ].join(' ').toLowerCase()
-      if (!hay.includes(q)) return false
-    }
     return true
-  }), [jobs, query, pageMode])
+  }), [jobs, pageMode])
+
+  // ── Search, across ALL dates (Nic, 2026-10-26) ──
+  // The box used to filter only the day on screen, so a job on another date
+  // read as "nothing found". While something is typed, a results list of
+  // every match replaces the views; tapping one jumps to its date.
+  const searching = showSearch && query.trim() !== ''
+  const searchDays = useMemo(
+    () => searching ? scheduleSearchResults(filtered, query, today, pageMode === 'completed' ? 'newest' : 'upcoming') : [],
+    [searching, filtered, query, today, pageMode],
+  )
 
   // Expand multi-day jobs so they appear on every date in their range
   const jobsByDate = useMemo(() =>
@@ -279,12 +283,15 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   // its card only if it is off screen, and blink it twice. Month has no cards,
   // so it switches to the day's List (like drillDown — not saved as a choice).
   // The card renders after this state change, so the blink waits for it a few
-  // frames; a job hidden by the search box simply has nothing to blink.
+  // frames. Any search is cleared first: its results list would otherwise sit
+  // over the day being jumped to (2026-10-26).
   const [blinkTarget, setBlinkTarget] = useState<{ id: string; n: number } | null>(null)
   // Set when the page was opened by a jump link, so restoring the saved view
   // below cannot put Month (which has no cards to blink) back over it.
   const jumpingRef = useRef(false)
   const pickJob = useCallback((iso: string, jobId: string) => {
+    setQuery('')
+    setShowSearch(false)
     setSelectedDate(iso)
     setViewMode(v => viewAfterPick(v))
     setBlinkTarget(prev => ({ id: jobId, n: (prev?.n ?? 0) + 1 }))
@@ -444,7 +451,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setShowSearch(s => !s)}
+            // Closing the box also clears it, so no hidden search is left
+            // holding the results list over the schedule.
+            onClick={() => { if (showSearch) setQuery(''); setShowSearch(!showSearch) }}
             aria-label="Toggle search"
             className={cn(
               'p-2 rounded-lg border transition-colors',
@@ -487,12 +496,14 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={tr(lang, 'searchJobs')}
+              onKeyDown={e => { if (e.key === 'Escape') setQuery('') }}
+              placeholder={tr(lang, 'scheduleSearchHint')}
               className="w-full bg-paper border border-line rounded-full py-2 pl-8 pr-8 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-terracotta"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
+                aria-label={tr(lang, 'myJobsClearSearch')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
               >
                 <X size={13} />
@@ -528,8 +539,12 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
         )}
       </div>
 
-      {/* ── Views ── */}
-      {viewMode === 'list' && (
+      {/* ── Views ── (a search shows its results list instead) */}
+      {searching && (
+        <ScheduleSearchResults days={searchDays} query={query} lang={lang}
+          onPick={j => pickJob(j.date, j.id)} />
+      )}
+      {!searching && viewMode === 'list' && (
         <ListView
           jobsByDate={jobsByDate}
           selectedDate={selectedDate}
@@ -547,7 +562,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           columns={listColumns}
         />
       )}
-      {viewMode === 'board' && (
+      {!searching && viewMode === 'board' && (
         <>
           <DateStrip
             jobsByDate={jobsByDate}
@@ -586,7 +601,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           </div>
         </>
       )}
-      {viewMode === 'week' && (
+      {!searching && viewMode === 'week' && (
         <WeekView
           weekDays={weekDays}
           jobsByDate={jobsByDate}
@@ -602,7 +617,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           awayLabel={listStrings.away}
         />
       )}
-      {viewMode === 'month' && (
+      {!searching && viewMode === 'month' && (
         <MonthView
           monthCells={monthCells}
           jobsByDate={jobsByDate}

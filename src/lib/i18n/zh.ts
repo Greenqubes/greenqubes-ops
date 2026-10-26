@@ -623,4 +623,9 @@ export const zh: Partial<Translations> = {
   myJobsNoMatch: "没有符合的工作",
   myJobsFold: "收起",
   myJobsUnfold: "展开",
+  scheduleSearchHint: "搜索标题、公司、客户、地点或人员",
+  scheduleSearchCount: "共 {n} 个工作符合（所有日期）",
+  scheduleSearchPast: "已过",
+  scheduleSearchUntil: "至 {date}",
+  scheduleSearchCrew: "人员",
 }

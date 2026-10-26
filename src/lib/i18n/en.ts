@@ -733,6 +733,11 @@ export const en = {
   myJobsNoMatch: "No jobs match",
   myJobsFold: "Fold section",
   myJobsUnfold: "Open section",
+  scheduleSearchHint: "Search title, company, client, location or crew",
+  scheduleSearchCount: "{n} job(s) match, on all dates",
+  scheduleSearchPast: "past",
+  scheduleSearchUntil: "to {date}",
+  scheduleSearchCrew: "Crew",
 }
 
 export type Translations = typeof en

@@ -13,14 +13,21 @@ export type SearchableJob = { project_title: string | null; client: string; clie
 export type MyJobsGroup = keyof MyJobsGroups<unknown>
 const GROUPS: readonly MyJobsGroup[] = ['draft', 'ongoing', 'scheduled']
 
-const words = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean)
+/** The words of a search, lower-cased. Shared with the schedule's search so
+ *  the two boxes can never disagree on what a match is. */
+export const searchWords = (query: string) => query.toLowerCase().split(/\s+/).filter(Boolean)
+const words = searchWords
 
-export function matchesJobSearch(job: SearchableJob, query: string): boolean {
+/** True when every word of the search appears somewhere across these texts. */
+export function matchesWords(texts: Array<string | null | undefined>, query: string): boolean {
   const wanted = words(query)
   if (wanted.length === 0) return true
-  const haystack = [job.project_title, job.client, job.client_poc_name, job.location]
-    .filter(Boolean).join(' ').toLowerCase()
+  const haystack = texts.filter(Boolean).join(' ').toLowerCase()
   return wanted.every(w => haystack.includes(w))
+}
+
+export function matchesJobSearch(job: SearchableJob, query: string): boolean {
+  return matchesWords([job.project_title, job.client, job.client_poc_name, job.location], query)
 }
 
 /** An empty search hands back the same lists, untouched. */

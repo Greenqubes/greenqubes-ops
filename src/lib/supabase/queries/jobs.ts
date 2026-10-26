@@ -14,6 +14,9 @@ export type ScheduleJob = {
   time_end:         string | null
   project_title:    string | null
   client:           string
+  /** The client's contact person — searched on the schedule (2026-10-26).
+   *  Optional: the installer views feed rows through a different query. */
+  client_poc_name?: string | null
   location:         string
   description:      string | null
   punctuality:      Punctuality
@@ -51,7 +54,7 @@ export type ScheduleJob = {
 // no external containers — acceptable, her schedule is view-only.
 const SCHEDULE_SELECT = `
   id, status, date, date_end, time_start, time_end,
-  project_title, client, location, lat, lng, description, punctuality,
+  project_title, client, client_poc_name, location, lat, lng, description, punctuality,
   production_ready, do_issued, sales_poc_id,
   job_assignees ( is_suggestion, is_sub_installer, users ( id, name ) ),
   job_coordinators ( users ( name ) ),
