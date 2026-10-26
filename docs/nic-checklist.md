@@ -45,6 +45,8 @@ _Last updated: 2026-10-19 (feat-jobs — **Job stages are live at 6:49pm.** A jo
 
 _Last updated: 2026-10-21 (fix-jobs — **your scheduler can now push Ongoing jobs onto the schedule, with crew, in one go. Live.** Three fixes from your messages: the job page now has **Push to Schedule** for schedulers (only admin had it); schedulers **can't move a sales person's job back to Drafts** any more, only jobs they made themselves; and crew he picks on an Ongoing job **show green and are confirmed by the push** — installers get their Telegram the moment it lands on the schedule, never before. "What's new" tells the team. One check for you is under Job stages below.)_
 
+_Last updated: 2026-10-26 (ux-schedule — **three things live today, all from your and your scheduler's requests.** The **My Jobs panel** has coloured sections (sand / grey / green, your pick), a search box where the ✕ was, sections that fold away and stay folded, and long titles on two lines. The **schedule search finally finds jobs on other dates** — type and every match appears grouped by date; tap one and you land on it with the job blinking. It also looks at job titles now, which it never did before. And **Support crew** has department pills — Carpentry, Painter, Metalwork, Printing, Electrician — instead of one Production pill, with Designer back between Scheduler and Coordinator. All 15 production people land in a pill. "What's new" tells the team. Nothing for you to check beyond what you already tried on the test site.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
@@ -83,7 +85,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] **Tell the team, briefly:** deleted jobs are in profile picture → Bin for 3 months; and drafts are now private, so a sales person no longer sees a colleague's drafts. The "What's new" popup says both, but a word in the group chat avoids "where did my job go".
 - [ ] **Glance at Admin → Health tomorrow** — the new "Bin cron" line shows its first 4am run. Until then it reads "no run recorded yet", which is expected.
 - [ ] **Three small things the review left for later, none urgent:** a restore could wrongly leave someone off once you have over 1,000 staff or contractors; a chat message sent in the second a job is being deleted could be lost; and "Put it back in the bin" restarts that job's 3-month countdown.
-- [ ] **Worth knowing:** the Aydan jobs from 2–3 Oct can still be recovered from the server PC's nightly backups (`E:Greenqubes-Archive`) until about mid-October, if you change your mind. After that the backups roll over.
+- [x] **Worth knowing:** the Aydan jobs from 2–3 Oct could be recovered from the server PC's nightly backups until about mid-October — that window has passed (noted 2026-10-26); the backups have rolled over.
 
 ### Housekeeping done 2026-09-28
 - [x] **[Nic] Old `greenqubes-ops-voice-pa` folder deleted from this PC** — it matched GitHub exactly, nothing unsaved; the `feat-voice-pa` branch itself is still on GitHub. The `greenqubes-ops-workflow-v3` folder was already gone.
@@ -135,6 +137,14 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-26, ux-schedule — My Jobs Search + Schedule Search Across All Dates + Support Crew Departments, LIVE)
+
+- [x] **[Nic] My Jobs panel, from your screenshot** — coloured sections (you picked "whole section tinted" from three mockups), a search box in place of the ✕ (title, company, client or location — you added location), sections that fold from their heading and stay folded on that device, long titles on two lines then "…". Live 5:21pm.
+- [x] **[Nic] Schedule search across all dates** — your report: standing on today, a job on another date "returns empty". Now typing shows every match on every date, grouped by date; tap one to jump there and it blinks. You picked the results list over lighting up the date strip. It also searches job titles and client names now (it never searched titles before); descriptions are left out because they matched too loosely. Live 8:46pm.
+- [x] **[Nic] Support crew departments, your scheduler's request** — Production split into Carpentry, Painter, Metalwork, Printing, and Electrician (you added it for Thoa). Checked against your real staff list: all 15 production people land in a pill. **Designer put back** between Scheduler and Coordinator, your call. Live 9:22pm.
+- [x] **[Nic] "What's new" entry for today** — one entry covering all three, timed 9:22pm from the live site's own clock. Anyone who already closed today's popup can reopen it from profile picture → What's new.
+- [x] **[Nic] AI importance question — skipped (your call at session start).**
 
 ## Done This Session ✓ (2026-10-21, fix-jobs — Scheduler Push + Own-Drafts Rule + Crew on Push, LIVE)
 
@@ -274,7 +284,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 
 **Built but NOT live — waiting on your preview check:**
 
-- [ ] **The "What's new" changelog popup** — your director's request. Opens by itself once per person when there is something new, reopens any time from your profile picture → What's new, scrolls inside itself. Today's entry is already written. **Please read the wording** — it is what your whole team sees, and you know how they talk better than Claude does. Say the word and it goes live.
+- [x] **[Nic] The "What's new" changelog popup** — went live after this session (in use since 2026-09-11); box ticked 2026-10-26. Your director's request. Opens by itself once per person when there is something new, reopens any time from your profile picture → What's new, scrolls inside itself. Today's entry is already written. **Please read the wording** — it is what your whole team sees, and you know how they talk better than Claude does. Say the word and it goes live.
 ## Done This Session ✓ (2026-09-07, chore-config — Workflow V3 Branch Killed + Session Close)
 
 - [x] **[Nic] "Kill this v3 branch" — DONE.** `feat-workflow-v3` is deleted from this PC and from GitHub. This reverses the 4 Sept decision to keep it forever as a record (like Workflow V2), so **round 1's work is not retained** — roughly 3,700 lines across 39 files. It could only be recovered from GitHub's short grace period for deleted branches, and only if done soon.
@@ -282,7 +292,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [x] **What was deliberately kept** — on the main line of work: the design document, both build plans and the feedback log (each stamped "cancelled — do not build from this"), the approved mockup, and the database migration file. The migration must never be renumbered or dropped: it is already applied, and the two migrations after it are numbered on top of it. Nothing in the app reads it any more.
 - [x] **[Nic] Health tab — no action needed after all.** Yesterday's fix (the new Design cron row, and stopping the false amber warning on the overdue cron) turned out to be **already live on production** — it rode along in the go-live merge. Checked directly rather than assumed. Admin → Health should show "Overdue cron — ok" and a "Design cron" row.
 - [x] **Docs squared away** — the branch rules, build plan, context file and this checklist all now say deleted rather than archived, so no future session goes looking for a branch that is gone.
-- [ ] **Last leftover:** the V3 folder on this PC (see the Workflow V3 section above) — safe to delete, just not from inside a running session.
+- [x] **Last leftover:** the V3 folder on this PC — already gone by the 2026-09-28 housekeeping; box ticked 2026-10-26.
 
 ---
 
