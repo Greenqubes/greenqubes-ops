@@ -35,11 +35,12 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
-    // 20:46 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch 1793018761212, captured the moment /api/version flipped to
-    // 6279bd7f4df3 (commit ae99462, schedule search). The first release of the
-    // day was 17:21 (f52571a, My Jobs). Never the local clock (CLAUDE.md).
-    time: '20:46',
+    // 21:22 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793020929999, captured the moment /api/version flipped to
+    // eac95c302fc4 (commit 566081e, Support crew departments). Earlier
+    // releases today: 17:21 (f52571a, My Jobs), 20:46 (ae99462, schedule
+    // search). Never the local clock (CLAUDE.md).
+    time: '21:22',
     headsUp: [
       'The ✕ on the My Jobs panel is now a search box — close it with the edge arrow.',
     ],
@@ -49,6 +50,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     improved: [
       'Schedule search finds jobs on every date — tap a result to jump to it.',
       'Schedule search now also looks at job titles and client names.',
+      'Support crew filters by department: Carpentry, Painter, Metalwork, Printing, Electrician.',
+      'Designers can be added to Support crew again.',
       'My Jobs sections are colour-coded and fold away from their heading.',
       'Long job titles in My Jobs now show on two lines.',
     ],
