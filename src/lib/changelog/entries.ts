@@ -35,10 +35,11 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-26',
-    // 17:21 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch 1793006496322, captured the moment /api/version flipped to
-    // a3099a3418e4 (commit f52571a). Never the local clock (CLAUDE.md).
-    time: '17:21',
+    // 20:46 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793018761212, captured the moment /api/version flipped to
+    // 6279bd7f4df3 (commit ae99462, schedule search). The first release of the
+    // day was 17:21 (f52571a, My Jobs). Never the local clock (CLAUDE.md).
+    time: '20:46',
     headsUp: [
       'The ✕ on the My Jobs panel is now a search box — close it with the edge arrow.',
     ],
@@ -46,6 +47,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Search My Jobs by title, company, client or location.',
     ],
     improved: [
+      'Schedule search finds jobs on every date — tap a result to jump to it.',
+      'Schedule search now also looks at job titles and client names.',
       'My Jobs sections are colour-coded and fold away from their heading.',
       'Long job titles in My Jobs now show on two lines.',
     ],
