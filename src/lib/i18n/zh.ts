@@ -628,4 +628,9 @@ export const zh: Partial<Translations> = {
   scheduleSearchPast: "已过",
   scheduleSearchUntil: "至 {date}",
   scheduleSearchCrew: "人员",
+  crewDeptCarpentry: "木工",
+  crewDeptPainter: "油漆",
+  crewDeptMetalwork: "金工",
+  crewDeptPrinting: "印刷",
+  crewDeptElectrician: "电工",
 }

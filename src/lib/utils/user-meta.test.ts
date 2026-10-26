@@ -4,7 +4,7 @@ import {
   linkStatus, buildUserMeta, filterUsers,
   subroleSuggestions, qualificationSuggestions,
   rolesPresent, filterPickerOptions,
-  SUPPORT_CREW_ROLES, supportCrewPool,
+  SUPPORT_CREW_ROLES, supportCrewPool, SUPPORT_CREW_FILTERS, departmentOf,
 } from './user-meta'
 
 let failed = 0
@@ -120,6 +120,41 @@ eq('scheduler button',                        ids('scheduler'), ['bt'])
 eq('an excluded person already on the crew stays under All', ids('all', ['co']), ['ck', 'ali', 'bt', 'co', 'cd'])
 eq('...but a role button still filters them out',            ids('installer', ['co']), ['ck'])
 eq('an excluded role shows nobody', ids('sales'), [])
+
+console.log('\nSupport crew department pills:')
+// Nic, 2026-10-26 (the scheduler's request): the Production pill lumped every
+// trade together. It becomes five department pills, matched on the person's
+// department label. Real people and labels from the live users table.
+const prod = (id: string, subrole: string | null) => ({ id, name: id, role: 'production', subrole })
+const team = [
+  prod('Ali B', 'Carpenter'), prod('Aroze', 'Carpenter'), prod('Billy', 'Carpenter'),
+  prod('Wen Bing', 'Senior Carpenter'), prod('You Sheng', 'Assistant Carpenter'),
+  prod('Ali Ramjan', 'Painter'), prod('Sujan', 'Painter'),
+  prod('Firoz', 'Metalwork'), prod('Hai Fa', 'Metalwork'), prod('Halim', 'Metalwork'), prod('Xiao Chen', 'Metalwork'),
+  prod('Jing Dong', 'Printing'), prod('Kong Yang', 'Printing'), prod('Yang Lei', 'Printing'),
+  prod('Thoa', 'Electrician'),
+  prod('New Welder', 'Welder'),                     // a trade with no pill yet
+  prod('No Label', null),
+  { id: 'CK', name: 'CK', role: 'installer', subrole: null },
+  { id: 'Sales Carpenter', name: 'x', role: 'sales', subrole: 'Carpenter' },   // excluded role
+]
+const dept = (filter: string, keep: string[] = []) => supportCrewPool(team, filter, new Set(keep)).map(u => u.id)
+eq('pills: Production replaced by the five departments',
+   SUPPORT_CREW_FILTERS,
+   ['all', 'scheduler', 'coordinator', 'installer', 'carpentry', 'painter', 'metalwork', 'printing', 'electrician'])
+eq('Carpentry — senior and assistant carpenters included',
+   dept('carpentry'), ['Ali B', 'Aroze', 'Billy', 'Wen Bing', 'You Sheng'])
+eq('Painter',     dept('painter'),     ['Ali Ramjan', 'Sujan'])
+eq('Metalwork',   dept('metalwork'),   ['Firoz', 'Hai Fa', 'Halim', 'Xiao Chen'])
+eq('Printing',    dept('printing'),    ['Jing Dong', 'Kong Yang', 'Yang Lei'])
+eq('Electrician', dept('electrician'), ['Thoa'])
+eq('a trade with no pill, or no label, still shows under All',
+   dept('all').filter(i => i === 'New Welder' || i === 'No Label'), ['New Welder', 'No Label'])
+eq('an excluded role is never in a department pill', dept('carpentry').includes('Sales Carpenter'), false)
+eq('label wording, not exact text', [
+  departmentOf('Metal works'), departmentOf('  PAINTER '), departmentOf('Asst. Printing'),
+  departmentOf('Welder'), departmentOf(null), departmentOf(''),
+], ['metalwork', 'painter', 'printing', null, null, null])
 
 if (failed > 0) { console.error(`\n${failed} check(s) failed`); process.exit(1) }
 console.log('\nAll user-meta checks passed')

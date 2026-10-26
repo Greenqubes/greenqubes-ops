@@ -59,18 +59,48 @@ export function filterUsers<T extends { role: string; subrole: string | null }>(
 export const SUPPORT_CREW_ROLES: Role[] = ROLES.filter(r =>
   r === 'scheduler' || r === 'coordinator' || r === 'installer' || r === 'production')
 
-// The Support crew list for one filter button. `keepIds` = people already on
-// this job's crew (assigned or suggested): an excluded-role person picked
-// before this rule must stay visible under All, or nobody could take them off.
-export function supportCrewPool<T extends { id: string; role: string }>(
+// The Support crew list for one filter button — a role, or a department
+// (2026-10-26). `keepIds` = people already on this job's crew (assigned or
+// suggested): an excluded-role person picked before this rule must stay
+// visible under All, or nobody could take them off.
+export function supportCrewPool<T extends { id: string; role: string; subrole?: string | null }>(
   users: T[],
-  role: string,
+  filter: string,
   keepIds: Set<string>,
 ): T[] {
+  const dispatchable = (u: T) => (SUPPORT_CREW_ROLES as string[]).includes(u.role)
+  const isDepartment = DEPARTMENTS.some(([d]) => d === filter)
   return users.filter(u => {
-    if (role !== 'all') return u.role === role && (SUPPORT_CREW_ROLES as string[]).includes(role)
-    return (SUPPORT_CREW_ROLES as string[]).includes(u.role) || keepIds.has(u.id)
+    if (filter === 'all') return dispatchable(u) || keepIds.has(u.id)
+    if (isDepartment)     return dispatchable(u) && departmentOf(u.subrole) === filter
+    return u.role === filter && dispatchable(u)
   })
+}
+
+// The Production pill lumped every trade together, so it became department
+// pills (Nic, 2026-10-26, his scheduler's request). A department is read from
+// the person's department label by its WORDING — "Senior Carpenter" and
+// "Assistant Carpenter" are Carpentry, "Metal works" is Metalwork. A label
+// that fits none (a new "Welder") still shows under All; a new trade is one
+// line here plus its pill text.
+export const DEPARTMENTS = [
+  ['carpentry',   'carpent'],
+  ['painter',     'paint'],
+  ['metalwork',   'metal'],
+  ['printing',    'print'],
+  ['electrician', 'electric'],
+] as const
+export type Department = typeof DEPARTMENTS[number][0]
+
+/** The Support crew pills, in order. */
+export const SUPPORT_CREW_FILTERS: string[] = [
+  'all', ...SUPPORT_CREW_ROLES.filter(r => r !== 'production'), ...DEPARTMENTS.map(([d]) => d),
+]
+
+export function departmentOf(subrole: string | null | undefined): Department | null {
+  const label = subrole?.trim().toLowerCase()
+  if (!label) return null
+  return DEPARTMENTS.find(([, word]) => label.includes(word))?.[0] ?? null
 }
 
 export function subroleSuggestions(

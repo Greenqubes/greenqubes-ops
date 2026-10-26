@@ -738,6 +738,11 @@ export const en = {
   scheduleSearchPast: "past",
   scheduleSearchUntil: "to {date}",
   scheduleSearchCrew: "Crew",
+  crewDeptCarpentry: "Carpentry",
+  crewDeptPainter: "Painter",
+  crewDeptMetalwork: "Metalwork",
+  crewDeptPrinting: "Printing",
+  crewDeptElectrician: "Electrician",
 }
 
 export type Translations = typeof en
