@@ -109,15 +109,18 @@ const crew = [
   { id: 'cd',  name: 'Cody',       role: 'coordinator' },
 ]
 const ids = (role: string, keep: string[] = []) => supportCrewPool(crew, role, new Set(keep)).map(u => u.id)
-eq('filter buttons are the four dispatchable roles, in admin order',
-   SUPPORT_CREW_ROLES, ['scheduler', 'coordinator', 'installer', 'production'])
+// Nic, 2026-10-26: "put back designer pill too" — designers are dispatchable
+// again (reverses that part of 2026-09-28), "inbetween scheduler and coordinator".
+eq('dispatchable roles, in pill order — designer back, after scheduler',
+   SUPPORT_CREW_ROLES, ['scheduler', 'designer', 'coordinator', 'installer', 'production'])
+eq('a designer shows under the Designer pill', ids('designer'), ['wj'])
 // THE REQUEST: before this, sales/admin/designer (Charles Ow, Bryan) sat in the list.
-eq('All drops sales, hr, admin and designer', ids('all'), ['ck', 'ali', 'bt', 'cd'])
+eq('All drops sales, hr and admin — keeps designer', ids('all'), ['ck', 'ali', 'bt', 'wj', 'cd'])
 eq('a role button narrows to that role',      ids('production'), ['ali'])
 eq('scheduler button',                        ids('scheduler'), ['bt'])
 // Someone from an excluded role ALREADY on this job's crew must stay visible,
 // or they could never be taken off again.
-eq('an excluded person already on the crew stays under All', ids('all', ['co']), ['ck', 'ali', 'bt', 'co', 'cd'])
+eq('an excluded person already on the crew stays under All', ids('all', ['co']), ['ck', 'ali', 'bt', 'co', 'wj', 'cd'])
 eq('...but a role button still filters them out',            ids('installer', ['co']), ['ck'])
 eq('an excluded role shows nobody', ids('sales'), [])
 
@@ -141,7 +144,7 @@ const team = [
 const dept = (filter: string, keep: string[] = []) => supportCrewPool(team, filter, new Set(keep)).map(u => u.id)
 eq('pills: Production replaced by the five departments',
    SUPPORT_CREW_FILTERS,
-   ['all', 'scheduler', 'coordinator', 'installer', 'carpentry', 'painter', 'metalwork', 'printing', 'electrician'])
+   ['all', 'scheduler', 'designer', 'coordinator', 'installer', 'carpentry', 'painter', 'metalwork', 'printing', 'electrician'])
 eq('Carpentry — senior and assistant carpenters included',
    dept('carpentry'), ['Ali B', 'Aroze', 'Billy', 'Wen Bing', 'You Sheng'])
 eq('Painter',     dept('painter'),     ['Ali Ramjan', 'Sujan'])

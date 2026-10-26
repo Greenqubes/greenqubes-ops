@@ -52,12 +52,12 @@ export function filterUsers<T extends { role: string; subrole: string | null }>(
   })
 }
 
-// Roles that may be dispatched onto a job's Support crew, in ROLES order —
-// also the filter buttons above that list (Nic, 2026-09-28). Sales, HR /
-// Finance, Admin and Designer are off the list entirely, partly narrowing the
-// 2026-09-04 "any role" widening.
-export const SUPPORT_CREW_ROLES: Role[] = ROLES.filter(r =>
-  r === 'scheduler' || r === 'coordinator' || r === 'installer' || r === 'production')
+// Roles that may be dispatched onto a job's Support crew — also the filter
+// buttons above that list, in this order (Nic, 2026-09-28). Sales, HR /
+// Finance and Admin are off the list entirely, partly narrowing the
+// 2026-09-04 "any role" widening. Designer was off too, then put back
+// between Scheduler and Coordinator (Nic, 2026-10-26).
+export const SUPPORT_CREW_ROLES: Role[] = ['scheduler', 'designer', 'coordinator', 'installer', 'production']
 
 // The Support crew list for one filter button — a role, or a department
 // (2026-10-26). `keepIds` = people already on this job's crew (assigned or
