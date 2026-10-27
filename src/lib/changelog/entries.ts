@@ -34,6 +34,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-27',
+    // 18:07 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793095655576, captured the moment /api/version flipped to
+    // 4074130bc039 (commit 76cdb47, Schedule | Completed switch). Never the
+    // local clock (CLAUDE.md).
+    time: '18:07',
+    headsUp: [
+      'The Completed tab is gone — use the Completed switch at the top of Schedule or My Jobs.',
+    ],
+    added: [
+      'A Today button on the Drivers view.',
+    ],
+    improved: [
+      'The date strip shows last and next month — tap one to jump there.',
+      'The Drivers view says "On This Day" when you look at other dates.',
+      'Bigger, bolder arrow buttons on the schedule and the date strip.',
+    ],
+    fixed: [
+      'The arrows on the Drivers view now move one day at a time.',
+    ],
+  },
+  {
     date: '2026-10-26',
     // 21:22 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1793020929999, captured the moment /api/version flipped to
