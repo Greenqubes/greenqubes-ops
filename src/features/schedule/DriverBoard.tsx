@@ -20,6 +20,8 @@ interface Props {
   /** Scheduler and admin only — everyone else reads the board (Nic, 2026-09-15). */
   canDrag:     boolean
   currentDate: string
+  /** "Today", or "On This Day" for any other date (Nic, 2026-10-27). */
+  dayWord:     'Today' | 'On This Day'
   /** Bulk selection, same as the list view — the tick boxes feed the
    *  delete / complete bar at the bottom of the page. */
   selectable?:  boolean
@@ -45,7 +47,7 @@ interface Props {
  * a normal 1920 screen, two on a laptop, one on a phone. Nic, 2026-09-17 —
  * "scrolling down so much is a killer".
  */
-export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, selectable, selectedIds, onToggle }: Props) {
+export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, dayWord, selectable, selectedIds, onToggle }: Props) {
   const router = useRouter()
   const [plan, setPlan] = useState<{ plan: DragPlan; job: ScheduleJob } | null>(null)
 
@@ -105,7 +107,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
           {/* An empty container stays quiet — "Nothing today" is not a count
               and should not pull the eye the way a number does. */}
           {band.jobs.length === 0 ? (
-            <span className="ml-auto text-[11px] text-muted">Nothing Today</span>
+            <span className="ml-auto text-[11px] text-muted">Nothing {dayWord}</span>
           ) : (
             <span className="ml-auto text-[13px] font-semibold text-ink leading-none">
               {band.jobs.length}
@@ -174,7 +176,7 @@ export function DriverBoard({ jobs, drivers, supportPool, canDrag, currentDate, 
           {countRealJobs(bands)}
         </span>
         <span className="text-[13px] font-medium text-ink2">
-          Job{countRealJobs(bands) === 1 ? '' : 's'} Today
+          Job{countRealJobs(bands) === 1 ? '' : 's'} {dayWord}
         </span>
       </p>
 

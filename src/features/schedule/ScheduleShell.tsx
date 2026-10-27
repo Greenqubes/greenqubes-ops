@@ -21,9 +21,10 @@ import { useToast } from '@/components/Toast'
 import { useBinEmptiesOn } from '@/features/bin/useBinEmptiesOn'
 import { BottomNav } from '@/components/BottomNav'
 import {
-  toISO, shiftDate, shiftMonth,
+  toISO, shiftDate,
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
+import { dayWord, stepDate } from './date-strip-nav'
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
 import { MyJobsPanel } from './MyJobsPanel'
@@ -264,16 +265,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
   const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate])
 
   // ── Navigation ──
-  function goBack() {
-    if (viewMode === 'list')  setSelectedDate(d => shiftDate(d, -1))
-    if (viewMode === 'week')  setSelectedDate(d => shiftDate(d, -7))
-    if (viewMode === 'month') setSelectedDate(d => shiftMonth(d, -1))
-  }
-  function goForward() {
-    if (viewMode === 'list')  setSelectedDate(d => shiftDate(d,  1))
-    if (viewMode === 'week')  setSelectedDate(d => shiftDate(d,  7))
-    if (viewMode === 'month') setSelectedDate(d => shiftMonth(d, 1))
-  }
+  function goBack()    { setSelectedDate(d => stepDate(viewMode, d, -1)) }
+  function goForward() { setSelectedDate(d => stepDate(viewMode, d,  1)) }
   function drillDown(date: string) {
     setSelectedDate(date)
     setViewMode('list')
@@ -438,7 +431,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
             <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
               <ChevronRight size={16} />
             </button>
-            {viewMode === 'list' && selectedDate !== today && (
+            {/* The board shows one day too, so it gets the way back (Nic, 2026-10-27). */}
+            {(viewMode === 'list' || viewMode === 'board') && selectedDate !== today && (
               <button
                 onClick={() => setSelectedDate(today)}
                 className="ml-1 px-2.5 py-[6px] text-[10px] font-semibold rounded-full border border-brand-amber bg-brand-amber-soft text-brand-amber transition-colors shrink-0"
@@ -594,6 +588,7 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
               supportPool={supportPool}
               canDrag={role === 'scheduler' || navRole === 'admin'}
               currentDate={selectedDate}
+              dayWord={dayWord(selectedDate, today)}
               selectable={canBulkDelete}
               selectedIds={selectedIds}
               onToggle={toggleJob}

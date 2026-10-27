@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t as tr } from '@/lib/i18n'
 import { dayLabel, getWeekDays, getMonthDays, shiftDate, shiftMonth, isOverdue } from './utils'
+import { adjacentMonths } from './date-strip-nav'
 import type { ScheduleJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 import type { AwayTrip } from '@/lib/utils/away-overlap'
@@ -93,9 +94,30 @@ export function DateStrip({
         ? `${fmt(first, { month: 'short' })} – ${fmt(last, { month: 'short', year: 'numeric' })}`
         : `${fmt(first, { month: 'short', year: 'numeric' })} – ${fmt(last, { month: 'short', year: 'numeric' })}`
 
+  // The months either side, above the arrows (Nic, 2026-10-27). A tap flips
+  // the strip to that month like the arrow does — the selected day stays put.
+  const { prev, next } = adjacentMonths(first, last)
+  const sideLabel = 'text-[10px] uppercase tracking-widest font-bold text-ink2 hover:text-ink transition-colors truncate'
+
   return (
     <div data-tour="date-strip" className="pb-2">
-      <p className="px-4 pb-1 text-[10px] uppercase tracking-widest text-muted text-center">{windowLabel}</p>
+      <div className="flex items-center gap-1 px-2 pb-1">
+        <div className="grid flex-1 min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <button onClick={() => setAnchor(prev.iso)} aria-label={prev.long} className={cn(sideLabel, 'justify-self-start text-left')}>
+            {/* Three full names do not fit side by side on a phone. */}
+            <span className="sm:hidden">{prev.short}</span>
+            <span className="hidden sm:inline">{prev.long}</span>
+          </button>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-ink text-center whitespace-nowrap">{windowLabel}</p>
+          <button onClick={() => setAnchor(next.iso)} aria-label={next.long} className={cn(sideLabel, 'justify-self-end text-right')}>
+            <span className="sm:hidden">{next.short}</span>
+            <span className="hidden sm:inline">{next.long}</span>
+          </button>
+        </div>
+        {/* Holds the place of the week/month toggle below, so the right-hand
+            label sits over the › arrow rather than over the toggle. */}
+        <span aria-hidden className="w-[33px] shrink-0" />
+      </div>
       <div className="flex items-center gap-1 px-2">
       <button
         onClick={() => page(-1)}
