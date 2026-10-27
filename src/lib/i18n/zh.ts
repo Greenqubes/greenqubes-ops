@@ -228,6 +228,7 @@ export const zh: Partial<Translations> = {
   revertJob: '恢复到排程',
   revertJobConfirmTitle: '恢复此工作？',
   revertJobConfirmBody: '这会将该工作重新放回排程。如果它是被误标记为完成的，请使用此功能。',
+  completed: '已完成',
   installerCompletedBtn: '已完成',
   installerCompleteNeedsPhoto: '请先上传完工照片才能完成此工作',
   installerCompleteConfirmTitle: '将此工作标记为已完成？',

@@ -25,6 +25,7 @@ import {
   getWeekDays, getMonthCells, monthLabel,
 } from './utils'
 import { dayWord, stepDate } from './date-strip-nav'
+import { CompletedSwitch } from '@/components/CompletedSwitch'
 import { resolveScheduleDate, scheduleDateKey } from '@/lib/utils/schedule-date'
 import type { ScheduleJob, CrewMember, StageJob } from '@/lib/supabase/queries/jobs'
 import { MyJobsPanel } from './MyJobsPanel'
@@ -400,10 +401,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
           top bar and bottom menu stay full width (Nic, 2026-10-14). */}
       <div className={cn(panelOpen && 'lg:pr-72')}>
 
-      {/* ── Company schedule label ── */}
-      <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-2 pb-0.5">
-        {tr(lang, 'companySchedule')}
-      </p>
+      {/* ── Schedule | Completed ── replaced the "Company schedule" caption and
+          every role's Completed tab (Nic's pick A, 2026-10-27). */}
+      <CompletedSwitch role={role ?? 'sales'} current={pageMode === 'completed' ? 'completed' : 'live'} lang={lang} />
 
       {/* ── Header ── */}
       <div className="relative px-4 pt-3 pb-2 flex items-start justify-between gap-3">

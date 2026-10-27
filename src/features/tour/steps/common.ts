@@ -22,8 +22,11 @@ export const dateStripStep: TourStep = {
 // Any step that targets a nav tab needs before: 'open-nav-drawer' — on the
 // phone the tabs live inside the closed hamburger drawer (on desktop the
 // action is a no-op and the target resolves to BottomNav instead).
+//
+// Completed is no longer a tab (2026-10-27): it is the right half of the
+// switch at the top of the role's home page, so no drawer is needed.
 export const completedTabStep: TourStep = {
-  id: 'completed-tab', before: 'open-nav-drawer', targets: ['nav-completed'],
+  id: 'completed-tab', targets: ['completed-switch'],
   titleKey: 'tourCompletedTitle', bodyKey: 'tourCompletedBody',
 }
 

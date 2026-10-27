@@ -1,4 +1,4 @@
-import { Calendar, Bot, HardHat, CheckCircle2, LayoutGrid, PenTool, CalendarOff, ClipboardList } from 'lucide-react'
+import { Calendar, Bot, HardHat, LayoutGrid, PenTool, CalendarOff, ClipboardList } from 'lucide-react'
 import type { Role } from '@/lib/supabase/types'
 
 export type NavTab = { href: string; label: string; Icon: typeof Calendar }
@@ -6,6 +6,11 @@ export type NavTab = { href: string; label: string; Icon: typeof Calendar }
 // Single source for role → tabs, shared by BottomNav (desktop, ≥lg) and
 // NavDrawer (mobile, <lg — R2-T5 / F1). Keep both in sync by editing here
 // only; neither component should ever define its own copy.
+//
+// No Completed tab for anyone since 2026-10-27 (Nic): a Schedule | Completed
+// switch at the top of the Schedule page (My Jobs | Completed for installers)
+// replaces it, the same for every role. /completed still exists — the switch
+// links to it, and navTabActive keeps Schedule / My Jobs lit there.
 export const NAV_TABS: Record<Role, NavTab[]> = {
   // Pending added 2026-09-15 (Nic): a scheduler can create jobs — the INSERT
   // policy allows it and the New Job form offers "Save as pending" to every
@@ -15,7 +20,6 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
@@ -23,7 +27,6 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
@@ -31,7 +34,6 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
   // Installers only need to know the jobs they're on. (Nic's call, 2026-07-22.)
   installer: [
     { href: '/installer', label: 'My Jobs',   Icon: HardHat       },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
   // Reached via getNavRole, NOT getEffectiveRole — that returns 'scheduler'
@@ -43,14 +45,14 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/leave',       label: 'Leave',     Icon: CalendarOff   },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
-  // HR / Finance: schedule view-only, the Leave tab she owns, Jobs (Ongoing only)
-  // read-only (since 2026-10-09), and the assistant. No FCFS, no Drafts, no
-  // Completed edits, no Admin — see
+  // HR / Finance: schedule view-only (completed jobs too, through the
+  // Schedule | Completed switch since 2026-10-27), the Leave tab she owns,
+  // Jobs (Ongoing only) read-only (since 2026-10-09), and the assistant. No
+  // FCFS, no Drafts, no Completed edits, no Admin — see
   // src/lib/auth/capabilities.ts for the gates behind those.
   hr: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar     },
@@ -62,7 +64,6 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/schedule',    label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
-    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
@@ -73,14 +74,12 @@ export const NAV_TABS: Record<Role, NavTab[]> = {
     { href: '/fcfs',        label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/design-load', label: 'Design',    Icon: PenTool       },
     { href: '/job-list',    label: 'Jobs',      Icon: ClipboardList },
-    { href: '/completed',   label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant',   label: 'Assistant', Icon: Bot           },
   ],
   production: [
     { href: '/schedule',  label: 'Schedule',  Icon: Calendar      },
     { href: '/fcfs',      label: 'FCFS',      Icon: LayoutGrid    },
     { href: '/job-list',  label: 'Jobs',      Icon: ClipboardList },
-    { href: '/completed', label: 'Completed', Icon: CheckCircle2  },
     { href: '/assistant', label: 'Assistant', Icon: Bot           },
   ],
 }

@@ -6,6 +6,7 @@ import { useLiveChannel } from '@/lib/supabase/useLiveChannel'
 import { Search, X, Briefcase, List, CalendarDays, Grid3X3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { CompanyBar } from '@/components/CompanyBar'
+import { CompletedSwitch } from '@/components/CompletedSwitch'
 import { t } from '@/lib/i18n'
 import {
   toISO, timeToMinutes, shiftDate, shiftMonth,
@@ -206,27 +207,32 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
       {/* ── Company bar ── */}
       <CompanyBar lang={lang} role="installer" />
 
+      {/* ── My Jobs | Completed ── the same switch every role has at the top,
+          replacing the installer's Completed tab (Nic, 2026-10-27). */}
+      <CompletedSwitch role="installer" current="live" lang={lang} />
+
       {/* ── Eyebrow ── */}
       <p className="text-center text-[11px] text-muted uppercase tracking-widest px-4 pt-3 pb-1">
         {t(lang, 'installerHi')}, {firstName}
       </p>
 
       {/* ── Header ── */}
-      <div className="px-4 pt-5 pb-3 flex items-start justify-between gap-3">
+      <div className="px-4 pt-3 pb-3 flex items-start justify-between gap-3">
         {viewMode === 'list' ? (
           <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none">
             {t(lang, 'installerMyJobs')}
           </h1>
         ) : (
           <div className="flex items-center gap-1">
-            <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
-              <ChevronLeft  size={16} />
+            {/* Same arrows as the Schedule page (Nic, 2026-10-27: "bigger and bolder"). */}
+            <button onClick={goBack}    aria-label="Previous" className="p-1 text-ink2 hover:text-ink transition-colors rounded">
+              <ChevronLeft  size={22} strokeWidth={2.75} />
             </button>
             <h1 className="font-display text-[26px] font-medium text-ink tracking-tight leading-none px-1">
               {headingLabel}
             </h1>
-            <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
-              <ChevronRight size={16} />
+            <button onClick={goForward} aria-label="Next" className="p-1 text-ink2 hover:text-ink transition-colors rounded">
+              <ChevronRight size={22} strokeWidth={2.75} />
             </button>
           </div>
         )}

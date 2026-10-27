@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { NAV_TABS } from '@/lib/navTabs'
+import { navTabActive } from '@/lib/utils/completed-switch'
 import type { Role } from '@/lib/supabase/types'
 
 // Desktop-only (≥lg) since R2-T5 / F1 — the mobile nav drawer (NavDrawer,
@@ -19,7 +20,7 @@ export function BottomNav({ role }: { role: Role }) {
     <nav data-layout="bottom-nav" className="fixed bottom-0 left-0 right-0 z-50 bg-paper border-t border-line">
       <div className="max-w-[480px] mx-auto flex pt-2 pb-[env(safe-area-inset-bottom,12px)]">
         {tabs.map(({ href, label, Icon }) => {
-          const active = pathname.startsWith(href)
+          const active = navTabActive(href, pathname)
           return (
             <Link
               key={href}

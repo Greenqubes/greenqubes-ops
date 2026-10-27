@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { NAV_TABS } from '@/lib/navTabs'
+import { navTabActive } from '@/lib/utils/completed-switch'
 import { UserMenu } from '@/components/UserMenu'
 import type { Role } from '@/lib/supabase/types'
 import type { LangCode } from '@/lib/i18n'
@@ -147,7 +148,7 @@ export function NavDrawer({ role, lang }: Props) {
                 route highlighted the same way BottomNav does today. */}
             <nav className="flex-1 overflow-y-auto py-2">
               {tabs.map(({ href, label, Icon }) => {
-                const active = pathname.startsWith(href)
+                const active = navTabActive(href, pathname)
                 return (
                   <Link
                     key={href}
