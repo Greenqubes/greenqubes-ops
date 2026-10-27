@@ -122,9 +122,9 @@ export function DateStrip({
       <button
         onClick={() => page(-1)}
         aria-label="Previous"
-        className="p-1.5 text-muted hover:text-ink transition-colors rounded-lg shrink-0"
+        className="p-1 text-ink2 hover:text-ink transition-colors rounded-lg shrink-0"
       >
-        <ChevronLeft size={15} />
+        <ChevronLeft size={22} strokeWidth={2.75} />
       </button>
 
       <div ref={stripRef} className="relative flex gap-1.5 flex-1 min-w-0 overflow-x-auto scrollbar-none p-0.5">
@@ -206,9 +206,9 @@ export function DateStrip({
       <button
         onClick={() => page(1)}
         aria-label="Next"
-        className="p-1.5 text-muted hover:text-ink transition-colors rounded-lg shrink-0"
+        className="p-1 text-ink2 hover:text-ink transition-colors rounded-lg shrink-0"
       >
-        <ChevronRight size={15} />
+        <ChevronRight size={22} strokeWidth={2.75} />
       </button>
 
       <button

@@ -409,8 +409,9 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
       <div className="relative px-4 pt-3 pb-2 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <button onClick={goBack}    className="p-1 text-muted hover:text-ink transition-colors rounded">
-              <ChevronLeft  size={16} />
+            {/* Bigger and heavier than the old 16px muted arrows (Nic, 2026-10-27: "its kind small"). */}
+            <button onClick={goBack}    aria-label="Previous" className="p-1 text-ink2 hover:text-ink transition-colors rounded">
+              <ChevronLeft  size={22} strokeWidth={2.75} />
             </button>
             {/* Fixed min-width so the ‹ › arrows never shift with the label's text width */}
             {viewMode === 'list' ? (
@@ -428,8 +429,8 @@ export function ScheduleShell({ jobs, lang, role, navRole, pageMode = 'schedule'
                 {headingLabel}
               </h1>
             )}
-            <button onClick={goForward} className="p-1 text-muted hover:text-ink transition-colors rounded">
-              <ChevronRight size={16} />
+            <button onClick={goForward} aria-label="Next" className="p-1 text-ink2 hover:text-ink transition-colors rounded">
+              <ChevronRight size={22} strokeWidth={2.75} />
             </button>
             {/* The board shows one day too, so it gets the way back (Nic, 2026-10-27). */}
             {(viewMode === 'list' || viewMode === 'board') && selectedDate !== today && (
