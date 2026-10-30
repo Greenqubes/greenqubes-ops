@@ -34,6 +34,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-30',
+    // 17:22 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793352177376, captured the moment /api/version flipped to
+    // 1bee5e8921ac (commit fcb0e69, client number auto-fill). Never the
+    // local clock (CLAUDE.md).
+    time: '17:22',
+    added: [
+      'Picking a client name fills in the contact number they used last time.',
+      'Switching to a client with no number offers to keep the previous one.',
+    ],
+    fixed: [
+      'The client name list now opens on saved jobs, not only new ones.',
+    ],
+  },
+  {
     date: '2026-10-27',
     // 18:07 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1793095655576, captured the moment /api/version flipped to
