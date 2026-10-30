@@ -47,9 +47,18 @@ _Last updated: 2026-10-21 (fix-jobs — **your scheduler can now push Ongoing jo
 
 _Last updated: 2026-10-26 (ux-schedule — **three things live today, all from your and your scheduler's requests.** The **My Jobs panel** has coloured sections (sand / grey / green, your pick), a search box where the ✕ was, sections that fold away and stay folded, and long titles on two lines. The **schedule search finally finds jobs on other dates** — type and every match appears grouped by date; tap one and you land on it with the job blinking. It also looks at job titles now, which it never did before. And **Support crew** has department pills — Carpentry, Painter, Metalwork, Printing, Electrician — instead of one Production pill, with Designer back between Scheduler and Coordinator. All 15 production people land in a pill. "What's new" tells the team. Nothing for you to check beyond what you already tried on the test site.)_
 
+_Last updated: 2026-10-30 (ux-schedule + feat-jobs — **two releases are live.** **27 Oct, 6:07pm:** the **Completed tab is gone**. Every role now has a Schedule | Completed switch at the top of the page (installers see My Jobs | Completed). The date strip shows last and next month, the Drivers view has a Today button and its arrows now work, and the arrows are bigger everywhere. **30 Oct, 5:22pm:** **picking a client name fills in their last contact number**, and switching to a client with no number offers to keep the previous one. The client name list now opens on saved jobs, and the month label above the date strip sits in the middle of the page. The **customer database is parked** until your old program's Export works.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Schedule | Completed switch + client number — ✅ LIVE on production 2026-10-27 and 2026-10-30
+_You tried both on the test site before they went live. These are the checks worth one go with real logins._
+- [ ] **Tell the team:** the Completed tab is gone. Completed is now the switch at the top of Schedule (installers: at the top of My Jobs). The "What's new" popup says so, but a word in the group chat helps.
+- [ ] **As an installer:** My Jobs | Completed shows at the top, and Completed opens their past jobs.
+- [ ] **As HR / Finance:** the switch shows, and Completed opens.
+- [ ] **Client number in real use:** if sales say a wrong number came up, tell Claude which job. It always takes the newest past job for the same person at the same company.
 
 ### Job stages — ✅ LIVE on production 2026-10-19
 _You checked each piece on the previews as it was built; these are the checks worth doing once on the live app with real logins. Title any test job "TEST" and delete it after (it goes to the Bin)._
@@ -126,6 +135,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 ### Parked
 - [ ] **Voice PA** — needs your OK on adding a voice company before it can restart
 - [ ] **Mobile app** — review the spec when you're ready (Apple/Expo/Play accounts come later)
+- [ ] **Customer database:** a page to keep client details (companies, contacts, addresses). This is waiting on your old customer program's Export button, which was broken on 27 Oct. Once you have the export file, we pick up the design from there. Nothing is built yet.
 
 ### Someday ideas
 - Assistant chat: accept Office files for filing, and later for reading
@@ -137,6 +147,22 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-10-30, feat-jobs — Client Contact Number Fills Itself, LIVE)
+
+- [x] **[Nic] Client contact number fills itself.** You asked: "autosuggest back last keyed in number to client". Pick a company and a client name, and the number from their last job comes in, with a grey line saying which job it came from. Your rule: switching from Cynthia to David puts in David's number; if David has none, the box empties and offers Cynthia's number back. A number typed before picking a name is never replaced; the old one is offered instead. Checked against the live jobs: 83 of 86 client names get a number. Live 5:22pm.
+- [x] **[Nic] Client name list on saved jobs:** it stayed locked on "Select a company first" until the company was picked again. Fixed in the same release.
+- [x] **[Nic] Month label centred,** from your red-line screenshot. "OCTOBER 2026" above the date strip sat about 20px left of centre; it's now in the middle of the page. The Schedule | Completed switch was already centred on the page. Your line marked the middle of the whole window, and the scrollbar shifts that slightly to the right.
+- [x] **[Nic] "What's new" entry for today:** the client number lines, timed 5:22pm from the live site's own clock. The label tweak was left out as too small to notice.
+- [x] **[Nic] AI importance question:** skipped at session start (your call).
+
+## Done This Session ✓ (2026-10-27, ux-schedule — Schedule | Completed Switch + Date Strip Months, LIVE)
+
+- [x] **[Nic] Date strip months,** from your annotated screenshot. Last and next month show either side above the strip; tap one to jump there. The Drivers view has a Today button, and it says "On This Day" on any other date. Its arrows now move one day; before, they did nothing.
+- [x] **[Nic] Bigger, bolder arrows** on the heading and on the date strip.
+- [x] **[Nic] Completed tab → a Schedule | Completed switch for every role.** You picked option A of three mockups: top centre. Installers get My Jobs | Completed, and HR / Finance gets it too (your call). Live 6:07pm with "What's new".
+- [x] **[Nic] Customer database:** talked through and parked. Your old program's Export button is broken; we resume once it works.
+- [x] **[Nic] AI importance question:** skipped at session start (your call).
 
 ## Done This Session ✓ (2026-10-26, ux-schedule — My Jobs Search + Schedule Search Across All Dates + Support Crew Departments, LIVE)
 
