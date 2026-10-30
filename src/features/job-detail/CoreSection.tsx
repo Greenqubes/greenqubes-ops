@@ -16,6 +16,8 @@ import { useTranslateText } from './useTranslateText'
 import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import { extractDialNumber, mapsSearchUrl, endDateBeforeStart, canTickProductionFlags, type RequiredJobField } from '@/lib/utils/job-form-rules'
+import { phoneAfterPick, sameName, type ClientPerson, type LastNumber, type PhoneHint } from '@/lib/utils/client-phone'
+import { formatDate } from '@/lib/telegram/templates'
 import type { LangCode } from '@/lib/i18n'
 import type { FormValues } from './JobDetailShell'
 import type { Role } from '@/lib/supabase/types'
@@ -51,6 +53,9 @@ interface Props {
    *  "Production ready" / "DO issued" only on their own jobs (Nic,
    *  2026-09-15). Every other role ignores it. */
   isSalesPoc?:       boolean
+  /** The job being edited (absent on New Job) — its own saved number is not
+   *  "the client's last job" when a Client Name is picked. */
+  jobId?:            string
 }
 
 // Frame for the section body: the page's CollapseCard supplies the card
@@ -66,7 +71,7 @@ export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
   previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
-  isSalesPoc = false,
+  isSalesPoc = false, jobId,
 }: Props) {
   // A field's red message clears the moment it is filled, without waiting for
   // another push — so the form stops nagging as soon as it is satisfied.
@@ -91,6 +96,16 @@ export function CoreSection({
   const [deleteTarget,     setDeleteTarget]     = useState<{ id: string; label: string } | null>(null)
   const [deleteLoading,    setDeleteLoading]    = useState(false)
   const pendingResolve = useRef<((v: boolean) => void) | null>(null)
+
+  // Client Contact No. auto-fill (Nic, 2026-10-27/30) — the rules live in
+  // client-phone.ts. `prevPerson` remembers whose number the box holds once
+  // the Client Name has been emptied: changing the company empties it, and
+  // that still counts as switching person. `phoneLookup` drops an answer
+  // that a later pick has overtaken.
+  const [phoneHint, setPhoneHint] = useState<PhoneHint | null>(null)
+  const prevPerson  = useRef<ClientPerson | null>(null)
+  const phoneLookup = useRef(0)
+  const phoneReg    = register('client_poc_phone')
 
   const dateValue    = watch('date')
   const dateEndValue = watch('date_end')
@@ -130,9 +145,15 @@ export function CoreSection({
   useEffect(() => {
     fetch('/api/clients')
       .then(r => r.json())
-      .then((data: { id: string; name: string }[]) =>
-        setCompanies(data.map(c => ({ id: c.id, label: c.name }))),
-      )
+      .then((data: { id: string; name: string }[]) => {
+        setCompanies(data.map(c => ({ id: c.id, label: c.name })))
+        // A saved job opens with its company filled in, but the id behind it
+        // was only ever set by picking — so its Client Name list stayed
+        // locked on "Select a company first…" until the company was picked
+        // again (found 2026-10-30, in the way of switching Cynthia → David).
+        const match = data.find(c => sameName(c.name, watch('client')))
+        if (match) setSelectedClientId(id => id ?? match.id)
+      })
       .catch(() => {})
   }, [])
 
@@ -162,7 +183,44 @@ export function CoreSection({
     setCompanies(prev => prev.filter(c => c.id !== id))
   }
 
+  // Call BEFORE the Client Name is emptied, so the next pick knows whose
+  // number is still sitting in the box.
+  function rememberPerson() {
+    const name = watch('client_poc_name')
+    if (name?.trim()) prevPerson.current = { company: watch('client') ?? '', name }
+    setPhoneHint(null)
+  }
+
+  async function pickContact(label: string) {
+    const company  = watch('client') ?? ''
+    const oldName  = watch('client_poc_name')
+    const previous = oldName?.trim() ? { company, name: oldName } : prevPerson.current
+    setValue('client_poc_name', label, { shouldDirty: true })
+    prevPerson.current = null
+    setPhoneHint(null)
+
+    const current = watch('client_poc_phone') ?? ''
+    const seq     = ++phoneLookup.current
+    let found: LastNumber | null
+    try {
+      const qs  = new URLSearchParams({ company, name: label, ...(jobId ? { exclude: jobId } : {}) })
+      const res = await fetch(`/api/clients/last-phone?${qs}`)
+      if (!res.ok) return
+      found = await res.json() as LastNumber | null
+    } catch {
+      return // a convenience only — on a failed lookup the box stays as it is
+    }
+    // A later pick, or someone typing in the box meanwhile, outranks this answer.
+    if (seq !== phoneLookup.current || (watch('client_poc_phone') ?? '') !== current) return
+
+    const out = phoneAfterPick({ previous, next: { company, name: label }, current, found })
+    if (out.phone !== undefined) setValue('client_poc_phone', out.phone, { shouldDirty: true })
+    setPhoneHint(out.hint)
+  }
+
   function clearCompany() {
+    prevPerson.current = null
+    setPhoneHint(null)
     setSelectedClientId(null)
     setValue('client', '', { shouldDirty: true })
     setValue('client_poc_name', '', { shouldDirty: true })
@@ -185,7 +243,10 @@ export function CoreSection({
   async function handleDeleteContact(id: string, label: string): Promise<void> {
     await fetch(`/api/clients/contacts/${id}`, { method: 'DELETE' })
     setContacts(prev => prev.filter(c => c.id !== id))
-    if (watch('client_poc_name') === label) setValue('client_poc_name', '', { shouldDirty: true })
+    if (watch('client_poc_name') === label) {
+      rememberPerson()
+      setValue('client_poc_name', '', { shouldDirty: true })
+    }
   }
 
   async function confirmDeleteCompany(label: string): Promise<boolean> {
@@ -295,6 +356,7 @@ export function CoreSection({
               value={watch('client')}
               onChange={label => {
                 const found = companies.find(c => c.label === label)
+                rememberPerson()
                 setSelectedClientId(found?.id ?? null)
                 setValue('client', label, { shouldDirty: true })
                 setValue('client_poc_name', '', { shouldDirty: true })
@@ -317,13 +379,13 @@ export function CoreSection({
           {installerView ? roBox(watch('client_poc_name')) : (
             <SearchableSelect
               value={watch('client_poc_name')}
-              onChange={label => setValue('client_poc_name', label, { shouldDirty: true })}
+              onChange={label => { void pickContact(label) }}
               options={contacts}
               placeholder={selectedClientId ? 'Pick contact…' : 'Select a company first…'}
               disabled={coreLocked || !selectedClientId}
               onAddNew={selectedClientId ? handleAddContact : undefined}
               onDeleteOption={handleDeleteContact}
-              onClearOption={() => setValue('client_poc_name', '', { shouldDirty: true })}
+              onClearOption={() => { rememberPerson(); setValue('client_poc_name', '', { shouldDirty: true }) }}
             />
           )}
         </Field>
@@ -339,7 +401,8 @@ export function CoreSection({
               {installerView ? roBox(watch('client_poc_phone')) : (
                 <Input
                   type="tel"
-                  {...register('client_poc_phone')}
+                  {...phoneReg}
+                  onChange={e => { setPhoneHint(null); return phoneReg.onChange(e) }}
                   disabled={coreLocked}
                   error={!!errors.client_poc_phone || isMissing('client_poc_phone')}
                 />
@@ -360,6 +423,35 @@ export function CoreSection({
               <span className="hidden sm:inline">{t(lang, 'callContact')}</span>
             </a>
           </div>
+          {/* Where an auto-filled number came from, or a number offered back
+              (same look as Location's "use the previous address"). Typing in
+              the box clears it. Dates stay English (CLAUDE.md). */}
+          {phoneHint && !installerView && !coreLocked && (phoneHint.kind === 'filled' ? (
+            <p className="mt-1.5 text-xs text-muted">
+              {t(lang, 'phoneFromLastJob').replace('{name}', phoneHint.name.trim()).replace('{date}', formatDate(phoneHint.date))}
+            </p>
+          ) : (
+            <div className="mt-1.5 flex items-start gap-2">
+              <button
+                type="button"
+                onClick={() => { setValue('client_poc_phone', phoneHint.phone, { shouldDirty: true }); setPhoneHint(null) }}
+                className="flex-1 min-w-0 text-left text-xs text-muted hover:text-terracotta border border-dashed border-line hover:border-terracotta rounded-md px-2.5 py-1.5 transition-colors"
+              >
+                <span className="block font-medium">
+                  {t(lang, phoneHint.kind === 'reuse' ? 'phoneReuse' : 'phoneOfferLast').replace('{name}', phoneHint.name.trim())}
+                </span>
+                <span className="block truncate text-muted">{phoneHint.phone}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhoneHint(null)}
+                aria-label={t(lang, 'dismiss')}
+                className="text-muted hover:text-ink text-xs px-2 py-1.5 shrink-0 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </Field>
         </div>
 

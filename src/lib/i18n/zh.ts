@@ -634,4 +634,7 @@ export const zh: Partial<Translations> = {
   crewDeptMetalwork: "金工",
   crewDeptPrinting: "印刷",
   crewDeptElectrician: "电工",
+  phoneFromLastJob: "来自 {name} 的上一个工作（{date}）",
+  phoneReuse: "继续使用 {name} 的号码？",
+  phoneOfferLast: "使用 {name} 上次的号码？",
 }

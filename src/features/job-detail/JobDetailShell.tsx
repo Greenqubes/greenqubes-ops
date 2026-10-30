@@ -1510,6 +1510,7 @@ export function JobDetailShell({
                 onUsePreviousLocation={usePreviousLocation}
                 onDismissPreviousLocation={dismissPreviousLocation}
                 isSalesPoc={job.sales_poc_id === userId}
+                jobId={job.id}
               />
             </CollapseCard>
             {/* Prices — the Finance half of the hr/finance role. Dead since

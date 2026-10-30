@@ -743,6 +743,9 @@ export const en = {
   crewDeptMetalwork: "Metalwork",
   crewDeptPrinting: "Printing",
   crewDeptElectrician: "Electrician",
+  phoneFromLastJob: "From {name}'s last job, {date}",
+  phoneReuse: "Reuse {name}'s number?",
+  phoneOfferLast: "Use {name}'s last number?",
 }
 
 export type Translations = typeof en
