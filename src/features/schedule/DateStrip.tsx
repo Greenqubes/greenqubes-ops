@@ -101,22 +101,22 @@ export function DateStrip({
 
   return (
     <div data-tour="date-strip" className="pb-2">
-      <div className="flex items-center gap-1 px-2 pb-1">
-        <div className="grid flex-1 min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <button onClick={() => setAnchor(prev.iso)} aria-label={prev.long} className={cn(sideLabel, 'justify-self-start text-left')}>
-            {/* Three full names do not fit side by side on a phone. */}
-            <span className="sm:hidden">{prev.short}</span>
-            <span className="hidden sm:inline">{prev.long}</span>
-          </button>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-ink text-center whitespace-nowrap">{windowLabel}</p>
-          <button onClick={() => setAnchor(next.iso)} aria-label={next.long} className={cn(sideLabel, 'justify-self-end text-right')}>
-            <span className="sm:hidden">{next.short}</span>
-            <span className="hidden sm:inline">{next.long}</span>
-          </button>
-        </div>
-        {/* Holds the place of the week/month toggle below, so the right-hand
-            label sits over the › arrow rather than over the toggle. */}
-        <span aria-hidden className="w-[33px] shrink-0" />
+      {/* Full width, so the middle month sits in the middle of the page under
+          the Schedule | Completed switch (Nic, 2026-10-30) — not in the middle
+          of the strip, which the week/month toggle pushes left. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 pb-1">
+        <button onClick={() => setAnchor(prev.iso)} aria-label={prev.long} className={cn(sideLabel, 'justify-self-start text-left')}>
+          {/* Three full names do not fit side by side on a phone. */}
+          <span className="sm:hidden">{prev.short}</span>
+          <span className="hidden sm:inline">{prev.long}</span>
+        </button>
+        <p className="text-[10px] uppercase tracking-widest font-bold text-ink text-center whitespace-nowrap">{windowLabel}</p>
+        {/* mr = the week/month toggle (33px) + its gap (4px), so this label
+            sits over the › arrow rather than over the toggle. */}
+        <button onClick={() => setAnchor(next.iso)} aria-label={next.long} className={cn(sideLabel, 'justify-self-end text-right mr-[37px]')}>
+          <span className="sm:hidden">{next.short}</span>
+          <span className="hidden sm:inline">{next.long}</span>
+        </button>
       </div>
       <div className="flex items-center gap-1 px-2">
       <button
