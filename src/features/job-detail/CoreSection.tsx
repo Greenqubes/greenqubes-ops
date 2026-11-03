@@ -56,6 +56,12 @@ interface Props {
   /** The job being edited (absent on New Job) — its own saved number is not
    *  "the client's last job" when a Client Name is picked. */
   jobId?:            string
+  /** To arrange (spec 2026-11-04): the slot is set through the To arrange
+   *  card, not here — locked while an offer is out, and for whatever sales
+   *  fixed. readOnly, not disabled: a disabled input can drop its value from
+   *  the form, and the save would then blank the date. */
+  dateLocked?:       boolean
+  timeLocked?:       boolean
 }
 
 // Frame for the section body: the page's CollapseCard supplies the card
@@ -71,7 +77,7 @@ export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
   previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
-  isSalesPoc = false, jobId,
+  isSalesPoc = false, jobId, dateLocked = false, timeLocked = false,
 }: Props) {
   // A field's red message clears the moment it is filled, without waiting for
   // another push — so the form stops nagging as soon as it is satisfied.
@@ -331,6 +337,9 @@ export function CoreSection({
                   {...register('date')}
                   error={!!errors.date || isMissing('date')}
                   disabled={coreLocked}
+                  readOnly={dateLocked}
+                  title={dateLocked ? t(lang, 'arrangeLockedHint') : undefined}
+                  className={cn(dateLocked && 'opacity-50 cursor-not-allowed')}
                 />
               )}
             </Field>
@@ -343,10 +352,16 @@ export function CoreSection({
                 min={dateValue || undefined}
                 error={!!endDateError}
                 disabled={coreLocked}
+                readOnly={dateLocked}
+                title={dateLocked ? t(lang, 'arrangeLockedHint') : undefined}
+                className={cn(dateLocked && 'opacity-50 cursor-not-allowed')}
               />
             )}
           </Field>
         </div>
+        {(dateLocked || timeLocked) && !installerView && (
+          <p className="-mt-2 text-[11px] text-muted">{t(lang, 'arrangeLockedHint')}</p>
+        )}
 
         {/* Company */}
         <div data-required-field="client">
@@ -541,7 +556,7 @@ export function CoreSection({
                 control={control}
                 name="time_start"
                 render={({ field }) => (
-                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked} error={!!errors.time_start} />
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked || timeLocked} error={!!errors.time_start} />
                 )}
               />
             )}
@@ -552,7 +567,7 @@ export function CoreSection({
                 control={control}
                 name="time_end"
                 render={({ field }) => (
-                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked} />
+                  <TimeSelect value={field.value} onChange={field.onChange} disabled={coreLocked || timeLocked} />
                 )}
               />
             )}

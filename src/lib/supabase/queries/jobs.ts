@@ -197,6 +197,10 @@ export type JobDetail = {
   // Addendum §3 (Nic, 2026-08-27) — plain uuid, no FK (the 0035 lesson),
   // stamped by a BEFORE INSERT trigger; null on every pre-existing job.
   created_by:               string | null
+  // To arrange (migration 0068) — raw from the DB; read them through
+  // parseArrangeState / parseArrangement (src/lib/utils/arrange-rules.ts).
+  arrange_state:            string | null
+  arrangement:              unknown
   job_assignees: Array<{
     user_id:          string
     is_suggestion:    boolean
@@ -248,7 +252,7 @@ export async function getJobById(id: string): Promise<JobDetail | null> {
       production_instructions, notes, approved_by, approved_at,
       completed_at, completion_override,
       design_brief, design_due_date, design_due_manual, design_completed_at,
-      created_at, updated_at, created_by,
+      created_at, updated_at, created_by, arrange_state, arrangement,
       job_assignees ( user_id, is_suggestion, suggested_by, is_sub_installer, users ( id, name, phone ) ),
       job_financials ( quote_amount, supplier_cost, margin_notes ),
       files ( id, bucket_id, kind, r2_key, name, uploader_id, ts, users!files_uploader_id_fkey ( name ) )

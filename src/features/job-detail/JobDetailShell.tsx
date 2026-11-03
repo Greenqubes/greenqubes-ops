@@ -52,6 +52,11 @@ import { stageOf, type Stage } from '@/lib/utils/job-stage'
 import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush, formalCrewAllowed, pushCrewPlan } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
 import { canAttachFiles } from '@/lib/storage/job-file-permissions'
+import {
+  parseArrangeState, parseArrangement, isArrangeSalesSide, isArrangeSchedulerSide,
+  arrangeFieldLocks, seedCrewFromOffer, blocksPush, validateOffer,
+} from '@/lib/utils/arrange-rules'
+import { ArrangeCard, arrangeErrorText } from '@/features/arrange/ArrangeCard'
 
 export type FormValues = {
   project_title:           string
@@ -214,6 +219,17 @@ export function JobDetailShell({
   }
   const stageViewer = { id: userId, role, isAdmin }
 
+  // To arrange (spec 2026-11-04). The slot is set through the To arrange card
+  // (locks below); the scheduler's crew picks come back filled in from his
+  // last offer (seed) — as picks, not as the saved baseline, so Push to
+  // Schedule still writes them.
+  const arrangeState         = parseArrangeState(job.arrange_state)
+  const arrangement          = parseArrangement(job.arrangement)
+  const arrangeSalesSide     = isArrangeSalesSide(stageViewer, stageRulesJob)
+  const arrangeSchedulerSide = isArrangeSchedulerSide(stageViewer)
+  const arrangeLocks         = arrangeFieldLocks(arrangeState, arrangement, { sales: arrangeSalesSide, scheduler: arrangeSchedulerSide })
+  const crewSeed             = seedCrewFromOffer(arrangeState, arrangement, canAssign)
+
   const readOnly  = completed
   // HR / Finance (and any future read-only office role) sees the job form the
   // way everyone sees a completed job: every card locked, no action bar, no
@@ -246,6 +262,9 @@ export function JobDetailShell({
   // Set when the crew check opened EditClashModal for a PUSH rather than a
   // save — "Save anyway" then carries on with the push.
   const pendingPushRef = useRef<{ keepManualDue: boolean } | null>(null)
+  // The same, for the scheduler's To arrange offer (spec 2026-11-04).
+  const pendingOfferRef = useRef<{ keepManualDue: boolean } | null>(null)
+  const [offering, setOffering] = useState(false)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
   const [showDeleteModal,      setShowDeleteModal]     = useState(false)
@@ -258,9 +277,9 @@ export function JobDetailShell({
   const [showInstallerCompleteModal, setShowInstallerCompleteModal] = useState(false)
   const [completing,           setCompleting]          = useState(false)
   const [duplicating,          setDuplicating]         = useState(false)
-  const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(initialAssigneeIds)
+  const [selectedInstallerIds,    setSelectedInstallerIds]   = useState<string[]>(crewSeed?.driverIds ?? initialAssigneeIds)
   const [suggestedInstallerIds,   setSuggestedInstallerIds]  = useState<string[]>(initialSuggestedIds)
-  const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(initialSubAssignedIds)
+  const [selectedSubIds,          setSelectedSubIds]         = useState<string[]>(crewSeed?.supportIds ?? initialSubAssignedIds)
   const [suggestedSubIds,         setSuggestedSubIds]        = useState<string[]>(initialSubSuggestedIds)
   const [selectedCoordinatorIds, setSelectedCoordinatorIds] = useState<string[]>(initialCoordinatorIds)
   const [selectedDesignerIds,    setSelectedDesignerIds]    = useState<string[]>(initialDesignerIds)
@@ -600,7 +619,7 @@ export function JobDetailShell({
       // On an Ongoing job the picks wait for Push to Schedule — the route
       // would refuse them, and the person is told so below.
       if (crewSavesNow) await saveCrewPicks()
-      const crewWaitsForPush = canAssign && !crewSavesNow && (isInstallerDirty || isSubDirty)
+      const crewWaitsForPush = canAssign && !crewSavesNow && crewDirty
 
       // Design-team assignment (sales / scheduler / coordinator / admin).
       // Unlike coordinators, this has a dedicated route — it diffs against
@@ -762,6 +781,15 @@ export function JobDetailShell({
   }
 
   const resumeSaveAfterClash = async (alertSchedulers: boolean) => {
+    // A To arrange offer that stopped for the crew check carries on as an
+    // offer — the server records the clashes he offered past.
+    const offer = pendingOfferRef.current
+    if (offer) {
+      pendingOfferRef.current = null
+      setEditClashes(null)
+      await runOffer(offer.keepManualDue)
+      return
+    }
     // A push that stopped for the crew check carries on as a push.
     const push = pendingPushRef.current
     if (push) {
@@ -1066,6 +1094,50 @@ export function JobDetailShell({
     }
   }
 
+  // ── To arrange: the scheduler's offer (spec 2026-11-04) ────────────────────
+  // Composed on this page — the date/time fields and his green crew picks —
+  // so it gets the same crew check as Push to Schedule. The server checks the
+  // slot again against sales' guide and records the clashes he offered past.
+  const handleOffer = async () => {
+    const v = getValues()
+    if (!checkForStage('scheduled', v)) { showError(t(lang, 'requiredFieldsMissing')); return }
+    const todaySG = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
+    const bad = arrangement && validateOffer(arrangement,
+      { date: v.date || null, dateEnd: v.date_end || null, timeStart: v.time_start || null, timeEnd: v.time_end || null }, todaySG)
+    if (bad) { showError(t(lang, `arrangeOfferErr_${bad}` as 'arrangeOfferErr_in_past')); return }
+    const keepManualDue = await resolveDueConflict(v.date)
+    if (selectedInstallerIds.length > 0) {
+      setOffering(true)
+      const shown = await showCrewClashes(v)
+      setOffering(false)
+      if (shown) { pendingOfferRef.current = { keepManualDue }; return }
+    }
+    await runOffer(keepManualDue)
+  }
+
+  const runOffer = async (keepManualDue: boolean) => {
+    bumpSuppression()
+    setOffering(true)
+    try {
+      // The offer is what is SAVED — save the slot (and anything else typed) first.
+      const v = getValues()
+      if (isBriefDirty || (v.date || null) !== job.date) await saveDesignBriefFields(v.date || null, { keepManualDue })
+      if (isDirty) await saveValues(v)
+      const res = await fetch(`/api/jobs/${job.id}/arrange`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'offer', driverIds: selectedInstallerIds, supportIds: selectedSubIds }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) { showError(arrangeErrorText(lang, data.error, 'offer')); return }
+      showSuccess(t(lang, 'arrangeOfferSent'))
+      router.refresh()
+    } catch {
+      showError(t(lang, 'saveError'))
+    } finally {
+      setOffering(false)
+    }
+  }
+
   const handleSendToScheduler = async (
     replacements: Record<string, string | 'keep'>,
     timeStart: string,
@@ -1240,7 +1312,14 @@ export function JobDetailShell({
     dueDate    !== dueDateBaseline ||
     dueManual  !== (job.design_due_manual ?? false)
 
-  const isAnyDirty = isDirty || isInstallerDirty || isSubDirty || isCoordDirty || isDesignerDirty || isBriefDirty
+  // Crew picks still exactly as refilled from the last To arrange offer are
+  // not unsaved work — nothing on an Ongoing job saves crew, and counting them
+  // would block every To arrange button with "save your changes first".
+  const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every(id => b.includes(id))
+  const crewSeedPristine = !!crewSeed
+    && sameSet(selectedInstallerIds, crewSeed.driverIds) && sameSet(selectedSubIds, crewSeed.supportIds)
+  const crewDirty  = (isInstallerDirty || isSubDirty) && !crewSeedPristine
+  const isAnyDirty = isDirty || crewDirty || isCoordDirty || isDesignerDirty || isBriefDirty
   dirtyRef.current = isAnyDirty
 
   // Stage moves (StageActions) act on what is SAVED — the server reads the
@@ -1323,9 +1402,11 @@ export function JobDetailShell({
     forceApplyRef.current = false
     reset(formValuesFromJob(job))
     setStatus(job.status)
-    setSelectedInstallerIds(job.job_assignees.filter(a => !a.is_suggestion && !a.is_sub_installer).map(a => a.user_id))
+    // The To arrange refill applies on every fresh job, not only at mount.
+    const seed = seedCrewFromOffer(parseArrangeState(job.arrange_state), parseArrangement(job.arrangement), canAssign)
+    setSelectedInstallerIds(seed?.driverIds ?? job.job_assignees.filter(a => !a.is_suggestion && !a.is_sub_installer).map(a => a.user_id))
     setSuggestedInstallerIds(job.job_assignees.filter(a => a.is_suggestion && !a.is_sub_installer).map(a => a.user_id))
-    setSelectedSubIds(job.job_assignees.filter(a => !a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
+    setSelectedSubIds(seed?.supportIds ?? job.job_assignees.filter(a => !a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
     setSuggestedSubIds(job.job_assignees.filter(a => a.is_suggestion && a.is_sub_installer).map(a => a.user_id))
     setSelectedCoordinatorIds(initialCoordinatorIds)
     setSelectedDesignerIds(initialDesignerIds)
@@ -1490,6 +1571,16 @@ export function JobDetailShell({
         jumpToDetails={jumpToDetails}
         details={
           <div className="flex flex-col gap-4">
+            {/* To arrange (spec 2026-11-04): Ongoing jobs only. Renders nothing
+                for someone who can neither see a round trip nor start one. */}
+            {stage === 'ongoing' && !isInstaller && (
+              <ArrangeCard jobId={job.id} lang={lang} state={arrangeState} arrangement={arrangement}
+                salesSide={arrangeSalesSide && !isReadOnlyRole} schedulerSide={arrangeSchedulerSide && !isReadOnlyRole}
+                canStart={arrangeSalesSide && !isReadOnlyRole}
+                savedSlot={{ date: job.date, timeStart: job.time_start, timeEnd: job.time_end }}
+                beforeAction={() => beforeStageMove('ongoing')} onOffer={handleOffer}
+                offerBusy={offering || saving} onChanged={() => router.refresh()} />
+            )}
             <CollapseCard title={t(lang, 'jobDetails')} storageKey="gq-jobcard-details" openSignal={jumpToDetails}>
               {createdByName && (
                 <p className="text-xs text-muted mb-3">{t(lang, 'createdByLabel')} {createdByName}</p>
@@ -1511,6 +1602,8 @@ export function JobDetailShell({
                 onDismissPreviousLocation={dismissPreviousLocation}
                 isSalesPoc={job.sales_poc_id === userId}
                 jobId={job.id}
+                dateLocked={arrangeLocks.date}
+                timeLocked={arrangeLocks.time}
               />
             </CollapseCard>
             {/* Prices — the Finance half of the hr/finance role. Dead since
@@ -1989,7 +2082,9 @@ export function JobDetailShell({
                   >
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
-                  {status !== 'scheduled' && (
+                  {/* Not while a To arrange offer is with the client — Client OK
+                      or a withdraw first (the server refuses it too). */}
+                  {status !== 'scheduled' && !blocksPush(arrangeState) && (
                     <button
                       type="button"
                       /* Wrapped, not passed directly: onClick hands the
@@ -2011,7 +2106,7 @@ export function JobDetailShell({
                   <button
                     type="button"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={saving || (!isDirty && !isInstallerDirty && !isSubDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
+                    disabled={saving || (!isDirty && !crewDirty && !isCoordDirty && !isDesignerDirty && !isBriefDirty)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-[10px] bg-terracotta text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Bell size={14} />
@@ -2027,7 +2122,7 @@ export function JobDetailShell({
                       date to Ongoing jobs and must be able to push them.
                       Nic's quiet one, which skips the Telegram to the
                       schedulers, stays admin only. */}
-                  {schedulerCanPush(role, isAdmin, stage) && (
+                  {schedulerCanPush(role, isAdmin, stage) && !blocksPush(arrangeState) && (
                     <button
                       type="button"
                       onClick={() => handlePushToSchedule()}
@@ -2038,7 +2133,7 @@ export function JobDetailShell({
                       {saving ? t(lang, 'loading') : 'Push to Schedule'}
                     </button>
                   )}
-                  {isAdmin && status !== 'scheduled' && (
+                  {isAdmin && status !== 'scheduled' && !blocksPush(arrangeState) && (
                     <button
                       type="button"
                       onClick={() => handlePushToSchedule(true)}
@@ -2068,7 +2163,7 @@ export function JobDetailShell({
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false; pendingPushRef.current = null }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false; pendingPushRef.current = null; pendingOfferRef.current = null }}
       />
       {clashData && (
         <ClashResolutionModal
