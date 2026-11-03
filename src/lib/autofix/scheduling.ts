@@ -16,25 +16,51 @@ export function canFire(x: { pendingWork: number; firesToday: number; runInFligh
   return { fire: true, why: 'ok' }
 }
 
+export type FireFailure = { ok: false; reason: string; broken: boolean }
+
+/**
+ * Not firing because there's nothing new, or the daily cap, is normal and
+ * silent. Failing to START (token revoked, task paused, cloud unreachable) is
+ * not: without this message Nic would just see quiet nights forever.
+ */
+export function fireFailureNotice(f: FireFailure): string | null {
+  if (!f.broken) return null
+  return `The overnight fixer couldn't start: ${f.reason}. Nothing was sorted. A session with Claude can check its setup.`
+}
+
 export function isStale(run: { fired_at: string; finished_at: string | null }, nowIso: string): boolean {
   if (run.finished_at) return false
   return new Date(nowIso).getTime() - new Date(run.fired_at).getTime() > RUN_STALE_MINUTES * 60_000
 }
 
 /**
+ * Open tabs refresh themselves within about 3 minutes of a deploy (the
+ * auto-refresh watcher), so a crash more than this long after a fix went live
+ * came from a copy of the app that already had the fix.
+ */
+export const REOPEN_GRACE_MINUTES = 10
+
+/**
  * A new crash whose signature matches an item the fixer already has.
  * - noise / known / junk: attach and resolve without waking the cloud
- * - a live fix, crashing again ON the fixed build: the fix did not work → reopen
- * - a live fix, crash from an older build (a tab not yet refreshed): resolve
+ * - closed as already fixed, yet crashing again: it wasn't fixed → reopen
+ * - a live fix, crashing on the fixed build, or more than the grace period
+ *   after it went live (on ANY build — build ids are hashes, a different one
+ *   may well be newer): the fix didn't hold → reopen
+ * - a live fix, crash before or just after it went live: an old tab → resolve
  * - anything still in hand (awaiting Nic, needs a session, dropped…): attach
  */
 export function crashFollowUp(
-  item: { verdict: string | null; status: string; live_build_id: string | null },
-  crashBuildId: string | null,
+  item:  { verdict: string | null; status: string; live_build_id: string | null; live_at: string | null },
+  crash: { build_id: string | null; occurred_at: string },
 ): 'attach-resolve' | 'attach' | 'reopen' {
   if (item.verdict === 'noise' || item.verdict === 'known' || item.verdict === 'junk') return 'attach-resolve'
+  if (item.verdict === 'already_fixed') return 'reopen'
   if (item.status === 'live') {
-    return crashBuildId && item.live_build_id && crashBuildId === item.live_build_id ? 'reopen' : 'attach-resolve'
+    if (crash.build_id && item.live_build_id && crash.build_id === item.live_build_id) return 'reopen'
+    if (!item.live_at) return 'attach-resolve'
+    const after = new Date(crash.occurred_at).getTime() - new Date(item.live_at).getTime()
+    return after > REOPEN_GRACE_MINUTES * 60_000 ? 'reopen' : 'attach-resolve'
   }
   return 'attach'
 }

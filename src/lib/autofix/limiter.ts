@@ -4,7 +4,7 @@
 // is the check that counts: it runs in the app, on GitHub's own diff, so a
 // fix that talked its way past the instructions still never reaches Nic.
 
-import { MAX_FILES, MAX_LINES, isAllowedPath, isTestFile, normalisePath } from './path-rules.mjs'
+import { MAX_FILES, MAX_LINES, MAX_TEST_LINES, isAllowedPath, isTestFile, normalisePath } from './path-rules.mjs'
 
 /** One file from GitHub's compare API (`files[]`). */
 export type ChangedFile = {
@@ -26,6 +26,7 @@ export function checkLimits(changed: ChangedFile[]): LimitCheck {
   const violations: string[] = []
   let files = 0
   let lines = 0
+  let testLines = 0
 
   for (const c of changed) {
     const f = normalisePath(c.filename)
@@ -40,6 +41,7 @@ export function checkLimits(changed: ChangedFile[]): LimitCheck {
     if (isTestFile(f)) {
       // Tests are free to add or adjust — but never to delete.
       if (c.status === 'removed') violations.push(`removes ${f}`)
+      testLines += c.additions + c.deletions
       continue
     }
     if (c.status === 'added')        violations.push(`adds a new file ${f}`)
@@ -51,6 +53,7 @@ export function checkLimits(changed: ChangedFile[]): LimitCheck {
 
   if (files > MAX_FILES) violations.push(`changes ${files} files (the limit is ${MAX_FILES})`)
   if (lines > MAX_LINES) violations.push(`changes ${lines} lines (the limit is ${MAX_LINES})`)
+  if (testLines > MAX_TEST_LINES) violations.push(`changes ${testLines} lines of tests (the limit is ${MAX_TEST_LINES})`)
   if (files === 0 && violations.length === 0) violations.push('changes nothing')
 
   return { ok: violations.length === 0, files, lines, violations }

@@ -99,12 +99,13 @@ For each fix:
 3. **Make the smallest change that cures it.** Where you may change code:
    - **Allowed:** `src/features/**`, route pages and layouts under `src/app/**`, and wording in `src/lib/i18n/en.ts` and `zh.ts`.
    - **Not allowed:**
-     - `src/app/api/**`, `src/app/auth/**`, or files directly in `src/app/`;
+     - `src/app/api/**`, `src/app/auth/**`, `src/app/(auth)/**`, `src/app/admin/**`, `src/app/ext/**`, or files directly in `src/app/`;
      - `src/components/**` (shared building blocks), `src/lib/**`, `src/middleware.ts`, `supabase/**`;
      - `package.json` or the lockfile, any config file, `CLAUDE.md`, `.claude/**`, `docs/autofix/**`, `scripts/**`;
      - `src/features/changelog/**`, `src/features/app-version/**`, `src/features/tour/**`;
      - `src/lib/i18n/bn.ts` (frozen).
-   - **At most 3 files and 60 changed lines**, not counting `*.test.ts`. No new non-test files, no removed or renamed files, and never delete a test.
+   - **At most 3 files and 60 changed lines**, not counting tests. Tests are capped separately at **200 lines**. No new non-test files, no removed or renamed files, and never delete a test. App code must never import from a test file.
+   - Push with a plain `git push -u origin claude/autofix-…` only. The guard refuses git global options (`git -C …`), wrapped pushes and changes to git settings or remotes.
    - If the fix cannot fit, stop. Report `needs_session` with the reason.
 4. **Add a test** when the fault is in logic. This repo's tests are standalone (`npx tsx <file>.test.ts`, using a `check()` helper; see any `*.test.ts`). Watch it fail before the fix and pass after. A pure layout fix needs no test.
 5. **Everything must pass:**
@@ -169,7 +170,7 @@ curl -s -X POST -H "x-autofix-secret: $AUTOFIX_SECRET" -H "Content-Type: applica
 - **`whatsNewLine`:** **required for a fix.** About 8–15 words, written from the reader's side of the screen: what changed for them, never the code. English only. Good: "The Today button no longer covers the view switch on small screens." Bad: "Added flex-wrap to the ScheduleShell header."
 - **`fix`:** only with verdict `fix`. Give the branch, its full head sha, and the Vercel preview URL.
 
-If the POST fails, retry once. Then stop.
+If the POST answers **400**, the error names the field that is wrong. Fix that field and send again; a 400 does not use up the run. On a network failure or a 5xx, retry once. A **409** means this run was already reported. Then stop.
 
 ## When something goes wrong
 

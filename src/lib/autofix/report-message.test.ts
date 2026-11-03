@@ -5,7 +5,7 @@
  * Exits 1 on any failure.
  */
 
-import { parseReport, statusForVerdict } from './report-parse'
+import { parseReport, statusForVerdict, reportMayUpdate } from './report-parse'
 import { buildNightlyMessage, escapeHtml, dateLabel, shortDate, clock12, type NightlyInput } from './nightly-message'
 
 let failures = 0
@@ -67,6 +67,21 @@ for (const v of ['wish', 'junk', 'noise', 'known', 'already_fixed'] as const) {
 }
 check('unclear → needs_session', statusForVerdict('unclear', false), 'needs_session')
 check('needs_session → needs_session', statusForVerdict('needs_session', false), 'needs_session')
+
+// ── what a report may overwrite (final review 2026-11-04) ──
+// A report must never clobber a fix that is waiting for Nic, on its way live,
+// live, or dropped by him — that stranded fixes that had reached production.
+for (const s of ['awaiting_nic', 'going_live', 'live', 'dropped'] as const) {
+  check(`crash ref onto ${s} → refused`, reportMayUpdate('crash', s), false)
+  check(`bug ref onto ${s} → refused`, reportMayUpdate('bug', s), false)
+}
+for (const s of ['new', 'retry', 'needs_session', 'closed'] as const) {
+  check(`crash ref onto ${s} → allowed`, reportMayUpdate('crash', s), true)
+}
+// An item ref is only for the retries the run was handed.
+check('item ref onto retry → allowed', reportMayUpdate('item', 'retry'), true)
+check('item ref onto needs_session → refused', reportMayUpdate('item', 'needs_session'), false)
+check('item ref onto closed → refused', reportMayUpdate('item', 'closed'), false)
 
 // ── the nightly message ──
 const empty: NightlyInput = {

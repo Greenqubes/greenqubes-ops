@@ -6,6 +6,7 @@
 // for; dev gets it straight afterwards.
 
 import { gateFix } from './gate'
+import { startGoLiveWith } from './go-live-core'
 import { mergeInto, deleteBranch, productionDeployState } from './github'
 import { buildIdOf, epochFromVercelId, PROD_URL } from './build-id'
 import { GO_LIVE_TIMEOUT_MINUTES } from './scheduling'
@@ -19,40 +20,15 @@ import { sendBugTelegramChunks } from '@/lib/telegram/bot'
 
 type Outcome = { ok: true } | { ok: false; reason: string }
 
+/** The steps and their order live in go-live-core.ts (tested); this wires them up. */
 export async function startGoLive(item: Item): Promise<Outcome> {
-  if (item.status !== 'awaiting_nic' || !item.branch || !item.head_sha) {
-    return { ok: false, reason: "it isn't waiting for you" }
-  }
-  // Re-measured now, not trusted from last night: the branch must be exactly
-  // what Nic tested, and still inside the limiter.
-  const gate = await gateFix(item.branch, item.head_sha)
-  if (!gate.ok) {
-    await updateItem(item.id, { status: 'needs_session', reason: gate.reason })
-    return { ok: false, reason: gate.reason }
-  }
-  const now = new Date().toISOString()
-  if (!(await claimItemStatus(item.id, 'awaiting_nic', { status: 'going_live', going_live_at: now }))) {
-    return { ok: false, reason: "it's already on its way" }
-  }
-
-  const merge = await mergeInto('main', item.branch, `fix(autofix): ${item.title ?? 'fix'} (#${item.no}, Nic via Telegram)`)
-  if (merge.result === 'merged') {
-    await updateItem(item.id, { merge_sha: merge.sha })
-    return { ok: true }
-  }
-  if (merge.result === 'conflict') {
-    const reason = 'its change clashes with newer work on the live app, so it needs a session'
-    await updateItem(item.id, { status: 'needs_session', reason })
-    return { ok: false, reason }
-  }
-  if (merge.result === 'nothing') {
-    const reason = 'its change is already part of the live app — nothing to put live'
-    await updateItem(item.id, { status: 'needs_session', reason })
-    return { ok: false, reason }
-  }
-  // GitHub refused for another reason (key expired, outage) — hand it back.
-  await updateItem(item.id, { status: 'awaiting_nic', going_live_at: null })
-  return { ok: false, reason: `GitHub refused the update (${merge.detail}); you can ask again later` }
+  return startGoLiveWith(item, {
+    claim:  (id, from, patch) => claimItemStatus(id, from, patch),
+    gate:   gateFix,
+    merge:  mergeInto,
+    update: (id, patch) => updateItem(id, patch as Partial<ItemRow>),
+    now:    () => new Date().toISOString(),
+  })
 }
 
 /**

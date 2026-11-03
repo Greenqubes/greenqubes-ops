@@ -102,6 +102,22 @@ check('removed test file → violation', checkLimits([
   { filename: 'src/features/x/x.test.ts', status: 'removed', additions: 0, deletions: 40 },
 ]).violations, ['removes src/features/x/x.test.ts'])
 
+// Final review 2026-11-04: test files were a loophole — a 1-line page change
+// plus an 800-line "test" the page imports passed as 1 file / 1 line.
+check('test lines capped at 200 → 201 is a violation', checkLimits([
+  mod('src/features/x/X.tsx', 1),
+  { filename: 'src/features/x/helpers.test.tsx', status: 'added', additions: 201, deletions: 0 },
+]).violations, ['changes 201 lines of tests (the limit is 200)'])
+check('test lines at 200 → ok', checkLimits([
+  mod('src/features/x/X.tsx', 1),
+  { filename: 'src/features/x/x.test.ts', status: 'added', additions: 200, deletions: 0 },
+]).ok, true)
+// Sign-in pages live in a route group, not src/app/auth.
+check('src/app/(auth)/login/page.tsx → off-limits', checkLimits([mod('src/app/(auth)/login/page.tsx')]).violations,
+  ['changes src/app/(auth)/login/page.tsx, which is off-limits'])
+check('src/app/admin/page.tsx → off-limits (it holds the admin-only redirect)', checkLimits([mod('src/app/admin/page.tsx')]).ok, false)
+check('src/app/ext/[token]/page.tsx → off-limits (no-login contractor pages)', checkLimits([mod('src/app/ext/[token]/page.tsx')]).ok, false)
+
 // Nothing changed is not a fix — and neither is a change to tests alone.
 check('empty diff → violation', checkLimits([]).violations, ['changes nothing'])
 check('tests only → violation', checkLimits([

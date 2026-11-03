@@ -30,17 +30,68 @@ const slash = p => p.replace(/\\/g, '/')
 
 /**
  * Repo-relative path, or null when the file is outside the repo (scratch
- * files in /tmp are fine).
- * @param {string} file @param {string} cwd
+ * files in /tmp are fine). A relative path is resolved from where the session
+ * is (`cwd`), then measured from the PROJECT ROOT — after a `cd src`, an edit
+ * to ../CLAUDE.md is still CLAUDE.md (final review, 2026-11-04).
+ * @param {string} file @param {string} cwd @param {string} projectRoot
  */
-function repoRelative(file, cwd) {
+function repoRelative(file, cwd, projectRoot) {
   const f = slash(file)
-  const root = slash(cwd).replace(/\/+$/, '')
+  const base = slash(cwd).replace(/\/+$/, '')
+  const root = slash(projectRoot).replace(/\/+$/, '')
   const isAbs = f.startsWith('/') || /^[a-zA-Z]:\//.test(f)
-  const abs = path.posix.normalize(isAbs ? f : `${root}/${f}`)
+  const abs = path.posix.normalize(isAbs ? f : `${base}/${f}`)
   const same = (a, b) => (/^[a-zA-Z]:/.test(a) ? a.toLowerCase() === b.toLowerCase() : a === b)
   if (!same(abs.slice(0, root.length + 1), `${root}/`)) return null
   return abs.slice(root.length + 1)
+}
+
+/** Host allowed for network access? */
+function hostAllowed(/** @type {string} */ url) {
+  try { return ALLOWED_HOSTS.includes(new URL(url).hostname) } catch { return false }
+}
+
+// git options that take a value, before the subcommand (`git -C dir push`).
+const GIT_OPTS_WITH_VALUE = ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--config-env', '--super-prefix']
+
+/**
+ * Judge a `git …` command by its real subcommand, whatever global options
+ * come first. Global options before `push` are refused outright — the fixer
+ * never needs them, and they are how a push to main slipped through.
+ * @param {string[]} rest tokens after "git"
+ * @returns {string | null}
+ */
+function judgeGit(rest) {
+  let i = 0
+  let hadGlobal = false
+  while (i < rest.length && rest[i].startsWith('-')) {
+    hadGlobal = true
+    i += GIT_OPTS_WITH_VALUE.includes(rest[i]) ? 2 : 1
+  }
+  const sub = rest[i]
+  const args = rest.slice(i + 1)
+  const shown = `git ${rest.join(' ')}`
+  if (sub === 'push') {
+    if (hadGlobal) return `only plain pushes to your own claude/autofix-* branch are allowed: "${shown}"`
+    return OWN_PUSH.test(`git push ${args.join(' ')}`.trim())
+      ? null
+      : `only pushes to your own claude/autofix-* branch are allowed (no force, no delete): "${shown}"`
+  }
+  if (sub === 'config') {
+    // Reads, and setting who the commits are by, only. Everything else
+    // (remote.*.push, url.*.insteadOf, alias.*) can turn an allowed push into
+    // a push to main.
+    const read = args.some(a => ['--get', '--get-all', '--get-regexp', '--list', '-l'].includes(a))
+    const key = args.find(a => !a.startsWith('-'))
+    if (read || key === 'user.name' || key === 'user.email') return null
+    return `changing git settings is off-limits: "${shown}"`
+  }
+  if (sub === 'remote') {
+    const action = args.find(a => !a.startsWith('-'))
+    if (!action || ['show', 'get-url'].includes(action)) return null
+    return `changing git remotes is off-limits: "${shown}"`
+  }
+  return null
 }
 
 /** @param {string} s */
@@ -69,11 +120,12 @@ function judgeSegment(segment) {
   const s = segment.trim()
   if (!s) return null
 
-  if (/\bgit\b(?:\s+-c\s+\S+)*\s+push\b/.test(s)) {
-    return OWN_PUSH.test(s) ? null : `only pushes to your own claude/autofix-* branch are allowed (no force, no delete): "${s}"`
-  }
-
   const { cmd, rest } = commandOf(tokens(s))
+  if (cmd === 'git' || cmd.endsWith('/git')) return judgeGit(rest)
+  // A git push wrapped in something else (sh -c "…", xargs, env …) is never
+  // the fixer's own plain push.
+  if (/\bgit\b[^;&|]*\bpush\b/.test(s)) return `pushes must be a plain "git push origin claude/autofix-…": "${s}"`
+
   if (cmd === 'supabase' || cmd === 'psql') return 'the database is off-limits to the auto-fixer'
   if (cmd === 'vercel') return 'deploying is off-limits — the app puts a fix live only when Nic says so'
   if (cmd === 'gh') {
@@ -106,10 +158,18 @@ export function decide(input, env) {
   const tool = input.tool_name ?? ''
   const ti = input.tool_input ?? {}
   const cwd = input.cwd ?? process.cwd()
+  const projectRoot = env.CLAUDE_PROJECT_DIR || cwd
+
+  if (tool === 'WebSearch') return { block: true, reason: 'web search is off-limits to the overnight fixer' }
+  if (tool === 'WebFetch') {
+    return hostAllowed(String(ti.url ?? ''))
+      ? { block: false }
+      : { block: true, reason: 'network calls may only go to the app or GitHub' }
+  }
 
   if (['Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(tool)) {
     const file = String(ti.file_path ?? ti.notebook_path ?? '')
-    const rel = repoRelative(file, cwd)
+    const rel = repoRelative(file, cwd, projectRoot)
     if (rel === null) return { block: false }
     return isAllowedPath(rel)
       ? { block: false }

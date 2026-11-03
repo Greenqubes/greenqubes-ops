@@ -7,7 +7,7 @@
 
 import { groupCrashes } from './crash-signature'
 import { gateFix } from './gate'
-import { statusForVerdict, type Report, type ReportItem } from './report-parse'
+import { statusForVerdict, reportMayUpdate, type Report, type ReportItem } from './report-parse'
 import { buildNightlyMessage, dateLabel, shortDate, type NightlyInput } from './nightly-message'
 import { sendBugTelegramChunks, sendBugTelegramPhoto } from '@/lib/telegram/bot'
 import { getDownloadUrl } from '@/lib/storage/r2'
@@ -49,6 +49,11 @@ export async function applyReport(report: Report): Promise<ApplyResult> {
   for (const ri of report.items) {
     const item = await resolveItem(ri)
     if (!item) continue
+    if (!reportMayUpdate(ri.ref.kind, item.status)) {
+      // Leave a fix in Nic's hands alone; just file the crash repeats with it.
+      if (item.crash_signature) await attachCrashes(groups.get(item.crash_signature) ?? [], item.id, false)
+      continue
+    }
 
     let status = statusForVerdict(ri.verdict, !!ri.fix)
     let reason = ri.reason

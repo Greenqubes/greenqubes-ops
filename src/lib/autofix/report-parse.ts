@@ -110,6 +110,18 @@ export function parseReport(body: unknown): { ok: true; report: Report } | { ok:
   return { ok: true, report: { runId: body.runId, items } }
 }
 
+/**
+ * Whether a report may overwrite an existing item. Never one that is waiting
+ * for Nic, on its way live, live, or dropped by him — a daytime run can see
+ * repeats of those crashes, and overwriting them stranded fixes that had
+ * already reached production (final review, 2026-11-04). An item ref is only
+ * for the retries the run was handed.
+ */
+export function reportMayUpdate(refKind: ReportRef['kind'], status: ItemStatus): boolean {
+  if (refKind === 'item') return status === 'retry'
+  return !['awaiting_nic', 'going_live', 'live', 'dropped'].includes(status)
+}
+
 export function statusForVerdict(v: Verdict, hasFix: boolean): ItemStatus {
   switch (v) {
     case 'fix':           return hasFix ? 'awaiting_nic' : 'needs_session'

@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit|WebFetch|WebSearch",
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/autofix-guard.mjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/autofix-guard.mjs\" || { [ \"$GQ_AUTOFIX\" = \"1\" ] && exit 2; exit 0; }"
           }
         ]
       }

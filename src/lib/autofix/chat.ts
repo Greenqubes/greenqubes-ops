@@ -9,6 +9,7 @@ import { startGoLive } from './go-live'
 import { fireFixer } from './fire'
 import { deleteBranch } from './github'
 import { chatHistory, getItemByNo, listItems, updateItem, type ItemRow } from './store'
+import { goLiveNamed } from './telegram-auth'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_ROUNDS = 4
@@ -20,7 +21,7 @@ How to reply:
 - Plain, short, everyday English. Nic is not technical: no code words, no file names, no jargon. One to four short sentences.
 - Refer to items by their number, e.g. "fix 12".
 - Act only through your tools. Never claim you did something a tool did not confirm; repeat the tool's answer in your own words.
-- If it is unclear which fix Nic means, ask him — never guess which one to put live.
+- If it is unclear which fix Nic means, ask him — never guess which one to put live. When you ask, name the number ("Put fix 12 live?") so his "yes" counts.
 - Only put a fix live when Nic clearly asks for it ("go live", "push it", "looks good, send it"). Testing or asking about a fix is not a go-ahead.
 - "Still broken / not right / try again" + his description → try_again with his words as the note. Use now=true only if he asks for it now.
 - "Look at this now / check now / new report" → run_now.
@@ -86,9 +87,16 @@ function deps(): ActionDeps {
   }
 }
 
-async function runTool(name: string, input: Record<string, unknown>, photos: string[]): Promise<string> {
+type Ctx = { photos: string[]; nicText: string; lastBotText: string | null }
+
+async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): Promise<string> {
   const d = deps()
+  const { photos } = ctx
   const no = typeof input.no === 'number' ? input.no : Number(input.no)
+  // The number must come from Nic, not from anything the model read.
+  if (name === 'go_live' && !goLiveNamed(no, ctx.nicText, ctx.lastBotText)) {
+    return `Not done: Nic's message didn't name fix ${no}. Ask him to confirm with the number, e.g. "Put fix ${no} live?"`
+  }
   switch (name) {
     case 'list_items': {
       const filter = input.filter === 'open' || input.filter === 'recent' ? input.filter : 'awaiting'
@@ -109,9 +117,9 @@ async function runTool(name: string, input: Record<string, unknown>, photos: str
 }
 
 /** The conversation so far, shaped as alternating user/assistant turns. */
-async function history(): Promise<Anthropic.MessageParam[]> {
+function shape(rows: { role: 'nic' | 'bot'; text: string }[]): Anthropic.MessageParam[] {
   const out: Anthropic.MessageParam[] = []
-  for (const m of await chatHistory(20)) {
+  for (const m of rows) {
     const role = m.role === 'nic' ? 'user' : 'assistant'
     const last = out.at(-1)
     if (last && last.role === role) last.content = `${last.content}\n${m.text}`
@@ -128,8 +136,17 @@ async function history(): Promise<Anthropic.MessageParam[]> {
 export async function replyToNic(photos: string[]): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) return "I can't reply properly right now — the AI key isn't set up."
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const messages = await history()
+  const rows = await chatHistory(20)
+  const messages = shape(rows)
   if (messages.length === 0) return 'Hi — ask me "what\'s waiting" to see fixes ready to try.'
+  // Nic's latest message, and the bot's message just before it — what
+  // goLiveNamed checks a go-live against.
+  const lastNic = rows.map(r => r.role).lastIndexOf('nic')
+  const ctx: Ctx = {
+    photos,
+    nicText:     lastNic >= 0 ? rows[lastNic].text : '',
+    lastBotText: rows.slice(0, Math.max(lastNic, 0)).reverse().find(r => r.role === 'bot')?.text ?? null,
+  }
   if (photos.length) {
     const last = messages.at(-1)!
     last.content = `${last.content}\n(Nic also sent ${photos.length} photo${photos.length > 1 ? 's' : ''}; it goes with any try_again note.)`
@@ -145,7 +162,7 @@ export async function replyToNic(photos: string[]): Promise<string> {
     const results: Anthropic.ToolResultBlockParam[] = []
     for (const block of res.content) {
       if (block.type !== 'tool_use') continue
-      const out = await runTool(block.name, block.input as Record<string, unknown>, photos)
+      const out = await runTool(block.name, block.input as Record<string, unknown>, ctx)
       results.push({ type: 'tool_result', tool_use_id: block.id, content: out })
     }
     messages.push({ role: 'user', content: results })

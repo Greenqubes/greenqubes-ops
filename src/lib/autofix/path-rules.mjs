@@ -13,6 +13,9 @@
 
 export const MAX_FILES = 3
 export const MAX_LINES = 60
+// Tests are encouraged but capped: an uncapped "test" file that the page then
+// imports would carry any amount of code past the limit (final review).
+export const MAX_TEST_LINES = 200
 
 const ALLOWED_PREFIXES = ['src/features/', 'src/app/']
 
@@ -21,7 +24,10 @@ const ALLOWED_FILES = ['src/lib/i18n/en.ts', 'src/lib/i18n/zh.ts']
 
 const FORBIDDEN_PREFIXES = [
   'src/app/api/',              // server routes — they carry the permission checks
-  'src/app/auth/',             // sign-in
+  'src/app/auth/',             // sign-in callback
+  'src/app/(auth)/',           // sign-in pages
+  'src/app/admin/',            // admin screens — the page holds the admin-only redirect
+  'src/app/ext/',              // no-login contractor pages
   'src/features/changelog/',   // What's new — on every screen
   'src/features/app-version/', // auto-refresh — on every screen
   'src/features/tour/',        // guided tour — overlays every screen

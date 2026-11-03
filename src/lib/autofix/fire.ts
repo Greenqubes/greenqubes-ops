@@ -4,7 +4,8 @@
 // list from /api/autofix/inbox, never from this text (the routine treats fire
 // text as untrusted, and so do we).
 
-import { canFire } from './scheduling'
+import { canFire, type FireFailure } from './scheduling'
+import { fileRepeatCrashes } from './file-repeats'
 import {
   createRun, finishRun, setRunSession, firesTodaySgt, runInFlight,
   newBugReports, retryItems, unattachedCrashes,
@@ -21,15 +22,23 @@ export async function pendingWorkCount(): Promise<number> {
   return bugs.length + crashes.length + retries.length
 }
 
-export async function fireFixer(kind: 'nightly' | 'retry'): Promise<{ ok: true; runId: string } | { ok: false; reason: string }> {
-  if (!fixerConfigured()) return { ok: false, reason: "the fixer isn't set up yet" }
+/**
+ * `broken: true` means the fire itself failed (not a normal "nothing to do"),
+ * and the caller must tell Nic — see fireFailureNotice.
+ */
+export async function fireFixer(kind: 'nightly' | 'retry'): Promise<{ ok: true; runId: string } | FireFailure> {
+  if (!fixerConfigured()) return { ok: false, reason: "the fixer isn't set up yet", broken: false }
+
+  // Repeats of already-judged crashes are filed first, so the cloud only ever
+  // sees new problems and never re-judges a fix that is in Nic's hands.
+  await fileRepeatCrashes()
 
   const [pendingWork, firesToday, inFlight] = await Promise.all([pendingWorkCount(), firesTodaySgt(), runInFlight()])
   const gate = canFire({ pendingWork, firesToday, runInFlight: inFlight })
-  if (!gate.fire) return { ok: false, reason: gate.why }
+  if (!gate.fire) return { ok: false, reason: gate.why, broken: false }
 
   const runId = await createRun(kind)
-  if (!runId) return { ok: false, reason: "couldn't record the run" }
+  if (!runId) return { ok: false, reason: "couldn't record the run", broken: true }
 
   try {
     const res = await fetch(FIRE_URL(process.env.AUTOFIX_ROUTINE_ID!), {
@@ -43,7 +52,7 @@ export async function fireFixer(kind: 'nightly' | 'retry'): Promise<{ ok: true; 
     })
     if (!res.ok) {
       await finishRun(runId, `fire-failed: ${res.status}`)
-      return { ok: false, reason: `Claude's cloud refused to start (${res.status})` }
+      return { ok: false, reason: `Claude's cloud refused to start (${res.status})`, broken: true }
     }
     const body = await res.json() as { claude_code_session_url?: string }
     await setRunSession(runId, body.claude_code_session_url ?? null)
@@ -51,6 +60,6 @@ export async function fireFixer(kind: 'nightly' | 'retry'): Promise<{ ok: true; 
   } catch (e) {
     await finishRun(runId, 'fire-failed: network')
     console.error('[autofix] fire failed', e)
-    return { ok: false, reason: "couldn't reach Claude's cloud" }
+    return { ok: false, reason: "couldn't reach Claude's cloud", broken: true }
   }
 }

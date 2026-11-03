@@ -22,6 +22,9 @@ Everything below is switched **off** until these steps are done. The app works e
 - Install the **Claude GitHub App** on the `Greenqubes/greenqubes-ops` repository: that one repository only.
 - Start at claude.ai/code. It asks to connect GitHub the first time.
 - If GitHub asks an organisation owner to approve, approve it.
+- **Leave the task's branch setting on "claude/ branches only".** Don't switch on "unrestricted branch pushes". That keeps a second lock, on top of the fixer's own guard, against it ever pushing to `main` or `dev`.
+
+**Your own sessions may show a one-time notice** about a new safety hook in this project's settings. It's the fixer's guard. It does nothing unless it's running as the overnight fixer, so approve it.
 
 ## 2. A GitHub key for "go live" *(you, about 3 minutes)*
 

@@ -27,6 +27,22 @@ export function isFromNic(u: TgUpdate, nicChatId: string | undefined): boolean {
     && String(m.from?.id ?? '') === id
 }
 
+const AFFIRMATIVE = /^(y|yes|yep|yeah|yup|ok|okay|sure|go|go ahead|go live|do it|confirm|confirmed|proceed|push it|send it)([\s,.!]+(go ahead|go|do it|please|thanks|send it|push it))*[\s.!]*$/i
+
+/**
+ * A fix may only go live when Nic named it himself: its number in his own
+ * message, or a plain "yes" straight after the bot asked about that exact fix.
+ * The chat model chooses the action, but titles and summaries it reads came
+ * from bug reports, so the number has to come from Nic (final review,
+ * 2026-11-04).
+ */
+export function goLiveNamed(no: number, nicText: string, lastBotText: string | null): boolean {
+  const n = new RegExp(`(^|\\D)${no}(\\D|$)`)
+  if (n.test(nicText)) return true
+  if (!lastBotText || !AFFIRMATIVE.test(nicText.trim())) return false
+  return new RegExp(`\\bfix\\s+${no}(\\D|$)`, 'i').test(lastBotText)
+}
+
 /** Constant-time compare that REFUSES when the expected secret is unset. */
 export function secretOk(given: string | null, expected: string | undefined): boolean {
   if (!expected || !given) return false

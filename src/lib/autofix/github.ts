@@ -30,7 +30,8 @@ async function gh(path: string, init: RequestInit = {}): Promise<Response> {
 /** Files changed on `head` relative to `base` — what the limiter measures. */
 export async function compareFiles(base: string, head: string): Promise<ChangedFile[] | null> {
   if (!githubConfigured()) return null
-  const res = await gh(`/compare/${base}...${head}`)
+  let res: Response
+  try { res = await gh(`/compare/${base}...${head}`) } catch { return null }
   if (!res.ok) { console.error('[autofix] compare failed', res.status); return null }
   const body = await res.json() as { files?: ChangedFile[] }
   return (body.files ?? []).map(f => ({
@@ -39,12 +40,22 @@ export async function compareFiles(base: string, head: string): Promise<ChangedF
   }))
 }
 
-export async function branchHeadSha(branch: string): Promise<string | null> {
-  if (!githubConfigured()) return null
-  const res = await gh(`/git/ref/heads/${branch}`)
-  if (!res.ok) return null
-  const body = await res.json() as { object?: { sha?: string } }
-  return body.object?.sha ?? null
+/**
+ * Where a branch points. "missing" only for a real 404; anything else (expired
+ * key, outage, rate limit) is "error" — so a GitHub hiccup is never mistaken
+ * for a fix that has gone away (final review, 2026-11-04).
+ */
+export async function branchHead(branch: string): Promise<{ kind: 'sha'; sha: string } | { kind: 'missing' } | { kind: 'error' }> {
+  if (!githubConfigured()) return { kind: 'error' }
+  try {
+    const res = await gh(`/git/ref/heads/${branch}`)
+    if (res.status === 404) return { kind: 'missing' }
+    if (!res.ok) return { kind: 'error' }
+    const body = await res.json() as { object?: { sha?: string } }
+    return body.object?.sha ? { kind: 'sha', sha: body.object.sha } : { kind: 'error' }
+  } catch {
+    return { kind: 'error' }
+  }
 }
 
 export type MergeResult =
@@ -56,7 +67,12 @@ export type MergeResult =
 /** POST /merges — 201 merged, 204 nothing to merge, 409 conflict. */
 export async function mergeInto(base: string, head: string, message: string): Promise<MergeResult> {
   if (!githubConfigured()) return { result: 'error', detail: 'GitHub key not set up' }
-  const res = await gh('/merges', { method: 'POST', body: JSON.stringify({ base, head, commit_message: message }) })
+  let res: Response
+  try {
+    res = await gh('/merges', { method: 'POST', body: JSON.stringify({ base, head, commit_message: message }) })
+  } catch {
+    return { result: 'error', detail: "GitHub couldn't be reached" }
+  }
   if (res.status === 201) return { result: 'merged', sha: ((await res.json()) as { sha: string }).sha }
   if (res.status === 204) return { result: 'nothing' }
   if (res.status === 409) return { result: 'conflict' }
