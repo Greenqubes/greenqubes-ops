@@ -8,7 +8,7 @@ import {
   isStageMoveValid, canMoveStage, canEditAtStage,
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
   pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
-  schedulerCanPush, pushCrewPlan, externalLinkMode,
+  schedulerCanPush, pushCrewPlan, externalLinkMode, externalSuggestionTap,
 } from './job-stage-rules'
 
 let failures = 0
@@ -91,6 +91,18 @@ check('designer forbidden', externalLinkMode('designer', 'scheduled'), 'forbidde
 // Ongoing job, and Client OK confirms the offered ones.
 check('scheduler on Ongoing suggests', externalLinkMode('scheduler', 'awaiting_date'), 'suggest')
 check('admin on Ongoing suggests', externalLinkMode('admin', 'awaiting_date'), 'suggest')
+
+console.log('tapping a suggested contractor (review fix, 2026-11-04):')
+// Only the scheduler side's picks ride in a To arrange offer, so on an Ongoing
+// job a manager must be able to tell his picks from sales' — and to take a
+// sales suggestion into his offer.
+const tap = (o: Partial<{ manager: boolean; sales: boolean; ongoing: boolean; byScheduler: boolean }>) =>
+  externalSuggestionTap({ manager: false, sales: false, ongoing: false, byScheduler: false, ...o })
+check('manager, scheduled job: confirms it (unchanged)', tap({ manager: true }), 'confirm')
+check('manager, Ongoing job, sales\' suggestion: takes it into his offer', tap({ manager: true, ongoing: true }), 'adopt')
+check('manager, Ongoing job, his own pick: removes it', tap({ manager: true, ongoing: true, byScheduler: true }), 'remove')
+check('sales: retracts (unchanged)', tap({ sales: true }), 'remove')
+check('anyone else: nothing', tap({}), null)
 check('formal crew on a Scheduled job', formalCrewAllowed('scheduled'), true)
 
 console.log('postponing a job tells the crew now only if it was today:')

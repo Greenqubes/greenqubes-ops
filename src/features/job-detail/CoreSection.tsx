@@ -61,6 +61,9 @@ interface Props {
    *  fixed. readOnly, not disabled: a disabled input can drop its value from
    *  the form, and the save would then blank the date. */
   dateLocked?:       boolean
+  /** Separate from dateLocked: a fixed start day still lets the scheduler
+   *  give a multi-day job its end date. */
+  dateEndLocked?:    boolean
   timeLocked?:       boolean
 }
 
@@ -77,7 +80,7 @@ export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
   previousLocation = null, onUsePreviousLocation, onDismissPreviousLocation,
-  isSalesPoc = false, jobId, dateLocked = false, timeLocked = false,
+  isSalesPoc = false, jobId, dateLocked = false, dateEndLocked = false, timeLocked = false,
 }: Props) {
   // A field's red message clears the moment it is filled, without waiting for
   // another push — so the form stops nagging as soon as it is satisfied.
@@ -352,14 +355,14 @@ export function CoreSection({
                 min={dateValue || undefined}
                 error={!!endDateError}
                 disabled={coreLocked}
-                readOnly={dateLocked}
-                title={dateLocked ? t(lang, 'arrangeLockedHint') : undefined}
-                className={cn(dateLocked && 'opacity-50 cursor-not-allowed')}
+                readOnly={dateEndLocked}
+                title={dateEndLocked ? t(lang, 'arrangeLockedHint') : undefined}
+                className={cn(dateEndLocked && 'opacity-50 cursor-not-allowed')}
               />
             )}
           </Field>
         </div>
-        {(dateLocked || timeLocked) && !installerView && (
+        {(dateLocked || dateEndLocked || timeLocked) && !installerView && (
           <p className="-mt-2 text-[11px] text-muted">{t(lang, 'arrangeLockedHint')}</p>
         )}
 

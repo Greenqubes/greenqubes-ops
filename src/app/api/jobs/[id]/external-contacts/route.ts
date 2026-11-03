@@ -47,12 +47,23 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  type Row = { contact_id: string; status: string; is_suggestion: boolean; assigned_at: string; suggested_by: string | null }
   const { data, error } = await supabase
     .from('job_external_contacts')
-    .select('contact_id, status, is_suggestion, assigned_at')
-    .eq('job_id', jobId)
+    .select('contact_id, status, is_suggestion, assigned_at, suggested_by')
+    .eq('job_id', jobId) as { data: Row[] | null; error: unknown }
   if (error) return NextResponse.json({ error: 'Query failed' }, { status: 500 })
-  return NextResponse.json(data ?? [])
+
+  // by_scheduler: was this suggestion made by the scheduler side? On an
+  // Ongoing job only those ride in a To arrange offer (review fix,
+  // 2026-11-04), so the bucket has to tell them apart from sales' picks.
+  const rows = data ?? []
+  const suggesters = [...new Set(rows.map(r => r.suggested_by).filter((id): id is string => !!id))]
+  const { data: users } = suggesters.length
+    ? await supabase.from('users').select('id, role').in('id', suggesters) as { data: Array<{ id: string; role: string }> | null }
+    : { data: [] as Array<{ id: string; role: string }> }
+  const schedulerSide = new Set((users ?? []).filter(u => u.role === 'scheduler' || u.role === 'admin').map(u => u.id))
+  return NextResponse.json(rows.map(r => ({ ...r, by_scheduler: !!r.suggested_by && schedulerSide.has(r.suggested_by) })))
 }
 
 // POST — managers link (or confirm a suggestion); sales suggest
@@ -90,7 +101,11 @@ export async function POST(
   }
 
   if (mode === 'suggest') {
-    // Suggestion only — never overwrite an existing (real or suggested) link.
+    // Suggestion only. Sales never overwrite an existing (real or suggested)
+    // link. A manager on an Ongoing job DOES re-stamp an existing suggestion
+    // as his own — that is how he takes a sales suggestion into his To
+    // arrange offer (review fix, 2026-11-04).
+    const isManager = MANAGE_ROLES.includes(effectiveRole)
     const { error } = await supabase
       .from('job_external_contacts')
       .upsert(
@@ -101,7 +116,7 @@ export async function POST(
           is_suggestion: true,
           suggested_by:  profile.id,
         } as never,
-        { onConflict: 'job_id,contact_id', ignoreDuplicates: true },
+        { onConflict: 'job_id,contact_id', ignoreDuplicates: !isManager },
       )
     if (error) return NextResponse.json({ error: 'Insert failed' }, { status: 500 })
     return NextResponse.json({ ok: true })

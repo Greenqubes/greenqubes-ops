@@ -54,7 +54,7 @@ import { StageActions } from './StageActions'
 import { canAttachFiles } from '@/lib/storage/job-file-permissions'
 import {
   parseArrangeState, parseArrangement, isArrangeSalesSide, isArrangeSchedulerSide,
-  arrangeFieldLocks, seedCrewFromOffer, blocksPush, validateOffer,
+  arrangeFieldLocks, seedCrewFromOffer, blocksPush, validateOffer, arrangeSeen,
 } from '@/lib/utils/arrange-rules'
 import { ArrangeCard, arrangeErrorText } from '@/features/arrange/ArrangeCard'
 
@@ -1125,7 +1125,10 @@ export function JobDetailShell({
       if (isDirty) await saveValues(v)
       const res = await fetch(`/api/jobs/${job.id}/arrange`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'offer', driverIds: selectedInstallerIds, supportIds: selectedSubIds }),
+        body: JSON.stringify({
+          action: 'offer', driverIds: selectedInstallerIds, supportIds: selectedSubIds,
+          seen: arrangeSeen(arrangeState, arrangement),
+        }),
       })
       const data = await res.json().catch(() => ({})) as { error?: string }
       if (!res.ok) { showError(arrangeErrorText(lang, data.error, 'offer')); return }
@@ -1603,6 +1606,7 @@ export function JobDetailShell({
                 isSalesPoc={job.sales_poc_id === userId}
                 jobId={job.id}
                 dateLocked={arrangeLocks.date}
+                dateEndLocked={arrangeLocks.dateEnd}
                 timeLocked={arrangeLocks.time}
               />
             </CollapseCard>

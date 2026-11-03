@@ -10,6 +10,7 @@ import {
   clashKeys, newClashKeys, offerMatchesJob, offerHasCrew, clientOkSchedulerMessage,
   arrangeFieldLocks, seedCrewFromOffer, blocksPush, arrangeClearPatch, groupArrangeJobs,
   parseArrangeAction, parseGuideInput, idList, reasonText,
+  seenMatches, contractorsInOffer, offerExpired,
   type ArrangeAction, type Arrangement, type ArrangeOffer, type ArrangeState,
 } from './arrange-rules'
 
@@ -181,20 +182,22 @@ check('no crew → the normal Assign Installer message', clientOkSchedulerMessag
 console.log('which date/time fields are locked on the job page:')
 const sched = { sales: false, scheduler: true }, sales = { sales: true, scheduler: false }, both = { sales: true, scheduler: true }
 const fixedTimed: Arrangement = { ...good, day: { mode: 'fixed', day: '2026-11-14' }, timeStart: '22:00' }
-check('not in To arrange: nothing locked', arrangeFieldLocks(null, null, sales), { date: false, time: false })
-check('offered: locked for the scheduler', arrangeFieldLocks('offered', good, sched), { date: true, time: true })
-check('offered: locked for sales', arrangeFieldLocks('offered', good, sales), { date: true, time: true })
-check('clash: the client agreed the slot — locked', arrangeFieldLocks('clash', good, sched), { date: true, time: true })
+check('not in To arrange: nothing locked', arrangeFieldLocks(null, null, sales), { date: false, dateEnd: false, time: false })
+check('offered: locked for the scheduler', arrangeFieldLocks('offered', good, sched), { date: true, dateEnd: true, time: true })
+check('offered: locked for sales', arrangeFieldLocks('offered', good, sales), { date: true, dateEnd: true, time: true })
+check('clash: the client agreed the slot — locked', arrangeFieldLocks('clash', good, sched), { date: true, dateEnd: true, time: true })
 check('needs a date, a range, time given: scheduler picks the day only',
-  arrangeFieldLocks('needs_date', good, sched), { date: false, time: true })
-check('needs a date, fixed day and time: scheduler picks neither',
-  arrangeFieldLocks('needs_date', fixedTimed, sched), { date: true, time: true })
+  arrangeFieldLocks('needs_date', good, sched), { date: false, dateEnd: false, time: true })
+// Review fix (2026-11-04): a fixed START day must still let the scheduler
+// give a multi-day job its end date — sales' guide has no end date at all.
+check('needs a date, fixed day and time: scheduler may still set the end date',
+  arrangeFieldLocks('needs_date', fixedTimed, sched), { date: true, dateEnd: false, time: true })
 check('needs a date, any day, any time: scheduler picks both',
-  arrangeFieldLocks('needs_date', { ...good, day: { mode: 'any' }, timeStart: null }, sched), { date: false, time: false })
+  arrangeFieldLocks('needs_date', { ...good, day: { mode: 'any' }, timeStart: null }, sched), { date: false, dateEnd: false, time: false })
 check('needs a date: sales change it through the guide, not the form',
-  arrangeFieldLocks('needs_date', good, sales), { date: true, time: true })
-check('no fit: sales locked too', arrangeFieldLocks('no_fit', good, sales), { date: true, time: true })
-check('admin is both — scheduler rules win', arrangeFieldLocks('needs_date', good, both), { date: false, time: true })
+  arrangeFieldLocks('needs_date', good, sales), { date: true, dateEnd: true, time: true })
+check('no fit: sales locked too', arrangeFieldLocks('no_fit', good, sales), { date: true, dateEnd: true, time: true })
+check('admin is both — scheduler rules win', arrangeFieldLocks('needs_date', good, both), { date: false, dateEnd: false, time: true })
 
 console.log('the scheduler\'s crew picks come back filled in:')
 const withOffer: Arrangement = { ...good, offer: { ...offer, driverIds: ['r'], supportIds: ['s'] } }
@@ -203,7 +206,12 @@ check('after a client no, the scheduler sees his last crew',
 check('in a clash, the scheduler sees the agreed crew to change',
   seedCrewFromOffer('clash', withOffer, true), { driverIds: ['r'], supportIds: ['s'] })
 check('not for sales', seedCrewFromOffer('needs_date', withOffer, false), null)
-check('not while offered (locked, read from the card)', seedCrewFromOffer('offered', withOffer, true), null)
+// Review fix (2026-11-04): the OLD rule returned null while offered, so right
+// after he offered, his own crew picks no longer matched anything and the
+// page counted them as unsaved — blocking Withdraw (and an admin's Client OK)
+// with "save your changes first".
+check('while offered, the picks stay as offered (not unsaved work)',
+  seedCrewFromOffer('offered', withOffer, true), { driverIds: ['r'], supportIds: ['s'] })
 check('no offer yet, nothing to seed', seedCrewFromOffer('needs_date', good, true), null)
 
 console.log('Push to Schedule while an offer is with the client:')
@@ -253,6 +261,37 @@ check('crew ids: strings only, no repeats', idList(['a', 'b', 'a', 3, null]), ['
 check('crew ids: not a list', idList('a'), [])
 check('reason text: trimmed, blank is null, capped', [reasonText('  away  '), reasonText('   '), reasonText(5), reasonText('y'.repeat(900))?.length],
   ['away', null, null, 500])
+
+// ── Review fixes (2026-11-04) ───────────────────────────────────────────────
+console.log('a stale screen cannot act on an offer it never saw (review #2):')
+// Sales' phone shows offer A; meanwhile the scheduler withdrew it and offered
+// B. The state is 'offered' again, so a state check alone let A's Client OK
+// schedule B's day. The screen now says what it saw.
+const offerA: Arrangement = { ...good, offer: { ...offer, at: '2026-11-03T05:00:00Z' } }
+const offerB: Arrangement = { ...good, offer: { ...offer, at: '2026-11-03T09:00:00Z' } }
+const seenA = { state: 'offered', readyAt: good.readyAt, offerAt: '2026-11-03T05:00:00Z' }
+check('the offer on screen is the current one', seenMatches('offered', offerA, seenA), true)
+check('a re-offer since the screen loaded', seenMatches('offered', offerB, seenA), false)
+check('the state moved on since the screen loaded', seenMatches('needs_date', offerA, seenA), false)
+check('the guide was re-sent since (new readyAt)', seenMatches('offered', { ...offerA, readyAt: '2026-11-03T08:00:00Z' }, seenA), false)
+check('not in To arrange, screen agrees', seenMatches(null, null, { state: null, readyAt: null, offerAt: null }), true)
+check('not in To arrange, screen thinks it is', seenMatches(null, null, seenA), false)
+check('nothing sent is never a match', seenMatches('offered', offerA, undefined), false)
+check('a wrong shape is never a match', seenMatches('offered', offerA, { state: 'offered' }), false)
+
+console.log('only the scheduler\'s contractor picks ride in the offer (review #3):')
+const extRows = [
+  { contact_id: 'ck', suggested_by: 'jun' },     // the scheduler added him
+  { contact_id: 'fu', suggested_by: 'charles' }, // sales suggested him
+  { contact_id: 'old', suggested_by: null },      // nobody on record
+]
+check('the scheduler\'s pick only', contractorsInOffer(extRows, ['jun']), ['ck'])
+check('admin counts as the scheduler side', contractorsInOffer(extRows, ['jun', 'charles']), ['ck', 'fu'])
+check('no scheduler-side picks, no contractors', contractorsInOffer(extRows, []), [])
+
+console.log('Client OK on a day that has passed (review #11):')
+check('the offered day is today — fine', offerExpired({ ...offer, date: '2026-11-04' }, '2026-11-04'), false)
+check('the offered day has passed', offerExpired({ ...offer, date: '2026-11-03' }, '2026-11-04'), true)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall arrange-rules checks passed')

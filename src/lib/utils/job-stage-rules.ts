@@ -113,6 +113,18 @@ export function externalLinkMode(role: string, status: string): 'link' | 'sugges
   return role === 'sales' ? 'suggest' : 'forbidden'
 }
 
+/** What tapping a SUGGESTED contractor does. On a scheduled job a manager
+ *  confirms it. On an Ongoing job only the scheduler side's own picks ride in
+ *  a To arrange offer (contractorsInOffer), so a manager's tap on a sales
+ *  suggestion takes it into his offer ('adopt' — the server re-stamps
+ *  suggested_by) and a tap on his own pick removes it. Sales retract. */
+export function externalSuggestionTap(o: {
+  manager: boolean; sales: boolean; ongoing: boolean; byScheduler: boolean
+}): 'confirm' | 'adopt' | 'remove' | null {
+  if (o.manager) return !o.ongoing ? 'confirm' : o.byScheduler ? 'remove' : 'adopt'
+  return o.sales ? 'remove' : null
+}
+
 /** Scheduled → Ongoing: crew hear immediately only for a job dated today;
  *  otherwise the 6pm summary tells them (same split as a board drag). */
 export function postponeNotifyNow(jobDate: string | null, todayISO: string): boolean {

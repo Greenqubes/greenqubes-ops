@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useToast } from '@/components/Toast'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
-import { hhmm, arrangeTurn, type ArrangeAction, type ArrangeState, type Arrangement, type GuideInput } from '@/lib/utils/arrange-rules'
+import { hhmm, arrangeTurn, arrangeSeen, type ArrangeAction, type ArrangeState, type Arrangement, type GuideInput } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel } from '@/lib/utils/arrange-labels'
 import { ArrangeReadyDialog } from './ArrangeReadyDialog'
 import { ArrangeReasonDialog } from './ArrangeReasonDialog'
@@ -73,7 +73,8 @@ export function ArrangeCard({
     try {
       const res = await fetch(`/api/jobs/${jobId}/arrange`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...extra }),
+        // What this screen shows — the server refuses if it is out of date.
+        body: JSON.stringify({ action, ...extra, seen: arrangeSeen(state, arrangement) }),
       })
       const data = await res.json().catch(() => ({})) as { error?: string; outcome?: string; clashNames?: string[] }
       if (!res.ok) { showError(arrangeErrorText(lang, data.error, action)); return }

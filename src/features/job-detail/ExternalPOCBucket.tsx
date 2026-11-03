@@ -8,6 +8,7 @@ import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
+import { externalSuggestionTap } from '@/lib/utils/job-stage-rules'
 
 type ExtContact = {
   id:               string
@@ -24,7 +25,9 @@ type ExtContact = {
 // agrees by phone before being put on a job, so a confirmed link has exactly
 // one state. The is_suggestion flag is untouched: suggest-then-confirm is a
 // different mechanism and still in force.
-type JobLink    = { is_suggestion: boolean }
+/** by_scheduler: suggested by the scheduler side — on an Ongoing job only
+ *  those ride in a To arrange offer (GET /external-contacts reports it). */
+type JobLink    = { is_suggestion: boolean; by_scheduler?: boolean }
 
 interface Props {
   jobId:     string
@@ -60,6 +63,10 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly, ongoing = false
   // On an Ongoing job the server writes a manager's pick as a suggestion
   // (externalLinkMode) — mirror it, so nothing looks confirmed that is not.
   const managerLinks = isManager && !ongoing
+  // On an Ongoing job the scheduler (a plain admin reads as scheduler) builds
+  // his To arrange offer here; a coordinator there is sales-side and suggests.
+  const ongoingScheduler = ongoing && role === 'scheduler' && !readOnly
+  const suggestsOnly = isSales || (ongoing && isManager && !ongoingScheduler)
 
   const [open,      setOpen]      = useState(false)
   const [loaded,    setLoaded]    = useState(false)
@@ -77,10 +84,10 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly, ongoing = false
     Promise.all([
       fetch('/api/external-contacts').then(r => r.ok ? r.json() : []),
       fetch(`/api/jobs/${jobId}/external-contacts`).then(r => r.ok ? r.json() : []),
-    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; is_suggestion: boolean }>]) => {
+    ]).then(([all, assigned]: [ExtContact[], Array<{ contact_id: string; is_suggestion: boolean; by_scheduler?: boolean }>]) => {
       if (cancelled) return
       setContacts(all)
-      setLinks(new Map(assigned.map(a => [a.contact_id, { is_suggestion: a.is_suggestion }])))
+      setLinks(new Map(assigned.map(a => [a.contact_id, { is_suggestion: a.is_suggestion, by_scheduler: !!a.by_scheduler }])))
       if (assigned.length > 0) setOpen(true)
       setLoaded(true)
     }).catch(() => { if (!cancelled) setLoaded(true) })
@@ -91,7 +98,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly, ongoing = false
   // Sales   → suggestion (server decides by role; UI mirrors it).
   const assignContact = async (contactId: string) => {
     const prev = links.get(contactId)
-    setLinks(p => new Map(p).set(contactId, { is_suggestion: !managerLinks }))
+    setLinks(p => new Map(p).set(contactId, { is_suggestion: !managerLinks, by_scheduler: ongoingScheduler }))
     try {
       const res = await fetch(`/api/jobs/${jobId}/external-contacts`, {
         method:  'POST',
@@ -232,20 +239,26 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly, ongoing = false
       )
     }
 
-    // Sales suggestion (amber): manager taps to CONFIRM (upgrades the row);
-    // sales taps to retract their own suggestion; others just see the label.
-    // On an Ongoing job a manager cannot confirm yet, so his tap removes it.
+    // Suggestion (amber). Scheduled job: a manager taps to CONFIRM (upgrades
+    // the row). Ongoing job: only the scheduler side's own picks ride in a To
+    // arrange offer, so the scheduler's tap on a sales suggestion takes it
+    // into his offer and a tap on his own pick removes it (review fix,
+    // 2026-11-04). Sales — and coordinators on an Ongoing job — retract.
     if (link.is_suggestion) {
-      const label = t(lang, isSales || (isManager && ongoing) ? 'extBucketSuggested' : 'extBucketSalesSuggested')
-      const action = managerLinks ? () => assignContact(contactId)
-                   : isSales || isManager ? () => unassignContact(contactId)
+      const mine = ongoing && !!link.by_scheduler
+      const label = t(lang, isSales || mine ? 'extBucketSuggested' : 'extBucketSalesSuggested')
+      const tap = externalSuggestionTap({
+        manager: managerLinks || ongoingScheduler, sales: suggestsOnly, ongoing, byScheduler: !!link.by_scheduler,
+      })
+      const action = tap === 'confirm' || tap === 'adopt' ? () => assignContact(contactId)
+                   : tap === 'remove' ? () => unassignContact(contactId)
                    : undefined
       return (
         <button
           type="button"
           disabled={!action}
           onClick={action}
-          title={managerLinks ? t(lang, 'fcfsConfirm') : action ? t(lang, 'extBucketRemove') : undefined}
+          title={tap === 'confirm' || tap === 'adopt' ? t(lang, 'fcfsConfirm') : action ? t(lang, 'extBucketRemove') : undefined}
           className="text-[10px] font-bold px-2 py-1 rounded-md border bg-brand-amber-soft border-brand-amber/40 text-brand-amber disabled:opacity-100"
         >
           {label}

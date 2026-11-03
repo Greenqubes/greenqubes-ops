@@ -5,7 +5,7 @@ import { missingForStage } from '@/lib/utils/job-stage-rules'
 import {
   validateGuide, guideJobPatch, validateOffer, hhmm, clashKeys, newClashKeys,
   offerMatchesJob, offerHasCrew, clientOkSchedulerMessage, arrangeClearPatch,
-  parseGuideInput, idList, reasonText,
+  parseGuideInput, idList, reasonText, contractorsInOffer, offerExpired,
   type ArrangeAction, type ArrangeState, type Arrangement, type ArrangeOffer, type ArrangeReturn, type Slot,
 } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel } from '@/lib/utils/arrange-labels'
@@ -31,13 +31,16 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.verce
 
 export const ARRANGE_JOB_SELECT =
   'id, status, date, date_end, time_start, time_end, punctuality, project_title, client, client_poc_name, ' +
-  'client_poc_phone, location, created_by, sales_poc_id, scheduled_at, arrange_state, arrangement, job_coordinators(user_id)'
+  'client_poc_phone, location, created_by, sales_poc_id, scheduled_at, updated_at, arrange_state, arrangement, job_coordinators(user_id)'
 
 export type ArrangeJobRow = {
   id: string; status: string; date: string | null; date_end: string | null
   time_start: string | null; time_end: string | null; punctuality: Punctuality
   project_title: string | null; client: string; client_poc_name: string | null; client_poc_phone: string | null
   location: string; created_by: string | null; sales_poc_id: string | null; scheduled_at: string | null
+  /** Bumped by the 0001 touch trigger on every jobs update — the optimistic
+   *  lock for the read → write window (review fix). */
+  updated_at: string
   arrange_state: string | null; arrangement: Json | null
   job_coordinators: Array<{ user_id: string }>
 }
@@ -66,13 +69,16 @@ const slotOf = (j: ArrangeJobRow): Slot =>
 const salesTarget = (j: ArrangeJobRow) =>
   ({ id: j.id, sales_poc_id: j.sales_poc_id, coordinatorIds: j.job_coordinators.map(c => c.user_id) })
 
-/** The job's own update, only if it is still Ongoing AND still in the state
- *  this request read. False = someone else moved it first. */
+/** The job's own update, only if it is still Ongoing, still in the state this
+ *  request read, and untouched since (updated_at — a same-state change such
+ *  as a re-sent guide would otherwise slip through). False = someone else
+ *  moved it first. */
 async function writeIf(ctx: ArrangeCtx, patch: Record<string, unknown>): Promise<boolean> {
   const svc = createServiceClient()
   const base = svc.from('jobs').update(patch as never)
     .eq('id', ctx.job.id)
     .eq('status', 'awaiting_date') // raw status — see job-stage.ts
+    .eq('updated_at', ctx.job.updated_at)
   const q = ctx.state === null ? base.is('arrange_state', null) : base.eq('arrange_state', ctx.state)
   const { data, error } = await q.select('id')
   if (error) console.error('[arrange] write refused', ctx.job.id, error)
@@ -125,10 +131,20 @@ async function offer(ctx: ArrangeCtx, body: Record<string, unknown>): Promise<Ar
   const driverIds  = idList(body.driverIds)
   const supportIds = idList(body.supportIds).filter(id => !driverIds.includes(id))
   const svc = createServiceClient()
+  // Contractors: only the ones the scheduler side put on the job — sales'
+  // suggestions stay suggestions (spec: only the scheduler/admin confirm
+  // contractors; review fix). He takes a sales suggestion into his offer by
+  // tapping it in the Outside installers box, which re-stamps suggested_by.
   const { data: ext, error: extErr } = await svc.from('job_external_contacts')
-    .select('contact_id').eq('job_id', ctx.job.id) as { data: Array<{ contact_id: string }> | null; error: unknown }
+    .select('contact_id, suggested_by').eq('job_id', ctx.job.id) as
+    { data: Array<{ contact_id: string; suggested_by: string | null }> | null; error: unknown }
   if (extErr) return fail(500, 'read_failed')
-  const contactIds = (ext ?? []).map(r => r.contact_id)
+  const suggesters = [...new Set((ext ?? []).map(r => r.suggested_by).filter((id): id is string => !!id))]
+  const { data: suggesterRows } = suggesters.length
+    ? await svc.from('users').select('id, role').in('id', suggesters) as { data: Array<{ id: string; role: string }> | null }
+    : { data: [] as Array<{ id: string; role: string }> }
+  const schedulerSideIds = (suggesterRows ?? []).filter(u => u.role === 'scheduler' || u.role === 'admin').map(u => u.id)
+  const contactIds = contractorsInOffer(ext ?? [], schedulerSideIds)
 
   // The clashes he is offering past are recorded here, computed on the
   // server — never taken from the browser.
@@ -209,6 +225,9 @@ async function clientOk(ctx: ArrangeCtx): Promise<ArrangeResult> {
   if (!arr || !o) return fail(409, 'offer_changed')
   const slot = slotOf(ctx.job)
   if (!offerMatchesJob(o, slot)) return fail(409, 'offer_changed')
+  // A yes for a day that has passed would schedule the job in the past and
+  // Telegram the crew about it (review fix) — the scheduler offers again.
+  if (offerExpired(o, todaySG())) return fail(400, 'bad_offer:in_past')
   const missing = missingForStage('scheduled', ctx.job)
   if (missing.length) return fail(422, 'missing_fields', { fields: missing })
 
@@ -241,6 +260,7 @@ async function clientOk(ctx: ArrangeCtx): Promise<ArrangeResult> {
     .eq('id', ctx.job.id)
     .eq('status', 'awaiting_date') // raw status — see job-stage.ts
     .eq('arrange_state', 'offered')
+    .eq('updated_at', ctx.job.updated_at)
     .select('id')
   if (moveErr || !(moved ?? []).length) {
     if (moveErr) console.error('[arrange] client OK move refused', ctx.job.id, moveErr)

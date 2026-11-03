@@ -298,22 +298,61 @@ export function clientOkSchedulerMessage(o: ArrangeOffer): 'arranged' | 'assign_
 export function arrangeFieldLocks(
   state: ArrangeState | null, a: Arrangement | null,
   side: { sales: boolean; scheduler: boolean },
-): { date: boolean; time: boolean } {
-  if (state === null) return { date: false, time: false }
-  if (state === 'offered' || state === 'clash') return { date: true, time: true }
-  if (side.scheduler) return { date: a?.day.mode === 'fixed', time: !!a?.timeStart }
-  return { date: true, time: true }
+): { date: boolean; dateEnd: boolean; time: boolean } {
+  if (state === null) return { date: false, dateEnd: false, time: false }
+  if (state === 'offered' || state === 'clash') return { date: true, dateEnd: true, time: true }
+  // A fixed START day still leaves the end date to the scheduler — sales'
+  // guide has none, and a multi-day job needs one (review fix).
+  if (side.scheduler) return { date: a?.day.mode === 'fixed', dateEnd: false, time: !!a?.timeStart }
+  return { date: true, dateEnd: true, time: true }
 }
 
-/** The scheduler's crew picks, filled back in from his last offer — after a
- *  client no or a withdraw, and in a clash, where he only changes the crew.
- *  Seeds the picks, never the saved baseline, so they count as unsaved and
- *  Push to Schedule writes them (pushCrewPlan). */
+/** The scheduler's crew picks, filled in from his offer — while it is out,
+ *  after a client no or a withdraw, and in a clash, where he only changes the
+ *  crew. Seeds the picks, never the saved baseline, so Push to Schedule (in a
+ *  clash) still writes them (pushCrewPlan); the page does not count untouched
+ *  seeded picks as unsaved work. While offered too (review fix): otherwise
+ *  his own just-offered picks read as unsaved and blocked Withdraw. */
 export function seedCrewFromOffer(
   state: ArrangeState | null, a: Arrangement | null, canAssign: boolean,
 ): { driverIds: string[]; supportIds: string[] } | null {
-  if (!canAssign || !a?.offer || (state !== 'needs_date' && state !== 'clash')) return null
+  if (!canAssign || !a?.offer || state === null || state === 'no_fit') return null
   return { driverIds: a.offer.driverIds, supportIds: a.offer.supportIds }
+}
+
+/** What a screen saw when the person pressed a button. Every To arrange
+ *  request carries it; the route refuses when it no longer matches, so a
+ *  stale screen cannot answer an offer it never saw (review fix: a withdraw
+ *  and re-offer leave the state 'offered' again, which a state check alone
+ *  cannot tell apart). */
+export type ArrangeSeen = { state: ArrangeState | null; readyAt: string | null; offerAt: string | null }
+
+export function arrangeSeen(state: ArrangeState | null, a: Arrangement | null): ArrangeSeen {
+  return { state, readyAt: a?.readyAt ?? null, offerAt: a?.offer?.at ?? null }
+}
+
+export function seenMatches(state: ArrangeState | null, a: Arrangement | null, seen: unknown): boolean {
+  if (!seen || typeof seen !== 'object') return false
+  const s = seen as Record<string, unknown>
+  if (!('state' in s) || !('readyAt' in s) || !('offerAt' in s)) return false
+  const now = arrangeSeen(state, a)
+  return s.state === now.state && s.readyAt === now.readyAt && s.offerAt === now.offerAt
+}
+
+/** The outside contractors an offer carries: only the ones the SCHEDULER
+ *  side put on the job. Sales' suggestions stay suggestions — "only the
+ *  scheduler/admin confirm contractors" (spec; review fix). */
+export function contractorsInOffer(
+  rows: Array<{ contact_id: string; suggested_by: string | null }>, schedulerSideIds: string[],
+): string[] {
+  const ok = new Set(schedulerSideIds)
+  return rows.filter(r => r.suggested_by !== null && ok.has(r.suggested_by)).map(r => r.contact_id)
+}
+
+/** Client OK on a day that has already passed would put the job on the
+ *  schedule in the past and Telegram the crew about it (review fix). */
+export function offerExpired(o: ArrangeOffer, todayISO: string): boolean {
+  return o.date < todayISO
 }
 
 /** While an offer is with the client, Push to Schedule would skip the
