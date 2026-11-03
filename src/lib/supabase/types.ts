@@ -534,7 +534,7 @@ export interface Database {
           route:          string | null
           message:        string
           priority:       'low' | 'medium' | 'high' | 'urgent'
-          status:         'open' | 'fixed'
+          status:         'open' | 'fixed' | 'closed'
           screenshot_key: string | null
           markdown_file:  string | null
           ip_address:     string | null
@@ -552,7 +552,7 @@ export interface Database {
         > & {
           id?:               string
           created_at?:       string
-          status?:           'open' | 'fixed'
+          status?:           'open' | 'fixed' | 'closed'
           resolved_at?:      string | null
           github_issue_url?: string | null
         }

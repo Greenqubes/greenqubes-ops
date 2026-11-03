@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Card } from '@/components/Card'
 import { cn }   from '@/lib/utils/cn'
+import { deviceLabel } from '@/lib/autofix/crash-signature'
 
 type CrashLog = {
   id:              string
@@ -15,6 +16,12 @@ type CrashLog = {
   user_agent:      string | null
   markdown_body:   string
   resolved:        boolean
+  // Added 2026-11-04 (auto-fixer). All optional: absent before migration 0069
+  // or when a lookup fails, and the card still renders.
+  user_name?:      string | null
+  build_id?:       string | null
+  verdict?:        string | null
+  verdict_reason?: string | null
 }
 
 function fmtSGT(ts: string) {
@@ -61,8 +68,21 @@ function CrashCard({ log, onDismiss }: { log: CrashLog; onDismiss: (id: string) 
             <span className="px-1.5 py-0.5 rounded text-[11px] font-mono bg-bg text-ink2 border border-line">
               {log.route}
             </span>
-            {log.user_email && (
-              <span className="text-[11px] text-muted">{log.user_email}</span>
+            {/* Who and which desk (Nic, 2026-11-04) */}
+            <span className="text-[11px] text-ink2 font-medium">
+              {log.user_name ?? log.user_email ?? 'Signed out / unknown'}
+            </span>
+            <span className="text-[11px] text-muted">{deviceLabel(log.user_agent)}</span>
+            {log.build_id && (
+              <span className="text-[11px] font-mono text-muted">v{log.build_id}</span>
+            )}
+            {log.verdict && (
+              <span
+                className="px-1.5 py-0.5 rounded-full text-[11px] bg-brand-blue-soft text-ink2"
+                title={log.verdict_reason ?? undefined}
+              >
+                {log.verdict}
+              </span>
             )}
           </div>
           <p className="text-sm font-medium text-bad truncate">{log.error_message}</p>

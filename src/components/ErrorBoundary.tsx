@@ -17,6 +17,7 @@ export class ErrorBoundary extends Component<Props, State> {
         errorMessage:   error.message,
         stackTrace:     error.stack,
         componentStack: info.componentStack ?? undefined,
+        buildId:        process.env.NEXT_PUBLIC_BUILD_ID,
       }),
     }).catch(() => {})
 

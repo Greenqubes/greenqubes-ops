@@ -91,6 +91,7 @@ export function BugReportButton() {
           screenshotKey,
           route:         window.location.pathname,
           screen:        `${window.screen.width}×${window.screen.height}`,
+          buildId:       process.env.NEXT_PUBLIC_BUILD_ID,
         }),
       })
 

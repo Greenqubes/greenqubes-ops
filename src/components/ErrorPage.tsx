@@ -18,6 +18,7 @@ export function ErrorPage({ error, reset, route }: Props) {
         errorMessage: error.message,
         stackTrace:   error.stack,
         digest:       error.digest,
+        buildId:      process.env.NEXT_PUBLIC_BUILD_ID,
       }),
     }).catch(() => {})
   }, [error, route])

@@ -4,6 +4,7 @@ import { insertBugReport, getBugReports, countBugReportsForDate } from '@/lib/su
 import { sendBugTelegram }                 from '@/lib/telegram/bot'
 import { tplBugReport }                    from '@/lib/telegram/templates'
 import { getDownloadUrl }                  from '@/lib/storage/r2'
+import { verdictsForBugs, verdictLabel }   from '@/lib/autofix/verdicts'
 import { writeFile, mkdir }               from 'fs/promises'
 import path                               from 'path'
 
@@ -13,6 +14,7 @@ type BugPayload = {
   screenshotKey: string | null
   route:         string
   screen:        string
+  buildId?:      string
 }
 
 function parseBrowser(ua: string): { platform: string; browser: string; os: string } {
@@ -155,6 +157,9 @@ export async function POST(req: NextRequest) {
       browser:        parseBrowser(ua).browser,
       os,
       screen:         body.screen,
+      // Which copy of the app the reporter was on — lets the fixer spot a
+      // report from a tab that hadn't refreshed after a deploy.
+      build_id:       typeof body.buildId === 'string' && /^([0-9a-f]{12}|dev)$/.test(body.buildId) ? body.buildId : null,
     })
 
     if (!id) return NextResponse.json({ error: 'Failed to save bug report' }, { status: 500 })
@@ -214,7 +219,13 @@ export async function GET(req: NextRequest) {
     }
 
     const bugs = await getBugReports()
-    return NextResponse.json(bugs)
+    // The auto-fixer's verdict per report, as a chip. Fail-soft: none shown
+    // before migration 0069 or if the read fails.
+    const verdicts = await verdictsForBugs(bugs.map(b => b.id))
+    return NextResponse.json(bugs.map(b => {
+      const v = verdicts.get(b.id)
+      return v ? { ...b, verdict: verdictLabel(v), verdict_reason: v.reason } : b
+    }))
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
