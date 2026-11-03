@@ -6,7 +6,7 @@
  */
 
 import { parseReport, statusForVerdict } from './report-parse'
-import { buildNightlyMessage, escapeHtml, dateLabel, shortDate, type NightlyInput } from './nightly-message'
+import { buildNightlyMessage, escapeHtml, dateLabel, shortDate, clock12, type NightlyInput } from './nightly-message'
 
 let failures = 0
 
@@ -105,6 +105,9 @@ check('closed line names already-fixed', closedOnly.includes('already fixed: tim
 // Dates in messages are always English (CLAUDE.md hard rule) and Singapore time.
 check('dateLabel', dateLabel('2026-11-04T17:30:00Z'), 'Thu 5 Nov')
 check('shortDate', shortDate('2026-09-07T03:00:00Z'), '7 Sep')
+check('clock12 evening', clock12('2026-11-05T13:14:00Z'), '9:14pm')
+check('clock12 noon', clock12('2026-11-05T04:00:00Z'), '12:00pm')
+check('clock12 just after midnight', clock12('2026-11-05T16:05:00Z'), '12:05am')
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed`)

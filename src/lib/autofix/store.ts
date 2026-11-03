@@ -86,6 +86,19 @@ export async function updateItem(id: string, patch: Partial<ItemRow>): Promise<b
   return true
 }
 
+/**
+ * Moves an item from one status to the next only if it is still in `from` —
+ * a compare-and-set, so two "go live" messages can never both merge.
+ * Returns whether THIS call won.
+ */
+export async function claimItemStatus(id: string, from: string, patch: Partial<ItemRow>): Promise<boolean> {
+  const { data, error } = await items()
+    .update({ ...patch, updated_at: new Date().toISOString() } as never)
+    .eq('id', id).eq('status', from).select('id')
+  if (error) { fail('claimItemStatus', error); return false }
+  return ((data ?? []) as unknown[]).length === 1
+}
+
 export async function itemsByStatus(statuses: string[]): Promise<ItemRow[]> {
   const { data, error } = await items().select('*').in('status', statuses).order('no')
   if (error) { fail('itemsByStatus', error); return [] }

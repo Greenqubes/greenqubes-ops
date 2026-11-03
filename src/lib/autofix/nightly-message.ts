@@ -30,6 +30,14 @@ export function shortDate(iso: string): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
 }
 
+/** '9:14pm' — "Fix 12 is live — 9:14pm." */
+export function clock12(iso: string): string {
+  const d = sgt(iso)
+  const h = d.getUTCHours()
+  const m = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${h % 12 || 12}:${m}${h >= 12 ? 'pm' : 'am'}`
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
