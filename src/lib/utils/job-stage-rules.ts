@@ -48,7 +48,9 @@ export type StageViewer = { id: string; role: string; isAdmin?: boolean }
 const OFFICE_ALL = ['scheduler', 'admin']
 const SHARER_ROLES = ['sales', 'coordinator']
 
-function isSharer(v: StageViewer, j: StageJob4Rules): boolean {
+/** Creator, sales PIC or a coordinator on the job. Also the To arrange
+ *  "sales side" (arrange-rules.ts). */
+export function isSharer(v: StageViewer, j: StageJob4Rules): boolean {
   return v.id === j.created_by || v.id === j.sales_poc_id || j.coordinatorIds.includes(v.id)
 }
 
