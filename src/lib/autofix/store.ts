@@ -146,6 +146,14 @@ export async function attachCrashes(rowIds: string[], itemId: string, resolve: b
   if (error) fail('attachCrashes', error)
 }
 
+/** The newest few crash rows of an item — context for a retry. */
+export async function crashesForItem(itemId: string, limit = 3): Promise<CrashRow[]> {
+  const { data, error } = await db().from('crash_logs').select('*')
+    .eq('autofix_item_id' as never, itemId).order('occurred_at', { ascending: false }).limit(limit)
+  if (error) { fail('crashesForItem', error); return [] }
+  return (data ?? []) as unknown as CrashRow[]
+}
+
 export async function resolveCrashesOfItem(itemId: string): Promise<void> {
   const { error } = await db().from('crash_logs').update({ resolved: true } as never).eq('autofix_item_id' as never, itemId)
   if (error) fail('resolveCrashesOfItem', error)

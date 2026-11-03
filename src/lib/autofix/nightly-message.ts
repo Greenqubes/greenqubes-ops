@@ -13,6 +13,23 @@ export type NightlyInput = {
   closed:       { junk: number; noise: number; known: number; repeats: number; alreadyFixed: string[] }
 }
 
+// Always English, always Singapore time (CLAUDE.md hard rule on dates).
+const DAYS   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const sgt = (iso: string) => new Date(new Date(iso).getTime() + 8 * 60 * 60 * 1000)
+
+/** 'Thu 5 Nov' */
+export function dateLabel(iso: string): string {
+  const d = sgt(iso)
+  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}
+
+/** '7 Sep' */
+export function shortDate(iso: string): string {
+  const d = sgt(iso)
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }

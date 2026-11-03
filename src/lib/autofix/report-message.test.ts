@@ -6,7 +6,7 @@
  */
 
 import { parseReport, statusForVerdict } from './report-parse'
-import { buildNightlyMessage, escapeHtml, type NightlyInput } from './nightly-message'
+import { buildNightlyMessage, escapeHtml, dateLabel, shortDate, type NightlyInput } from './nightly-message'
 
 let failures = 0
 
@@ -101,6 +101,10 @@ const closedOnly = buildNightlyMessage({
 check('closed line counts junk', closedOnly.includes('1 junk'), true)
 check('closed line counts noise', closedOnly.includes('24 connection blips'), true)
 check('closed line names already-fixed', closedOnly.includes('already fixed: time picker, video upload'), true)
+
+// Dates in messages are always English (CLAUDE.md hard rule) and Singapore time.
+check('dateLabel', dateLabel('2026-11-04T17:30:00Z'), 'Thu 5 Nov')
+check('shortDate', shortDate('2026-09-07T03:00:00Z'), '7 Sep')
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed`)
