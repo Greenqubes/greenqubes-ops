@@ -103,6 +103,16 @@ export function formalCrewAllowed(status: string): boolean {
   return stageOf(status) !== 'ongoing'
 }
 
+/** What linking an outside contractor to a job writes. Managers make a real
+ *  link — except on an Ongoing job, where it is a suggestion: the contractor's
+ *  page shows confirmed links only, so no outsider sees an Ongoing job, and
+ *  To arrange's Client OK confirms the offered ones (spec 2026-11-04). Sales
+ *  always suggest. */
+export function externalLinkMode(role: string, status: string): 'link' | 'suggest' | 'forbidden' {
+  if (['scheduler', 'coordinator', 'admin'].includes(role)) return formalCrewAllowed(status) ? 'link' : 'suggest'
+  return role === 'sales' ? 'suggest' : 'forbidden'
+}
+
 /** Scheduled → Ongoing: crew hear immediately only for a job dated today;
  *  otherwise the 6pm summary tells them (same split as a board drag). */
 export function postponeNotifyNow(jobDate: string | null, todayISO: string): boolean {

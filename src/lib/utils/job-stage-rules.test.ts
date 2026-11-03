@@ -8,7 +8,7 @@ import {
   isStageMoveValid, canMoveStage, canEditAtStage,
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
   pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
-  schedulerCanPush, pushCrewPlan,
+  schedulerCanPush, pushCrewPlan, externalLinkMode,
 } from './job-stage-rules'
 
 let failures = 0
@@ -78,6 +78,19 @@ check('designer on a Ongoing job', designersAllowed('awaiting_date'), true)
 check('designer on a Scheduled job', designersAllowed('scheduled'), true)
 check('no formal crew on a Ongoing job (installers must never see one)', formalCrewAllowed('awaiting_date'), false)
 check('formal crew on a Draft is unchanged (0062 hides drafts)', formalCrewAllowed('pending'), true)
+
+console.log('outside contractors (To arrange, 2026-11-04):')
+// THE OLD RULE, kept first: a manager linking a contractor on an Ongoing job
+// was refused outright (409), so a scheduler could not put one in an offer.
+check('scheduler on Scheduled links (unchanged)', externalLinkMode('scheduler', 'scheduled'), 'link')
+check('coordinator on Scheduled links (unchanged)', externalLinkMode('coordinator', 'scheduled'), 'link')
+check('sales always suggests (unchanged)', externalLinkMode('sales', 'scheduled'), 'suggest')
+check('designer forbidden', externalLinkMode('designer', 'scheduled'), 'forbidden')
+// NEW: on an Ongoing job a manager's pick is written as a suggestion — the
+// contractor's page shows only confirmed links, so nobody outside sees an
+// Ongoing job, and Client OK confirms the offered ones.
+check('scheduler on Ongoing suggests', externalLinkMode('scheduler', 'awaiting_date'), 'suggest')
+check('admin on Ongoing suggests', externalLinkMode('admin', 'awaiting_date'), 'suggest')
 check('formal crew on a Scheduled job', formalCrewAllowed('scheduled'), true)
 
 console.log('postponing a job tells the crew now only if it was today:')

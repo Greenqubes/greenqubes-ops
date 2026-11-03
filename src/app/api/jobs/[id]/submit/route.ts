@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { shouldNotifyOnPush } from '@/lib/utils/job-form-rules'
+import { arrangeClearPatch, blocksPush, parseArrangeState } from '@/lib/utils/arrange-rules'
 import { getSchedulers, getJobNotifData } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplNewJobCreated } from '@/lib/telegram/templates'
@@ -50,15 +51,21 @@ export async function POST(
   // reopening is the Revert button's job (/revert-complete), which restores the
   // FCFS rank too. Without this guard the button reported success on a finished
   // job and Telegrammed every scheduler about a push that never happened.
-  type StatusRow = { status: string; date: string | null }
+  type StatusRow = { status: string; date: string | null; arrange_state: string | null }
   const { data: current } = await supabase
     .from('jobs')
-    .select('status, date')
+    .select('status, date, arrange_state')
     .eq('id', jobId)
     .maybeSingle() as { data: StatusRow | null; error: unknown }
   if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (current.status === 'completed') {
     return NextResponse.json({ error: 'job_completed' }, { status: 409 })
+  }
+  // While a To arrange offer is with the client, pushing would skip the
+  // client's answer — Client OK or a withdraw first (spec 2026-11-04). The
+  // page hides the button; this catches a stale tab that does not.
+  if (blocksPush(parseArrangeState(current.arrange_state))) {
+    return NextResponse.json({ error: 'offer_with_client' }, { status: 409 })
   }
   // A Ongoing job may have no date; the schedule needs one (spec 2026-10-09).
   // The DB check constraint would refuse it anyway — this gives a clear reason.
@@ -67,7 +74,10 @@ export async function POST(
   }
 
   // Workflow V2: no approval step — sales pushes directly onto the schedule.
-  const patch: Record<string, unknown> = { status: 'scheduled' }
+  // A push also ends any To arrange round trip, in the same update (migration
+  // 0068 refuses an arrange_state on a scheduled job) — this is how the
+  // scheduler finishes a job the client agreed but whose crew clashed.
+  const patch: Record<string, unknown> = { status: 'scheduled', ...arrangeClearPatch() }
   if (newDate) patch.date = newDate
 
   // .select('id') so an UPDATE that RLS filters out cannot pass as success:

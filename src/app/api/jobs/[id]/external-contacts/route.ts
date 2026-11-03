@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import type { Role } from '@/lib/supabase/types'
-import { formalCrewAllowed } from '@/lib/utils/job-stage-rules'
+import { externalLinkMode } from '@/lib/utils/job-stage-rules'
 import { loadJobStatus } from '@/lib/supabase/queries/job-status'
 
 // Assign / suggest / unassign an external contact on one job.
@@ -69,12 +69,14 @@ export async function POST(
     typeof body.contact_id === 'string' ? body.contact_id : undefined
   if (!contactId) return NextResponse.json({ error: 'Bad request' }, { status: 400 })
 
-  if (MANAGE_ROLES.includes(effectiveRole)) {
-    // No formal crew on a Ongoing job: crew is confirmed once it is on the
-    // schedule, so an installer can never see a Ongoing job (spec 2026-10-09).
-    if (!formalCrewAllowed(await loadJobStatus(supabase, jobId) ?? '')) {
-      return NextResponse.json({ error: 'Crew is confirmed once the job is on the schedule.' }, { status: 409 })
-    }
+  // Managers make a real link — but on an Ongoing job only a suggestion: crew
+  // is confirmed once the job is on the schedule (spec 2026-10-09), and the
+  // contractor's page shows confirmed links only. That suggestion is how a
+  // scheduler puts a contractor into a To arrange offer; Client OK confirms
+  // it (spec 2026-11-04). Sales always suggest.
+  const mode = externalLinkMode(effectiveRole, await loadJobStatus(supabase, jobId) ?? '')
+
+  if (mode === 'link') {
     // Real link. Upsert so confirming an existing sales suggestion upgrades
     // the same row (PK job_id+contact_id) instead of failing.
     const { error } = await supabase
@@ -87,7 +89,7 @@ export async function POST(
     return NextResponse.json({ ok: true })
   }
 
-  if (effectiveRole === 'sales') {
+  if (mode === 'suggest') {
     // Suggestion only — never overwrite an existing (real or suggested) link.
     const { error } = await supabase
       .from('job_external_contacts')

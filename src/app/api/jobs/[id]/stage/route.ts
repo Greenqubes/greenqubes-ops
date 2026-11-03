@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { stageOf, STAGE_STATUS, type Stage } from '@/lib/utils/job-stage'
 import { canMoveStage, isStageMoveValid, missingForStage, postponeNotifyNow, stageWriteVia, stageMoveBlocked } from '@/lib/utils/job-stage-rules'
+import { arrangeClearPatch } from '@/lib/utils/arrange-rules'
 import { recordCrewChange } from '@/lib/supabase/queries/notifications'
 import { sendTelegram } from '@/lib/telegram/bot'
 import { tplJobPostponed } from '@/lib/telegram/templates'
@@ -70,7 +71,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const postponing = from === 'scheduled' && to === 'ongoing'
-  const patch: Record<string, unknown> = { status: STAGE_STATUS[to as Stage] }
+  // Any stage move ends a To arrange round trip, in the same update —
+  // migration 0068 refuses an arrange_state on any status but Ongoing.
+  const patch: Record<string, unknown> = { status: STAGE_STATUS[to as Stage], ...arrangeClearPatch() }
   if (postponing) patch.date = null
 
   // 1. The job itself, on the caller's OWN client — RLS has the final say on

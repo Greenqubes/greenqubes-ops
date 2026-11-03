@@ -32,6 +32,9 @@ interface Props {
   role:      Role
   /** Completed jobs lock the bucket. */
   readOnly:  boolean
+  /** An Ongoing job: a manager's pick is a suggestion too, confirmed when the
+   *  job goes on the schedule (To arrange's Client OK, spec 2026-11-04). */
+  ongoing?:  boolean
 }
 
 const AVATAR_COLORS = ['#5C7A6B', '#7A6B8A', '#6B7A8A', '#8A6B6B', '#6B8A7A', '#8A7A6B']
@@ -46,7 +49,7 @@ function initials(name: string) {
 // immediately), delete with a warning (link dies instantly), restore with
 // full history. Scheduler / coordinator / admin only — the parent gates
 // rendering, RLS + routes gate the data.
-export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
+export function ExternalPOCBucket({ jobId, lang, role, readOnly, ongoing = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
 
   // Everyone office-side SEES the bucket (Nic, Phase 4 smoke test). Managers
@@ -54,6 +57,9 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
   // designer/production are strictly view-only.
   const isManager = (['scheduler', 'coordinator', 'admin'] as Role[]).includes(role) && !readOnly
   const isSales   = role === 'sales' && !readOnly
+  // On an Ongoing job the server writes a manager's pick as a suggestion
+  // (externalLinkMode) — mirror it, so nothing looks confirmed that is not.
+  const managerLinks = isManager && !ongoing
 
   const [open,      setOpen]      = useState(false)
   const [loaded,    setLoaded]    = useState(false)
@@ -85,7 +91,7 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
   // Sales   → suggestion (server decides by role; UI mirrors it).
   const assignContact = async (contactId: string) => {
     const prev = links.get(contactId)
-    setLinks(p => new Map(p).set(contactId, { is_suggestion: !isManager }))
+    setLinks(p => new Map(p).set(contactId, { is_suggestion: !managerLinks }))
     try {
       const res = await fetch(`/api/jobs/${jobId}/external-contacts`, {
         method:  'POST',
@@ -221,24 +227,25 @@ export function ExternalPOCBucket({ jobId, lang, role, readOnly }: Props) {
           onClick={() => assignContact(contactId)}
           className="text-[10px] font-bold px-2 py-1 rounded-md border border-line bg-bg text-ink2"
         >
-          + {t(lang, isManager ? 'extBucketAssign' : 'extBucketSuggest')}
+          + {t(lang, managerLinks ? 'extBucketAssign' : 'extBucketSuggest')}
         </button>
       )
     }
 
     // Sales suggestion (amber): manager taps to CONFIRM (upgrades the row);
     // sales taps to retract their own suggestion; others just see the label.
+    // On an Ongoing job a manager cannot confirm yet, so his tap removes it.
     if (link.is_suggestion) {
-      const label = t(lang, isSales ? 'extBucketSuggested' : 'extBucketSalesSuggested')
-      const action = isManager ? () => assignContact(contactId)
-                   : isSales   ? () => unassignContact(contactId)
+      const label = t(lang, isSales || (isManager && ongoing) ? 'extBucketSuggested' : 'extBucketSalesSuggested')
+      const action = managerLinks ? () => assignContact(contactId)
+                   : isSales || isManager ? () => unassignContact(contactId)
                    : undefined
       return (
         <button
           type="button"
           disabled={!action}
           onClick={action}
-          title={isManager ? t(lang, 'fcfsConfirm') : isSales ? t(lang, 'extBucketRemove') : undefined}
+          title={managerLinks ? t(lang, 'fcfsConfirm') : action ? t(lang, 'extBucketRemove') : undefined}
           className="text-[10px] font-bold px-2 py-1 rounded-md border bg-brand-amber-soft border-brand-amber/40 text-brand-amber disabled:opacity-100"
         >
           {label}
