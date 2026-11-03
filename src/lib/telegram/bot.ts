@@ -1,4 +1,5 @@
 import { logApiUsage } from '@/lib/supabase/queries/admin'
+import { splitForTelegram } from '@/lib/telegram/day-summary'
 
 const TELEGRAM_API = 'https://api.telegram.org'
 
@@ -92,6 +93,58 @@ export async function sendBugTelegram(text: string): Promise<void> {
   if (!res.ok) {
     console.error('[telegram-bug] sendMessage failed', res.status, await res.text())
   }
+}
+
+// The bug bot as a two-way chat (auto-fixer, 2026-11-04). Same bot, same
+// private chat as the new-report pings above. These report whether they sent,
+// so the auto-fixer can tell a delivered message from a silent failure.
+
+/** Sends a long HTML message in Telegram-sized parts, split at line breaks. */
+export async function sendBugTelegramChunks(text: string): Promise<boolean> {
+  const token  = process.env.TELEGRAM_BUG_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_BUG_CHAT_ID
+  if (!token || !chatId?.trim() || !text.trim()) return false
+  let allSent = true
+  for (const part of splitForTelegram(text)) {
+    const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ chat_id: chatId, text: part, parse_mode: 'HTML', disable_web_page_preview: true }),
+    })
+    if (!res.ok) {
+      console.error('[telegram-bug] sendMessage failed', res.status, await res.text())
+      allSent = false
+    }
+  }
+  return allSent
+}
+
+/** A photo by URL (Telegram fetches it) — wish screenshots. Caption is HTML. */
+export async function sendBugTelegramPhoto(photoUrl: string, caption: string): Promise<boolean> {
+  const token  = process.env.TELEGRAM_BUG_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_BUG_CHAT_ID
+  if (!token || !chatId?.trim()) return false
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendPhoto`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption.slice(0, 1000), parse_mode: 'HTML' }),
+  })
+  if (!res.ok) console.error('[telegram-bug] sendPhoto failed', res.status, await res.text())
+  return res.ok
+}
+
+/**
+ * Download URL for a photo Nic sent the bug bot. The URL embeds the bot token,
+ * so it is only ever fetched server-side — never handed to a browser or the
+ * cloud fixer (they get it through /api/autofix/file).
+ */
+export async function getBugBotFileUrl(fileId: string): Promise<string | null> {
+  const token = process.env.TELEGRAM_BUG_BOT_TOKEN
+  if (!token) return null
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`)
+  if (!res.ok) return null
+  const body = await res.json() as { ok: boolean; result?: { file_path?: string } }
+  return body.result?.file_path ? `${TELEGRAM_API}/file/bot${token}/${body.result.file_path}` : null
 }
 
 // ── Digest bot ─────────────────────────────────────────────────────────────────
