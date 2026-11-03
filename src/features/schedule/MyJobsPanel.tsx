@@ -164,7 +164,8 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
       else router.push(scheduleJumpHref(j.date, j.id))
       return
     }
-    router.push(jobListHref(group === 'draft' ? 'drafts' : 'ongoing', j.id))
+    // An Ongoing job in To arrange lives in that list, not Ongoing (2026-11-04).
+    router.push(jobListHref(group === 'draft' ? 'drafts' : j.arrange_state ? 'arrange' : 'ongoing', j.id))
   }
 
   const section = (title: string, list: StageJob[], group: Group) => {

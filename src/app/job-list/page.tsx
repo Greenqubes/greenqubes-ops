@@ -41,17 +41,22 @@ export default async function JobListPage() {
   // My Jobs panel here too (Nic, 2026-10-19): the same as on the Schedule page
   // for the roles with drafts, and a designer's assigned jobs for designers.
   const isDesigner = effectiveRole === 'designer'
-  const [ongoing, drafts, scheduledJobs] = await Promise.all([
+  const [allOngoing, drafts, scheduledJobs] = await Promise.all([
     getStageJobs(['awaiting_date']),                                         // raw status — see job-stage.ts
     hasDrafts ? getStageJobs(['pending', 'awaiting_approval']) : Promise.resolve(null), // DRAFTS; RLS (0062) keeps them private
     hasDrafts || isDesigner ? getStageJobs(['scheduled']) : Promise.resolve(null),     // for the panel only
   ])
-  const panelJobs = scheduledJobs ? [...ongoing, ...(drafts ?? []), ...scheduledJobs] : null
+  // To arrange (2026-11-04): Ongoing jobs sales has marked ready live in their
+  // own list, never in both.
+  const ongoing = allOngoing.filter(j => !j.arrange_state)
+  const arrange = allOngoing.filter(j => j.arrange_state)
+  const panelJobs = scheduledJobs ? [...allOngoing, ...(drafts ?? []), ...scheduledJobs] : null
 
   return (
     <Suspense>
-      <StageListShell ongoing={ongoing} drafts={drafts} canCreate={hasDrafts}
+      <StageListShell ongoing={ongoing} drafts={drafts} arrange={arrange} canCreate={hasDrafts}
         panelJobs={panelJobs} panelMode={isDesigner ? 'designer' : effectiveRole === 'scheduler' ? 'scheduler' : 'mine'} userId={profile.id}
+        isAdmin={profile.role === 'admin'}
         lang={(profile.lang as LangCode) ?? 'en'} role={effectiveRole} navRole={navRole} />
     </Suspense>
   )

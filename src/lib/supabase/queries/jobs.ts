@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { JobStatus, FileKind, Punctuality } from '@/lib/supabase/types'
 import { linkStatus, type LinkStatus } from '@/lib/utils/user-meta'
+import { parseArrangeState, parseArrangement, type ArrangeState, type Arrangement } from '@/lib/utils/arrange-rules'
 
 // â”€â”€ Schedule list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -527,35 +528,48 @@ export type StageJob = {
   coordinatorIds: string[]
   designerIds:    string[]
   designerNames:  string[]
+  /** To arrange (migration 0068) — parsed; null when not in To arrange. */
+  arrange_state:  ArrangeState | null
+  arrangement:    Arrangement | null
+  /** The sales PIC's name, for the To arrange cards. */
+  salesName:      string | null
 }
 
 // The date may be null here, which is why this is its own type rather than
 // ScheduleJob. Visibility is RLS's job: other people's drafts never come back
-// (0062). Designer names come from a follow-up query — never embed users onto
-// jobs in a PostgREST select (standing rule, broke twice).
+// (0062). Designer and sales names come from a follow-up query — never embed
+// users onto jobs in a PostgREST select (standing rule, broke twice).
 export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
   const supabase = await createClient()
-  type Row = Omit<StageJob, 'coordinatorIds' | 'designerIds' | 'designerNames'> & {
+  type Row = Omit<StageJob, 'coordinatorIds' | 'designerIds' | 'designerNames' | 'arrange_state' | 'arrangement' | 'salesName'> & {
+    arrange_state:    unknown
+    arrangement:      unknown
     job_coordinators: Array<{ user_id: string }>
     job_designers:    Array<{ user_id: string }>
   }
   const { data, error } = await supabase.from('jobs')
-    .select('id, status, date, date_end, project_title, client, client_poc_name, location, created_by, sales_poc_id, created_at, job_coordinators(user_id), job_designers(user_id)')
+    .select('id, status, date, date_end, project_title, client, client_poc_name, location, created_by, sales_poc_id, created_at, arrange_state, arrangement, job_coordinators(user_id), job_designers(user_id)')
     .in('status', statuses) // raw status — see job-stage.ts
     .order('created_at', { ascending: false })
   if (error) throw error
   const rows = (data ?? []) as unknown as Row[]
-  const designerIds = [...new Set(rows.flatMap(r => r.job_designers.map(d => d.user_id)))]
+  const peopleIds = [...new Set([
+    ...rows.flatMap(r => r.job_designers.map(d => d.user_id)),
+    ...rows.map(r => r.sales_poc_id).filter((id): id is string => !!id),
+  ])]
   const names = new Map<string, string>()
-  if (designerIds.length) {
-    const { data: us } = await supabase.from('users').select('id, name').in('id', designerIds) as
+  if (peopleIds.length) {
+    const { data: us } = await supabase.from('users').select('id, name').in('id', peopleIds) as
       { data: Array<{ id: string; name: string }> | null }
     for (const u of us ?? []) names.set(u.id, u.name)
   }
-  return rows.map(({ job_coordinators, job_designers, ...r }) => ({
+  return rows.map(({ job_coordinators, job_designers, arrange_state, arrangement, ...r }) => ({
     ...r,
     coordinatorIds: job_coordinators.map(c => c.user_id),
     designerIds:    job_designers.map(d => d.user_id),
     designerNames:  job_designers.map(d => names.get(d.user_id)).filter((n): n is string => !!n),
+    arrange_state:  parseArrangeState(arrange_state),
+    arrangement:    parseArrangement(arrangement),
+    salesName:      r.sales_poc_id ? names.get(r.sales_poc_id) ?? null : null,
   }))
 }

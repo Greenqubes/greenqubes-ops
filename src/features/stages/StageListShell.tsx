@@ -10,7 +10,8 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
 import { useToast } from '@/components/Toast'
 import { blinkJobCards } from '@/features/schedule/job-jump'
-import { resolveStageView, jobListHref, type StageView } from './stage-view'
+import { resolveStageView, jobListHref, defaultStageView, type StageView } from './stage-view'
+import { ArrangeList } from './ArrangeList'
 import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
@@ -27,8 +28,13 @@ import type { Role } from '@/lib/supabase/types'
  * My Jobs panel land on the right list; ?highlight=<jobId> scrolls to a row
  * only if it is off screen and blinks it twice.
  *
- * `drafts` is null for roles that have none (designer, production, hr): they
- * get the Ongoing list with no switch.
+ * `drafts` is null for roles that have none (designer, production, hr): their
+ * switch is Ongoing · To arrange.
+ *
+ * To arrange (Nic, 2026-11-04): a third list of Ongoing jobs sales has marked
+ * ready, after Drafts and Ongoing — the order follows a job's life. Those jobs
+ * leave the Ongoing list, so a job is only ever in one place. A bare
+ * /job-list opens on the role's default (defaultStageView).
  */
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -37,10 +43,14 @@ function dayLabel(iso: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMode, userId, lang, role, navRole }: {
+export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs, panelMode, userId, isAdmin, lang, role, navRole }: {
   ongoing:   StageJob[]
   drafts:    StageJob[] | null
+  /** Ongoing jobs in To arrange (arrange_state set). */
+  arrange:   StageJob[]
   canCreate: boolean
+  /** The REAL admin role — `role` reads 'scheduler' for a plain admin. */
+  isAdmin:   boolean
   /** My Jobs panel (Nic, 2026-10-19): null = no panel for this role. */
   panelJobs: StageJob[] | null
   panelMode: MyJobsMode
@@ -52,18 +62,23 @@ export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMod
   const router = useRouter()
   const params = useSearchParams()
   const highlight = params.get('highlight')
-  const view: StageView = resolveStageView(params.get('view'), drafts !== null)
-  const jobs = view === 'drafts' ? (drafts ?? []) : ongoing
+  const view: StageView = resolveStageView(params.get('view'), drafts !== null, defaultStageView(role))
+  const jobs = view === 'drafts' ? (drafts ?? []) : view === 'arrange' ? arrange : ongoing
   const { error: showError } = useToast()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
   // On a PC the open My Jobs panel takes the right edge; the list makes room.
   const [panelOpen, setPanelOpen] = useState(false)
+  // "Ready 3 days" needs today's Singapore date — read after mount, so the
+  // first render matches the server's.
+  const [todayISO, setTodayISO] = useState<string | null>(null)
+  useEffect(() => { setTodayISO(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })) }, [])
 
   // Bulk delete as the old Pending list had it: sales and coordinators on
-  // their drafts, schedulers anywhere. Deletes go to the Bin.
-  const canBulkDelete = role === 'scheduler' || (view === 'drafts' && (role === 'sales' || role === 'coordinator'))
+  // their drafts, schedulers anywhere. Deletes go to the Bin. Not on To
+  // arrange — those cards carry the round trip, not tick boxes.
+  const canBulkDelete = view !== 'arrange' && (role === 'scheduler' || (view === 'drafts' && (role === 'sales' || role === 'coordinator')))
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -145,7 +160,7 @@ export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMod
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="font-display text-xl text-ink">{tr(lang, 'jobsTabTitle')}</h1>
-            <p className="text-xs text-muted">{tr(lang, view === 'drafts' ? 'draftsSubtitle' : 'ongoingSubtitle')}</p>
+            <p className="text-xs text-muted">{tr(lang, view === 'drafts' ? 'draftsSubtitle' : view === 'arrange' ? 'arrangeSubtitle' : 'ongoingSubtitle')}</p>
           </div>
           {canCreate && (
             <Link href="/jobs/new"
@@ -155,12 +170,12 @@ export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMod
             </Link>
           )}
         </div>
-        {drafts !== null && (
-          <div className="inline-flex gap-1 rounded-[10px] border border-line bg-paper p-1">
-            {tabBtn('ongoing', tr(lang, 'stageOngoing'), ongoing.length)}
-            {tabBtn('drafts', tr(lang, 'stageDrafts'), drafts.length)}
-          </div>
-        )}
+        {/* Drafts · Ongoing · To arrange — a job's life, left to right (Nic). */}
+        <div className="inline-flex gap-1 rounded-[10px] border border-line bg-paper p-1">
+          {drafts !== null && tabBtn('drafts', tr(lang, 'stageDrafts'), drafts.length)}
+          {tabBtn('ongoing', tr(lang, 'stageOngoing'), ongoing.length)}
+          {tabBtn('arrange', tr(lang, 'stageArrange'), arrange.length)}
+        </div>
         <label className="flex items-center gap-2 rounded-[10px] border border-line bg-paper px-3 py-2">
           <Search size={14} className="text-muted" />
           <input value={query} onChange={e => setQuery(e.target.value)}
@@ -172,12 +187,18 @@ export function StageListShell({ ongoing, drafts, canCreate, panelJobs, panelMod
             Delete {selected.size}
           </button>
         )}
-        {filtered.length === 0 && <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>}
-        <ul className="space-y-2">{dated.map(row)}</ul>
-        {undated.length > 0 && (
+        {view === 'arrange' ? (
+          <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO} />
+        ) : (
           <>
-            <h2 className="pt-2 text-[11px] uppercase tracking-widest text-muted">{tr(lang, 'dateTbcHeading')}</h2>
-            <ul className="space-y-2">{undated.map(row)}</ul>
+            {filtered.length === 0 && <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>}
+            <ul className="space-y-2">{dated.map(row)}</ul>
+            {undated.length > 0 && (
+              <>
+                <h2 className="pt-2 text-[11px] uppercase tracking-widest text-muted">{tr(lang, 'dateTbcHeading')}</h2>
+                <ul className="space-y-2">{undated.map(row)}</ul>
+              </>
+            )}
           </>
         )}
       </div>
