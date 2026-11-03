@@ -1,5 +1,13 @@
 # Greenqubes — Claude Instructions
 
+## Unattended auto-fixer — read this first if `GQ_AUTOFIX=1`
+
+If the environment variable `GQ_AUTOFIX` is `1`, you are the **unattended overnight auto-fixer** running in Anthropic's cloud, not a session with Nic. **Skip "Session start" and "Session end" below entirely, never ask anyone anything, and follow `docs/autofix/RULES.md` and nothing else.** The Hard rules and Known issues below still apply. (Nic, 2026-11-04. Design: `docs/superpowers/specs/2026-11-04-auto-fixer-design.md`.)
+
+If `GQ_AUTOFIX` is not set, ignore this section — it is a normal session.
+
+---
+
 ## Session start (every session, no exceptions)
 
 Before doing anything else:
@@ -10,7 +18,8 @@ Before doing anything else:
 4. Read `docs/nic-checklist.md` top to bottom — list the unchecked items from the "Pending — Next Session" section as bullet points in your response, grouped by their sub-headings
 5. Read the latest session note — find it by looking at the bottom of the completed sessions table in `docs/plan.md` and following the linked note path
 6. Ask Nic: "Any updates to the AI importance scoring categories in the tagger? (1–5 scale in `src/lib/ai/tagger.ts`)"
-7. Do not proceed until Nic confirms you have the right context
+7. **Auto-fixer catch-up** (once migration 0069 is applied): list `autofix_items` that went live since the last session (Supabase REST, read-only), and check `dev` contains `main` — `git merge-base --is-ancestor origin/main origin/dev`. If not (an item has `dev_sync_needed`), merge `main` into `dev` before any other work. Fixes Nic approved on the bug bot reach `main` without a session.
+8. Do not proceed until Nic confirms you have the right context
 
 > **Bryan is permanently skipped, both ends of the session (Nic, 2026-09-07).** At session start, do not check `dev-bryan` for unmerged commits and do not merge it. At session end, do not read or update `docs-bryan/bryan-checklist.md`. The branch and that folder both still exist here and on GitHub — leave them alone unless Nic explicitly asks.
 
@@ -42,6 +51,7 @@ Before closing off:
    - **One line per item — roughly 8–15 words. Say what changed, then stop.** (Nic, 2026-09-08, after the first entry ran 30–47 words a bullet.) Cut the *why*, the how-to and the reassurance: this is a popup people skim, and anyone who wants the detail opens the screen. The ONE place to spend more words is `headsUp`, where someone has to act differently and a second clause earns its place. If a bullet needs a second sentence, the first sentence is usually too long. The 2026-09-07 entry in `entries.ts` is the worked example.
    - If a change would confuse someone who doesn't read it, it belongs in `headsUp`, not `improved`.
    - Nothing reached `main`? Skip this step silently — do not write an entry for work that only sits on `dev`.
+   - **Auto-fix lines are NOT written here.** Fixes Nic puts live from the bug bot carry their own one-line `whats_new_line` in the database, and the popup merges them in by date (major: the day it went live; minor: the following Monday). Do not copy them into `entries.ts`; a session's own entry for the same date combines with them automatically.
 5. Read `docs/session-naming.md`, pick the best prefix + topic, and propose a filepath in the format `docs/{prefix}/{prefix}-{topic}-{YYYYMMDD}-{n}-note.md` — check the relevant `docs/{prefix}/` folder for existing files with the same topic+date and increment `{n}` accordingly — **confirm with Nic before creating the file**
 
 ---
