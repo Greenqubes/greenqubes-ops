@@ -9,6 +9,7 @@ import {
   hhmm, validateGuide, guideJobPatch, validateOffer,
   clashKeys, newClashKeys, offerMatchesJob, offerHasCrew, clientOkSchedulerMessage,
   arrangeFieldLocks, seedCrewFromOffer, blocksPush, arrangeClearPatch, groupArrangeJobs,
+  parseArrangeAction, parseGuideInput, idList, reasonText,
   type ArrangeAction, type Arrangement, type ArrangeOffer, type ArrangeState,
 } from './arrange-rules'
 
@@ -229,6 +230,29 @@ check('needs a date: clash first, then oldest ready first, broken last',
   grouped.needsDate.map(j => j.id), ['clash', 'old-ready', 'new-ready', 'broken'])
 check('with sales: offered (oldest offer first), then couldn\'t fit',
   grouped.withSales.map(j => j.id), ['early-offer', 'late-offer', 'nofit'])
+
+// ── Task 6: reading a request ───────────────────────────────────────────────
+console.log('reading what the browser sends:')
+check('a known action', parseArrangeAction('client_ok'), 'client_ok')
+check('an unknown action', parseArrangeAction('delete_job'), null)
+check('not a string', parseArrangeAction(7), null)
+check('a full guide', parseGuideInput({ day: { mode: 'fixed', day: '2026-11-14' }, timeStart: '22:00', timeEnd: null, note: ' mall rule ' }),
+  { day: { mode: 'fixed', day: '2026-11-14' }, timeStart: '22:00', timeEnd: null, note: 'mall rule' })
+check('blank times and note become null', parseGuideInput({ day: { mode: 'any' }, timeStart: '', timeEnd: '', note: '   ' }),
+  { day: { mode: 'any' }, timeStart: null, timeEnd: null, note: null })
+check('missing fields become null', parseGuideInput({ day: { mode: 'any' } }),
+  { day: { mode: 'any' }, timeStart: null, timeEnd: null, note: null })
+check('only the fields of its own mode are kept',
+  parseGuideInput({ day: { mode: 'between', from: '2026-11-10', to: '2026-11-20', day: 'x', evil: 1 } }),
+  { day: { mode: 'between', from: '2026-11-10', to: '2026-11-20' }, timeStart: null, timeEnd: null, note: null })
+check('a bad day is refused', parseGuideInput({ day: { mode: 'soon' } }), null)
+check('no body is refused', parseGuideInput(null), null)
+check('a non-string time is refused', parseGuideInput({ day: { mode: 'any' }, timeStart: 2200 }), null)
+check('a very long note is cut to 500 characters', parseGuideInput({ day: { mode: 'any' }, note: 'x'.repeat(900) })?.note?.length, 500)
+check('crew ids: strings only, no repeats', idList(['a', 'b', 'a', 3, null]), ['a', 'b'])
+check('crew ids: not a list', idList('a'), [])
+check('reason text: trimmed, blank is null, capped', [reasonText('  away  '), reasonText('   '), reasonText(5), reasonText('y'.repeat(900))?.length],
+  ['away', null, null, 500])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall arrange-rules checks passed')

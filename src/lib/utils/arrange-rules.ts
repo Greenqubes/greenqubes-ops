@@ -101,6 +101,44 @@ export function parseArrangement(v: unknown): Arrangement | null {
   return a as unknown as Arrangement
 }
 
+// ── Reading what the browser sends ──────────────────────────────────────────
+// The route's body is untrusted: only known words, only strings, and only
+// the fields of the chosen day mode survive.
+
+const ACTIONS: readonly ArrangeAction[] = ['ready', 'offer', 'send_back', 'withdraw', 'client_no', 'client_ok', 'pull_back']
+const TEXT_MAX = 500
+
+export function parseArrangeAction(v: unknown): ArrangeAction | null {
+  return typeof v === 'string' && (ACTIONS as readonly string[]).includes(v) ? v as ArrangeAction : null
+}
+
+/** Free text from a person (a note, a reason): trimmed, blank → null, capped. */
+export function reasonText(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const t = v.trim()
+  return t ? t.slice(0, TEXT_MAX) : null
+}
+
+/** A list of ids: strings only, each once. */
+export function idList(v: unknown): string[] {
+  return Array.isArray(v) ? [...new Set(v.filter(isStr))] : []
+}
+
+export function parseGuideInput(v: unknown): GuideInput | null {
+  if (!v || typeof v !== 'object') return null
+  const b = v as Record<string, unknown>
+  if (!isDayGuide(b.day)) return null
+  const d = b.day
+  const day: DayGuide = d.mode === 'any' ? { mode: 'any' }
+    : d.mode === 'between' ? { mode: 'between', from: d.from, to: d.to }
+    : { mode: 'fixed', day: d.day }
+  for (const k of ['timeStart', 'timeEnd', 'note'] as const) {
+    if (b[k] !== undefined && b[k] !== null && typeof b[k] !== 'string') return null
+  }
+  const time = (t: unknown) => (typeof t === 'string' && t.trim() ? t.trim() : null)
+  return { day, timeStart: time(b.timeStart), timeEnd: time(b.timeEnd), note: reasonText(b.note) }
+}
+
 // ── The round trip ──────────────────────────────────────────────────────────
 
 /**
