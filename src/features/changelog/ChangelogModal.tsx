@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Modal } from '@/components/Modal'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { CHANGELOG, LATEST_CHANGELOG_DATE, changelogSeenKey, type ChangelogEntry } from '@/lib/changelog/entries'
+import { mergeChangelog, seenMarker, todaySgt, type AutoLine } from '@/lib/autofix/whats-new'
 
 /** Reopen from the profile menu without navigating (cf. the tour, which must). */
 export const CHANGELOG_OPEN_EVENT = 'changelog:open'
@@ -135,16 +136,28 @@ function Entry({ entry, open, onToggle }: {
   )
 }
 
-const newestDate = CHANGELOG[0] ? [CHANGELOG[0].date] : []
-
 export function ChangelogModal({ lang = 'en' }: { lang?: LangCode }) {
   const [open, setOpen] = useState(false)
+  // Auto-fix lines (database, not entries.ts — Nic, 2026-11-04: a major fix
+  // pops up the day it goes live, minor ones on Monday morning). Both are set
+  // only after mount, so the first render is exactly the hand-written list.
+  const [auto, setAuto] = useState<AutoLine[]>([])
+  const [today, setToday] = useState<string | null>(null)
+  const entries = useMemo(
+    () => (today ? mergeChangelog(CHANGELOG, auto, today) : CHANGELOG),
+    [auto, today],
+  )
   // Which releases are unfolded. Newest open, older ones closed — reset every
   // time the popup opens, so it always starts the same way.
-  const [openDates, setOpenDates] = useState<string[]>(newestDate)
+  const newest = entries[0]?.date
+  const [openDates, setOpenDates] = useState<string[]>(newest ? [newest] : [])
   const userIdRef = useRef<string | null>(null)
+  // What this reader must have seen: the newest date, plus a count once auto
+  // lines land on it (seenMarker) — so a major fix still pops on a date
+  // they had already read, while a session's own lines never re-pop it.
+  const markerRef = useRef<string>(LATEST_CHANGELOG_DATE)
 
-  useEffect(() => { if (open) setOpenDates(newestDate) }, [open])
+  useEffect(() => { if (open) setOpenDates(newest ? [newest] : []) }, [open, newest])
 
   const toggleDate = useCallback((date: string) => {
     setOpenDates(prev => prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date])
@@ -152,24 +165,36 @@ export function ChangelogModal({ lang = 'en' }: { lang?: LangCode }) {
 
   const markSeen = useCallback(() => {
     const id = userIdRef.current
-    if (!id || !LATEST_CHANGELOG_DATE) return
-    try { localStorage.setItem(changelogSeenKey(id), LATEST_CHANGELOG_DATE) } catch { /* best effort */ }
+    if (!id || !markerRef.current) return
+    try { localStorage.setItem(changelogSeenKey(id), markerRef.current) } catch { /* best effort */ }
   }, [])
 
-  // Auto-open once per person per device, only when the newest entry is one
-  // they haven't seen. Storage can throw (private windows, blocked site data),
-  // so a failure here must never stop the app — it just means no auto-open.
+  // Auto-open once per person per device, only when there is something they
+  // haven't seen. Storage and the auto-line fetch can both fail (private
+  // windows, offline, migration not applied) — that must never stop the app;
+  // it just means hand-written entries only, or no auto-open.
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (CHANGELOG.length === 0) return
       const { data } = await createClient().auth.getUser()
       const id = data.user?.id
       if (cancelled || !id) return
       userIdRef.current = id
+      let lines: AutoLine[] = []
+      try {
+        const res = await fetch('/api/changelog/auto', { cache: 'no-store' })
+        if (res.ok) lines = await res.json() as AutoLine[]
+      } catch { /* best effort */ }
+      if (cancelled) return
+      const day = todaySgt()
+      const merged = mergeChangelog(CHANGELOG, lines, day)
+      if (merged.length === 0) return
+      markerRef.current = seenMarker(merged, lines)
+      setAuto(lines)
+      setToday(day)
       let seen: string | null = null
       try { seen = localStorage.getItem(changelogSeenKey(id)) } catch { /* best effort */ }
-      if (seen !== LATEST_CHANGELOG_DATE) setOpen(true)
+      if (seen !== markerRef.current) setOpen(true)
     })()
     return () => { cancelled = true }
   }, [])
@@ -183,7 +208,7 @@ export function ChangelogModal({ lang = 'en' }: { lang?: LangCode }) {
 
   const close = useCallback(() => { markSeen(); setOpen(false) }, [markSeen])
 
-  if (CHANGELOG.length === 0) return null
+  if (entries.length === 0) return null
 
   return (
     // Twice as wide on a PC (Nic, 2026-09-10 — it read too small there);
@@ -192,7 +217,7 @@ export function ChangelogModal({ lang = 'en' }: { lang?: LangCode }) {
       {/* Scrolls inside itself so a long history never grows the popup past
           the screen (Nic). max-h in vh so it adapts to a phone. */}
       <div className="max-h-[60vh] lg:max-h-[70vh] space-y-5 overflow-y-auto pr-1">
-        {CHANGELOG.map(entry => (
+        {entries.map(entry => (
           <Entry
             key={entry.date}
             entry={entry}
