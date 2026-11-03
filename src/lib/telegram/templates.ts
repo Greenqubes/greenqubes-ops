@@ -584,3 +584,83 @@ export function tplJobPostponed(p: {
     `<a href="${p.jobUrl}">View in app →</a>`
   )
 }
+
+// ─── To arrange (spec 2026-11-04) ─────────────────────────────────────────────
+// Sales marks a job ready, the scheduler offers a slot, sales checks it with
+// the client. Notes and reasons are typed by people — always escaped. Slots
+// and guides arrive already labelled (src/lib/utils/arrange-labels.ts).
+
+type ArrangeJob = { projectTitle: string | null; jobClient: string; jobUrl: string }
+
+const arrangeHead = (p: ArrangeJob) =>
+  `<b>Project:</b> ${escHtml(p.projectTitle ?? p.jobClient)}\n` +
+  `<b>Client:</b> ${escHtml(p.jobClient)}\n`
+const viewLink = (p: ArrangeJob) => `<a href="${p.jobUrl}">View in app →</a>`
+const crewLine = (names: string[]) => `<b>Crew:</b> ${names.length ? escHtml(names.join(', ')) : 'to be added'}\n`
+
+// → schedulers: a job is ready for an install date.
+export function tplArrangeReady(p: ArrangeJob & {
+  salesName: string; guide: string; note: string | null; location: string
+}): string {
+  return (
+    `📋 <b>Ready to arrange</b>\n` +
+    arrangeHead(p) +
+    `<b>Sales:</b> ${escHtml(p.salesName)}\n` +
+    `<b>When:</b> ${escHtml(p.guide)}\n` +
+    (p.note ? `<b>Note:</b> ${escHtml(p.note)}\n` : '') +
+    `<b>Location:</b> ${escHtml(p.location)}\n\n` +
+    viewLink(p)
+  )
+}
+
+// → the job's sales PIC + coordinators: the scheduler's proposed slot.
+export function tplArrangeOffered(p: ArrangeJob & {
+  schedulerName: string; slot: string; crewNames: string[]
+}): string {
+  return (
+    `📅 <b>Install date offered</b>\n` +
+    arrangeHead(p) +
+    `<b>Offered:</b> ${escHtml(p.slot)}\n` +
+    crewLine(p.crewNames) +
+    `<b>By:</b> ${escHtml(p.schedulerName)}\n\n` +
+    `Check with the client, then press Client OK or Client said no.\n` +
+    viewLink(p)
+  )
+}
+
+const RETURN_HEADLINE: Record<'client_no' | 'no_fit' | 'withdrawn' | 'clash', string> = {
+  client_no: '↩️ <b>Client said no</b>',
+  no_fit:    "↩️ <b>Scheduler couldn't fit it</b>",
+  withdrawn: "↩️ <b>Offer withdrawn — don't confirm with the client</b>",
+  clash:     '⚠️ <b>Client agreed — crew now clashes</b>',
+}
+
+// → whoever's turn it now is: the job came back.
+export function tplArrangeReturned(p: ArrangeJob & {
+  kind: 'client_no' | 'no_fit' | 'withdrawn' | 'clash'
+  byName: string; text: string | null; slot: string | null
+}): string {
+  return (
+    `${RETURN_HEADLINE[p.kind]}\n` +
+    arrangeHead(p) +
+    (p.slot ? `<b>Slot:</b> ${escHtml(p.slot)}\n` : '') +
+    (p.text ? `<b>${p.kind === 'clash' ? 'Clashes' : 'Why'}:</b> ${escHtml(p.text)}\n` : '') +
+    `<b>By:</b> ${escHtml(p.byName)}\n\n` +
+    viewLink(p)
+  )
+}
+
+// → schedulers: the client agreed and the job is on the schedule with its crew.
+export function tplArrangeClientOk(p: ArrangeJob & {
+  slot: string; crewNames: string[]; awayNames: string[]
+}): string {
+  return (
+    `✅ <b>Client agreed — on the schedule</b>\n` +
+    arrangeHead(p) +
+    `<b>When:</b> ${escHtml(p.slot)}\n` +
+    crewLine(p.crewNames) +
+    (p.awayNames.length ? `<b>Away (warning only):</b> ${escHtml(p.awayNames.join(', '))}\n` : '') +
+    `\n` +
+    viewLink(p)
+  )
+}
