@@ -205,3 +205,120 @@ export function validateOffer(
   if (a.timeEnd && hhmm(slot.timeEnd) !== hhmm(a.timeEnd)) return 'time_locked'
   return null
 }
+
+// ── Clashes at Client OK ────────────────────────────────────────────────────
+// Nothing is held while the client thinks it over, so the crew may be booked
+// elsewhere in the meantime. Only a clash that was NOT there when the
+// scheduler offered sends the job back to him — one he knowingly offered
+// past would otherwise bounce it every time (spec, builder check). Away never
+// counts: it is amber and never blocks (2026-10-12 rule).
+
+export function clashKeys(r: {
+  clashes: Array<{ installerId: string; conflict: { jobId: string } }>
+  leaveClashes: Array<{ installerId: string }>
+}): string[] {
+  const keys = new Set<string>([
+    ...r.clashes.map(c => `b:${c.installerId}:${c.conflict.jobId}`),
+    ...r.leaveClashes.map(l => `l:${l.installerId}`),
+  ])
+  return [...keys].sort()
+}
+
+export function newClashKeys(current: string[], accepted: string[]): string[] {
+  const seen = new Set(accepted)
+  return current.filter(k => !seen.has(k))
+}
+
+/** The job still carries the slot that was offered. The page locks the
+ *  fields while an offer is out; this catches a stale tab that did not. */
+export function offerMatchesJob(o: ArrangeOffer, slot: Slot): boolean {
+  return o.date === slot.date
+    && (o.dateEnd ?? null) === (slot.dateEnd ?? null)
+    && hhmm(o.timeStart) === hhmm(slot.timeStart)
+    && hhmm(o.timeEnd) === hhmm(slot.timeEnd)
+}
+
+export function offerHasCrew(o: ArrangeOffer): boolean {
+  return o.driverIds.length + o.supportIds.length + o.contactIds.length > 0
+}
+
+/** Without a driver the job still needs crew, so the schedulers get the
+ *  ordinary "New Job — Assign Installer" message (Nic: crew is optional in an
+ *  offer). With one, a short "client agreed, it's on the schedule". */
+export function clientOkSchedulerMessage(o: ArrangeOffer): 'arranged' | 'assign_crew' {
+  return o.driverIds.length > 0 ? 'arranged' : 'assign_crew'
+}
+
+// ── The job page ────────────────────────────────────────────────────────────
+
+/**
+ * Which of the job form's date/time fields are locked. One source of truth
+ * for the slot: while an offer is out, or once the client agreed (clash),
+ * nobody may change it. While the scheduler is choosing, what sales fixed
+ * stays fixed; sales change the slot through the guide, not the form.
+ */
+export function arrangeFieldLocks(
+  state: ArrangeState | null, a: Arrangement | null,
+  side: { sales: boolean; scheduler: boolean },
+): { date: boolean; time: boolean } {
+  if (state === null) return { date: false, time: false }
+  if (state === 'offered' || state === 'clash') return { date: true, time: true }
+  if (side.scheduler) return { date: a?.day.mode === 'fixed', time: !!a?.timeStart }
+  return { date: true, time: true }
+}
+
+/** The scheduler's crew picks, filled back in from his last offer — after a
+ *  client no or a withdraw, and in a clash, where he only changes the crew.
+ *  Seeds the picks, never the saved baseline, so they count as unsaved and
+ *  Push to Schedule writes them (pushCrewPlan). */
+export function seedCrewFromOffer(
+  state: ArrangeState | null, a: Arrangement | null, canAssign: boolean,
+): { driverIds: string[]; supportIds: string[] } | null {
+  if (!canAssign || !a?.offer || (state !== 'needs_date' && state !== 'clash')) return null
+  return { driverIds: a.offer.driverIds, supportIds: a.offer.supportIds }
+}
+
+/** While an offer is with the client, Push to Schedule would skip the
+ *  client — Client OK or a withdraw first. */
+export function blocksPush(state: ArrangeState | null): boolean {
+  return state === 'offered'
+}
+
+/** Every move out of Ongoing writes this in the SAME update — migration 0068's
+ *  check refuses an arrange_state on any other status. */
+export function arrangeClearPatch(): { arrange_state: null; arrangement: null } {
+  return { arrange_state: null, arrangement: null }
+}
+
+// ── The To arrange list ─────────────────────────────────────────────────────
+
+type ListRow = { arrange_state: ArrangeState | null; arrangement: Arrangement | null }
+
+/** Sort key, oldest first; a missing one sorts last rather than dropping the
+ *  job from the list. */
+function byKey<T>(key: (j: T) => string | undefined) {
+  return (a: T, b: T) => {
+    const x = key(a), y = key(b)
+    if (x === y) return 0
+    if (x === undefined) return 1
+    if (y === undefined) return -1
+    return x < y ? -1 : 1
+  }
+}
+
+/**
+ * Needs a date (the scheduler's turn): clashes first — the client already
+ * agreed — then longest-waiting first. Waiting on sales: offers out
+ * (oldest first), then the ones he could not fit.
+ */
+export function groupArrangeJobs<T extends ListRow>(jobs: T[]): { needsDate: T[]; withSales: T[] } {
+  const of = (s: ArrangeState) => jobs.filter(j => j.arrange_state === s)
+  const ready = byKey<T>(j => j.arrangement?.readyAt)
+  return {
+    needsDate: [...of('clash').sort(ready), ...of('needs_date').sort(ready)],
+    withSales: [
+      ...of('offered').sort(byKey<T>(j => j.arrangement?.offer?.at)),
+      ...of('no_fit').sort(byKey<T>(j => j.arrangement?.lastReturn?.at)),
+    ],
+  }
+}

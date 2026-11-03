@@ -7,7 +7,9 @@ import {
   parseArrangeState, parseArrangement, nextArrangeState, arrangeTurn,
   isArrangeSalesSide, isArrangeSchedulerSide, canArrange,
   hhmm, validateGuide, guideJobPatch, validateOffer,
-  type ArrangeAction, type Arrangement,
+  clashKeys, newClashKeys, offerMatchesJob, offerHasCrew, clientOkSchedulerMessage,
+  arrangeFieldLocks, seedCrewFromOffer, blocksPush, arrangeClearPatch, groupArrangeJobs,
+  type ArrangeAction, type Arrangement, type ArrangeOffer, type ArrangeState,
 } from './arrange-rules'
 
 let failures = 0
@@ -139,6 +141,94 @@ check('a locked end time changed',
   validateOffer({ day: { mode: 'any' }, timeStart: '22:00', timeEnd: '23:00' }, slot('2026-11-12', '22:00', '23:30'), T), 'time_locked')
 check('no time locked: the scheduler may pick any',
   validateOffer(range, slot('2026-11-12', '09:00', '12:00'), T), null)
+
+// ── Task 3 ──────────────────────────────────────────────────────────────────
+console.log('clashes — only NEW ones send a job back (Nic, builder check):')
+const result = {
+  clashes:      [{ installerId: 'r', conflict: { jobId: 'j1' } }, { installerId: 'r', conflict: { jobId: 'j1' } }],
+  leaveClashes: [{ installerId: 'a' }],
+}
+check('booking and leave keys, sorted, unique', clashKeys(result), ['b:r:j1', 'l:a'])
+check('no clashes, no keys', clashKeys({ clashes: [], leaveClashes: [] }), [])
+check('an accepted clash is not new', newClashKeys(['b:r:j1'], ['b:r:j1']), [])
+check('a fresh clash is new', newClashKeys(['b:r:j1', 'l:a'], ['b:r:j1']), ['l:a'])
+check('a clash that went away is not new', newClashKeys([], ['b:r:j1']), [])
+
+const offer: ArrangeOffer = {
+  by: 'x', byName: 'Jun', at: '2026-11-03T03:00:00Z',
+  date: '2026-11-12', dateEnd: null, timeStart: '22:00', timeEnd: null,
+  driverIds: [], supportIds: [], contactIds: [], crewNames: [], acceptedClashKeys: [],
+}
+const offerSlot = { date: '2026-11-12', dateEnd: null, timeStart: '22:00', timeEnd: null }
+console.log('the offer still matches the job:')
+check('same slot matches', offerMatchesJob(offer, offerSlot), true)
+check('stale DB seconds still match the offer',
+  offerMatchesJob({ ...offer, timeStart: '22:00' }, { ...offerSlot, timeStart: '22:00:00' }), true)
+check('moved date does not match', offerMatchesJob(offer, { ...offerSlot, date: '2026-11-13' }), false)
+check('changed time does not match', offerMatchesJob(offer, { ...offerSlot, timeStart: '21:00' }), false)
+check('an added end date does not match', offerMatchesJob(offer, { ...offerSlot, dateEnd: '2026-11-13' }), false)
+check('an added end time does not match', offerMatchesJob(offer, { ...offerSlot, timeEnd: '23:00' }), false)
+
+console.log('crew on the offer:')
+check('no crew at all', offerHasCrew(offer), false)
+check('support crew only counts as crew', offerHasCrew({ ...offer, supportIds: ['s'] }), true)
+check('a contractor only counts as crew', offerHasCrew({ ...offer, contactIds: ['k'] }), true)
+check('a driver → the short "client agreed" message', clientOkSchedulerMessage({ ...offer, driverIds: ['r'] }), 'arranged')
+check('no driver → the normal Assign Installer message', clientOkSchedulerMessage({ ...offer, supportIds: ['s'] }), 'assign_crew')
+check('no crew → the normal Assign Installer message', clientOkSchedulerMessage(offer), 'assign_crew')
+
+console.log('which date/time fields are locked on the job page:')
+const sched = { sales: false, scheduler: true }, sales = { sales: true, scheduler: false }, both = { sales: true, scheduler: true }
+const fixedTimed: Arrangement = { ...good, day: { mode: 'fixed', day: '2026-11-14' }, timeStart: '22:00' }
+check('not in To arrange: nothing locked', arrangeFieldLocks(null, null, sales), { date: false, time: false })
+check('offered: locked for the scheduler', arrangeFieldLocks('offered', good, sched), { date: true, time: true })
+check('offered: locked for sales', arrangeFieldLocks('offered', good, sales), { date: true, time: true })
+check('clash: the client agreed the slot — locked', arrangeFieldLocks('clash', good, sched), { date: true, time: true })
+check('needs a date, a range, time given: scheduler picks the day only',
+  arrangeFieldLocks('needs_date', good, sched), { date: false, time: true })
+check('needs a date, fixed day and time: scheduler picks neither',
+  arrangeFieldLocks('needs_date', fixedTimed, sched), { date: true, time: true })
+check('needs a date, any day, any time: scheduler picks both',
+  arrangeFieldLocks('needs_date', { ...good, day: { mode: 'any' }, timeStart: null }, sched), { date: false, time: false })
+check('needs a date: sales change it through the guide, not the form',
+  arrangeFieldLocks('needs_date', good, sales), { date: true, time: true })
+check('no fit: sales locked too', arrangeFieldLocks('no_fit', good, sales), { date: true, time: true })
+check('admin is both — scheduler rules win', arrangeFieldLocks('needs_date', good, both), { date: false, time: true })
+
+console.log('the scheduler\'s crew picks come back filled in:')
+const withOffer: Arrangement = { ...good, offer: { ...offer, driverIds: ['r'], supportIds: ['s'] } }
+check('after a client no, the scheduler sees his last crew',
+  seedCrewFromOffer('needs_date', withOffer, true), { driverIds: ['r'], supportIds: ['s'] })
+check('in a clash, the scheduler sees the agreed crew to change',
+  seedCrewFromOffer('clash', withOffer, true), { driverIds: ['r'], supportIds: ['s'] })
+check('not for sales', seedCrewFromOffer('needs_date', withOffer, false), null)
+check('not while offered (locked, read from the card)', seedCrewFromOffer('offered', withOffer, true), null)
+check('no offer yet, nothing to seed', seedCrewFromOffer('needs_date', good, true), null)
+
+console.log('Push to Schedule while an offer is with the client:')
+check('blocked while offered', blocksPush('offered'), true)
+check('allowed while it needs a date', blocksPush('needs_date'), false)
+check('allowed in a clash (that is how the scheduler finishes it)', blocksPush('clash'), false)
+check('allowed outside To arrange', blocksPush(null), false)
+check('arrangeClearPatch clears both', arrangeClearPatch(), { arrange_state: null, arrangement: null })
+
+console.log('the To arrange list:')
+const row = (id: string, state: ArrangeState | null, arr: Arrangement | null) => ({ id, arrange_state: state, arrangement: arr })
+const at = (readyAt: string, extra: Partial<Arrangement> = {}): Arrangement => ({ ...good, readyAt, ...extra })
+const grouped = groupArrangeJobs([
+  row('old-ready', 'needs_date', at('2026-11-01T00:00:00Z')),
+  row('new-ready', 'needs_date', at('2026-11-03T00:00:00Z')),
+  row('clash', 'clash', at('2026-11-02T00:00:00Z')),
+  row('broken', 'needs_date', null),
+  row('late-offer', 'offered', at('2026-11-01T00:00:00Z', { offer: { ...offer, at: '2026-11-03T05:00:00Z' } })),
+  row('early-offer', 'offered', at('2026-11-01T00:00:00Z', { offer: { ...offer, at: '2026-11-02T05:00:00Z' } })),
+  row('nofit', 'no_fit', at('2026-10-30T00:00:00Z', { lastReturn: { kind: 'no_fit', text: 'full', by: 'x', byName: 'Jun', at: '2026-11-01T00:00:00Z' } })),
+  row('not-arranging', null, null),
+])
+check('needs a date: clash first, then oldest ready first, broken last',
+  grouped.needsDate.map(j => j.id), ['clash', 'old-ready', 'new-ready', 'broken'])
+check('with sales: offered (oldest offer first), then couldn\'t fit',
+  grouped.withSales.map(j => j.id), ['early-offer', 'late-offer', 'nofit'])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall arrange-rules checks passed')
