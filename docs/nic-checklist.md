@@ -105,6 +105,11 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [x] **[Nic] Test external contacts — nothing left to delete.** Only two contacts remain, CK and Fu, both real contractors on real completed jobs (Fossil Westgate 4 Sept, Sunglass Hut Tangs 17 Sept).
 
 ### To build
+- [ ] **Auto-fixer page in Admin** (asked 2026-11-04) — see the fixer's work without reading anything technical
+  - The latest run: started, running, done or failed, with a link to its log
+  - Each bug and crash with its verdict in plain words: fix ready to try (with its test link), wish, junk, needs a session, live
+- [ ] **Auto-fixer progress pings on Telegram** (asked 2026-11-04) — a few short messages during a run, e.g. "Started — 22 to sort", "Sorted — fixing 1 of 2", then the usual summary
+  - Keep it to a handful per run so it doesn't get noisy
 - [ ] **Files-tab attachment folders get the same 24-hour delete window** as the photo sections — you said yes 2026-09-28; held because that day was housekeeping only. A one-line code change.
 - [ ] **Tell the crew when a scheduled job changes** (a date move currently tells nobody)
   - Which changes are worth a message (date, time, address — not notes)?
