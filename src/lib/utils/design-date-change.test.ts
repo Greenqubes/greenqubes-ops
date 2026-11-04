@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/utils/design-date-change.test.ts
  * Exits 1 on any failure.
  */
-import { designDateChange } from './design-date-change'
+import { designDateChange, designPatchBody } from './design-date-change'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -20,6 +20,30 @@ check('same date', designDateChange('2026-10-15', '2026-10-15'), 'none')
 check('not sent', designDateChange('2026-10-15', undefined), 'none')
 check('null to null', designDateChange(null, null), 'none')
 check("'' counts as cleared", designDateChange('2026-10-15', ''), 'cleared')
+
+// The job page's PATCH body for the design fields. Only a body carrying
+// `date` makes the route shift the due date and tell the designers.
+const fields = { brief: 'Brief', dueDate: '2026-11-10', dueManual: false }
+check('a save that moves the date sends it',
+  designPatchBody({ ...fields, newDate: '2026-11-20', jobDate: '2026-11-15' }),
+  { design_brief: 'Brief', design_due_date: '2026-11-10', design_due_manual: false, date: '2026-11-20' })
+check('an unchanged date is left out',
+  designPatchBody({ ...fields, newDate: '2026-11-15', jobDate: '2026-11-15' }),
+  { design_brief: 'Brief', design_due_date: '2026-11-10', design_due_manual: false })
+check('a kept typed due date says so',
+  designPatchBody({ ...fields, newDate: '2026-11-20', jobDate: '2026-11-15', keepManualDue: true }),
+  { design_brief: 'Brief', design_due_date: '2026-11-10', design_due_manual: false, date: '2026-11-20', keepManualDue: true })
+check('an empty brief is sent as null',
+  designPatchBody({ ...fields, brief: '', newDate: null, jobDate: null }),
+  { design_brief: null, design_due_date: '2026-11-10', design_due_manual: false })
+// Nic 2026-11-04: the designers' due date is separate from a To arrange
+// offer — a proposed date must not move it or message the designers.
+check('a To arrange offer never sends the date',
+  designPatchBody({ ...fields, newDate: '2026-11-20', jobDate: '2026-11-15', proposedDate: true }),
+  { design_brief: 'Brief', design_due_date: '2026-11-10', design_due_manual: false })
+check('a To arrange offer on a dateless job never sends the date',
+  designPatchBody({ ...fields, newDate: '2026-11-20', jobDate: null, proposedDate: true }),
+  { design_brief: 'Brief', design_due_date: '2026-11-10', design_due_manual: false })
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall design-date-change checks passed')

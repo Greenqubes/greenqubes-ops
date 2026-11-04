@@ -42,6 +42,7 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { briefRequiredError } from '@/lib/utils/design-brief-rules'
 import { installerCompleteState } from '@/lib/utils/completion-rules'
 import { daysBetween, addDaysISO, todaySGT } from '@/lib/utils/design-urgency'
+import { designPatchBody } from '@/lib/utils/design-date-change'
 import type { ClashesResponse } from '@/app/api/jobs/[id]/clashes/route'
 import type { JobDetail, InstallerUser, JobMessage, AttachmentBucket } from '@/lib/supabase/queries/jobs'
 import type { Role, JobStatus, Punctuality } from '@/lib/supabase/types'
@@ -263,7 +264,7 @@ export function JobDetailShell({
   // save — "Save anyway" then carries on with the push.
   const pendingPushRef = useRef<{ keepManualDue: boolean } | null>(null)
   // The same, for the scheduler's To arrange offer (spec 2026-11-04).
-  const pendingOfferRef = useRef<{ keepManualDue: boolean } | null>(null)
+  const pendingOfferRef = useRef(false)
   const [offering, setOffering] = useState(false)
   const [showSuccessModal,     setShowSuccessModal]    = useState(false)
   const [showPushAnywaysModal, setShowPushAnywaysModal]= useState(false)
@@ -555,18 +556,15 @@ export function JobDetailShell({
   // PATCH the stale pre-shift date straight back over the server's shift.
   const saveDesignBriefFields = async (
     newDate: string | null,
-    opts: { keepManualDue?: boolean } = {},
+    opts: { keepManualDue?: boolean; proposedDate?: boolean } = {},
   ): Promise<void> => {
     const designRes = await fetch(`/api/jobs/${job.id}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        design_brief:      briefText || null,
-        design_due_date:   dueDate,
-        design_due_manual: dueManual,
-        ...(newDate !== job.date ? { date: newDate || null } : {}),
-        ...(opts.keepManualDue ? { keepManualDue: true } : {}),
-      }),
+      body:    JSON.stringify(designPatchBody({
+        brief: briefText, dueDate, dueManual, newDate, jobDate: job.date,
+        keepManualDue: opts.keepManualDue, proposedDate: opts.proposedDate,
+      })),
     })
     if (!designRes.ok) throw new Error()
     const { design_due_date } = await designRes.json() as { ok: boolean; design_due_date: string | null }
@@ -608,8 +606,11 @@ export function JobDetailShell({
     bumpSuppression()
     setSaving(true)
     try {
-      if (isBriefDirty || (values.date || null) !== job.date) {
-        await saveDesignBriefFields(values.date || null, { keepManualDue })
+      // A job in To arrange holds a proposed date — saving it never moves the
+      // designers' due date or messages them (Nic 2026-11-04).
+      const proposedDate = arrangeState !== null
+      if (isBriefDirty || (!proposedDate && (values.date || null) !== job.date)) {
+        await saveDesignBriefFields(values.date || null, { keepManualDue, proposedDate })
       }
 
       const [, addedCoordinatorIds] = await Promise.all([
@@ -702,8 +703,9 @@ export function JobDetailShell({
     // ANY save path runs (including the installer clash check below), so
     // whichever branch eventually calls performSave already has the
     // decision. Resolves instantly with false when the trigger condition
-    // isn't met — no modal, no behaviour change.
-    const keepManualDue = await resolveDueConflict(values.date)
+    // isn't met — no modal, no behaviour change. A job in To arrange never
+    // shifts the due date (performSave), so there is nothing to ask.
+    const keepManualDue = arrangeState !== null ? false : await resolveDueConflict(values.date)
 
     const timeChanged =
       values.date        !== (job.date ?? '') ||
@@ -783,11 +785,10 @@ export function JobDetailShell({
   const resumeSaveAfterClash = async (alertSchedulers: boolean) => {
     // A To arrange offer that stopped for the crew check carries on as an
     // offer — the server records the clashes he offered past.
-    const offer = pendingOfferRef.current
-    if (offer) {
-      pendingOfferRef.current = null
+    if (pendingOfferRef.current) {
+      pendingOfferRef.current = false
       setEditClashes(null)
-      await runOffer(offer.keepManualDue)
+      await runOffer()
       return
     }
     // A push that stopped for the crew check carries on as a push.
@@ -1105,23 +1106,25 @@ export function JobDetailShell({
     const bad = arrangement && validateOffer(arrangement,
       { date: v.date || null, dateEnd: v.date_end || null, timeStart: v.time_start || null, timeEnd: v.time_end || null }, todaySG)
     if (bad) { showError(t(lang, `arrangeOfferErr_${bad}` as 'arrangeOfferErr_in_past')); return }
-    const keepManualDue = await resolveDueConflict(v.date)
     if (selectedInstallerIds.length > 0) {
       setOffering(true)
       const shown = await showCrewClashes(v)
       setOffering(false)
-      if (shown) { pendingOfferRef.current = { keepManualDue }; return }
+      if (shown) { pendingOfferRef.current = true; return }
     }
-    await runOffer(keepManualDue)
+    await runOffer()
   }
 
-  const runOffer = async (keepManualDue: boolean) => {
+  const runOffer = async () => {
     bumpSuppression()
     setOffering(true)
     try {
-      // The offer is what is SAVED — save the slot (and anything else typed) first.
+      // The offer is what is SAVED — save the slot (and anything else typed)
+      // first. The offered date is only a proposal, so it never moves the
+      // designers' due date or messages them (Nic 2026-11-04): it is saved
+      // with the form, and the design route only gets a typed brief/due date.
       const v = getValues()
-      if (isBriefDirty || (v.date || null) !== job.date) await saveDesignBriefFields(v.date || null, { keepManualDue })
+      if (isBriefDirty) await saveDesignBriefFields(v.date || null, { proposedDate: true })
       if (isDirty) await saveValues(v)
       const res = await fetch(`/api/jobs/${job.id}/arrange`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2167,7 +2170,7 @@ export function JobDetailShell({
         lang={lang}
         onAlertScheduler={() => resumeSaveAfterClash(true)}
         onProceed={() => resumeSaveAfterClash(false)}
-        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false; pendingPushRef.current = null; pendingOfferRef.current = null }}
+        onClose={() => { setEditClashes(null); setEditLeaveClashes([]); setEditAwayClashes([]); pendingValuesRef.current = null; pendingKeepManualDueRef.current = false; pendingPushRef.current = null; pendingOfferRef.current = false }}
       />
       {clashData && (
         <ClashResolutionModal
