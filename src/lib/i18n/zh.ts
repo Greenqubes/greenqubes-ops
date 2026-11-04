@@ -202,6 +202,7 @@ export const zh: Partial<Translations> = {
   uploadFailed: '上传失败 — {reason}',
   fileDeleted: '文件已删除。',
   deleteFileConfirm: '删除此文件？此操作无法撤销。',
+  replaceLastCompletionHint: '要替换这张照片，请先上传正确的照片，再删除这张。',
   deleteFileNotYours: '只能删除自己上传的文件。',
   submitForApproval: '提交审批',
   recallApproval: '撤回',

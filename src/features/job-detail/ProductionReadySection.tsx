@@ -18,7 +18,7 @@ import type { Role } from '@/lib/supabase/types'
 import { showSignedDoSection } from '@/lib/utils/completion-rules'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { checkUpload, bytesToMb } from '@/lib/storage/upload-rules'
-import { canDeleteJobFile } from '@/lib/storage/job-file-permissions'
+import { canDeleteJobFile, canFixAfterCompletion } from '@/lib/storage/job-file-permissions'
 import { ScanModal, type ScanSource } from '@/features/scan/ScanModal'
 import { uploadJobFile } from './upload-job-file'
 
@@ -96,9 +96,11 @@ interface UploadSectionProps {
    *  to the job follows `canUpload`, otherwise the PDF downloads. */
   scannable?: boolean
   jobTitle?:  string | null
+  /** A muted line under the list (e.g. how to replace the last completion photo). */
+  note?:      string
 }
 
-function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, accept = 'image/*,video/*', canDelete, scannable = false, jobTitle = null }: UploadSectionProps) {
+function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, accept = 'image/*,video/*', canDelete, scannable = false, jobTitle = null, note }: UploadSectionProps) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = createClient()
   const router   = useRouter()
@@ -213,6 +215,7 @@ function UploadSection({ label, kind, files, canUpload, jobId, userId, lang, acc
           })}
         </ul>
       )}
+      {note && <p className="text-xs text-muted mb-2">{note}</p>}
       {(canUpload || scannable) && (
         <div className="flex flex-wrap gap-2">
           {canUpload && (
@@ -255,12 +258,23 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
   // Production team (and office roles) manage production photos; installer/designer cannot.
   const canUploadProduction = !readOnly && !isInstaller && !isDesigner
   // Installer signs the DO; designer never uploads.
-  const canUploadDo         = !readOnly && !isDesigner
-  const canUploadCompletion = !readOnly && !isDesigner
+  // On a completed job (readOnly is true from that moment) sales and
+  // schedulers may still add to these two sections — Nic, 2026-11-04: an
+  // installer uploaded nothing and the job was closed on a stand-in photo.
+  const isCompleted         = jobStatus === 'completed'
+  const fixDo               = isCompleted && canFixAfterCompletion(role, 'do')
+  const fixCompletion       = isCompleted && canFixAfterCompletion(role, 'completion')
+  const canUploadDo         = (!readOnly && !isDesigner) || fixDo
+  const canUploadCompletion = (!readOnly && !isDesigner) || fixCompletion
 
   const productionPhotos = files.filter(f => f.kind === 'production_instructions')
   const signedDoFiles    = files.filter(f => f.kind === 'do')
   const completionPhotos = files.filter(f => f.kind === 'completion')
+  // A completed job keeps its last completion photo, so its bin is hidden;
+  // say how to swap it instead of leaving the fixer wondering.
+  const completionNote   = fixCompletion && completionPhotos.length === 1
+    ? t(lang, 'replaceLastCompletionHint')
+    : undefined
 
   // Who sees a bin (Nic, 2026-09-28): one rule for all three photo sections —
   // anyone's upload, while the job is open and for 24 hours after it is
@@ -321,7 +335,7 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
 
       {/* Signed DO — only once production ticks "DO issued" (no DO means
           nothing to sign); an already-uploaded file always stays visible */}
-      {showSignedDoSection({ doIssued: !!watch?.('do_issued'), signedDoFileCount: signedDoFiles.length }) && (
+      {showSignedDoSection({ doIssued: !!watch?.('do_issued'), signedDoFileCount: signedDoFiles.length, canAddAfterCompletion: fixDo }) && (
         <UploadSection
           label="Signed DO (Optional)"
           kind="do"
@@ -347,6 +361,7 @@ export function ProductionReadySection({ register, watch, setValue, readOnly, ro
         jobId={jobId}
         userId={userId}
         lang={lang}
+        note={completionNote}
       />
     </ProductionFrame>
   )

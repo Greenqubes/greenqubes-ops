@@ -34,6 +34,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-04',
+    // 21:45 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793799946344, captured the moment /api/version flipped to
+    // a38ee4a7c649 (commit b1c0ddf, completed-job photo fixes). Never the
+    // local clock (CLAUDE.md).
+    time: '21:45',
+    headsUp: [
+      'Schedulers: to close a job with no photos, use **Mark job complete**. Don\'t upload a stand-in photo.',
+    ],
+    added: [
+      'Sales and schedulers can add or remove completion photos and signed DOs on completed jobs.',
+    ],
+  },
+  {
     date: '2026-10-30',
     // 17:22 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1793352177376, captured the moment /api/version flipped to

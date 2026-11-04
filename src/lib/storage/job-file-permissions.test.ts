@@ -4,7 +4,7 @@
  * Exits 1 on any failure.
  */
 
-import { canManageJobFiles, canDeleteJobFile, canAttachFiles } from './job-file-permissions'
+import { canManageJobFiles, canDeleteJobFile, canAttachFiles, canFixAfterCompletion } from './job-file-permissions'
 
 let failures = 0
 
@@ -81,10 +81,13 @@ check('a week later → locked', done({ now: doneMs + 7 * 24 * HOUR }), { allowe
 check('completed with no recorded time → locked', done({ completedAt: null }), { allowed: false, reason: 'completed' })
 check('garbage completion time → locked', done({ completedAt: 'not-a-date' }), { allowed: false, reason: 'completed' })
 
-// Office staff get the same window
+// Office staff get the same window (sales, scheduler and admin get more — see
+// "Fixing a finished job's photos" below)
 for (const role of ['sales', 'scheduler', 'coordinator', 'production', 'admin']) {
   check(`${role}: completion photo within 24h`, done({ role }), { allowed: true })
   check(`${role}: Signed DO within 24h`, done({ role, fileKind: 'do' }), { allowed: true })
+}
+for (const role of ['coordinator', 'production']) {
   check(`${role}: locked after 24h`, done({ role, now: doneMs + 25 * HOUR }), { allowed: false, reason: 'completed' })
 }
 check('production photos within 24h (office)', done({ role: 'production', fileKind: 'production_instructions' }), { allowed: true })
@@ -97,6 +100,44 @@ check('office cannot take the last one either',
 check('Signed DO has no minimum', done({ fileKind: 'do', otherCompletionFiles: 0 }), { allowed: true })
 check('after 24h, "completed" is the reason even for the last photo',
   done({ otherCompletionFiles: 0, now: doneMs + 30 * HOUR }), { allowed: false, reason: 'completed' })
+
+// ── Fixing a finished job's photos (Nic, 2026-11-04) ──
+// The reported case: the installer uploaded nothing, so the scheduler put in a
+// stand-in photo just to close the job, and Nic wants to swap it for the real
+// ones. Sales and schedulers (admin too) may ADD to and BIN from Completion
+// Photos and Signed DO on a completed job, with NO time limit. The last
+// completion photo still stays: add the right one first, then bin the wrong one.
+// The old rule locked that stand-in photo for good 24 hours after completion —
+// the first two checks below are exactly that case.
+const weekLater = doneMs + 7 * 24 * HOUR
+for (const role of ['sales', 'scheduler', 'admin']) {
+  check(`${role}: bin a completion photo a week after completion`,
+    done({ role, now: weekLater }), { allowed: true })
+  check(`${role}: bin a Signed DO a week after completion`,
+    done({ role, fileKind: 'do', now: weekLater }), { allowed: true })
+  check(`${role}: still keeps the last completion photo`,
+    done({ role, otherCompletionFiles: 0, now: weekLater }), { allowed: false, reason: 'last-completion' })
+  check(`${role}: Signed DO can still go to zero`,
+    done({ role, fileKind: 'do', otherCompletionFiles: 0, now: weekLater }), { allowed: true })
+  check(`${role}: production photos still lock 24h after completion`,
+    done({ role, fileKind: 'production_instructions', now: weekLater }), { allowed: false, reason: 'completed' })
+  check(`${role}: attachments still locked on a completed job`,
+    done({ role, fileKind: 'attachment', now: weekLater }), { allowed: false, reason: 'completed' })
+  check(`${role}: may add completion photos to a completed job`, canFixAfterCompletion(role, 'completion'), true)
+  check(`${role}: may add a Signed DO to a completed job`, canFixAfterCompletion(role, 'do'), true)
+  check(`${role}: not production photos on a completed job`, canFixAfterCompletion(role, 'production_instructions'), false)
+  check(`${role}: not attachments on a completed job`, canFixAfterCompletion(role, 'attachment'), false)
+}
+// Everyone else keeps today's rule: 24 hours to bin, nothing added after completion
+for (const role of ['installer', 'coordinator', 'production', 'designer', 'hr']) {
+  check(`${role}: cannot add completion photos to a completed job`, canFixAfterCompletion(role, 'completion'), false)
+  check(`${role}: cannot add a Signed DO to a completed job`, canFixAfterCompletion(role, 'do'), false)
+}
+check('installer: still locked a week after completion', done({ now: weekLater }), { allowed: false, reason: 'completed' })
+check('coordinator: still locked a week after completion',
+  done({ role: 'coordinator', now: weekLater }), { allowed: false, reason: 'completed' })
+check('no role: cannot add', canFixAfterCompletion(null, 'completion'), false)
+check('no kind: cannot add', canFixAfterCompletion('sales', null), false)
 
 // What does NOT change
 check('installer: never attachments', del({ fileKind: 'attachment' }), { allowed: false, reason: 'role' })
