@@ -314,6 +314,7 @@ export const en = {
   uploadFailed: 'Upload failed — {reason}',
   fileDeleted: 'File deleted.',
   deleteFileConfirm: 'Delete this file? This cannot be undone.',
+  replaceLastCompletionHint: 'To replace this photo, add the right one first, then bin this one.',
   deleteFileNotYours: 'You can only delete files you uploaded.',
   pendingFiles: 'Attachments',
   attachFiles: 'Attach Files',

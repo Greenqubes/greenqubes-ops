@@ -24,9 +24,14 @@ export function installerCompleteState(p: {
 // no DO issued means there is nothing to sign (the installer view already
 // says "No DO Required" for the same condition). An already-uploaded signed
 // DO always stays visible, even if the tick is later removed.
+//
+// On a completed job, whoever may still add a signed DO (sales / scheduler —
+// canFixAfterCompletion, Nic 2026-11-04) always gets the box: nobody can tick
+// DO issued on a closed job, so without this the late DO had nowhere to go.
 export function showSignedDoSection(p: {
-  doIssued:          boolean
-  signedDoFileCount: number
+  doIssued:               boolean
+  signedDoFileCount:      number
+  canAddAfterCompletion?: boolean
 }): boolean {
-  return p.doIssued || p.signedDoFileCount > 0
+  return p.doIssued || p.signedDoFileCount > 0 || !!p.canAddAfterCompletion
 }
