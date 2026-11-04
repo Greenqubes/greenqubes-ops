@@ -14,12 +14,14 @@ import { escapeHtml } from './nightly-message'
 export type ChatRow = { role: 'nic' | 'bot'; text: string; photos: string[]; created_at: string }
 
 export type BugChatDeps = {
-  nicChatId: string | undefined
+  /** TELEGRAM_BUG_CHAT_ID — one chat id, or several comma-separated. */
+  nicChatIds: string | undefined
   addChat(role: 'nic' | 'bot', text: string, updateId?: number, photos?: string[]): Promise<boolean>
   history(): Promise<ChatRow[]>
   reply(photos: string[]): Promise<string>
-  send(html: string): Promise<unknown>
-  typing(): Promise<unknown>
+  /** Reply in the chat that asked (Nic may use either of his listed chats). */
+  send(chatId: string, html: string): Promise<unknown>
+  typing(chatId: string): Promise<unknown>
   now(): string
 }
 
@@ -49,8 +51,9 @@ export function photosForMessage(rows: ChatRow[], nowIso: string): string[] {
 export type HandleResult = 'ignored' | 'empty' | 'duplicate' | 'photo-held' | 'replied' | 'failed'
 
 export async function handleBugUpdate(update: TgUpdate, d: BugChatDeps): Promise<HandleResult> {
-  if (!isFromNic(update, d.nicChatId)) return 'ignored'
+  if (!isFromNic(update, d.nicChatIds)) return 'ignored'
   const m = update.message!
+  const chat = String(m.chat.id)
   const text = (m.text ?? m.caption ?? '').slice(0, 4000).trim()
   const largest = m.photo?.length
     ? m.photo.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
@@ -62,19 +65,19 @@ export async function handleBugUpdate(update: TgUpdate, d: BugChatDeps): Promise
 
   // A photo on its own: keep it for his next message, no model call.
   if (!text) {
-    await d.send(PHOTO_ACK)
+    await d.send(chat, PHOTO_ACK)
     return 'photo-held'
   }
 
-  await d.typing()
+  await d.typing(chat)
   try {
     const reply = await d.reply(photosForMessage(await d.history(), d.now()))
     await d.addChat('bot', reply)
-    await d.send(escapeHtml(reply))
+    await d.send(chat, escapeHtml(reply))
     return 'replied'
   } catch (e) {
     console.error('[bug-chat] reply failed', e)
-    await d.send(APOLOGY)
+    await d.send(chat, APOLOGY)
     return 'failed'
   }
 }

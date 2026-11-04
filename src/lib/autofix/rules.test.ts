@@ -6,7 +6,7 @@
  */
 
 import { buildIdOf, epochFromVercelId } from './build-id'
-import { isFromNic, secretOk, goLiveNamed, type TgUpdate } from './telegram-auth'
+import { isFromNic, secretOk, goLiveNamed, bugChatIds, type TgUpdate } from './telegram-auth'
 import { canFire, isStale, crashFollowUp, fireFailureNotice, attemptsExhausted, attemptsAfterReport, MAX_ATTEMPTS, MAX_FIRES_PER_DAY } from './scheduling'
 
 let failures = 0
@@ -41,6 +41,18 @@ check('right chat, wrong sender → false', isFromNic(msg(123456789, 555), NIC),
 check('chat id unset → false', isFromNic(msg(123456789, 123456789), undefined), false)
 check('chat id blank → false', isFromNic(msg(123456789, 123456789), '  '), false)
 check('no message (an edit or a button) → false', isFromNic({ update_id: 2 }, NIC), false)
+
+// Nic, 2026-11-05: "reach both user" — his own Telegram AND the GreenqubesAI
+// admin's, which he rarely opens. TELEGRAM_BUG_CHAT_ID may list both.
+check('list of two ids', bugChatIds('1234567890, 643049746'), ['1234567890', '643049746'])
+check('single id still works', bugChatIds('643049746'), ['643049746'])
+check('blank / unset → none', [bugChatIds('  '), bugChatIds(undefined)], [[], []])
+check('junk entries dropped', bugChatIds('643049746,,abc, '), ['643049746'])
+const BOTH = '1234567890,643049746'
+check('first listed chat → true', isFromNic(msg(1234567890, 1234567890), BOTH), true)
+check('second listed chat → true', isFromNic(msg(643049746, 643049746), BOTH), true)
+check('a chat not on the list → false', isFromNic(msg(555, 555), BOTH), false)
+check('listed chat id but someone else sending → false', isFromNic(msg(643049746, 555), BOTH), false)
 
 check('secret matches', secretOk('abc', 'abc'), true)
 check('secret wrong', secretOk('abd', 'abc'), false)

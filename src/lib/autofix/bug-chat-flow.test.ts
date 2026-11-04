@@ -42,10 +42,11 @@ check('an earlier text message in between → not joined',
 
 // ── handling one update ──
 const NIC = 555
-const upd = (text: string | undefined, photo?: string, id = 1): TgUpdate => ({
+const ADMIN = 1234567890 // the GreenqubesAI admin's Telegram — also on the list (Nic, 2026-11-05)
+const upd = (text: string | undefined, photo?: string, id = 1, from = NIC): TgUpdate => ({
   update_id: id,
   message: {
-    message_id: id, chat: { id: NIC, type: 'private' }, from: { id: NIC },
+    message_id: id, chat: { id: from, type: 'private' }, from: { id: from },
     ...(text !== undefined ? { text } : {}),
     ...(photo ? { photo: [{ file_id: `${photo}-small`, width: 90, height: 90 }, { file_id: photo, width: 1280, height: 960 }] } : {}),
   },
@@ -57,12 +58,12 @@ function fake(opts: { fresh?: boolean; history?: ChatRow[]; replyThrows?: boolea
   const sent: string[] = []
   let repliedWith: string[] | null = null
   const deps: BugChatDeps = {
-    nicChatId: String(NIC),
+    nicChatIds: `${ADMIN},${NIC}`,
     addChat: async (role, text, _updateId, photos = []) => { log.push(`save:${role}`); saved.push({ role, text, photos }); return opts.fresh ?? true },
     history: async () => opts.history ?? [],
     reply: async photos => { log.push('reply'); repliedWith = photos; if (opts.replyThrows) throw new Error('boom'); return 'Putting fix 12 live now <ok>' },
-    send: async text => { log.push('send'); sent.push(text) },
-    typing: async () => { log.push('typing') },
+    send: async (chatId, text) => { log.push(`send:${chatId}`); sent.push(text) },
+    typing: async chatId => { log.push(`typing:${chatId}`) },
     now: () => NOW,
   }
   return { deps, log, saved, sent, repliedWith: () => repliedWith }
@@ -83,14 +84,21 @@ async function main() {
     const f = fake()
     const r = await handleBugUpdate(upd(undefined, 'PHOTO'), f.deps)
     check('photo on its own → kept, with the large version', f.saved[0], { role: 'nic', text: '(photo)', photos: ['PHOTO'] })
-    check('…acknowledged without bothering the model', [r, f.log, f.sent], ['photo-held', ['save:nic', 'send'], [PHOTO_ACK]])
+    check('…acknowledged without bothering the model', [r, f.log, f.sent], ['photo-held', ['save:nic', `send:${NIC}`], [PHOTO_ACK]])
   }
   {
     const f = fake({ history: [row('nic', '(photo)', ['P1'], 1), row('nic', 'fix 12 still cut off', [], 0)] })
     const r = await handleBugUpdate(upd('fix 12 still cut off'), f.deps)
-    check('text → "typing…" shown BEFORE the slow part', f.log.slice(0, 3), ['save:nic', 'typing', 'reply'])
+    check('text → "typing…" shown BEFORE the slow part, in the chat that asked', f.log.slice(0, 3), ['save:nic', `typing:${NIC}`, 'reply'])
     check('…the earlier photo goes with it', f.repliedWith(), ['P1'])
     check('…reply saved and sent, escaped for Telegram', [r, f.saved[1], f.sent], ['replied', { role: 'bot', text: 'Putting fix 12 live now <ok>', photos: [] }, ['Putting fix 12 live now &lt;ok&gt;']])
+  }
+  {
+    // Either listed chat may talk to the bot; the answer goes back to the one that asked.
+    const f = fake()
+    const r = await handleBugUpdate(upd('what is waiting', undefined, 7, ADMIN), f.deps)
+    check('the admin Telegram (second on the list) is answered too', r, 'replied')
+    check('…in its own chat, not the other one', f.log.filter(l => l.startsWith('send') || l.startsWith('typing')), [`typing:${ADMIN}`, `send:${ADMIN}`])
   }
   {
     const f = fake({ replyThrows: true })

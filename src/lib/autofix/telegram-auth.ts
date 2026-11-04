@@ -1,8 +1,13 @@
 import { timingSafeEqual } from 'node:crypto'
 
 // Who may talk to the bug bot. Its chat can put a fix on the live app, so the
-// answer is: Nic, in his own private chat, and nobody else — not a group he is
-// in, not someone who found the bot. Anything else is ignored silently.
+// answer is: Nic, in his own private chat(s), and nobody else — not a group he
+// is in, not someone who found the bot. Anything else is ignored silently.
+//
+// TELEGRAM_BUG_CHAT_ID may list more than one chat, comma-separated (Nic,
+// 2026-11-05: "reach both user" — his own Telegram and the GreenqubesAI admin
+// account he rarely opens). Every listed chat gets the bot's messages and may
+// talk to it; a reply goes back to the chat that asked.
 
 export type TgPhoto = { file_id: string; width: number; height: number }
 
@@ -18,13 +23,18 @@ export type TgUpdate = {
   }
 }
 
-export function isFromNic(u: TgUpdate, nicChatId: string | undefined): boolean {
-  const id = nicChatId?.trim()
-  if (!id || !u.message) return false
+/** The chat ids in TELEGRAM_BUG_CHAT_ID — one, or several comma-separated. */
+export function bugChatIds(raw: string | undefined): string[] {
+  return (raw ?? '').split(/[\s,]+/).filter(id => /^-?\d+$/.test(id))
+}
+
+export function isFromNic(u: TgUpdate, nicChatIds: string | undefined): boolean {
+  if (!u.message) return false
   const m = u.message
+  const chat = String(m.chat.id)
   return m.chat.type === 'private'
-    && String(m.chat.id) === id
-    && String(m.from?.id ?? '') === id
+    && bugChatIds(nicChatIds).includes(chat)
+    && String(m.from?.id ?? '') === chat
 }
 
 const AFFIRMATIVE = /^(y|yes|yep|yeah|yup|ok|okay|sure|go|go ahead|go live|do it|confirm|confirmed|proceed|push it|send it)([\s,.!]+(go ahead|go|do it|please|thanks|send it|push it))*[\s.!]*$/i

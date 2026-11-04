@@ -72,7 +72,10 @@ A setting only takes effect at the next deploy, so redeploy production once afte
 2. Then register it with Telegram (`setWebhook` with `secret_token` = `TELEGRAM_BUG_WEBHOOK_SECRET`).
 3. Then you send the bot "what's waiting?". It should answer.
 
-The bot only answers **your** private chat. `TELEGRAM_BUG_CHAT_ID` is a private chat id. If the bot never answers you, that chat belongs to a different account, and Claude will check which one.
+The bot only answers **your** private chats. `TELEGRAM_BUG_CHAT_ID` can list more than one chat id, separated by commas. Since 2026-11-05 it lists **both** your own Telegram (643049746) and the GreenqubesAI admin's (your call).
+- Every listed chat gets the bug pings and the fixer's messages.
+- You can chat with the bot from either one, and its reply comes back to the chat you asked from.
+- Anyone else is ignored.
 
 ## 6. One test, end to end *(you + Claude)*
 
