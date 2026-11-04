@@ -17,7 +17,7 @@
 import type { Item } from './actions'
 import type { GateResult } from './gate'
 import type { MergeResult } from './github'
-import { GO_LIVE_TIMEOUT_MINUTES } from './scheduling'
+import { GO_LIVE_TIMEOUT_MINUTES, MAX_ATTEMPTS, attemptsExhausted } from './scheduling'
 
 type Outcome = { ok: true } | { ok: false; reason: string }
 
@@ -59,6 +59,12 @@ export async function startGoLiveWith(item: Item, d: GoLiveDeps): Promise<Outcom
     return { ok: false, reason: "GitHub couldn't say what has changed on the live app — nothing changed; you can ask again in a bit" }
   }
   const overlap = gate.paths.filter(p => mainFiles.includes(p))
+  if (overlap.length > 0 && attemptsExhausted(item.attempts)) {
+    // No endless "fresh copy" loop (Nic, 2026-11-05: flag it and stop).
+    const reason = `the live app keeps changing in the same place and this fix has been tried ${MAX_ATTEMPTS} times — it needs a session`
+    await d.update(item.id, { status: 'needs_session', reason, going_live_at: null })
+    return { ok: false, reason }
+  }
   if (overlap.length > 0) {
     await d.update(item.id, {
       status:        'retry',

@@ -4,6 +4,7 @@
 // live. Each returns the plain-English reply Nic sees.
 
 import type { ItemStatus } from './report-parse'
+import { attemptsExhausted, MAX_ATTEMPTS } from './scheduling'
 
 export type Note = { at: string; text: string; photos: string[] }
 
@@ -69,6 +70,9 @@ export async function tryAgain(no: number, note: string, photos: string[], now: 
   }
   if (it.status === 'going_live') {
     return `Fix ${no} is going live right now — wait for it to land, then tell me if it's still wrong.`
+  }
+  if (attemptsExhausted(it.attempts)) {
+    return `Fix ${no} has already been tried ${MAX_ATTEMPTS} times without a fix that passes its checks, so I've stopped to save effort. It needs a session with Claude.`
   }
   await d.update(it.id, {
     status:    'retry',

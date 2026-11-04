@@ -107,6 +107,13 @@ async function main() {
     check('now=true but capped → still saved for tonight', f.get()?.status, 'retry')
     check('now=true but capped → reason passed on', reply.includes('5 times today'), true)
   }
+  {
+    // Nic, 2026-11-05: after a few tries, flag it and stop — don't burn tokens.
+    const f = fake(item({ status: 'needs_session', attempts: 3 }))
+    const reply = await tryAgain(12, 'still broken', [], true, f.deps)
+    check('tried 3 times already → no more tries', [f.calls.updates.length, f.calls.fire], [0, 0])
+    check('…and Nic is told it needs a session', reply.includes('3 times') && reply.includes('session'), true)
+  }
 
   // Drop.
   {

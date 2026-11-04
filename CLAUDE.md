@@ -60,6 +60,8 @@ Before closing off:
 
 All code changes must be committed and pushed to the `dev` branch first. Vercel will generate a preview deployment automatically. Only after the preview is confirmed working should changes be merged into `main` (production). Never push untested changes directly to `main`.
 
+**One narrow exception — the auto-fixer (Nic, 2026-11-04; wording approved by Nic 2026-11-05).** An overnight fix lives on its own `claude/autofix-*` branch with its own preview. When Nic tests that preview and tells the bug bot to put it live, the app merges **that one branch** into `main` and then `main` into `dev`. Nic's message is the explicit go-ahead for that fix only; it covers nothing else. Sessions still push `dev` first and need "push to main" as always.
+
 The `feat-job-form-redesign`, `feat-workflow-v2`, and `feat-live-updates` branches are kept for historical record only — do not push new changes to them.
 
 **Workflow V3 (project containers) was CANCELLED 2026-09-04 and its branch DELETED 2026-09-07** (both Nic's calls). Round 1 was built but never merged; rounds 2–3 were dropped. `feat-workflow-v3` is gone from this machine and from GitHub — unlike V2, it was NOT kept as an archive (Nic: "kill this v3 branch"). Its last commit was `5ea130b`; the code is recoverable only from GitHub's deleted-branch grace window or a local reflog, and only if resurrected soon. The spec and plans survive on `dev` under `docs/superpowers/` carrying cancelled banners — do not build from them. Migration `0051_job_projects.sql` stays applied to the shared DB and its file lives on `dev`/`main`: additive, unused by any code, and 0052+ are numbered on top of it — never renumber or drop it.

@@ -8,7 +8,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import type { CrashRow } from './crash-signature'
 import type { Item, Note } from './actions'
-import { RUN_STALE_MINUTES } from './scheduling'
+import { RUN_STALE_MINUTES, attemptsExhausted } from './scheduling'
 import { sgtDate } from './whats-new'
 
 export type ItemRow = Item & {
@@ -134,8 +134,9 @@ export async function latestItemForSignature(signature: string): Promise<ItemRow
   return data as ItemRow | null
 }
 
+/** Items Nic (or a returning crash) sent back — never one already tried MAX_ATTEMPTS times. */
 export async function retryItems(): Promise<ItemRow[]> {
-  return itemsByStatus(['retry'])
+  return (await itemsByStatus(['retry'])).filter(i => !attemptsExhausted(i.attempts))
 }
 
 export async function appendNote(item: Item, note: Note): Promise<boolean> {

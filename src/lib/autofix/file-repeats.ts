@@ -4,16 +4,23 @@
 // Nic's "look at this now" alike — so the cloud only ever sees new problems
 // (final review, 2026-11-04: a daytime run used to skip this and could then
 // overwrite a fix that was waiting for Nic).
+//
+// A fix that has already been tried MAX_ATTEMPTS times is not reopened again:
+// it is flagged for a session and Nic is told once (Nic, 2026-11-05: "flag it
+// instead and stop fixing to not burn tokens").
 
 import { groupCrashes } from './crash-signature'
-import { crashFollowUp } from './scheduling'
+import { crashFollowUp, EXHAUSTED_REASON } from './scheduling'
+import { escapeHtml } from './nightly-message'
 import { unattachedCrashes, latestItemForSignature, attachCrashes, updateItem } from './store'
+import { sendBugTelegramChunks } from '@/lib/telegram/bot'
 
-export async function fileRepeatCrashes(): Promise<{ filed: number; reopened: number }> {
+export async function fileRepeatCrashes(): Promise<{ filed: number; reopened: number; flagged: number }> {
   const crashes = await unattachedCrashes()
   const byId = new Map(crashes.map(c => [c.id, c]))
   let filed = 0
   let reopened = 0
+  const flagged: string[] = []
   for (const g of groupCrashes(crashes)) {
     const item = await latestItemForSignature(g.signature)
     if (!item) continue // a new problem — the cloud looks at it
@@ -21,7 +28,11 @@ export async function fileRepeatCrashes(): Promise<{ filed: number; reopened: nu
       const c = byId.get(id)
       return crashFollowUp(item, { build_id: c?.build_id ?? null, occurred_at: c?.occurred_at ?? new Date().toISOString() })
     })
-    if (decisions.includes('reopen')) {
+    if (decisions.includes('flag')) {
+      await attachCrashes(g.rowIds, item.id, false)
+      await updateItem(item.id, { status: 'needs_session', reason: `it crashed again — ${EXHAUSTED_REASON}` })
+      flagged.push(`<b>${item.no}</b> — ${escapeHtml(item.title ?? 'Untitled')}`)
+    } else if (decisions.includes('reopen')) {
       await attachCrashes(g.rowIds, item.id, false)
       await updateItem(item.id, {
         status:    'retry',
@@ -39,5 +50,10 @@ export async function fileRepeatCrashes(): Promise<{ filed: number; reopened: nu
       filed += g.rowIds.length
     }
   }
-  return { filed, reopened }
+  if (flagged.length > 0) {
+    await sendBugTelegramChunks(
+      `These crashed again after 3 tries, so I've stopped working on them to save effort — they need a session with Claude:\n${flagged.join('\n')}`,
+    )
+  }
+  return { filed, reopened, flagged: flagged.length }
 }

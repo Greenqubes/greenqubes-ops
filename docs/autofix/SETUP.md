@@ -4,18 +4,16 @@ Everything below is switched **off** until these steps are done. The app works e
 
 ## 0. Three decisions only you can make
 
-1. **Apply the database change (0069).** *(Claude, on your OK)*
-   - It adds the fixer's three tables. It also adds a "which version" column to crashes and bug reports, and a "closed" status for reports.
-   - Nothing is removed or rewritten.
-   - Until it's applied, crashes and bug reports save exactly as today, just without the version.
-   - The command is `npx -y supabase@2 db push`. The newest database tool version refuses this project's settings file, so it has to be run with the previous one.
-2. **Change the "nothing goes live without push to main" rule.** *(you approve, Claude edits)*
-   - Claude's safety system refused to change this rule without you, which is correct.
-   - The wording to approve, for CLAUDE.md, in the "Deployment workflow" section:
-     > **One narrow exception — the auto-fixer (Nic, 2026-11-04).** An overnight fix lives on its own `claude/autofix-*` branch with its own preview. When Nic tests that preview and tells the bug bot to put it live, the app merges **that one branch** into `main` and then `main` into `dev`. Nic's message is the explicit go-ahead for that fix only; it covers nothing else. Sessions still push `dev` first and need "push to main" as always.
+1. ~~**Apply the database change (0069).**~~ **Done 2026-11-05, on your OK.**
+   - It added the fixer's three tables, a "which version" column on crashes and bug reports, and a "closed" status for reports.
+   - Nothing was removed or rewritten.
+   - It was checked straight after: the tables exist, signed-out visitors can neither read nor add, and the test row was deleted.
+2. ~~**Change the "nothing goes live without push to main" rule.**~~ **Approved by you 2026-11-05, and added to CLAUDE.md** (the "Deployment workflow" section).
+   - Your bug-bot "go live" message is the OK for that one fix only.
 3. **The fixer runs on your Claude plan**, the same allowance as your sessions with Claude.
    - At most 3 fixes a night and 5 starts a day.
    - Quiet nights cost nothing.
+   - **Each problem gets 3 tries in total.** After that the fixer stops working on it and flags it for a session with Claude. Your "try again" is refused for it, so it can't keep using up your plan.
 
 ## 1. Let Claude's cloud into the code *(you, about 2 minutes)*
 

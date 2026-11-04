@@ -7,7 +7,7 @@
 
 import { buildIdOf, epochFromVercelId } from './build-id'
 import { isFromNic, secretOk, goLiveNamed, type TgUpdate } from './telegram-auth'
-import { canFire, isStale, crashFollowUp, fireFailureNotice, MAX_FIRES_PER_DAY } from './scheduling'
+import { canFire, isStale, crashFollowUp, fireFailureNotice, attemptsExhausted, attemptsAfterReport, MAX_ATTEMPTS, MAX_FIRES_PER_DAY } from './scheduling'
 
 let failures = 0
 
@@ -87,6 +87,24 @@ check('live fix, crash before it went live → attach and resolve', crashFollowU
 check('closed as already fixed, crashes again → reopen (it was not fixed)', crashFollowUp({ verdict: 'already_fixed', status: 'closed', live_build_id: null, live_at: null }, crash('aaa', LIVE_AT)), 'reopen')
 check('awaiting Nic → attach', crashFollowUp({ verdict: 'fix', status: 'awaiting_nic', live_build_id: null, live_at: null }, crash('aaa', LIVE_AT)), 'attach')
 check('dropped → attach (Nic said leave it)', crashFollowUp({ verdict: 'fix', status: 'dropped', live_build_id: null, live_at: null }, crash('aaa', LIVE_AT)), 'attach')
+
+// ── stop after a few tries (Nic, 2026-11-05: "flag it instead and stop
+//    fixing to not burn tokens") ──
+check(`${MAX_ATTEMPTS - 1} tries → keep going`, attemptsExhausted(MAX_ATTEMPTS - 1), false)
+check(`${MAX_ATTEMPTS} tries → stop`, attemptsExhausted(MAX_ATTEMPTS), true)
+check('a fix tried 3 times crashes again → flag, not another round',
+  crashFollowUp({ ...live, attempts: 3 }, crash('ccc', '2026-11-05T13:30:00Z')), 'flag')
+check('"already fixed" tried 3 times crashes again → flag',
+  crashFollowUp({ verdict: 'already_fixed', status: 'closed', live_build_id: null, live_at: null, attempts: 3 }, crash('aaa', LIVE_AT)), 'flag')
+check('a fix tried once crashes again → still reopens',
+  crashFollowUp({ ...live, attempts: 1 }, crash('ccc', '2026-11-05T13:30:00Z')), 'reopen')
+// Every report that worked on an item counts as a try — a fix offered, or a
+// "couldn't fix it" — so a fix that never passes its checks still stops.
+check('a fix offered → +1 try', attemptsAfterReport(0, 'fix'), 1)
+check('"needs a session" (couldn\'t get the checks to pass) → +1 try', attemptsAfterReport(2, 'needs_session'), 3)
+check('just sorting (noise, wish…) → not a try', attemptsAfterReport(1, 'noise'), 1)
+check('noise is never "flagged", however often it repeats',
+  crashFollowUp({ verdict: 'noise', status: 'closed', live_build_id: null, live_at: null, attempts: 9 }, crash('aaa', LIVE_AT)), 'attach-resolve')
 
 // ── a fixer that can't start must not go quiet (final review 2026-11-04) ──
 check('nothing new (normal) → no message', fireFailureNotice({ ok: false, reason: 'nothing new to look at', broken: false }), null)

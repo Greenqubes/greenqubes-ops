@@ -126,6 +126,14 @@ async function main() {
     await startGoLiveWith(item(), f.deps)
     check('unknown main changes → handed back, not merged', [f.merges.length, (f.updates[0] as { status: string }).status], [0, 'awaiting_nic'])
   }
+  {
+    // Already tried 3 times: no endless "fresh copy" loop — flag it instead.
+    const f = fake({ mainFiles: [FIX_FILE] })
+    const r = await startGoLiveWith(item({ attempts: 3 }), f.deps)
+    check('tried 3 times + same file changed again → flagged for a session', (f.updates[0] as { status: string }).status, 'needs_session')
+    check('…no fresh run started', f.refreshed(), 0)
+    check('…Nic is told why', !r.ok && r.reason.includes('3 times'), true)
+  }
 
   // ── watching production after the merge ──
   const base = { version: 'aaa', mergeBuildId: 'bbb', deployState: 'pending' as const, ageMin: 2 }

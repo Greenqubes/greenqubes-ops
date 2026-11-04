@@ -116,6 +116,13 @@ For each fix:
    npm run build
    ```
    A test that was already failing on `origin/main` before your change is not yours. Say so in the `summary` rather than "fixing" it.
+
+   **Stop early; don't burn effort** (Nic, 2026-11-05):
+   - If the checks still fail after **two** attempts to correct your change, stop work on that item at once. Don't try a third variation in this run.
+   - Report it as `needs_session`, with the reason "couldn't get the checks to pass", the failing check named in plain words. Then move on to the next item.
+   - The same goes for a cause you can't find after a reasonable look: report `unclear` and move on. Don't keep digging.
+   - Across nights, the app allows **3 tries per item in total**. After that it stops sending the item back, flags it to Nic for a session, and refuses his "try again".
+   - The retries you are handed may therefore be the last try. Make that one count, and stop cleanly if it fails.
 6. **Independent check.** Use the `autofix-reviewer` agent. Give it the problem, quoted as reported, and the branch name. Only `AGREE` lets the fix go on. On `DISAGREE`, either make a smaller change and ask again (once), or report `needs_session` with the reviewer's reason.
 7. **Commit and push.** Message: `fix(autofix): <what was wrong, plainly>`.
    ```bash

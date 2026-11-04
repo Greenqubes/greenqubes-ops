@@ -7,6 +7,7 @@
 
 import { groupCrashes } from './crash-signature'
 import { gateFix } from './gate'
+import { attemptsAfterReport, attemptsExhausted, EXHAUSTED_REASON } from './scheduling'
 import { statusForVerdict, reportMayUpdate, type Report, type ReportItem } from './report-parse'
 import { buildNightlyMessage, dateLabel, shortDate, type NightlyInput } from './nightly-message'
 import { sendBugTelegramChunks, sendBugTelegramPhoto } from '@/lib/telegram/bot'
@@ -66,11 +67,14 @@ export async function applyReport(report: Report): Promise<ApplyResult> {
       reported_run_id: run.id,
     }
 
+    // A fix offered or a "couldn't fix it" is a try (Nic, 2026-11-05: stop
+    // after a few, don't burn tokens).
+    patch.attempts = attemptsAfterReport(item.attempts, ri.verdict)
+
     if (ri.fix) {
       patch.branch      = ri.fix.branch
       patch.head_sha    = ri.fix.headSha
       patch.preview_url = ri.fix.previewUrl
-      patch.attempts    = item.attempts + 1
       // The app measures the fix itself before Nic is ever offered it.
       const gate = await gateFix(ri.fix.branch, ri.fix.headSha)
       if (gate.ok) {
@@ -81,6 +85,7 @@ export async function applyReport(report: Report): Promise<ApplyResult> {
         reason = gate.reason
       }
     }
+    if (status === 'needs_session' && attemptsExhausted(patch.attempts)) reason = `${reason} — ${EXHAUSTED_REASON}`
     patch.status = status
     patch.reason = reason
     await updateItem(item.id, patch)

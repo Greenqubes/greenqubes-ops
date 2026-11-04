@@ -49,18 +49,41 @@ export const REOPEN_GRACE_MINUTES = 10
  *   may well be newer): the fix didn't hold → reopen
  * - a live fix, crash before or just after it went live: an old tab → resolve
  * - anything still in hand (awaiting Nic, needs a session, dropped…): attach
+ * - a reopen for an item already tried MAX_ATTEMPTS times becomes 'flag':
+ *   it goes to a session instead of another round (Nic, 2026-11-05)
  */
 export function crashFollowUp(
-  item:  { verdict: string | null; status: string; live_build_id: string | null; live_at: string | null },
+  item:  { verdict: string | null; status: string; live_build_id: string | null; live_at: string | null; attempts?: number },
   crash: { build_id: string | null; occurred_at: string },
-): 'attach-resolve' | 'attach' | 'reopen' {
+): 'attach-resolve' | 'attach' | 'reopen' | 'flag' {
   if (item.verdict === 'noise' || item.verdict === 'known' || item.verdict === 'junk') return 'attach-resolve'
-  if (item.verdict === 'already_fixed') return 'reopen'
+  const reopen = attemptsExhausted(item.attempts ?? 0) ? 'flag' : 'reopen'
+  if (item.verdict === 'already_fixed') return reopen
   if (item.status === 'live') {
-    if (crash.build_id && item.live_build_id && crash.build_id === item.live_build_id) return 'reopen'
+    if (crash.build_id && item.live_build_id && crash.build_id === item.live_build_id) return reopen
     if (!item.live_at) return 'attach-resolve'
     const after = new Date(crash.occurred_at).getTime() - new Date(item.live_at).getTime()
-    return after > REOPEN_GRACE_MINUTES * 60_000 ? 'reopen' : 'attach-resolve'
+    return after > REOPEN_GRACE_MINUTES * 60_000 ? reopen : 'attach-resolve'
   }
   return 'attach'
 }
+
+/**
+ * Nic, 2026-11-05: "if a fix test cant pass after a few retries, flag it
+ * instead and stop fixing to not burn tokens." Three tries in all — the first
+ * attempt plus two more — then the item goes to a session with Claude and no
+ * path (Nic's "try again", a returning crash, a "fresh copy" after the app
+ * moved) sends it round again.
+ */
+export const MAX_ATTEMPTS = 3
+
+export function attemptsExhausted(attempts: number): boolean {
+  return attempts >= MAX_ATTEMPTS
+}
+
+/** A report that worked on the item — a fix offered, or "couldn't fix it" — is a try. */
+export function attemptsAfterReport(prev: number, verdict: string): number {
+  return verdict === 'fix' || verdict === 'needs_session' ? prev + 1 : prev
+}
+
+export const EXHAUSTED_REASON = `tried ${MAX_ATTEMPTS} times without a fix that passes its checks, so it stopped to save effort`
