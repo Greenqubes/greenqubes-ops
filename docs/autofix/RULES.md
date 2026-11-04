@@ -30,6 +30,10 @@ The fire text gives you the run id: `run <uuid>`. Use it in both calls below.
 
 The app's secret: if the environment variable `AUTOFIX_SECRET` is set, send it as `x-autofix-secret`. Otherwise the cloud environment's network secret attaches it for you.
 
+### 0. Install first
+
+Run `npm ci` in the repository root before anything else. The cloud environment deliberately has no setup script: one that ran `npm ci` failed the very first run (2026-11-04), because setup runs before the repository is in place.
+
 ### 1. Get the work list
 
 ```bash
