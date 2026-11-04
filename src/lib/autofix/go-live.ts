@@ -6,8 +6,9 @@
 // for; dev gets it straight afterwards.
 
 import { gateFix } from './gate'
-import { startGoLiveWith } from './go-live-core'
-import { mergeInto, deleteBranch, productionDeployState } from './github'
+import { startGoLiveWith, goingLiveDecision } from './go-live-core'
+import { mergeInto, deleteBranch, productionDeployState, compareFiles } from './github'
+import { fireFixer } from './fire'
 import { buildIdOf, epochFromVercelId, PROD_URL } from './build-id'
 import { GO_LIVE_TIMEOUT_MINUTES } from './scheduling'
 import { clock12, escapeHtml } from './nightly-message'
@@ -20,21 +21,36 @@ import { sendBugTelegramChunks } from '@/lib/telegram/bot'
 
 type Outcome = { ok: true } | { ok: false; reason: string }
 
+/**
+ * Files changed on main since `sha` branched off: GitHub's three-dot compare
+ * `sha...main` lists main's own changes since the merge base. null when GitHub
+ * couldn't answer.
+ */
+async function mainChangedSince(sha: string): Promise<string[] | null> {
+  const files = await compareFiles(sha, 'main')
+  if (!files) return null
+  return files.flatMap(f => (f.previous_filename ? [f.filename, f.previous_filename] : [f.filename]))
+}
+
 /** The steps and their order live in go-live-core.ts (tested); this wires them up. */
 export async function startGoLive(item: Item): Promise<Outcome> {
   return startGoLiveWith(item, {
     claim:  (id, from, patch) => claimItemStatus(id, from, patch),
     gate:   gateFix,
+    mainChangedSince,
     merge:  mergeInto,
     update: (id, patch) => updateItem(id, patch as Partial<ItemRow>),
+    refresh: async () => {
+      const r = await fireFixer('retry')
+      return r.ok ? { ok: true } : { ok: false, reason: r.reason }
+    },
     now:    () => new Date().toISOString(),
   })
 }
 
 /**
  * Called every minute by /api/cron/autofix-watch. Does nothing unless a fix is
- * on its way. A fix is live once production serves its merge commit — or a
- * later one (Vercel reports the merge commit's production build as success).
+ * on its way. The decision itself is goingLiveDecision (go-live-core.ts).
  */
 export async function watchGoingLive(): Promise<number> {
   const going = await itemsByStatus(['going_live'])
@@ -49,22 +65,28 @@ export async function watchGoingLive(): Promise<number> {
   } catch { /* production unreachable this minute — try again next minute */ }
 
   for (const item of going) {
-    const ageMin = (Date.now() - new Date(item.going_live_at ?? item.updated_at).getTime()) / 60_000
-    if (item.merge_sha) {
-      if (version && version === buildIdOf(item.merge_sha)) {
-        // Vercel's own clock (CLAUDE.md release-time rule), not ours.
-        await finishLive(item, epochFromVercelId(vercelId) ?? Date.now())
-        continue
-      }
-      const state = await productionDeployState(item.merge_sha)
-      if (state === 'success') { await finishLive(item, Date.now()); continue }
-      if (state === 'failure') {
-        await updateItem(item.id, { status: 'needs_session', reason: 'the update failed to build, so the live app is unchanged' })
-        await sendBugTelegramChunks(`Fix ${item.no} failed to build, so nothing changed on the live app. It's now waiting for a session with Claude.`)
-        continue
-      }
-    }
-    if (ageMin > GO_LIVE_TIMEOUT_MINUTES) {
+    const mergeBuildId = item.merge_sha ? buildIdOf(item.merge_sha) : null
+    const decision = goingLiveDecision({
+      version,
+      mergeBuildId,
+      deployState: item.merge_sha ? await productionDeployState(item.merge_sha) : 'unknown',
+      ageMin: (Date.now() - new Date(item.going_live_at ?? item.updated_at).getTime()) / 60_000,
+    })
+    if (decision === 'live') {
+      // Vercel's own clock (CLAUDE.md release-time rule), not ours — exact
+      // when production already serves the merge build.
+      const epoch = version && version === mergeBuildId ? epochFromVercelId(vercelId) : null
+      await finishLive(item, epoch ?? Date.now())
+    } else if (decision === 'failed') {
+      // Production stays on the old version, but main now holds a change that
+      // doesn't build — flagged so the next session deals with it first.
+      await updateItem(item.id, {
+        status:      'needs_session',
+        reason:      'the update failed to build, so the live app is unchanged',
+        main_broken: true,
+      })
+      await sendBugTelegramChunks(`Fix ${item.no} failed to build, so nothing changed on the live app. It's waiting for a session with Claude, which will tidy it up first.`)
+    } else if (decision === 'timeout') {
       await updateItem(item.id, { status: 'needs_session', reason: "couldn't confirm it went live" })
       await sendBugTelegramChunks(`I couldn't confirm fix ${item.no} went live after ${GO_LIVE_TIMEOUT_MINUTES} minutes. It's waiting for a session with Claude to check.`)
     }

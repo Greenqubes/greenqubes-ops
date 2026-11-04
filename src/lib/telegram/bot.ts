@@ -119,6 +119,18 @@ export async function sendBugTelegramChunks(text: string): Promise<boolean> {
   return allSent
 }
 
+/** Shows "typing…" in Nic's chat for a few seconds — sent before slow work. */
+export async function sendBugTyping(): Promise<void> {
+  const token  = process.env.TELEGRAM_BUG_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_BUG_CHAT_ID
+  if (!token || !chatId?.trim()) return
+  await fetch(`${TELEGRAM_API}/bot${token}/sendChatAction`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ chat_id: chatId, action: 'typing' }),
+  }).catch(() => { /* cosmetic — never block the reply */ })
+}
+
 /** A photo by URL (Telegram fetches it) — wish screenshots. Caption is HTML. */
 export async function sendBugTelegramPhoto(photoUrl: string, caption: string): Promise<boolean> {
   const token  = process.env.TELEGRAM_BUG_BOT_TOKEN

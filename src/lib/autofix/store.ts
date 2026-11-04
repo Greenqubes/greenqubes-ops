@@ -22,6 +22,7 @@ export type ItemRow = Item & {
   going_live_at:   string | null
   live_build_id:   string | null
   dev_sync_needed: boolean
+  main_broken:     boolean
   reported_run_id: string | null
   created_at:      string
   updated_at:      string
@@ -269,15 +270,17 @@ export async function markRunAlerted(id: string): Promise<void> {
 
 // ── the bug-bot conversation ──────────────────────────────────────────────
 
-export async function chatHistory(limit = 20): Promise<{ role: 'nic' | 'bot'; text: string }[]> {
-  const { data, error } = await chat().select('role, text, created_at').order('created_at', { ascending: false }).limit(limit)
+export type ChatHistoryRow = { role: 'nic' | 'bot'; text: string; photos: string[]; created_at: string }
+
+export async function chatHistory(limit = 20): Promise<ChatHistoryRow[]> {
+  const { data, error } = await chat().select('role, text, photos, created_at').order('created_at', { ascending: false }).limit(limit)
   if (error) { fail('chatHistory', error); return [] }
-  return ((data ?? []) as { role: 'nic' | 'bot'; text: string }[]).reverse()
+  return ((data ?? []) as ChatHistoryRow[]).map(r => ({ ...r, photos: r.photos ?? [] })).reverse()
 }
 
 /** False when this Telegram update was already handled (Telegram retried it). */
-export async function addChat(role: 'nic' | 'bot', text: string, updateId?: number): Promise<boolean> {
-  const { error } = await chat().insert({ role, text, telegram_update_id: updateId ?? null } as never)
+export async function addChat(role: 'nic' | 'bot', text: string, updateId?: number, photos: string[] = []): Promise<boolean> {
+  const { error } = await chat().insert({ role, text, telegram_update_id: updateId ?? null, photos } as never)
   if (error) {
     if ((error as { code?: string }).code === '23505') return false
     fail('addChat', error)

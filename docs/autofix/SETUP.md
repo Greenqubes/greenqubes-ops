@@ -88,7 +88,7 @@ The bot only answers **your** private chat. `TELEGRAM_BUG_CHAT_ID` is a private 
 - **Every night at 2am**, if anything new came in, the fixer runs and you get one message.
 - **Chat with the bot** in your own words:
   - "fix 12 go live"
-  - "fix 12 still cut off on my phone" (photos welcome)
+  - "fix 12 still cut off on my phone" (send a screenshot with it, or just before it)
   - "drop fix 12"
   - "what's waiting?"
   - "look at this now"

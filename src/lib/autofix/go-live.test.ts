@@ -6,7 +6,7 @@
  * Exits 1 on any failure.
  */
 
-import { startGoLiveWith, type GoLiveDeps } from './go-live-core'
+import { startGoLiveWith, goingLiveDecision, type GoLiveDeps } from './go-live-core'
 import type { Item } from './actions'
 
 let failures = 0
@@ -30,22 +30,28 @@ const item = (over: Partial<Item> = {}): Item => ({
   nic_notes: [], attempts: 1, live_at: null, ...over,
 })
 
+const FIX_FILE = 'src/features/schedule/ScheduleShell.tsx'
+
 function fake(opts: {
   claimWins?: boolean
-  gate?: { ok: true; files: number; lines: number } | { ok: false; reason: string; transient: boolean }
+  gate?: { ok: true; files: number; lines: number; paths: string[] } | { ok: false; reason: string; transient: boolean }
+  mainFiles?: string[] | null   // what changed on main since the fix was cut
   merge?: { result: 'merged'; sha: string } | { result: 'nothing' } | { result: 'conflict' } | { result: 'error'; detail: string }
 } = {}) {
   const log: string[] = []
   const updates: Record<string, unknown>[] = []
   const merges: { base: string; head: string }[] = []
+  let refreshed = 0
   const deps: GoLiveDeps = {
     claim: async () => { log.push('claim'); return opts.claimWins ?? true },
-    gate: async () => { log.push('gate'); return opts.gate ?? { ok: true, files: 1, lines: 3 } },
+    gate: async () => { log.push('gate'); return opts.gate ?? { ok: true, files: 1, lines: 3, paths: [FIX_FILE] } },
+    mainChangedSince: async () => { log.push('main'); return opts.mainFiles === undefined ? [] : opts.mainFiles },
     merge: async (base, head) => { log.push('merge'); merges.push({ base, head }); return opts.merge ?? { result: 'merged', sha: 'm'.repeat(40) } },
     update: async (_id, patch) => { updates.push(patch as Record<string, unknown>) },
+    refresh: async () => { refreshed++; return { ok: true } },
     now: () => '2026-11-05T13:00:00.000Z',
   }
-  return { deps, log, updates, merges }
+  return { deps, log, updates, merges, refreshed: () => refreshed }
 }
 
 async function main() {
@@ -53,7 +59,7 @@ async function main() {
     const f = fake()
     const r = await startGoLiveWith(item(), f.deps)
     check('happy path → ok', r.ok, true)
-    check('claims BEFORE it checks or merges', f.log, ['claim', 'gate', 'merge'])
+    check('claims BEFORE it checks or merges', f.log, ['claim', 'gate', 'main', 'merge'])
     check('merges the exact commit Nic tested, not the branch name', f.merges, [{ base: 'main', head: SHA }])
     check('records the merge commit', f.updates, [{ merge_sha: 'm'.repeat(40) }])
   }
@@ -96,6 +102,39 @@ async function main() {
     await startGoLiveWith(item(), f.deps)
     check('already on main → needs a session', (f.updates[0] as { status: string }).status, 'needs_session')
   }
+
+  // ── Nic, 2026-11-05: the app changed since the fix was made ──
+  {
+    // main changed the SAME file → what would go live was never tested.
+    const f = fake({ mainFiles: [FIX_FILE, 'src/features/jobs/X.tsx'] })
+    const r = await startGoLiveWith(item(), f.deps)
+    check('same file changed on main → not merged', f.merges.length, 0)
+    check('…sent back for a fresh test copy', (f.updates[0] as { status: string }).status, 'retry')
+    check('…with a note saying which part changed', JSON.stringify(f.updates[0]).includes(FIX_FILE), true)
+    check('…a fresh run is started now', f.refreshed(), 1)
+    check('…Nic is told he gets a new link', !r.ok && r.reason.includes('fresh test copy'), true)
+  }
+  {
+    // main changed other files only → the fix is still exactly what was tested.
+    const f = fake({ mainFiles: ['src/features/jobs/X.tsx', 'src/lib/changelog/entries.ts'] })
+    const r = await startGoLiveWith(item(), f.deps)
+    check('other files changed on main → goes live', r.ok, true)
+  }
+  {
+    // GitHub couldn't say what changed → don't guess; hand it back.
+    const f = fake({ mainFiles: null })
+    await startGoLiveWith(item(), f.deps)
+    check('unknown main changes → handed back, not merged', [f.merges.length, (f.updates[0] as { status: string }).status], [0, 'awaiting_nic'])
+  }
+
+  // ── watching production after the merge ──
+  const base = { version: 'aaa', mergeBuildId: 'bbb', deployState: 'pending' as const, ageMin: 2 }
+  check('production serves the merge build → live', goingLiveDecision({ ...base, version: 'bbb' }), 'live')
+  check('deploy reported success → live', goingLiveDecision({ ...base, deployState: 'success' }), 'live')
+  check('deploy failed → failed (main now holds a change that does not build)', goingLiveDecision({ ...base, deployState: 'failure' }), 'failed')
+  check('still building → wait', goingLiveDecision(base), 'wait')
+  check('nothing after the timeout → timeout', goingLiveDecision({ ...base, ageMin: 21 }), 'timeout')
+  check('no merge recorded and past the timeout → timeout', goingLiveDecision({ version: 'aaa', mergeBuildId: null, deployState: 'unknown', ageMin: 21 }), 'timeout')
 
   if (failures > 0) {
     console.error(`\n${failures} check(s) failed`)

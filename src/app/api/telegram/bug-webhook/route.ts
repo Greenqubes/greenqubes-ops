@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { secretOk, isFromNic, type TgUpdate } from '@/lib/autofix/telegram-auth'
-import { addChat } from '@/lib/autofix/store'
+import { addChat, chatHistory } from '@/lib/autofix/store'
 import { replyToNic } from '@/lib/autofix/chat'
-import { escapeHtml } from '@/lib/autofix/nightly-message'
-import { sendBugTelegramChunks } from '@/lib/telegram/bot'
+import { handleBugUpdate } from '@/lib/autofix/bug-chat-flow'
+import { sendBugTelegramChunks, sendBugTyping } from '@/lib/telegram/bot'
 
 // The bug bot becomes a two-way chat (Nic, 2026-11-04). Same bot, same chat as
 // the new-report pings. This chat can put a fix on the live app, so:
 // - Telegram's secret header is required — refused when the secret is unset
 //   (fail closed, unlike the older webhooks' `if (secret)`).
 // - Only Nic, in his own private chat. Anyone else is ignored silently.
-// - Each Telegram update is handled once (Telegram retries ones it thinks failed).
-// - Always answers 200 once past the secret check, so Telegram stops retrying.
+// - Telegram gets its answer IMMEDIATELY; the reply (model + GitHub) runs
+//   after, with "typing…" shown first (Nic, 2026-11-05) — so a slow go-live
+//   never makes Telegram retry or the function time out mid-merge.
+// - The steps themselves are bug-chat-flow.ts (tested).
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   if (!secretOk(req.headers.get('x-telegram-bot-api-secret-token'), process.env.TELEGRAM_BUG_WEBHOOK_SECRET)) {
@@ -23,24 +25,16 @@ export async function POST(req: NextRequest) {
   try { update = await req.json() as TgUpdate } catch { return NextResponse.json({ ok: true }) }
   if (!isFromNic(update, process.env.TELEGRAM_BUG_CHAT_ID)) return NextResponse.json({ ignored: true })
 
-  const m = update.message!
-  const text = (m.text ?? m.caption ?? '').slice(0, 4000)
-  const largest = m.photo?.length
-    ? m.photo.reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a))
-    : null
-  const photos = largest ? [largest.file_id] : []
-  if (!text && photos.length === 0) return NextResponse.json({ ok: true })
-
-  const fresh = await addChat('nic', text || '(photo)', update.update_id)
-  if (!fresh) return NextResponse.json({ duplicate: true })
-
-  try {
-    const reply = await replyToNic(photos)
-    await addChat('bot', reply)
-    await sendBugTelegramChunks(escapeHtml(reply))
-  } catch (e) {
-    console.error('[bug-webhook] reply failed', e)
-    await sendBugTelegramChunks('Something went wrong on my side — nothing was changed.')
-  }
+  after(async () => {
+    await handleBugUpdate(update, {
+      nicChatId: process.env.TELEGRAM_BUG_CHAT_ID,
+      addChat,
+      history:   () => chatHistory(20),
+      reply:     replyToNic,
+      send:      sendBugTelegramChunks,
+      typing:    sendBugTyping,
+      now:       () => new Date().toISOString(),
+    })
+  })
   return NextResponse.json({ ok: true })
 }

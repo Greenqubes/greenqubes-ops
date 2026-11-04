@@ -46,6 +46,10 @@ create table public.autofix_items (
   live_at          timestamptz,
   live_build_id    text,
   dev_sync_needed  boolean     not null default false,
+  -- The go-live merge reached main but production failed to build it: the
+  -- live app is unchanged, yet main holds a change that doesn't build. The
+  -- next session's start checks this first (CLAUDE.md).
+  main_broken      boolean     not null default false,
   attempts         int         not null default 0,
   nic_notes        jsonb       not null default '[]'::jsonb,
   reported_run_id  uuid,
@@ -74,6 +78,9 @@ create table public.autofix_chat (
   text                text        not null,
   -- Telegram retries a webhook it thinks failed; unique = each message once.
   telegram_update_id  bigint      unique,
+  -- Telegram file ids of photos Nic sent. A photo sent on its own is kept and
+  -- joins his next message ("photo, then 'still cut off'").
+  photos              text[]      not null default '{}',
   created_at          timestamptz not null default now()
 );
 

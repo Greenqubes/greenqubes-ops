@@ -415,6 +415,18 @@ Each phase is useful and testable on its own.
 - **The bug chat is a private chat.** `TELEGRAM_BUG_CHAT_ID` is a positive id. The code also requires `chat.type === 'private'` and `from.id === chat.id`. If the id turns out to be someone else's, the bot ignores Nic. That fails safe, and SETUP.md says to check it.
 - **The tracked `.claude/settings.local.json` pre-approves `git push *`, `git merge *` and `npx supabase *`.** In the cloud, the guard hook and the `claude/` push default are what stop those.
 
+## Added before first switch-on (Nic, 2026-11-05: "during the first build")
+
+Four of the review's deferred items, which Nic chose to have fixed before the fixer is ever switched on:
+
+1. **The live app changed since the fix was made.** At go-live the app compares what changed on `main` since the fix's commit branched off.
+   - If any of those files are files the fix touches, the fix is **not** merged. It goes back to `retry` with a note naming the files, a fresh run starts at once (within the caps), and Nic is told a new test link is coming.
+   - Changes to other files leave the fix exactly as tested, so it goes ahead.
+   - *My call:* overlap by file, not "anything changed". Otherwise every session push would send every waiting fix round again.
+2. **The bot answers Telegram at once.** The reply is worked out afterwards (`after()`, 300 s limit), with "typing…" shown first. A slow model call or GitHub call can no longer make Telegram retry, or cut a go-live off half-way.
+3. **A photo sent on its own is kept.** It joins Nic's next message if that arrives within 10 minutes with nothing in between. The bot answers the photo with a one-line prompt asking which fix it is about, without a model call. Stored in `autofix_chat.photos` (0069).
+4. **A failed live build is flagged for the next session.** `autofix_items.main_broken` (0069) is set when production fails to build a go-live merge. CLAUDE.md's session-start catch-up line now says to deal with that first.
+
 ## Left to the builder
 
 - Exact table shapes, indexes, and how crash rows link to items.
