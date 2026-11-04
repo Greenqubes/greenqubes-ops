@@ -49,6 +49,8 @@ _Last updated: 2026-10-26 (ux-schedule — **three things live today, all from y
 
 _Last updated: 2026-10-30 (ux-schedule + feat-jobs — **two releases are live.** **27 Oct, 6:07pm:** the **Completed tab is gone**. Every role now has a Schedule | Completed switch at the top of the page (installers see My Jobs | Completed). The date strip shows last and next month, the Drivers view has a Today button and its arrows now work, and the arrows are bigger everywhere. **30 Oct, 5:22pm:** **picking a client name fills in their last contact number**, and switching to a client with no number offers to keep the previous one. The client name list now opens on saved jobs, and the month label above the date strip sits in the middle of the page. The **customer database is parked** until your old program's Export works.)_
 
+_Last updated: 2026-11-04 (feat-files — **you can now fix a finished job's photos. Live at 9:45pm.** Your installer uploaded nothing, so your scheduler closed the job on a wrong photo. Now, on a completed job, sales and schedulers can **add and bin Completion Photos and Signed DO, with no time limit**. A job always keeps one completion photo, so add the right one first, then bin the wrong one. The Signed DO box always shows for you on a completed job. You tested it on the preview. "What's new" tells the team, including the line that **Mark job complete** closes a job without photos, so nobody needs a stand-in photo again.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
@@ -147,6 +149,15 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-11-04, feat-files — Fix a Completed Job's Photos, LIVE)
+
+- [x] **[Nic] Completed jobs: sales and schedulers can add and bin Completion Photos and Signed DO**, any time after completion. The last completion photo stays, so you add the right one, then bin the wrong one. A short line says so when only one is left. Live 9:45pm.
+- [x] **[Nic] Signed DO box always shows on a completed job** for sales and schedulers, even if "DO issued" was never ticked.
+- [x] **[Nic] Tested by you on the dev preview** before it went live.
+- [x] **[Nic] "What's new" entry for today**: the new photo fix, plus your heads-up line that schedulers should use Mark job complete instead of uploading a stand-in photo. Timed 9:45pm from the live site's own clock.
+- [x] **[Nic] AI importance question:** skipped at session start (your call).
+- **Unchanged on purpose:** installers still get 24 hours after completion; coordinators and production too; Production Photos and the Files-tab folders still lock.
 
 ## Done This Session ✓ (2026-10-30, feat-jobs — Client Contact Number Fills Itself, LIVE)
 
