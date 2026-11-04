@@ -34,6 +34,24 @@ The app's secret: if the environment variable `AUTOFIX_SECRET` is set, send it a
 
 Run `npm ci` in the repository root before anything else. The cloud environment deliberately has no setup script: one that ran `npm ci` failed the very first run (2026-11-04), because setup runs before the repository is in place.
 
+### Progress notes (all through the run)
+
+Nic can ask the bot "how's it going?" mid-run. Keep the answer current: post a one-line note at each milestone. A note is plain English for Nic, at most 200 characters, with no code words.
+
+```bash
+curl -s -X POST -H "x-autofix-secret: $AUTOFIX_SECRET" -H "Content-Type: application/json" \
+  --data '{"runId":"<RUN_ID>","note":"Sorted 22 — fixing 1 of 2: the Today button"}' \
+  "https://greenqubes-ops.vercel.app/api/autofix/progress"
+```
+
+Post a note:
+- after getting the work list: "Got 12 reports and 10 crash groups to sort";
+- after sorting: "Sorted 22 — 2 fixes to try";
+- as each fix starts: "Fixing 1 of 2: <plain title>";
+- just before reporting: "Writing up the results".
+
+A failed note doesn't matter: never retry it, and never let it slow the run. The note disappears by itself when the report lands.
+
 ### 1. Get the work list
 
 ```bash

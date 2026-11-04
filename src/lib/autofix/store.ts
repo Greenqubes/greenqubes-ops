@@ -229,6 +229,25 @@ export async function setRunSession(id: string, url: string | null): Promise<voi
 }
 
 /**
+ * The fixer's one-line progress note, kept in `outcome` while the run is going
+ * (progress.ts). Only an unfinished run takes a note — once finished, the final
+ * result stays. Returns whether the note was stored.
+ */
+export async function setRunProgress(id: string, note: string): Promise<boolean> {
+  const { data, error } = await runs().update({ outcome: note } as never)
+    .eq('id', id).is('finished_at', null).select('id')
+  if (error) { fail('setRunProgress', error); return false }
+  return ((data ?? []) as unknown[]).length === 1
+}
+
+/** The most recent run, for "how's it going?". */
+export async function latestRun(): Promise<RunRow | null> {
+  const { data, error } = await runs().select('*').order('fired_at', { ascending: false }).limit(1).maybeSingle()
+  if (error) { fail('latestRun', error); return null }
+  return data as RunRow | null
+}
+
+/**
  * Marks a run finished — only if it is not finished already, so a second
  * report for the same run (a cloud retry) is refused rather than applied twice.
  * Returns whether THIS call finished it.
