@@ -108,8 +108,9 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] **Auto-fixer page in Admin** (asked 2026-11-04) — see the fixer's work without reading anything technical
   - The latest run: started, running, done or failed, with a link to its log
   - Each bug and crash with its verdict in plain words: fix ready to try (with its test link), wish, junk, needs a session, live
-- [ ] **Auto-fixer progress pings on Telegram** (asked 2026-11-04) — a few short messages during a run, e.g. "Started — 22 to sort", "Sorted — fixing 1 of 2", then the usual summary
-  - Keep it to a handful per run so it doesn't get noisy
+- [ ] **Auto-fixer progress on request** (asked 2026-11-04) — ask the bot "how's it going?" during a run and it answers, e.g. "Sorted 22 — fixing 1 of 2"
+  - On request only, no automatic pings (your call: don't flood the chat); the one summary at the end stays
+  - Needs the fixer to report where it's up to during a run (today the app only hears from it at the end)
 - [ ] **Files-tab attachment folders get the same 24-hour delete window** as the photo sections — you said yes 2026-09-28; held because that day was housekeeping only. A one-line code change.
 - [ ] **Tell the crew when a scheduled job changes** (a date move currently tells nobody)
   - Which changes are worth a message (date, time, address — not notes)?
