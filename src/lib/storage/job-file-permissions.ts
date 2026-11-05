@@ -67,6 +67,27 @@ export function withinCompletionGrace(completedAt: string | null | undefined, no
   return now - at < COMPLETION_GRACE_MS
 }
 
+// ── Fixing a finished job's photos (Nic, 2026-11-04) ──
+//
+// An installer uploaded nothing, so the scheduler closed the job with a
+// stand-in photo, and the real ones turned up later. Sales and schedulers
+// (admin too) may ADD to and BIN from Completion Photos and Signed DO on a
+// completed job, with no time limit. The last-completion-photo rule still
+// holds, so a swap is: add the right one, then bin the wrong one. Everyone
+// else keeps the 24-hour window above, and production photos and attachment
+// folders are untouched. Adding needs no server change: the files INSERT
+// policy (0019/0050) already lets these roles add to any job they can see.
+const FIX_AFTER_COMPLETION_ROLES = new Set(['sales', 'scheduler', 'admin'])
+const FIX_AFTER_COMPLETION_KINDS = new Set(['completion', 'do'])
+
+export function canFixAfterCompletion(
+  role: string | null | undefined,
+  fileKind: string | null | undefined,
+): boolean {
+  return !!role && FIX_AFTER_COMPLETION_ROLES.has(role)
+    && !!fileKind && FIX_AFTER_COMPLETION_KINDS.has(fileKind)
+}
+
 /** The whole delete gate for a single file. Callers use this, never the
  *  office rule alone. */
 export function canDeleteJobFile(input: FileDeleteInput): FileDeleteDecision {
@@ -82,7 +103,9 @@ export function canDeleteJobFile(input: FileDeleteInput): FileDeleteDecision {
   if (!mayTouch) return { allowed: false, reason: 'role' }
 
   if (jobStatus !== 'completed') return { allowed: true }
-  if (!withinCompletionGrace(completedAt, now)) return { allowed: false, reason: 'completed' }
+  if (!canFixAfterCompletion(role, fileKind) && !withinCompletionGrace(completedAt, now)) {
+    return { allowed: false, reason: 'completed' }
+  }
   if (fileKind === 'completion' && otherCompletionFiles < 1) {
     return { allowed: false, reason: 'last-completion' }
   }

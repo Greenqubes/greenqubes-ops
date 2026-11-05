@@ -39,6 +39,13 @@ check('DO issued, with files → shown', showSignedDoSection({ doIssued: true, s
 // Safety net: an already-uploaded signed DO never disappears from view,
 // even if the DO-issued tick is later removed.
 check('DO tick removed but file exists → shown', showSignedDoSection({ doIssued: false, signedDoFileCount: 1 }), true)
+// Fixing a finished job (Nic, 2026-11-04): sales/scheduler may add a signed DO
+// to a completed job, and nobody can tick "DO issued" on a closed job — so the
+// box must show for them even with no tick and no file. THE OLD RULE hid it.
+check('completed job, a fixer, no tick, no files → shown',
+  showSignedDoSection({ doIssued: false, signedDoFileCount: 0, canAddAfterCompletion: true }), true)
+check('not a fixer, no tick, no files → still hidden',
+  showSignedDoSection({ doIssued: false, signedDoFileCount: 0, canAddAfterCompletion: false }), false)
 
 if (failures) {
   console.error(`\n${failures} test(s) FAILED`)

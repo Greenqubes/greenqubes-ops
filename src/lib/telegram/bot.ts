@@ -1,4 +1,6 @@
 import { logApiUsage } from '@/lib/supabase/queries/admin'
+import { splitForTelegram } from '@/lib/telegram/day-summary'
+import { bugChatIds } from '@/lib/autofix/telegram-auth'
 
 const TELEGRAM_API = 'https://api.telegram.org'
 
@@ -74,24 +76,87 @@ export async function answerCallbackQuery(callbackQueryId: string, text?: string
   }
 }
 
+// ── Bug bot ─────────────────────────────────────────────────────────────────
+// TELEGRAM_BUG_CHAT_ID may list several chats, comma-separated (Nic,
+// 2026-11-05: "reach both user" — his own Telegram and the GreenqubesAI admin
+// account). Broadcasts go to every listed chat; a chat reply goes back to the
+// one chat that asked. A single id works exactly as before.
+const bugChats = () => bugChatIds(process.env.TELEGRAM_BUG_CHAT_ID)
+
+async function bugPost(method: string, body: Record<string, unknown>): Promise<boolean> {
+  const token = process.env.TELEGRAM_BUG_BOT_TOKEN
+  if (!token) return false
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  })
+  if (!res.ok) console.error(`[telegram-bug] ${method} failed`, body.chat_id, res.status, await res.text())
+  return res.ok
+}
+
 // Sends a bug report to the dedicated bug-only Telegram bot.
 // Silently no-ops if TELEGRAM_BUG_BOT_TOKEN or TELEGRAM_BUG_CHAT_ID is missing.
 export async function sendBugTelegram(text: string): Promise<void> {
-  const token  = process.env.TELEGRAM_BUG_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_BUG_CHAT_ID
-  if (!token || !chatId?.trim()) {
+  const chats = bugChats()
+  if (!process.env.TELEGRAM_BUG_BOT_TOKEN || chats.length === 0) {
     console.warn('[telegram-bug] TELEGRAM_BUG_BOT_TOKEN or TELEGRAM_BUG_CHAT_ID not set — skipping')
     return
   }
+  for (const chat_id of chats) await bugPost('sendMessage', { chat_id, text, parse_mode: 'HTML' })
+}
 
-  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
-  })
-  if (!res.ok) {
-    console.error('[telegram-bug] sendMessage failed', res.status, await res.text())
+// The bug bot as a two-way chat (auto-fixer, 2026-11-04). Same bot, same
+// chats as the new-report pings above. These report whether they sent, so the
+// auto-fixer can tell a delivered message from a silent failure.
+
+/** A long HTML message to ONE chat, in Telegram-sized parts split at line breaks. */
+export async function sendBugTelegramTo(chatId: string, text: string): Promise<boolean> {
+  if (!process.env.TELEGRAM_BUG_BOT_TOKEN || !chatId || !text.trim()) return false
+  let allSent = true
+  for (const part of splitForTelegram(text)) {
+    const ok = await bugPost('sendMessage', { chat_id: chatId, text: part, parse_mode: 'HTML', disable_web_page_preview: true })
+    allSent = allSent && ok
   }
+  return allSent
+}
+
+/** A long HTML message to EVERY listed bug chat. */
+export async function sendBugTelegramChunks(text: string): Promise<boolean> {
+  const chats = bugChats()
+  if (chats.length === 0) return false
+  let allSent = true
+  for (const chat of chats) allSent = (await sendBugTelegramTo(chat, text)) && allSent
+  return allSent
+}
+
+/** Shows "typing…" in one chat for a few seconds — sent before slow work. */
+export async function sendBugTyping(chatId: string): Promise<void> {
+  if (!chatId) return
+  await bugPost('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => { /* cosmetic */ })
+}
+
+/** A photo by URL (Telegram fetches it) to every listed chat — wish screenshots. Caption is HTML. */
+export async function sendBugTelegramPhoto(photoUrl: string, caption: string): Promise<boolean> {
+  let allSent = bugChats().length > 0
+  for (const chat_id of bugChats()) {
+    allSent = (await bugPost('sendPhoto', { chat_id, photo: photoUrl, caption: caption.slice(0, 1000), parse_mode: 'HTML' })) && allSent
+  }
+  return allSent
+}
+
+/**
+ * Download URL for a photo Nic sent the bug bot. The URL embeds the bot token,
+ * so it is only ever fetched server-side — never handed to a browser or the
+ * cloud fixer (they get it through /api/autofix/file).
+ */
+export async function getBugBotFileUrl(fileId: string): Promise<string | null> {
+  const token = process.env.TELEGRAM_BUG_BOT_TOKEN
+  if (!token) return null
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`)
+  if (!res.ok) return null
+  const body = await res.json() as { ok: boolean; result?: { file_path?: string } }
+  return body.result?.file_path ? `${TELEGRAM_API}/file/bot${token}/${body.result.file_path}` : null
 }
 
 // ── Digest bot ─────────────────────────────────────────────────────────────────

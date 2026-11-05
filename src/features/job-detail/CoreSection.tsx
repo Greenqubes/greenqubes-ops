@@ -76,6 +76,15 @@ function CoreFrame({ bare, children }: { bare: boolean; children: React.ReactNod
     : <Card className="p-5 space-y-4">{children}</Card>
 }
 
+/** The company / client name the server just added. A refused add (name
+ *  already taken, signed out) answers { error } with no name — that nameless
+ *  option crashed the whole form when the list was sorted, so it throws. */
+export async function createdOption(res: Response): Promise<SelectOption> {
+  const data = await res.json().catch(() => null) as { id?: string; name?: string; error?: string } | null
+  if (!res.ok || !data?.id || !data.name) throw new Error(data?.error ?? `Add failed (${res.status})`)
+  return { id: data.id, label: data.name }
+}
+
 export function CoreSection({
   register, errors, control, watch, setValue,
   readOnly, lang, role, missingFields = [], installerView = false, bare = false,
@@ -181,8 +190,7 @@ export function CoreSection({
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     })
-    const data = await res.json() as { id: string; name: string }
-    const opt  = { id: data.id, label: data.name }
+    const opt  = await createdOption(res)
     setCompanies(prev => [...prev, opt].sort((a, b) => a.label.localeCompare(b.label)))
     return opt
   }
@@ -243,8 +251,7 @@ export function CoreSection({
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     })
-    const data = await res.json() as { id: string; name: string }
-    const opt  = { id: data.id, label: data.name }
+    const opt  = await createdOption(res)
     setContacts(prev => [...prev, opt].sort((a, b) => a.label.localeCompare(b.label)))
     return opt
   }

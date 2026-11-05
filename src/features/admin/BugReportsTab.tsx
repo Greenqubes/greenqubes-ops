@@ -188,7 +188,7 @@ function BugCard({
     )}
     <Card className={cn('p-4 transition-colors', selected && 'ring-1 ring-terracotta/40 bg-terracotta/5')}>
       <div className="flex items-start gap-3">
-        {selectMode && bug.status === 'fixed' && (
+        {selectMode && bug.status !== 'open' && (
           <input
             type="checkbox"
             checked={!!selected}
@@ -208,6 +208,14 @@ function BugCard({
             {bug.route && (
               <span className="px-1.5 py-0.5 rounded text-[11px] font-mono bg-bg text-ink2 border border-line">
                 {bug.route}
+              </span>
+            )}
+            {bug.verdict && (
+              <span
+                className="px-1.5 py-0.5 rounded-full text-[11px] bg-brand-blue-soft text-ink2"
+                title={bug.verdict_reason ?? undefined}
+              >
+                {bug.verdict}
               </span>
             )}
           </div>
@@ -264,9 +272,12 @@ function BugCard({
             {fixing ? 'Marking fixed…' : 'Mark Fixed'}
           </button>
         )}
-        {bug.status === 'fixed' && (
+        {bug.status !== 'open' && (
           <div className="flex items-center gap-4 ml-auto">
-            {bug.resolved_at && (
+            {bug.status === 'closed' && (
+              <p className="text-[11px] text-muted">Closed by the auto-fixer</p>
+            )}
+            {bug.status === 'fixed' && bug.resolved_at && (
               <p className="text-[11px] text-muted">Fixed {fmtSGT(bug.resolved_at)} SGT</p>
             )}
             {!selectMode && (
@@ -361,7 +372,8 @@ export function BugReportsTab() {
     )
 
   const fixed = bugs
-    .filter(b => b.status === 'fixed')
+    // Fixed and closed (junk, wishes, noise — the auto-fixer's verdicts) share the done list.
+    .filter(b => b.status !== 'open')
     .sort((a, b) => {
       if (fixedSort === 'newest')        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       if (fixedSort === 'oldest')        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()

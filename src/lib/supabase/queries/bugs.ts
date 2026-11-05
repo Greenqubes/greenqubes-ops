@@ -1,7 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { withoutBuildIdOnMissingColumn } from '@/lib/autofix/fail-soft'
 
 export type BugPriority = 'low' | 'medium' | 'high' | 'urgent'
-export type BugStatus   = 'open' | 'fixed'
+// 'closed' (migration 0069): the auto-fixer's verdict that a report is junk,
+// a wish, or noise — done with, but not fixed.
+export type BugStatus   = 'open' | 'fixed' | 'closed'
 
 export type BugReport = {
   id:              string
@@ -21,19 +24,26 @@ export type BugReport = {
   created_at:      string
   resolved_at:     string | null
   github_issue_url: string | null
+  build_id?:       string | null   // migration 0069 — absent until applied
+  // Attached by GET /api/bugs from autofix_items (fail-soft), not columns.
+  verdict?:        string | null
+  verdict_reason?: string | null
 }
 
 export async function insertBugReport(
-  data: Omit<BugReport, 'id' | 'created_at' | 'status' | 'resolved_at' | 'github_issue_url'>,
+  data: Omit<BugReport, 'id' | 'created_at' | 'status' | 'resolved_at' | 'github_issue_url' | 'verdict' | 'verdict_reason'>,
 ): Promise<string | null> {
   const db = createServiceClient()
-  const { data: row, error } = await db
-    .from('bug_reports')
-    .insert(data)
-    .select('id')
-    .single()
+  let id: string | null = null
+  // build_id needs migration 0069; until it is applied the report is saved
+  // without it rather than lost.
+  const { error } = await withoutBuildIdOnMissingColumn(data, async row => {
+    const res = await db.from('bug_reports').insert(row as never).select('id').single()
+    if (res.data) id = (res.data as { id: string }).id
+    return { error: res.error }
+  })
   if (error) { console.error('[bugs] insert failed', error); return null }
-  return row.id
+  return id
 }
 
 export async function getBugReports(): Promise<BugReport[]> {

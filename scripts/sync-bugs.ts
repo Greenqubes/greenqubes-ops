@@ -224,7 +224,8 @@ async function main() {
 
     // Determine destination based on status
     let destRelative: string
-    if (bug.status === 'fixed') {
+    // 'closed' (auto-fixer: junk, wish, noise) is done too — file it with the fixed ones.
+    if (bug.status === 'fixed' || bug.status === 'closed') {
       const versionDir = path.dirname(relativePath)
       const filename   = path.basename(relativePath)
       destRelative     = path.join(versionDir, 'fixed', filename)
@@ -246,7 +247,7 @@ async function main() {
     }
 
     // Handle GitHub issues
-    if (bug.status === 'fixed' && bug.github_issue_url) {
+    if ((bug.status === 'fixed' || bug.status === 'closed') && bug.github_issue_url) {
       // Close the GitHub issue if it's fixed
       const closed = await closeGitHubIssue(bug.github_issue_url)
       if (closed) {

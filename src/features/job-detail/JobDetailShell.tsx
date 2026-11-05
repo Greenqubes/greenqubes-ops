@@ -193,6 +193,18 @@ export function JobDetailShell({
   // Edit 9: production's attachment buckets go view-only (below).
   const isProduction = role === 'production'
 
+  // The bottom action bar is one to four rows tall depending on role and
+  // stage; pad the page by its real height so nothing is left hidden behind it.
+  const pageRef      = useRef<HTMLDivElement>(null)
+  const actionBarRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const bar = actionBarRef.current, page = pageRef.current
+    if (!bar || !page) return
+    const ro = new ResizeObserver(() => { page.style.paddingBottom = `${bar.offsetHeight + 16}px` })
+    ro.observe(bar)
+    return () => ro.disconnect()
+  }, [])
+
   const [saving,               setSaving]              = useState(false)
   const [status,               setStatus]              = useState<JobStatus>(job.status)
 
@@ -1538,7 +1550,7 @@ export function JobDetailShell({
   }
 
   return (
-    <div className={cn('min-h-screen bg-bg', isReadOnlyRole ? 'pb-8' : 'pb-28')}>
+    <div ref={pageRef} className={cn('min-h-screen bg-bg', isReadOnlyRole ? 'pb-8' : 'pb-28')}>
 
       <CompanyBar lang={lang} />
 
@@ -1896,7 +1908,7 @@ export function JobDetailShell({
           Read-only office roles (hr) get no bar at all: nothing in it is
           something they may do, and an empty bar would just be a grey strip. */}
       {!isReadOnlyRole && (
-      <div className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
+      <div ref={actionBarRef} className="fixed bottom-0 left-0 right-0 bg-paper border-t border-line px-4 py-3 z-10">
         <div className="max-w-2xl lg:max-w-6xl mx-auto space-y-2">
           {/* Draft → Ongoing, Ongoing → Draft, Scheduled → Ongoing (spec
               2026-10-09). Renders nothing for anyone who may not move it. */}
