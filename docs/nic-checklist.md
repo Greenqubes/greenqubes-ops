@@ -51,9 +51,18 @@ _Last updated: 2026-10-30 (ux-schedule + feat-jobs — **two releases are live.*
 
 _Last updated: 2026-11-04 (feat-files — **you can now fix a finished job's photos. Live at 9:45pm.** Your installer uploaded nothing, so your scheduler closed the job on a wrong photo. Now, on a completed job, sales and schedulers can **add and bin Completion Photos and Signed DO, with no time limit**. A job always keeps one completion photo, so add the right one first, then bin the wrong one. The Signed DO box always shows for you on a completed job. You tested it on the preview. "What's new" tells the team, including the line that **Mark job complete** closes a job without photos, so nobody needs a stand-in photo again.)_
 
+_Last updated: 2026-11-05 (feat-bugs — **the auto-fixer is live.** Every night at 2am, if anything new came into the Bug or Crashes tab, Claude sorts it and prepares small fixes. You get one Telegram with a test link per fix. You try it, then tell the bug bot "put fix 3 live" (or "try again: …", or "drop fix 3"). Wishes come to you as a ping and are never built. Fixes 3 and 4 went live through the bot on the first night. This morning: the fixer's key was changed, a small hiccup in how it pushes was fixed, and the bot can no longer say it started a run when it didn't.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Auto-fixer — ✅ LIVE on production 2026-11-04
+_What to say to the bug bot: "what's waiting", "how's it going?", "look at this now", "put fix 3 live", "try again: still cut off on my phone", "drop fix 3"._
+- [ ] **Schedule heading on phones (fix 5):** the search button covers Today. Decide what moves to a second line on a phone. Needs a session with Claude, because the fix also changes the Completed heading.
+- [ ] **Old crash from 9 Sep (item 22):** happened once, never again. Nothing to do; if it comes back, the fixer reopens it.
+- [ ] **Delete any copy you kept of the routine token** (starts `sk-ant-oat01…`), e.g. in a note or a text file.
+- [x] **[Nic] Old test links:** Vercel Deployment Retention for Preview set (5 Nov), so old test links clear themselves. A fix you haven't tested in time loses its link; ask the bot to try again.
 
 ### Schedule | Completed switch + client number — ✅ LIVE on production 2026-10-27 and 2026-10-30
 _You tried both on the test site before they went live. These are the checks worth one go with real logins._
@@ -108,9 +117,6 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] **Auto-fixer page in Admin** (asked 2026-11-04) — see the fixer's work without reading anything technical
   - The latest run: started, running, done or failed, with a link to its log
   - Each bug and crash with its verdict in plain words: fix ready to try (with its test link), wish, junk, needs a session, live
-- [ ] **Auto-fixer progress on request** (asked 2026-11-04) — ask the bot "how's it going?" during a run and it answers, e.g. "Sorted 22 — fixing 1 of 2"
-  - On request only, no automatic pings (your call: don't flood the chat); the one summary at the end stays
-  - Needs the fixer to report where it's up to during a run (today the app only hears from it at the end)
 - [ ] **Files-tab attachment folders get the same 24-hour delete window** as the photo sections — you said yes 2026-09-28; held because that day was housekeeping only. A one-line code change.
 - [ ] **Tell the crew when a scheduled job changes** (a date move currently tells nobody)
   - Which changes are worth a message (date, time, address — not notes)?
@@ -155,6 +161,22 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-11-04 → 05, feat-bugs — Auto-Fixer, LIVE)
+
+- [x] **[Nic] Claude watches the Bug and Crashes tabs for you**: every night at 2am, only when something new came in. It sorts each one into fix / wish / junk / needs a session, and fixes only enough to get things working again (at most 3 files, feature screens only).
+- [x] **[Nic] One Telegram per night** to both your accounts, with a test link per fix. You approve each fix by chatting with the bug bot, which is now two-way.
+- [x] **[Nic] Wishes are pinged with the full report and never built.**
+- [x] **[Nic] Crashes record who had them and on which device**, so you know which desk it was.
+- [x] **[Nic] What's new**: a major fix pops up the day it goes live; minor fixes show the next Monday.
+- [x] **[Nic] Stops after 3 tries** on any one fix and flags it, so it doesn't burn tokens.
+- [x] **[Nic] "How's it going?"** — ask the bot during a run and it tells you where it's up to. No automatic pings (your call).
+- [x] **[Nic] First real night:** 22 sorted. Fix 3 (New Job crashed when an added name was refused) and fix 4 (the bottom bar hid the last buttons) went live through the bot at 11:43pm.
+- [x] **[Nic] Morning tidy-up (5 Nov):** fixer key changed (the old one had shown up in our chat), old secret files deleted, and the fixer can no longer trip over its own push.
+- [x] **[Nic] The bot told you "Started a fresh run" when nothing had started** (5 Nov, 6:27pm). Fixed: it now has to press a button before it answers. "Take a look now" also starts a run now. Checked by replaying your real chat 20 times per message.
+- [x] **[Nic] Fixer key set again through Notepad**, and the fixer now fetches the latest code before each run (it had been working from last night's copy). Check run at 6:48pm: got in, posted progress notes, and sorted today's iPhone crash as a dropped connection.
+- [x] **[Nic] Old `feat-auto-fixer` branch deleted** (fully merged).
+- [x] **[Nic] AI importance question:** skipped at session start (your call).
 
 ## Done This Session ✓ (2026-11-04, feat-files — Fix a Completed Job's Photos, LIVE)
 

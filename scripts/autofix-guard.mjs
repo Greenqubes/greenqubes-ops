@@ -51,6 +51,22 @@ function hostAllowed(/** @type {string} */ url) {
   try { return ALLOWED_HOSTS.includes(new URL(url).hostname) } catch { return false }
 }
 
+// Output redirections the fixer may leave on the END of its push
+// (`2>&1`, `>&2`, `2>/dev/null`, `> /dev/null`). Only trailing ones are
+// dropped, so a redirection can never hide a second ref after it.
+const REDIRECT = /^(?:\d?>&\d|(?:\d|&)?>\/dev\/null)$/
+
+/** @param {string[]} args */
+function dropTrailingRedirects(args) {
+  const a = [...args]
+  for (;;) {
+    const last = a.at(-1)
+    if (last !== undefined && REDIRECT.test(last)) { a.pop(); continue }
+    if (last === '/dev/null' && /^(?:\d|&)?>$/.test(a.at(-2) ?? '')) { a.splice(-2); continue }
+    return a
+  }
+}
+
 // git options that take a value, before the subcommand (`git -C dir push`).
 const GIT_OPTS_WITH_VALUE = ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--config-env', '--super-prefix']
 
@@ -73,7 +89,7 @@ function judgeGit(rest) {
   const shown = `git ${rest.join(' ')}`
   if (sub === 'push') {
     if (hadGlobal) return `only plain pushes to your own claude/autofix-* branch are allowed: "${shown}"`
-    return OWN_PUSH.test(`git push ${args.join(' ')}`.trim())
+    return OWN_PUSH.test(`git push ${dropTrailingRedirects(args).join(' ')}`.trim())
       ? null
       : `only pushes to your own claude/autofix-* branch are allowed (no force, no delete): "${shown}"`
   }
