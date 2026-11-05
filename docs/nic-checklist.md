@@ -174,6 +174,8 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [x] **[Nic] First real night:** 22 sorted. Fix 3 (New Job crashed when an added name was refused) and fix 4 (the bottom bar hid the last buttons) went live through the bot at 11:43pm.
 - [x] **[Nic] Morning tidy-up (5 Nov):** fixer key changed (the old one had shown up in our chat), old secret files deleted, and the fixer can no longer trip over its own push.
 - [x] **[Nic] The bot told you "Started a fresh run" when nothing had started** (5 Nov, 6:27pm). Fixed: it now has to press a button before it answers. "Take a look now" also starts a run now. Checked by replaying your real chat 20 times per message.
+- [x] **[Nic] Fixer key set again through Notepad**, and the fixer now fetches the latest code before each run (it had been working from last night's copy). Check run at 6:48pm: got in, posted progress notes, and sorted today's iPhone crash as a dropped connection.
+- [x] **[Nic] Old `feat-auto-fixer` branch deleted** (fully merged).
 - [x] **[Nic] AI importance question:** skipped at session start (your call).
 
 ## Done This Session ✓ (2026-11-04, feat-files — Fix a Completed Job's Photos, LIVE)
