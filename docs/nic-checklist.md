@@ -62,7 +62,7 @@ _What to say to the bug bot: "what's waiting", "how's it going?", "look at this 
 - [ ] **Schedule heading on phones (fix 5):** the search button covers Today. Decide what moves to a second line on a phone. Needs a session with Claude, because the fix also changes the Completed heading.
 - [ ] **Old crash from 9 Sep (item 22):** happened once, never again. Nothing to do; if it comes back, the fixer reopens it.
 - [ ] **Delete any copy you kept of the routine token** (starts `sk-ant-oat01…`), e.g. in a note or a text file.
-- [ ] **Old test links:** in Vercel → greenqubes-ops → Settings → Deployment Retention, set Preview to about 2 weeks. A fix you haven't tested by then loses its link (ask the bot to try again).
+- [x] **[Nic] Old test links:** Vercel Deployment Retention for Preview set (5 Nov), so old test links clear themselves. A fix you haven't tested in time loses its link; ask the bot to try again.
 
 ### Schedule | Completed switch + client number — ✅ LIVE on production 2026-10-27 and 2026-10-30
 _You tried both on the test site before they went live. These are the checks worth one go with real logins._
