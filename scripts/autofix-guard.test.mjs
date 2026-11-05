@@ -51,6 +51,16 @@ check('bare push → block', blocked(bash('git push')), true)
 check('force push own branch → block', blocked(bash('git push --force origin claude/autofix-x')), true)
 check('delete branch → block', blocked(bash('git push origin --delete claude/autofix-x')), true)
 check('push hidden after && → block', blocked(bash('npm test && git push origin main')), true)
+// Trailing output redirections on the fixer's own push (run 2, 2026-11-04,
+// was refused for "2>&1" and had to retry). Only at the END, and only
+// stream-joining or /dev/null — a redirection never smuggles in a ref.
+check('push own branch 2>&1 → allow', blocked(bash('git push -u origin claude/autofix-x 2>&1')), false)
+check('push own branch 2>&1 | tail → allow', blocked(bash('git push -u origin claude/autofix-x 2>&1 | tail -5')), false)
+check('push own branch 2>/dev/null → allow', blocked(bash('git push origin claude/autofix-x 2>/dev/null')), false)
+check('push own branch > /dev/null 2>&1 → allow', blocked(bash('git push origin claude/autofix-x > /dev/null 2>&1')), false)
+check('push main 2>&1 → block', blocked(bash('git push origin main 2>&1')), true)
+check('redirection before a second ref → block', blocked(bash('git push origin claude/autofix-x 2>&1 main')), true)
+check('force push own branch 2>&1 → block', blocked(bash('git push --force origin claude/autofix-x 2>&1')), true)
 
 // Database, deploys, GitHub writes.
 check('supabase CLI → block', blocked(bash('npx supabase db push')), true)
