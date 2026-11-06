@@ -163,6 +163,46 @@ export function arrangeTurn(state: ArrangeState): 'scheduler' | 'sales' {
   return state === 'needs_date' || state === 'clash' ? 'scheduler' : 'sales'
 }
 
+// ── The To arrange card's link ──────────────────────────────────────────────
+
+/** The word on the right of a To arrange card, for someone who can act on it.
+ *  'change' (Nic, 2026-11-06): the scheduler offered the wrong date and the
+ *  client has not answered yet — the job is still in To arrange, he only needs
+ *  to take the offer back and offer again. Admin is both sides and keeps
+ *  'answer', as before. */
+export type ArrangeCta = 'offer' | 'answer' | 'change'
+
+export function arrangeCta(state: ArrangeState, salesSide: boolean, schedulerSide: boolean): ArrangeCta | null {
+  const turn = arrangeTurn(state)
+  if (turn === 'scheduler') return schedulerSide ? 'offer' : null
+  if (salesSide) return 'answer'
+  return state === 'offered' && schedulerSide ? 'change' : null
+}
+
+/** The address marker a Change date card carries to the job page. */
+const CHANGE_PARAM = 'arrange'
+const CHANGE_VALUE = 'change'
+
+export function arrangeCardHref(jobId: string, cta: ArrangeCta | null): string {
+  return cta === 'change' ? `/jobs/${jobId}?${CHANGE_PARAM}=${CHANGE_VALUE}` : `/jobs/${jobId}`
+}
+
+/** On arrival from Change date: open the take-back step only while the offer
+ *  is still out and only for the scheduler side. Anything else — the client
+ *  already answered, someone withdrew it, sales followed the address — is a
+ *  plain visit. */
+export function opensChangeDate(search: string, state: ArrangeState | null, schedulerSide: boolean): boolean {
+  return schedulerSide && state === 'offered' && new URLSearchParams(search).get(CHANGE_PARAM) === CHANGE_VALUE
+}
+
+/** The address with the marker dropped, so a reload does not reopen it. */
+export function withoutChangeParam(search: string): string {
+  const p = new URLSearchParams(search)
+  p.delete(CHANGE_PARAM)
+  const rest = p.toString()
+  return rest ? `?${rest}` : ''
+}
+
 // ── Who may press what ──────────────────────────────────────────────────────
 // isAdmin is the REAL role: getEffectiveRole answers 'scheduler' for a plain
 // admin, so `role` alone cannot tell them apart.

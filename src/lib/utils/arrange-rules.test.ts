@@ -11,6 +11,7 @@ import {
   arrangeFieldLocks, seedCrewFromOffer, blocksPush, arrangeClearPatch, groupArrangeJobs,
   parseArrangeAction, parseGuideInput, idList, reasonText,
   seenMatches, contractorsInOffer, offerExpired,
+  arrangeCta, arrangeCardHref, opensChangeDate, withoutChangeParam,
   type ArrangeAction, type Arrangement, type ArrangeOffer, type ArrangeState,
 } from './arrange-rules'
 
@@ -292,6 +293,30 @@ check('no scheduler-side picks, no contractors', contractorsInOffer(extRows, [])
 console.log('Client OK on a day that has passed (review #11):')
 check('the offered day is today — fine', offerExpired({ ...offer, date: '2026-11-04' }, '2026-11-04'), false)
 check('the offered day has passed', offerExpired({ ...offer, date: '2026-11-03' }, '2026-11-04'), true)
+
+console.log('the word on a To arrange card (Nic 2026-11-06: a Change date link):')
+check('scheduler, needs a date → offer', arrangeCta('needs_date', false, true), 'offer')
+check('scheduler, crew clash → offer', arrangeCta('clash', false, true), 'offer')
+check('scheduler, waiting on the client → change', arrangeCta('offered', false, true), 'change')
+check('scheduler, sent back to sales → nothing', arrangeCta('no_fit', false, true), null)
+check('sales, waiting on the client → answer', arrangeCta('offered', true, false), 'answer')
+check('sales, needs a date → nothing', arrangeCta('needs_date', true, false), null)
+check('admin (both sides), waiting on the client → answer, as before', arrangeCta('offered', true, true), 'answer')
+check('neither side → nothing', arrangeCta('offered', false, false), null)
+
+console.log('where the card goes:')
+check('Change date opens the job at the change step', arrangeCardHref('j1', 'change'), '/jobs/j1?arrange=change')
+check('Offer a date just opens the job', arrangeCardHref('j1', 'offer'), '/jobs/j1')
+check('no word just opens the job', arrangeCardHref('j1', null), '/jobs/j1')
+
+console.log('arriving from Change date:')
+check('scheduler, offer still out → open the change step', opensChangeDate('?arrange=change', 'offered', true), true)
+check('offer already answered or withdrawn → do not', opensChangeDate('?arrange=change', 'needs_date', true), false)
+check('sales following the same address → do not', opensChangeDate('?arrange=change', 'offered', false), false)
+check('a plain visit → do not', opensChangeDate('', 'offered', true), false)
+check('works beside other address parts', opensChangeDate('?tab=details&arrange=change', 'offered', true), true)
+check('the marker is dropped after use', withoutChangeParam('?arrange=change'), '')
+check('other address parts are kept', withoutChangeParam('?tab=details&arrange=change'), '?tab=details')
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall arrange-rules checks passed')

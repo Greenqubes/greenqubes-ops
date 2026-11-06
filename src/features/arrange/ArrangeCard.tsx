@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useToast } from '@/components/Toast'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
-import { hhmm, arrangeTurn, arrangeSeen, type ArrangeAction, type ArrangeState, type Arrangement, type GuideInput } from '@/lib/utils/arrange-rules'
+import { hhmm, arrangeTurn, arrangeSeen, opensChangeDate, withoutChangeParam, type ArrangeAction, type ArrangeState, type Arrangement, type GuideInput } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel } from '@/lib/utils/arrange-labels'
 import { ArrangeReadyDialog } from './ArrangeReadyDialog'
 import { ArrangeReasonDialog } from './ArrangeReasonDialog'
@@ -17,7 +17,9 @@ import { ArrangeReasonDialog } from './ArrangeReasonDialog'
  * Everyone else (designer, production, hr) sees the summary only. Every button
  * goes through POST /api/jobs/[id]/arrange, which re-checks all of it.
  */
-type Reason = 'client_no' | 'send_back' | 'withdraw'
+/** 'change' is a withdraw reached from the list's Change date link (Nic,
+ *  2026-11-06): same step, worded for why he is here. */
+type Reason = 'client_no' | 'send_back' | 'withdraw' | 'change'
 
 /** The toast for a refused To arrange request — shared with the job page's
  *  offer (JobDetailShell), so every button explains itself the same way. */
@@ -65,9 +67,20 @@ export function ArrangeCard({
         timeStart: hhmm(savedSlot.timeStart), timeEnd: hhmm(savedSlot.timeEnd), note: null,
       }, [arrangement, savedSlot.date, savedSlot.timeStart, savedSlot.timeEnd])
 
+  // Arrived from the list's Change date link: open the take-back step once,
+  // and drop the marker so a reload or a later offer does not reopen it.
+  // Read after mount — the address is never part of the first render.
+  useEffect(() => {
+    if (!opensChangeDate(window.location.search, state, schedulerSide)) return
+    setReason('change')
+    window.history.replaceState(window.history.state, '', window.location.pathname + withoutChangeParam(window.location.search) + window.location.hash)
+    // Once, on arrival; the state it reads is the page's first.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   if (state === null && !canStart) return null
 
-  async function act(action: ArrangeAction, extra: Record<string, unknown> = {}): Promise<void> {
+  async function act(action: ArrangeAction, extra: Record<string, unknown> = {}, doneKey?: 'arrangeChangeDone'): Promise<void> {
     if (!(await beforeAction())) return
     setBusy(true)
     try {
@@ -81,7 +94,7 @@ export function ArrangeCard({
       setReadyOpen(false)
       setReason(null)
       if (data.outcome === 'clash') showError(t(lang, 'arrangeClientOkClash').replace('{names}', (data.clashNames ?? []).join(', ')))
-      else showSuccess(t(lang, data.outcome === 'scheduled' ? 'arrangeClientOkDone' : 'arrangeSent'))
+      else showSuccess(t(lang, data.outcome === 'scheduled' ? 'arrangeClientOkDone' : doneKey ?? 'arrangeSent'))
       onChanged()
     } catch {
       showError(t(lang, 'saveError'))
@@ -195,10 +208,12 @@ export function ArrangeCard({
       <ArrangeReadyDialog open={readyOpen} initial={initialGuide} busy={busy} lang={lang}
         onClose={() => setReadyOpen(false)} onSend={g => act('ready', g)} />
       <ArrangeReasonDialog open={reason !== null} busy={busy} lang={lang}
-        title={t(lang, reason === 'client_no' ? 'arrangeReasonTitleNo' : reason === 'send_back' ? 'arrangeReasonTitleNoFit' : 'arrangeReasonTitleWithdraw')}
-        required={reason !== 'withdraw'}
+        title={t(lang, reason === 'client_no' ? 'arrangeReasonTitleNo' : reason === 'send_back' ? 'arrangeReasonTitleNoFit'
+          : reason === 'change' ? 'arrangeReasonTitleChange' : 'arrangeReasonTitleWithdraw')}
+        required={reason === 'client_no' || reason === 'send_back'}
         onClose={() => setReason(null)}
-        onSend={text => act(reason === 'client_no' ? 'client_no' : reason === 'send_back' ? 'send_back' : 'withdraw', { text })} />
+        onSend={text => act(reason === 'client_no' ? 'client_no' : reason === 'send_back' ? 'send_back' : 'withdraw', { text },
+          reason === 'change' ? 'arrangeChangeDone' : undefined)} />
     </div>
   )
 }

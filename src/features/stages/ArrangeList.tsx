@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr, type LangCode } from '@/lib/i18n'
-import { groupArrangeJobs, arrangeTurn, isArrangeSalesSide, isArrangeSchedulerSide } from '@/lib/utils/arrange-rules'
+import { groupArrangeJobs, arrangeCta, arrangeCardHref, isArrangeSalesSide, isArrangeSchedulerSide, type ArrangeCta } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel, daysWaiting } from '@/lib/utils/arrange-labels'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { StageViewer } from '@/lib/utils/job-stage-rules'
@@ -42,27 +42,28 @@ export function ArrangeList({ jobs, viewer, lang, todayISO }: {
     }
   }
 
-  // The word on the right when this person can act on the card.
-  const cta = (j: StageJob): string | null => {
+  // The word on the right when this person can act on the card. Change date
+  // (Nic, 2026-11-06) also changes where the card goes: straight to the
+  // take-back step on the job page.
+  const ctaOf = (j: StageJob): ArrangeCta | null => {
     if (!j.arrange_state) return null
-    const turn = arrangeTurn(j.arrange_state)
-    if (turn === 'scheduler' && schedulerSide) return tr(lang, 'arrangeOfferCta')
     const rulesJob = { status: j.status, created_by: j.created_by, sales_poc_id: j.sales_poc_id, coordinatorIds: j.coordinatorIds }
-    if (turn === 'sales' && isArrangeSalesSide(viewer, rulesJob)) return tr(lang, 'arrangeAnswerCta')
-    return null
+    return arrangeCta(j.arrange_state, isArrangeSalesSide(viewer, rulesJob), schedulerSide)
   }
+  const CTA_KEY = { offer: 'arrangeOfferCta', answer: 'arrangeAnswerCta', change: 'arrangeChangeCta' } as const
 
   const card = (j: StageJob, quiet: boolean) => {
     const a = j.arrangement
     const c = chip(j)
-    const action = cta(j)
+    const ctaKind = ctaOf(j)
+    const action = ctaKind ? tr(lang, CTA_KEY[ctaKind]) : null
     const waited = a && todayISO ? daysWaiting(a.readyAt, todayISO) : null
     const reason = a?.lastReturn && (j.arrange_state === 'needs_date' || j.arrange_state === 'no_fit' || j.arrange_state === 'clash')
       ? a.lastReturn.text : null
     return (
       <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
         className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70')}>
-        <Link href={`/jobs/${j.id}`} className="block px-4 py-3 space-y-1.5">
+        <Link href={arrangeCardHref(j.id, ctaKind)} className="block px-4 py-3 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-sm font-semibold text-ink min-w-0 truncate">{j.project_title || j.client || 'Untitled job'}</p>
             {c && <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', c.cls)}>{c.text}</span>}
