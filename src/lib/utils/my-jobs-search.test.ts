@@ -40,9 +40,10 @@ check('no match', matchesJobSearch(harbour, 'oakley'), false)
 check('missing client name / title is not a crash', matchesJobSearch(untitled, 'paragon'), true)
 
 console.log('filtering the three lists:')
-const groups: { draft: Row[]; ongoing: Row[]; scheduled: Row[] } = { draft: [untitled], ongoing: [riser, harbour], scheduled: [] }
+const groups: { draft: Row[]; ongoing: Row[]; arrange: Row[]; scheduled: Row[] } = { draft: [untitled], ongoing: [riser], arrange: [harbour], scheduled: [] }
 const r = searchMyJobs(groups, 'fossil')
-check('keeps only matches, per section', [r.draft.length, r.ongoing.map(j => j.id), r.scheduled.length], [0, ['riser'], 0])
+check('keeps only matches, per section', [r.draft.length, r.ongoing.map(j => j.id), r.arrange.length, r.scheduled.length], [0, ['riser'], 0, 0])
+check('the To arrange section is searched too', searchMyJobs(groups, 'harbour').arrange.map(j => j.id), ['harbour'])
 check('empty search returns the lists untouched', searchMyJobs(groups, '') === groups, true)
 
 console.log('folded sections (remembered per device — untrusted input):')
@@ -50,6 +51,7 @@ check('nothing saved → nothing folded', parseFolded(null), [])
 check('saved list read back', parseFolded('["scheduled","draft"]'), ['scheduled', 'draft'])
 check('junk ignored, not a crash', parseFolded('{not json'), [])
 check('unknown names dropped', parseFolded('["scheduled","completed",3]'), ['scheduled'])
+check('a folded To arrange section is remembered', parseFolded('["arrange"]'), ['arrange'])
 check('a non-list is ignored', parseFolded('"draft"'), [])
 check('open section stays open', sectionOpen(false, false), true)
 check('folded section stays shut', sectionOpen(true, false), false)

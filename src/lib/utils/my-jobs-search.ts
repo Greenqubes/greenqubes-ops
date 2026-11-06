@@ -11,7 +11,7 @@ import type { MyJobsGroups } from './my-jobs'
 
 export type SearchableJob = { project_title: string | null; client: string; client_poc_name?: string | null; location: string }
 export type MyJobsGroup = keyof MyJobsGroups<unknown>
-const GROUPS: readonly MyJobsGroup[] = ['draft', 'ongoing', 'scheduled']
+const GROUPS: readonly MyJobsGroup[] = ['draft', 'ongoing', 'arrange', 'scheduled']
 
 /** The words of a search, lower-cased. Shared with the schedule's search so
  *  the two boxes can never disagree on what a match is. */
@@ -34,7 +34,7 @@ export function matchesJobSearch(job: SearchableJob, query: string): boolean {
 export function searchMyJobs<T extends SearchableJob>(groups: MyJobsGroups<T>, query: string): MyJobsGroups<T> {
   if (words(query).length === 0) return groups
   const keep = (list: T[]) => list.filter(j => matchesJobSearch(j, query))
-  return { draft: keep(groups.draft), ongoing: keep(groups.ongoing), scheduled: keep(groups.scheduled) }
+  return { draft: keep(groups.draft), ongoing: keep(groups.ongoing), arrange: keep(groups.arrange), scheduled: keep(groups.scheduled) }
 }
 
 /** Which sections this device folded shut. Read from localStorage, so it is

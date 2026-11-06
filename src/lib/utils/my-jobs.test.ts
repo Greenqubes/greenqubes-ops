@@ -12,10 +12,10 @@ function check(name: string, actual: unknown, expected: unknown) {
   else { console.error(`  ✗ ${name}\n      expected: ${e}\n      actual:   ${a}`); failures++ }
 }
 const ME = 'u-me', OTHER = 'u-other'
-const j = (id: string, status: string, date: string | null, o: Partial<{ created_by: string; sales_poc_id: string; coordinatorIds: string[]; designerIds: string[] }> = {}) => ({
+const j = (id: string, status: string, date: string | null, o: Partial<{ created_by: string; sales_poc_id: string; coordinatorIds: string[]; designerIds: string[]; arrange_state: string }> = {}) => ({
   id, status, date, project_title: id, client: 'C',
   created_by: o.created_by ?? OTHER, sales_poc_id: o.sales_poc_id ?? OTHER, coordinatorIds: o.coordinatorIds ?? [],
-  designerIds: o.designerIds ?? [],
+  designerIds: o.designerIds ?? [], arrange_state: o.arrange_state ?? null,
 })
 const jobs = [
   j('made-by-me',  'scheduled', '2026-10-20', { created_by: ME }),
@@ -74,6 +74,28 @@ check('only their OWN drafts', ids(sg.draft), ['s-own-draft'])
 check('every Ongoing job, dated first', ids(sg.ongoing), ['s-ongoing-dated', 's-ongoing-any'])
 check('no scheduled jobs at all — not even their own (that is Mine)', ids(sg.scheduled), [])
 check('completed drops off', [...sg.draft, ...sg.ongoing, ...sg.scheduled].some(x => x.id === 's-done'), false)
+
+console.log('To arrange section:')
+// Nic, 2026-11-06 (panel screenshot): "this side panel need to include a To
+// arrange as well". An Ongoing job sales marked ready is still raw
+// awaiting_date — grouping by stage alone left it under Ongoing.
+const aJobs = [
+  j('a-offered', 'awaiting_date', '2026-11-12', { created_by: ME, arrange_state: 'offered' }),
+  j('a-needs',   'awaiting_date', null,         { sales_poc_id: ME, arrange_state: 'needs_date' }),
+  j('a-early',   'awaiting_date', '2026-11-09', { coordinatorIds: [ME], arrange_state: 'clash' }),
+  j('a-plain',   'awaiting_date', null,         { created_by: ME }),
+  j('a-others',  'awaiting_date', null,         { arrange_state: 'no_fit' }),
+  j('a-design',  'awaiting_date', null,         { designerIds: [ME], arrange_state: 'needs_date' }),
+]
+const ag = myJobs(aJobs, ME)
+check('a job in To arrange gets its own section, dated first', ids(ag.arrange), ['a-early', 'a-offered', 'a-needs'])
+check('…and leaves Ongoing, so it never shows twice', ids(ag.ongoing), ['a-plain'])
+check('someone else\'s To arrange job is not mine', ag.arrange.some(x => x.id === 'a-others'), false)
+check('scheduler: every To arrange job in the company',
+  ids(myJobs(aJobs, 'u-sched', 'scheduler').arrange), ['a-early', 'a-offered', 'a-needs', 'a-others', 'a-design'])
+check('scheduler: Ongoing keeps only the plain ones', ids(myJobs(aJobs, 'u-sched', 'scheduler').ongoing), ['a-plain'])
+check('designer: an assigned job in To arrange', ids(myJobs(aJobs, ME, 'designer').arrange), ['a-design'])
+check('a scheduled job never lands in To arrange', myJobs([j('x', 'scheduled', '2026-11-20', { created_by: ME })], ME).arrange, [])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall my-jobs checks passed')

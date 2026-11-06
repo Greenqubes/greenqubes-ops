@@ -6,7 +6,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { myJobs, type MyJobsMode } from '@/lib/utils/my-jobs'
-import { parseFolded, searchMyJobs, sectionOpen } from '@/lib/utils/my-jobs-search'
+import { parseFolded, searchMyJobs, sectionOpen, type MyJobsGroup } from '@/lib/utils/my-jobs-search'
 import { scheduleJumpHref } from './job-jump'
 import { desktopPanelBox, measuredEdge } from './my-jobs-panel-box'
 import { jobListHref } from '@/features/stages/stage-view'
@@ -35,13 +35,16 @@ function label(iso: string | null, tbc: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-type Group = 'draft' | 'ongoing' | 'scheduled'
-// Each section wears its own soft colour so the three read apart at a glance
+type Group = MyJobsGroup
+// Each section wears its own soft colour so they read apart at a glance
 // (Nic picked "whole section tinted", 2026-10-26). Soft tokens, not slash
 // opacity — the theme colours are bare var() and `bg-x/20` never compiles.
+// To arrange (2026-11-06) takes the soft green between Ongoing's grey and
+// Scheduled's lime: on its way to the schedule.
 const TINT: Record<Group, string> = {
   draft:     'bg-brand-amber-soft',
   ongoing:   'bg-brand-blue-soft',
+  arrange:   'bg-brand-green-soft',
   scheduled: 'bg-terracotta-soft',
 }
 
@@ -151,10 +154,10 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
   const mineGroups  = useMemo(() => searchMyJobs(myJobs(jobs, userId, isScheduler ? 'mine' : mode), query), [jobs, userId, mode, isScheduler, query])
   const officeGroups = useMemo(() => isScheduler ? searchMyJobs(myJobs(jobs, userId, 'scheduler'), query) : null, [jobs, userId, isScheduler, query])
   const groups = !isScheduler || schedTab === 'mine' || !officeGroups ? mineGroups : officeGroups
-  const total = groups.draft.length + groups.ongoing.length + groups.scheduled.length
   // While searching, the tab counts are the matches, so a job in the other
   // list is still findable.
-  const count = (g: typeof groups) => g.draft.length + g.ongoing.length + g.scheduled.length
+  const count = (g: typeof groups) => g.draft.length + g.ongoing.length + g.arrange.length + g.scheduled.length
+  const total = count(groups)
 
   const pick = (j: StageJob, group: Group) => {
     // On a phone the panel covers the page — get it out of the way first.
@@ -164,8 +167,7 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
       else router.push(scheduleJumpHref(j.date, j.id))
       return
     }
-    // An Ongoing job in To arrange lives in that list, not Ongoing (2026-11-04).
-    router.push(jobListHref(group === 'draft' ? 'drafts' : j.arrange_state ? 'arrange' : 'ongoing', j.id))
+    router.push(jobListHref(group === 'draft' ? 'drafts' : group === 'arrange' ? 'arrange' : 'ongoing', j.id))
   }
 
   const section = (title: string, list: StageJob[], group: Group) => {
@@ -263,6 +265,7 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
           {total === 0 && <p className="px-3 py-6 text-sm text-muted">{t(lang, searching ? 'myJobsNoMatch' : 'myJobsEmpty')}</p>}
           {section(t(lang, 'stageDrafts'), groups.draft, 'draft')}
           {section(t(lang, 'stageOngoing'), groups.ongoing, 'ongoing')}
+          {section(t(lang, 'stageArrange'), groups.arrange, 'arrange')}
           {section(t(lang, 'stageScheduled'), groups.scheduled, 'scheduled')}
         </aside>
       )}

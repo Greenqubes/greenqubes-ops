@@ -10,8 +10,14 @@ export type MyJobInput = {
   created_by: string | null; sales_poc_id: string | null; coordinatorIds: string[]
   /** Designers on the job — for a designer's panel (2026-10-19). */
   designerIds?: string[]
+  /** Set while an Ongoing job is in To arrange (2026-11-04). */
+  arrange_state?: string | null
 }
-export type MyJobsGroups<T> = { draft: T[]; ongoing: T[]; scheduled: T[] }
+/** Drafts · Ongoing · To arrange · Scheduled — a job's life, top to bottom.
+ *  To arrange is an Ongoing job sales marked ready (Nic, 2026-11-06: "this
+ *  side panel need to include a To arrange as well"); it leaves Ongoing so it
+ *  never shows twice. */
+export type MyJobsGroups<T> = { draft: T[]; ongoing: T[]; arrange: T[]; scheduled: T[] }
 
 const byDate = (a: { date: string | null }, b: { date: string | null }) => {
   if (a.date && b.date) return a.date.localeCompare(b.date)
@@ -31,7 +37,7 @@ export type MyJobsMode = 'mine' | 'designer' | 'scheduler'
 export function myJobs<T extends MyJobInput>(
   jobs: T[], userId: string, mode: MyJobsMode = 'mine',
 ): MyJobsGroups<T> {
-  const out: MyJobsGroups<T> = { draft: [], ongoing: [], scheduled: [] }
+  const out: MyJobsGroups<T> = { draft: [], ongoing: [], arrange: [], scheduled: [] }
   for (const job of jobs) {
     const stage = stageOf(job.status)
     if (stage === 'completed') continue
@@ -44,10 +50,10 @@ export function myJobs<T extends MyJobInput>(
         ? (stage === 'draft' ? isMine : stage === 'ongoing')
         : isMine
     if (!listed) continue
-    out[stage].push(job)
+    out[stage === 'ongoing' && job.arrange_state ? 'arrange' : stage].push(job)
   }
   // Array.prototype.sort is stable: undated jobs keep their input order
   // (newest first, from getStageJobs).
-  out.draft.sort(byDate); out.ongoing.sort(byDate); out.scheduled.sort(byDate)
+  out.draft.sort(byDate); out.ongoing.sort(byDate); out.arrange.sort(byDate); out.scheduled.sort(byDate)
   return out
 }
