@@ -10,6 +10,8 @@
  * A crafted job title could otherwise inject formatting or a fake link into
  * a Telegram message (audit hardening item, 2026-08-13).
  */
+import { groupArrangeJobs, parseArrangeState, parseArrangement } from '../utils/arrange-rules'
+import { daysWaiting, guideLabel } from '../utils/arrange-labels'
 
 /** HTML-escape user text destined for a parse_mode:'HTML' message. */
 export function tgEscape(s: string): string {
@@ -114,16 +116,20 @@ export function buildUnassignedSummary(p: {
    *  chases per person, so the message is ordered the way he works. Jobs
    *  inside a group run soonest first. */
   groups: Array<{ salesName: string; jobs: UnassignedJob[] }>
+  /** Jobs in To arrange (2026-11-06) — listed after the driver gaps. */
+  arrange?: ArrangeSummary
 }): string {
   const total = p.groups.reduce((n, g) => n + g.jobs.length, 0)
+  const head  = `<b><u>Jobs still to arrange — ${tgEscape(p.dateLabel)}</u></b>`
+  const arrangeLines = arrangeSection(p.arrange, p.appUrl)
 
   if (total === 0) {
-    return `<b><u>Jobs still to arrange — ${tgEscape(p.dateLabel)}</u></b>\n\n`
-      + '✅ Every upcoming job has a driver. Nothing outstanding.'
+    if (arrangeLines.length === 0) return `${head}\n\n✅ Every upcoming job has a driver. Nothing outstanding.`
+    return [head, '', '✅ Every upcoming job has a driver.', ...arrangeLines].join('\n')
   }
 
   const parts = [
-    `<b><u>Jobs still to arrange — ${tgEscape(p.dateLabel)}</u></b>`,
+    head,
     '',
     `${total} job${total === 1 ? '' : 's'} with nobody assigned:`,
     '',
@@ -145,7 +151,83 @@ export function buildUnassignedSummary(p: {
   }
 
   parts.push('These will appear again tomorrow until someone is assigned.')
+  parts.push(...arrangeLines)
   return parts.join('\n')
+}
+
+/**
+ * To arrange in the 4pm check (Nic, 2026-11-06: "check if telegram message
+ * includes this new function in the messages as well"). A job sales marked
+ * ready is a job still to arrange, so it belongs in this message. The ones
+ * whose turn is the scheduler's — needs a date, client said no, client agreed
+ * but the crew clashes — are listed; the ones waiting on sales are a count,
+ * because he cannot act on them. Each step already sends its own Telegram
+ * the moment it happens (src/lib/arrange/notify.ts); this is the daily sweep.
+ */
+export type ArrangeWaitingJob = {
+  id: string; title: string; salesName: string
+  /** 'Needs a date', 'Client said no: …' or 'Client agreed — crew clashes'. */
+  status: string
+  /** Sales' day guide as the screen shows it; null when the stored data is unreadable. */
+  guide: string | null
+  /** Whole days since sales marked it ready; null when unknown. */
+  daysWaiting: number | null
+}
+export type ArrangeSummary = { waiting: ArrangeWaitingJob[]; withSales: number }
+
+/** A To arrange job as read from the database — both columns untrusted. */
+export type ArrangeRow = {
+  id: string; project_title: string | null; client: string
+  sales_poc_id: string | null; created_by: string | null
+  arrange_state: unknown; arrangement: unknown
+}
+
+/** Same order as the Jobs tab's To arrange list: clashes first, then the
+ *  longest-waiting. Named by the sales PIC, else whoever made the job — the
+ *  same rule as the driver gaps above. */
+export function arrangeSummaryFrom(rows: ArrangeRow[], nameById: Map<string, string>, todayISO: string): ArrangeSummary {
+  const parsed = rows.map(r => ({ ...r, arrange_state: parseArrangeState(r.arrange_state), arrangement: parseArrangement(r.arrangement) }))
+  // Grouped by state alone, so a row whose stored arrangement no longer reads
+  // is still listed (last, with no guide line) — never hidden from him.
+  const { needsDate, withSales } = groupArrangeJobs(parsed)
+  return {
+    withSales: withSales.length,
+    waiting: needsDate.map(j => {
+      const a   = j.arrangement
+      const ret = a?.lastReturn
+      const owner = j.sales_poc_id ?? j.created_by
+      return {
+        id:        j.id,
+        title:     j.project_title || j.client || 'Untitled job',
+        salesName: owner ? (nameById.get(owner) ?? 'Unknown') : 'No sales person',
+        status:    j.arrange_state === 'clash' ? 'Client agreed — crew clashes'
+          : ret?.kind === 'client_no' ? (ret.text ? `Client said no: ${ret.text}` : 'Client said no')
+          : 'Needs a date',
+        guide:       a ? guideLabel(a) : null,
+        daysWaiting: a ? daysWaiting(a.readyAt, todayISO) : null,
+      }
+    }),
+  }
+}
+
+function arrangeSection(a: ArrangeSummary | undefined, appUrl: string): string[] {
+  if (!a || (a.waiting.length === 0 && a.withSales === 0)) return []
+  const salesTail = 'with sales, waiting on the client or sent back to them.'
+  // LINE first: splitForTelegram breaks long messages at LINE boundaries.
+  if (a.waiting.length === 0) return ['', LINE, `<b>To arrange</b> — nothing waiting for you. ${a.withSales} ${salesTail}`]
+  const n = a.waiting.length
+  const out = ['', LINE, `<b>To arrange</b> — ${n} job${n === 1 ? '' : 's'} waiting for a date:`, '']
+  a.waiting.forEach((j, i) => {
+    const ready = j.daysWaiting === null ? ''
+      : j.daysWaiting === 0 ? ' · ready today'
+      : ` · ready ${j.daysWaiting} day${j.daysWaiting === 1 ? '' : 's'}`
+    out.push(`${i + 1}. <b>${tgEscape(j.title)}</b> (${tgEscape(j.salesName)})`)
+    out.push(`   ${tgEscape(j.status)}${ready}`)
+    if (j.guide) out.push(`   Sales' guide: ${tgEscape(j.guide)}`)
+    out.push(`   <a href="${appUrl}/jobs/${j.id}">Open</a>`)
+  })
+  if (a.withSales > 0) out.push('', `${a.withSales} more ${salesTail}`)
+  return out
 }
 
 const MONTHS_TIME = ['AM', 'PM']

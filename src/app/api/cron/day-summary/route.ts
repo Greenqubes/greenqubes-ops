@@ -4,7 +4,7 @@ import { sendSummaryTelegram } from '@/lib/telegram/bot'
 import { changeDateLabel } from '@/lib/utils/day-summary-label'
 import {
   buildUnassignedSummary, buildInstallerSummary, formatDayDate, formatTimeRange,
-  splitForTelegram, type TomorrowRow, type UnassignedJob,
+  splitForTelegram, arrangeSummaryFrom, type ArrangeRow, type TomorrowRow, type UnassignedJob,
 } from '@/lib/telegram/day-summary'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://greenqubes-ops.vercel.app'
@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
   let installerSent = 0
   let gapCount      = 0
   let pendingCount  = 0
+  let arrangeCount  = 0
 
   // ── A. The scheduler's check: jobs with nobody assigned ──────────────────
   if (doGaps) {
@@ -134,7 +135,19 @@ export async function GET(req: NextRequest) {
         jobs: [...jobs].sort((x, y) => x.daysAway - y.daysAway),
       }))
 
-    const text  = buildUnassignedSummary({ dateLabel: dateLbl, appUrl: APP_URL, groups })
+    // To arrange (Nic, 2026-11-06): Ongoing jobs sales marked ready are jobs
+    // still to arrange too. A failed read leaves the section out rather than
+    // stopping the driver check, which is the part he relies on.
+    const { data: arrangeRows, error: arrangeErr } = await db
+      .from('jobs')
+      .select('id, project_title, client, sales_poc_id, created_by, arrange_state, arrangement')
+      .eq('status', 'awaiting_date')
+      .not('arrange_state', 'is', null) as { data: ArrangeRow[] | null; error: unknown }
+    if (arrangeErr) console.error('[day-summary] To arrange read failed', arrangeErr)
+    const arrange = arrangeErr ? undefined : arrangeSummaryFrom(arrangeRows ?? [], nameById, todayISO)
+    arrangeCount = arrange?.waiting.length ?? 0
+
+    const text  = buildUnassignedSummary({ dateLabel: dateLbl, appUrl: APP_URL, groups, arrange })
     const parts = splitForTelegram(text)
 
     for (const u of staff.filter(x =>
@@ -271,5 +284,5 @@ export async function GET(req: NextRequest) {
     visibility: ['role:scheduler'],
   } as never)
 
-  return NextResponse.json({ ok: true, part: part ?? 'both', schedulerSent, installerSent, unassigned: gapCount })
+  return NextResponse.json({ ok: true, part: part ?? 'both', schedulerSent, installerSent, unassigned: gapCount, toArrange: arrangeCount })
 }

@@ -7,6 +7,7 @@
 import {
   tgEscape, formatDayDate, buildInstallerSummary,
   splitForTelegram, TELEGRAM_LIMIT, formatTimeRange, buildUnassignedSummary,
+  arrangeSummaryFrom,
 } from './day-summary'
 
 let failures = 0
@@ -91,6 +92,64 @@ contains('tomorrow too',        one(1), '<b>tomorrow</b>')
 const clear = buildUnassignedSummary({ dateLabel: '17/09/2026 (Thu)', appUrl: 'https://x.test', groups: [] })
 contains('all-clear when nothing is missing', clear, 'Every upcoming job has a driver')
 check('and it is NOT empty', clear !== '', true)
+
+console.log('the 4pm check — To arrange (Nic, 2026-11-06):')
+// "check if telegram message includes this new function in the messages as
+// well". Jobs sales marked ready are jobs still to arrange — the scheduler's
+// turn ones are listed, the ones waiting on sales are a count.
+const ready = (o: Record<string, unknown> = {}) => ({
+  readyBy: 'u-cw', readyByName: 'Charles Ow', readyAt: '2026-11-03T02:00:00Z',
+  day: { mode: 'between', from: '2026-11-10', to: '2026-11-13' }, timeStart: '09:00', timeEnd: null, note: null,
+  offer: null, lastReturn: null, ...o,
+})
+const names = new Map([['u-cw', 'Charles Ow'], ['u-nw', 'Nicholas'], ['u-mk', 'Maker']])
+const arr = arrangeSummaryFrom([
+  { id: 'r-needs', project_title: 'Arnotts <b>GE</b>', client: 'Arnotts', sales_poc_id: 'u-cw', created_by: 'u-mk',
+    arrange_state: 'needs_date', arrangement: ready() },
+  { id: 'r-no', project_title: null, client: 'Fossil', sales_poc_id: null, created_by: 'u-nw',
+    arrange_state: 'needs_date', arrangement: ready({ readyAt: '2026-11-05T02:00:00Z', day: { mode: 'any' }, timeStart: null,
+      lastReturn: { kind: 'client_no', text: 'Too early', by: 'u-nw', byName: 'Nicholas', at: '2026-11-05T09:00:00Z' } }) },
+  { id: 'r-clash', project_title: 'Clash job', client: 'C', sales_poc_id: 'u-nw', created_by: 'u-nw',
+    arrange_state: 'clash', arrangement: ready({ readyAt: '2026-11-06T01:00:00Z', day: { mode: 'fixed', day: '2026-11-12' } }) },
+  { id: 'r-offered', project_title: 'Offered', client: 'C', sales_poc_id: 'u-nw', created_by: 'u-nw',
+    arrange_state: 'offered', arrangement: ready() },
+  { id: 'r-nofit', project_title: 'No fit', client: 'C', sales_poc_id: 'u-nw', created_by: 'u-nw',
+    arrange_state: 'no_fit', arrangement: ready() },
+  { id: 'r-broken', project_title: 'Broken data', client: 'C', sales_poc_id: 'u-cw', created_by: 'u-cw',
+    arrange_state: 'needs_date', arrangement: { junk: true } },
+], names, '2026-11-06')
+check('the scheduler\'s turn: clash first, then oldest ready first; a broken row is still listed',
+  arr.waiting.map(j => j.id), ['r-clash', 'r-needs', 'r-no', 'r-broken'])
+check('waiting on sales is a count', arr.withSales, 2)
+check('a clash says the client agreed', arr.waiting[0].status, 'Client agreed — crew clashes')
+check('a plain one needs a date',      arr.waiting[1].status, 'Needs a date')
+check('the client\'s no carries the reason', arr.waiting[2].status, 'Client said no: Too early')
+check('named by the sales PIC',        arr.waiting[1].salesName, 'Charles Ow')
+check('no PIC → whoever made the job', arr.waiting[2].salesName, 'Nicholas')
+check('sales\' guide, as on the screen', arr.waiting[1].guide, 'Between Tue 10 Nov and Fri 13 Nov · 9:00 AM')
+check('days since sales marked it ready', [arr.waiting[0].daysWaiting, arr.waiting[1].daysWaiting], [0, 3])
+check('a broken row has no guide rather than a crash', arr.waiting[3].guide, null)
+
+const withArrange = buildUnassignedSummary({ ...{ dateLabel: '06/11/2026 (Fri)', appUrl: 'https://x.test', groups: [] }, arrange: arr })
+contains('a To arrange heading with the count', withArrange, '<b>To arrange</b> — 4 jobs waiting for a date')
+contains('the job, with its sales person',     withArrange, 'Clash job</b> (Nicholas)')
+contains('the status and how long it waited',  withArrange, 'Needs a date · ready 3 days')
+contains('ready today reads as words',         withArrange, 'Client agreed — crew clashes · ready today')
+contains('sales\' guide',                      withArrange, 'Sales\' guide: Between Tue 10 Nov and Fri 13 Nov · 9:00 AM')
+contains('links straight to the job',          withArrange, 'https://x.test/jobs/r-needs')
+absent('a title cannot inject HTML here either', withArrange, '<b>GE</b>')
+contains('the ones with sales are counted',    withArrange, '2 more with sales')
+// The all-clear must not claim "nothing outstanding" over a To arrange list.
+contains('drivers still all-clear',            withArrange, 'Every upcoming job has a driver')
+absent('but not "nothing outstanding"',        withArrange, 'Nothing outstanding')
+check('nothing in To arrange leaves the message exactly as before',
+  buildUnassignedSummary({ dateLabel: '17/09/2026 (Thu)', appUrl: 'https://x.test', groups: [], arrange: { waiting: [], withSales: 0 } }), clear)
+const onlySales = buildUnassignedSummary({ dateLabel: 'x', appUrl: 'https://x.test', groups: [], arrange: { waiting: [], withSales: 1 } })
+contains('only sales\' turn: says nothing waits for him', onlySales, '<b>To arrange</b> — nothing waiting for you. 1 with sales')
+const oneDay = buildUnassignedSummary({ dateLabel: 'x', appUrl: 'https://x.test', groups: [],
+  arrange: { waiting: [{ ...arr.waiting[1], daysWaiting: 1 }], withSales: 0 } })
+contains('one day, not "1 days"', oneDay, 'ready 1 day\n')
+contains('one job, not "1 jobs"', oneDay, '— 1 job waiting')
 
 console.log('formatTimeRange:')
 
