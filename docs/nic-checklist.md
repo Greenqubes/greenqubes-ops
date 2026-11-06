@@ -53,9 +53,27 @@ _Last updated: 2026-11-04 (feat-files — **you can now fix a finished job's pho
 
 _Last updated: 2026-11-05 (feat-bugs — **the auto-fixer is live.** Every night at 2am, if anything new came into the Bug or Crashes tab, Claude sorts it and prepares small fixes. You get one Telegram with a test link per fix. You try it, then tell the bug bot "put fix 3 live" (or "try again: …", or "drop fix 3"). Wishes come to you as a ping and are never built. Fixes 3 and 4 went live through the bot on the first night. This morning: the fixer's key was changed, a small hiccup in how it pushes was fixed, and the bot can no longer say it started a run when it didn't.)_
 
+_Last updated: 2026-11-06 (feat-jobs — **To arrange is live at 1:07pm.** The Jobs tab now has a third list: Drafts · Ongoing · To arrange. When a job is ready, sales taps **Ready to install** and says roughly when (between two days, a fixed day, or any day) and what time. The scheduler gets a Telegram, picks a date, time and crew, and offers it back. Sales checks with the client: **Client OK** puts it on the schedule with that crew confirmed; **Client said no** sends it back with the reason. Nothing goes on the schedule until the client agrees. Your call: a proposed date never moves the designers' due date. Today's "What's new" popup tells the team.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### To arrange — ✅ LIVE on production 2026-11-06
+_You tried it on the test site before it went live. These are the checks worth one go with real logins. Title any test job "TEST" and delete it after (it goes to the Bin)._
+- [ ] **Tell the team:** when a job is ready to install, sales taps **Ready to install** instead of messaging the scheduler. The scheduler's Jobs tab now opens on To arrange. The "What's new" popup says so, but a word in the group chat helps.
+- [ ] **As sales:** on an Ongoing TEST job, tap Ready to install, pick a day and a time, Send to scheduler. The scheduler should get a Telegram.
+- [ ] **As the scheduler:** open it from To arrange, set the date, time and crew, then Offer to sales. Check it is NOT on the schedule yet.
+- [ ] **As sales:** Client OK → it lands on the schedule with that crew confirmed. On a second TEST job, try Client said no → it goes back to the scheduler with your reason.
+- [ ] **Small things the review left for later, none urgent:**
+  - Pushing a job while its offer is with the client is refused, but with a general error instead of a clear message.
+  - If an old open screen changes the date while an offer is out, Client OK only says "reload" instead of explaining why.
+  - A database hiccup shows as "someone changed this, reload"; typed times aren't checked for a proper format.
+  - Support crew on leave aren't flagged when the scheduler offers (drivers are).
+  - Editing sales' day guide clears the client's last reason and the crew picks.
+  - Client OK doesn't send the usual "Installer Assigned" message to sales and coordinators.
+  - Clash cards say "Offer a date →" when the real step is fix the crew and push; no bell for the scheduler if a To arrange job is moved to Drafts or deleted.
+  - If saving the crew fails at Client OK, the undo isn't fully checked (rare). The locked date box hasn't been checked on an iPhone.
 
 ### Auto-fixer — ✅ LIVE on production 2026-11-04
 _What to say to the bug bot: "what's waiting", "how's it going?", "look at this now", "put fix 3 live", "try again: still cut off on my phone", "drop fix 3"._
@@ -161,6 +179,19 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-11-04 → 06, feat-jobs — To Arrange, LIVE)
+
+- [x] **[Nic] To arrange: a third list in the Jobs tab** (Drafts · Ongoing · To arrange). Schedulers open on it; everyone else still opens on Ongoing.
+- [x] **[Nic] Sales: Ready to install** on an Ongoing job, with a rough day (between two days, a fixed day, or any day), a time (start, end optional) and a note. Every scheduler gets a bell and a Telegram.
+- [x] **[Nic] Scheduler: Offer to sales** with a date, time and crew (crew optional, and only the scheduler's picks count as confirmed), or **Can't fit — send back** with a reason. Sales and the coordinators on the job get a bell and a Telegram.
+- [x] **[Nic] Sales checks with the client:** **Client OK** puts it on the schedule with the crew confirmed; **Client said no** sends it back with the reason. Nothing appears on the schedule before the client agrees.
+- [x] **[Nic] If the crew got booked elsewhere in the meantime**, Client OK sends it back to the scheduler marked "Client agreed — crew clashes", to change the crew and push.
+- [x] **[Nic] Your call: the designers' due date is separate.** A proposed date never moves it or messages the designers.
+- [x] **[Nic] Database change applied first (5 Nov), then tested by you on the test site** ("looks good").
+- [x] **[Nic] Held while the auto-fixer session finished** (your call), then built on top of its work and re-checked.
+- [x] **[Nic] Live 6 Nov, 1:07pm**, the exact version you tested. "What's new" entry for today, timed from the live site's own clock.
+- [x] **[Nic] AI importance question:** skipped at session start (your call).
 
 ## Done This Session ✓ (2026-11-04 → 05, feat-bugs — Auto-Fixer, LIVE)
 
