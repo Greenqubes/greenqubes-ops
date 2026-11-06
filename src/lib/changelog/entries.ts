@@ -35,11 +35,12 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-06',
-    // 13:07 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch 1793941638469, captured the moment /api/version flipped to
-    // 6508408cd81d (commit 5b7adfc, To arrange). Never the local clock
-    // (CLAUDE.md).
-    time: '13:07',
+    // 17:58 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1793959081516, captured the moment /api/version flipped to
+    // 3af030b903ad (commit c20d4b0, My jobs panel + 4pm check). The 13:07
+    // release (5b7adfc, To arrange) is folded into this same entry. Never
+    // the local clock (CLAUDE.md).
+    time: '17:58',
     headsUp: [
       'Sales: when a job is ready, tap **Ready to install** to send it to the scheduler.',
       'Schedulers: the Jobs tab now opens on **To arrange**, your list of jobs needing a date.',
@@ -49,6 +50,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Sales can suggest a day range, a fixed day or any day, plus a time.',
       'Schedulers offer a date, time and crew for sales to check with the client.',
       '**Client OK** puts the job on the schedule; **Client said no** sends it back.',
+      'The My jobs side panel has a To arrange section too.',
+      'The 4pm "Jobs still to arrange" message now lists To arrange jobs.',
     ],
   },
   {
