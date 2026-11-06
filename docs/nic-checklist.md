@@ -65,7 +65,7 @@ _You tried it on the test site before it went live. These are the checks worth o
 - [ ] **As sales:** on an Ongoing TEST job, tap Ready to install, pick a day and a time, Send to scheduler. The scheduler should get a Telegram.
 - [ ] **As the scheduler:** open it from To arrange, set the date, time and crew, then Offer to sales. Check it is NOT on the schedule yet.
 - [ ] **As sales:** Client OK → it lands on the schedule with that crew confirmed. On a second TEST job, try Client said no → it goes back to the scheduler with your reason.
-- [ ] **Tell the scheduler:** if he offers the wrong date, he opens the job and taps **Withdraw offer** while it says "Waiting on client". The job goes back to him with his crew still filled in, and he offers again. Once the client has said OK, he changes the date on the schedule like any other job.
+- [ ] **Tell the scheduler:** if he offers the wrong date, he taps **Change date →** on that card in To arrange (it shows while the card says "Waiting on client"), then Send. The job comes back to him with his crew still filled in; he fixes the date and offers again. Once the client has said OK, he changes the date on the schedule like any other job.
 - [ ] **At 4pm on a weekday:** the "Jobs still to arrange" Telegram should end with a To arrange part listing the jobs waiting for a date.
 - [ ] **Small things the review left for later, none urgent:**
   - Pushing a job while its offer is with the client is refused, but with a general error instead of a clear message.
@@ -194,6 +194,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [x] **[Nic] Held while the auto-fixer session finished** (your call), then built on top of its work and re-checked.
 - [x] **[Nic] My jobs side panel: a To arrange section** between Ongoing and Scheduled, so those jobs no longer sit under Ongoing. Live 5:58pm.
 - [x] **[Nic] The 4pm "Jobs still to arrange" Telegram lists To arrange jobs:** the ones waiting for a date (who the sales person is, how long they've waited, sales' guide), plus a count of those back with sales. Live 5:58pm.
+- [x] **[Nic] Change date →** for the scheduler on a To arrange card waiting on the client, for when he offered the wrong date. It opens the job at the take-back step; he then offers the right date.
 - [x] **[Nic] Live 6 Nov, 1:07pm**, the exact version you tested. "What's new" entry for today, timed from the live site's own clock.
 - [x] **[Nic] AI importance question:** skipped at session start (your call).
 
