@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
+import { AlignLeft, ChevronDown, ChevronLeft, ChevronRight, MapPin, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { oneLine, panelRowHead } from '@/lib/utils/panel-row'
 import { t, type LangCode } from '@/lib/i18n'
 import { myJobs, type MyJobsMode } from '@/lib/utils/my-jobs'
 import { parseFolded, searchMyJobs, sectionOpen, type MyJobsGroup } from '@/lib/utils/my-jobs-search'
@@ -193,10 +194,23 @@ export function MyJobsPanel({ jobs, userId, lang, mode = 'mine', onPickJob, onOp
               <li key={`${group}-${j.id}`}>
                 <button type="button" onClick={() => pick(j, group)}
                   className="w-full text-left px-2 py-2 hover:bg-paper rounded-lg">
-                  <span className="block text-[11px] text-ink2">{label(j.date, t(lang, 'dateTbc'))}</span>
+                  {/* Date · client on one line, so the address and description
+                      lines below cost only one extra line (Nic's pick A, 2026-11-10). */}
+                  <span className="block text-[11px] text-ink2 truncate">{panelRowHead(label(j.date, t(lang, 'dateTbc')), j)}</span>
                   {/* Long titles wrap to two lines, then "…" (Nic, 2026-10-26). */}
                   <span className="line-clamp-2 text-sm font-medium text-ink">{j.project_title || j.client || 'Untitled job'}</span>
-                  <span className="block text-xs text-muted truncate">{j.client}</span>
+                  {oneLine(j.location) && (
+                    <span className="mt-0.5 flex items-center gap-1 text-xs text-ink2" title={j.location}>
+                      <MapPin size={11} className="shrink-0" aria-hidden />
+                      <span className="truncate">{oneLine(j.location)}</span>
+                    </span>
+                  )}
+                  {oneLine(j.description) && (
+                    <span className="flex items-center gap-1 text-xs text-muted" title={j.description ?? undefined}>
+                      <AlignLeft size={11} className="shrink-0" aria-hidden />
+                      <span className="truncate">{oneLine(j.description)}</span>
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
