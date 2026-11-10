@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { crewOf, EMPTY_CREW, type Crew, type CrewSource } from '@/lib/utils/installer-crew'
+import { crewOf, idBatches, EMPTY_CREW, type Crew, type CrewSource } from '@/lib/utils/installer-crew'
 
 /**
  * Crew names for the installer's screens (Team box, All Jobs) — Nic,
@@ -19,25 +19,29 @@ export async function getCrewForJobs(jobIds: string[], viewerId: string | null):
   const ids = [...new Set(jobIds)]
   if (ids.length === 0) return out
 
-  const db = createServiceClient()
-  const [assignees, externals] = await Promise.all([
-    db.from('job_assignees')
-      .select('job_id, is_suggestion, is_sub_installer, users ( id, name )')
-      .in('job_id', ids)
-      .eq('is_suggestion', false),
-    db.from('job_external_contacts')
-      .select('job_id, is_suggestion, external_contacts ( name )')
-      .in('job_id', ids)
-      .eq('is_suggestion', false),
-  ])
-  if (assignees.error) throw assignees.error
-  if (externals.error) throw externals.error
-
   type A = CrewSource['job_assignees'][number] & { job_id: string }
   type E = CrewSource['job_external_contacts'][number] & { job_id: string }
   const byJob = new Map<string, CrewSource>(ids.map(id => [id, { job_assignees: [], job_external_contacts: [] }]))
-  for (const a of (assignees.data ?? []) as unknown as A[]) byJob.get(a.job_id)?.job_assignees.push(a)
-  for (const e of (externals.data ?? []) as unknown as E[]) byJob.get(e.job_id)?.job_external_contacts.push(e)
+
+  // Batched: the ids go in the URL, and "view as installer" can mean every
+  // scheduled job in the company.
+  const db = createServiceClient()
+  await Promise.all(idBatches(ids).map(async batch => {
+    const [assignees, externals] = await Promise.all([
+      db.from('job_assignees')
+        .select('job_id, is_suggestion, is_sub_installer, users ( id, name )')
+        .in('job_id', batch)
+        .eq('is_suggestion', false),
+      db.from('job_external_contacts')
+        .select('job_id, is_suggestion, external_contacts ( name )')
+        .in('job_id', batch)
+        .eq('is_suggestion', false),
+    ])
+    if (assignees.error) throw assignees.error
+    if (externals.error) throw externals.error
+    for (const a of (assignees.data ?? []) as unknown as A[]) byJob.get(a.job_id)?.job_assignees.push(a)
+    for (const e of (externals.data ?? []) as unknown as E[]) byJob.get(e.job_id)?.job_external_contacts.push(e)
+  }))
 
   for (const id of ids) {
     const src = byJob.get(id)!

@@ -83,11 +83,13 @@ export function toAllJobsCard(row: AllJobsRow, crew: Crew): AllJobsCard {
   }
 }
 
-/** By start time; jobs with no time go last (the same as My Jobs). */
+/** By start time; jobs with no time go FIRST — the same as My Jobs, which
+ *  sorts on `time_start ?? ''` (InstallerShell). */
 export function sortAllJobs(cards: AllJobsCard[]): AllJobsCard[] {
-  return [...cards].sort((a, b) =>
-    a.time_start === b.time_start ? 0
-    : a.time_start === null ? 1
-    : b.time_start === null ? -1
-    : a.time_start < b.time_start ? -1 : 1)
+  return [...cards].sort((a, b) => (a.time_start ?? '').localeCompare(b.time_start ?? ''))
+}
+
+/** How a day in the strip is drawn: the chosen day dark, today outlined. */
+export function dayChipTone(d: string, day: string, today: string): 'on' | 'today' | 'plain' {
+  return d === day ? 'on' : d === today ? 'today' : 'plain'
 }

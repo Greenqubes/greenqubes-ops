@@ -10,7 +10,7 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { CompletedSwitch } from '@/components/CompletedSwitch'
 import { BottomNav } from '@/components/BottomNav'
 import { fmtTime } from '@/features/schedule/utils'
-import { shiftDay, weekOf, type AllJobsCard } from '@/lib/utils/all-jobs'
+import { dayChipTone, shiftDay, weekOf, type AllJobsCard } from '@/lib/utils/all-jobs'
 import { TeamBox } from './TeamBox'
 
 // Day and month names are ALWAYS English (hard rule), and fixed tables keep
@@ -62,13 +62,15 @@ export function AllJobsShell({ cards, day, today, lang }: {
           <div className="grid flex-1 grid-cols-7 gap-1">
             {week.map(d => {
               const q = parts(d)
-              const on = d === day
+              const tone = dayChipTone(d, day, today)
+              const on = tone === 'on'
               return (
                 <Link key={d} href={href(d)} aria-current={on ? 'date' : undefined}
                   className={cn(
                     'rounded-[10px] border py-1 text-center text-[11px] transition-colors',
-                    on ? 'border-ink bg-ink text-paper' : 'border-line bg-paper text-muted hover:bg-bg',
-                    !on && d === today && 'border-ink2',
+                    tone === 'on'    ? 'border-ink bg-ink text-paper'
+                    : tone === 'today' ? 'border-ink2 bg-paper text-ink2 hover:bg-bg'
+                    : 'border-line bg-paper text-muted hover:bg-bg',
                   )}>
                   {DAY_SHORT[q.dow]}
                   <b className={cn('block text-[15px] font-semibold', on ? 'text-paper' : 'text-ink')}>{q.d}</b>

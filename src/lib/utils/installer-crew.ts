@@ -38,6 +38,16 @@ export function crewOf(src: CrewSource, viewerId: string | null): Crew {
   }
 }
 
+/** Job ids in batches for an `.in()` filter. The ids travel in the request
+ *  URL, and an admin previewing as installer can see every scheduled job —
+ *  hundreds of ids in one URL would be refused. Duplicates are sent once. */
+export function idBatches(ids: string[], size = 100): string[][] {
+  const unique = [...new Set(ids)]
+  const out: string[][] = []
+  for (let i = 0; i < unique.length; i += size) out.push(unique.slice(i, i + size))
+  return out
+}
+
 /** Same answer as the scheduler's driver board calling a job Unassigned
  *  (`primaryBand` in driver-board.ts): no driver and no outside contractor.
  *  Support crew alone does not count; a contractor alone does. */

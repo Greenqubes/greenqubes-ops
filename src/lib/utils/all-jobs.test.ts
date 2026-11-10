@@ -5,7 +5,7 @@
  */
 import {
   parseDay, jobCoversDay, weekOf, shiftDay, toAllJobsCard, sortAllJobs,
-  ALL_JOBS_CARD_KEYS, type AllJobsRow, type AllJobsCard,
+  ALL_JOBS_CARD_KEYS, dayChipTone, type AllJobsRow, type AllJobsCard,
 } from './all-jobs'
 import { EMPTY_CREW, type Crew } from './installer-crew'
 
@@ -67,9 +67,14 @@ check('client name is not on the card', 'client' in toAllJobsCard(leaky, EMPTY_C
 
 console.log('sortAllJobs')
 const at = (id: string, time_start: string | null): AllJobsCard => ({ ...toAllJobsCard(row, EMPTY_CREW), id, time_start })
-check('by start time, no-time jobs last',
-  sortAllJobs([at('c', null), at('b', '14:00:00'), at('a', '09:00:00')]).map(c => c.id), ['a', 'b', 'c'])
+check('by start time, no-time jobs FIRST — the same as My Jobs (InstallerShell sorts time_start ?? "")',
+  sortAllJobs([at('b', '14:00:00'), at('c', null), at('a', '09:00:00')]).map(c => c.id), ['c', 'a', 'b'])
 check('does not change the list it was given', (() => { const l = [at('b', '14:00:00'), at('a', '09:00:00')]; sortAllJobs(l); return l.map(c => c.id) })(), ['b', 'a'])
+
+console.log('dayChipTone')
+check('the chosen day is on', dayChipTone('2026-11-10', '2026-11-10', '2026-11-10'), 'on')
+check('today, while another day is chosen, is marked', dayChipTone('2026-11-10', '2026-11-12', '2026-11-10'), 'today')
+check('any other day is plain', dayChipTone('2026-11-11', '2026-11-12', '2026-11-10'), 'plain')
 
 if (failures) { console.error(`\n${failures} failing`); process.exit(1) }
 console.log('\nall passing')

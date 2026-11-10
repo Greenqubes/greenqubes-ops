@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/utils/installer-crew.test.ts
  * Exits 1 on any failure.
  */
-import { crewOf, noDriverYet, EMPTY_CREW, type CrewSource } from './installer-crew'
+import { crewOf, noDriverYet, idBatches, EMPTY_CREW, type CrewSource } from './installer-crew'
 import { primaryBand, UNASSIGNED, type BoardJob } from './driver-board'
 
 let failures = 0
@@ -73,6 +73,15 @@ for (const [name, src] of Object.entries({ full, onlySupport, onlyExternal, oneD
   check(`${name}: noDriverYet matches the board's Unassigned`,
     noDriverYet(crewOf(src, null)), primaryBand(asBoard(src, name)) === UNASSIGNED)
 }
+
+console.log('idBatches')
+// An admin previewing as installer can see every scheduled job; their ids go
+// into the request URL, so they are sent in batches (review, 2026-11-10).
+const many = Array.from({ length: 250 }, (_, i) => `id-${i}`)
+check('250 ids → batches of at most 100', idBatches(many).map(b => b.length), [100, 100, 50])
+check('every id kept, in order', idBatches(many).flat(), many)
+check('no ids → no batches', idBatches([]), [])
+check('duplicates sent once', idBatches(['a', 'b', 'a']), [['a', 'b']])
 
 if (failures) { console.error(`\n${failures} failing`); process.exit(1) }
 console.log('\nall passing')
