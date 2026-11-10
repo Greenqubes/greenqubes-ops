@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCrewForJobs } from '@/lib/supabase/queries/crew-names'
+import { EMPTY_CREW, type Crew } from '@/lib/utils/installer-crew'
 import type { JobStatus, Punctuality } from '@/lib/supabase/types'
 
 export type InstallerJob = {
@@ -20,6 +22,10 @@ export type InstallerJob = {
   do_issued:        boolean
   job_assignees:    Array<{ is_suggestion?: boolean; users: { id: string; name: string } | null }>
   sales_poc:        { name: string; phone: string | null } | null
+  /** The whole confirmed crew for the Team box. `job_assignees` above only
+   *  ever holds the installer's own row (migration 0037), so the co-workers
+   *  and outside contractors come from getCrewForJobs (Nic, 2026-11-10). */
+  crew:             Crew
 }
 
 export async function getInstallerJobs(): Promise<InstallerJob[]> {
@@ -56,10 +62,15 @@ export async function getInstallerJobs(): Promise<InstallerJob[]> {
     pocMap = Object.fromEntries((pocs ?? []).map(u => [u.id, { name: u.name, phone: u.phone }]))
   }
 
+  // RLS above decided WHICH jobs (the installer's own); the crew on those
+  // jobs is read with the service key, names only.
+  const crews = await getCrewForJobs(rows.map(r => r.id), null)
+
   // Drop tentative suggestions so co-assignee lists show confirmed installers only.
   return rows.map(j => ({
     ...j,
     sales_poc:     j.sales_poc_id ? pocMap[j.sales_poc_id] ?? null : null,
     job_assignees: j.job_assignees.filter(a => !a.is_suggestion),
+    crew:          crews.get(j.id) ?? EMPTY_CREW,
   }))
 }

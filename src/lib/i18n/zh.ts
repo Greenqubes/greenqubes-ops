@@ -715,4 +715,9 @@ export const zh: Partial<Translations> = {
   arrangeOfferErr_outside_range: "日期必须在销售指定的范围内。",
   arrangeOfferErr_not_fixed_day: "销售已固定日期 — 请使用该日期。",
   arrangeOfferErr_time_locked: "销售已固定时间 — 请保留。",
+
+  // ── Installer Team box (Nic, 2026-11-10) ───────────────────────────────────
+  teamSupportCrew: '协助人员',
+  teamExternal: '外包',
+  noDriverYet: '暂无司机',
 }

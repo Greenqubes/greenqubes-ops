@@ -5,6 +5,7 @@ import { ArrowRight, Phone, MapPin, Clock } from 'lucide-react'
 import { Pill } from '@/components/Pill'
 import { t } from '@/lib/i18n'
 import { fmtTime } from '@/features/schedule/utils'
+import { TeamBox } from './TeamBox'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { LangCode } from '@/lib/i18n'
 
@@ -28,10 +29,21 @@ export function InstallerJobCard({ job, lang }: Props) {
         className="block p-4 group hover:bg-bg/60 transition-colors"
       >
         <div className="flex items-start justify-between gap-3">
+          {/* Nic's pick B (2026-11-07): the installer's own card shape, full
+              address, and the crew in a Team box. The date stays — this card
+              also lists Up next / This week, which span several days. */}
           <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-[11px] text-muted">{dateLabel}</span>
+                {timeStr && (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-ink">
+                    <Clock size={11} className="shrink-0" />
+                    {timeStr}
+                  </span>
+                )}
+              </div>
               <Pill variant={job.status} />
-              <span className="text-[11px] text-muted">{dateLabel}</span>
             </div>
             <p className="font-display font-medium text-ink truncate">{job.project_title || job.client || 'Untitled job'}</p>
             {job.project_title && job.client && (
@@ -40,18 +52,15 @@ export function InstallerJobCard({ job, lang }: Props) {
             {job.description && (
               <p className="text-[13px] text-ink2 line-clamp-1 leading-snug">{job.description}</p>
             )}
-            {timeStr && (
-              <div className="flex items-center gap-1.5 text-xs text-ink2">
-                <Clock size={11} className="shrink-0" />
-                {timeStr}
-              </div>
-            )}
             {job.location && (
-              <div className="flex items-center gap-1.5 text-xs text-muted">
-                <MapPin size={11} className="shrink-0" />
-                <span className="truncate">{job.location}</span>
+              <div className="flex items-start gap-1.5 text-xs text-ink2">
+                <MapPin size={11} className="mt-[3px] shrink-0" />
+                <span className="min-w-0 break-words">{job.location}</span>
               </div>
             )}
+            <div className="pt-1">
+              <TeamBox crew={job.crew} lang={lang} />
+            </div>
           </div>
           <ArrowRight
             size={14}

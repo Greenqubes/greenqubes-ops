@@ -824,6 +824,11 @@ export const en = {
   arrangeOfferErr_outside_range: "The date must be inside sales' range.",
   arrangeOfferErr_not_fixed_day: "Sales fixed the day — use that date.",
   arrangeOfferErr_time_locked: "Sales fixed the time — keep it.",
+
+  // ── Installer Team box (Nic, 2026-11-10) ───────────────────────────────────
+  teamSupportCrew: 'Support Crew',
+  teamExternal: 'External',
+  noDriverYet: 'No driver yet',
 }
 
 export type Translations = typeof en

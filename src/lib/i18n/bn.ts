@@ -294,4 +294,9 @@ export const bn: Partial<Translations> = {
   tourHrLeaveBody: 'কে কখন ছুটিতে তা লিখে রাখুন — আধা দিনসহ — এবং সরকারি ছুটির তালিকা হালনাগাদ রাখুন। কে ছুটিতে তা সবাই দেখে; কারণটা শুধু আপনি ও অ্যাডমিন দেখেন।',
   tourHrPricesTitle: 'দাম',
   tourHrPricesBody: 'যেকোনো কাজ খুলে তার কোটেশন ও খরচ দেখতে পারবেন। শুধু দেখার — দাম সেলসই বসায়।',
+
+  // ── Installer Team box (Nic, 2026-11-10) ───────────────────────────────────
+  teamSupportCrew: 'Support Crew',
+  teamExternal: 'External',
+  noDriverYet: 'No driver yet',  // English on purpose — no new Bengali translations (boss, 2026-08-03)
 }

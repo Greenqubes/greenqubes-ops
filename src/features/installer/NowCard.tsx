@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Clock, MapPin, Users, Radio, Phone } from 'lucide-react'
+import { Clock, MapPin, Radio, Phone } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { fmtTime, timeToMinutes } from '@/features/schedule/utils'
+import { TeamBox } from './TeamBox'
 import type { InstallerJob } from '@/lib/supabase/queries/installer'
 import type { LangCode } from '@/lib/i18n'
 
@@ -25,10 +26,6 @@ export function NowCard({ job, lang, nowMins }: Props) {
 
   const isOverrunning = endMins !== null && nowMins > endMins
   const statusStr     = isOverrunning ? t(lang, 'nowOverrunning') : t(lang, 'nowOngoing')
-
-  const assignees = job.job_assignees
-    .map(a => a.users)
-    .filter(Boolean) as Array<{ id: string; name: string }>
 
   return (
     <div className="bg-brand-green-soft border-2 border-brand-green rounded-card overflow-hidden">
@@ -58,16 +55,16 @@ export function NowCard({ job, lang, nowMins }: Props) {
               {timeStr}
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-ink2">
-            <MapPin size={11} className="shrink-0 text-brand-green" />
-            <span className="truncate">{job.location}</span>
+          <div className="flex items-start gap-1.5 text-xs text-ink2">
+            <MapPin size={11} className="mt-[3px] shrink-0 text-brand-green" />
+            <span className="min-w-0 break-words">{job.location}</span>
           </div>
-          {assignees.length > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-ink2">
-              <Users size={11} className="shrink-0 text-brand-green" />
-              <span className="truncate">{assignees.map(a => a.name).join(', ')}</span>
-            </div>
-          )}
+        </div>
+
+        {/* Who's on it — replaces the old comma line, which could only ever
+            show the installer themself (migration 0037; Nic, 2026-11-10). */}
+        <div className="mt-3">
+          <TeamBox crew={job.crew} lang={lang} />
         </div>
 
         {/* production / DO pills */}
