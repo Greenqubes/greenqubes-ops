@@ -159,6 +159,7 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [ ] Security tidy-up — 3 small fixes (secret checks refuse by default, block fake notifications, escape text in Telegram messages)
 - [ ] Telegram watchdog: alert when the backup or vault sync silently stops
 - [ ] Scanner polish: lower memory use per page, translated error text, "Camera or file" opens only the camera on Android
+- [ ] **Switch on the code style checker (ESLint)** (asked 2026-11-10) — it is installed but was never set up: `npm run lint` only asks how to configure it, so nothing gets checked. Set it up once; expect a pile of warnings on older code the first time, sorted in the same session.
 
 ### Only you
 - [ ] **Chinese staff with QQ email:** they're trying to make a Google account with their QQ address. If Google won't take it, tell Claude — the fallback is a sign-in by emailed code (not built yet).
