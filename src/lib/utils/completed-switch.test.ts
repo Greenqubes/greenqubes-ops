@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/utils/completed-switch.test.ts
  * Exits 1 on any failure.
  */
-import { liveHrefFor, navTabActive } from './completed-switch'
+import { liveHrefFor, navTabActive, switchSegments } from './completed-switch'
 import { NAV_TABS } from '@/lib/navTabs'
 import type { Role } from '@/lib/supabase/types'
 
@@ -47,6 +47,17 @@ check('Schedule lights Schedule',           navTabActive('/schedule', '/schedule
 check('a page under a tab still lights it', navTabActive('/assistant', '/assistant/history'), true)
 check('Schedule does not light FCFS',       navTabActive('/fcfs', '/schedule'), false)
 check('FCFS does not light Schedule',       navTabActive('/schedule', '/fcfs'), false)
+
+// Installer All Jobs (Nic, 2026-11-10: "sit on top will do") — a third
+// choice in the switch, for installers only.
+console.log('switchSegments:')
+check('installers get My Jobs | All Jobs | Completed', switchSegments('installer').map(s => s.key), ['live', 'all', 'completed'])
+check('installer hrefs', switchSegments('installer').map(s => s.href), ['/installer', '/installer/all', '/completed'])
+check('installer labels', switchSegments('installer').map(s => s.labelKey), ['installerMyJobs', 'allJobs', 'completed'])
+for (const role of ROLES.filter(r => r !== 'installer')) {
+  check(`${role} keeps Schedule | Completed`, switchSegments(role).map(s => s.href), ['/schedule', '/completed'])
+}
+check('All Jobs keeps My Jobs lit in the menu', navTabActive('/installer', '/installer/all'), true)
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed.`)

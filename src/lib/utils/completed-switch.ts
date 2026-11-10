@@ -25,3 +25,22 @@ export function navTabActive(href: string, pathname: string): boolean {
   if (pathname.startsWith(href)) return true
   return pathname.startsWith('/completed') && (href === '/schedule' || href === '/installer')
 }
+
+export type SwitchKey = 'live' | 'all' | 'completed'
+
+/** The switch's choices for a role. Installers get a third, All Jobs — every
+ *  confirmed job that day, look-only (Nic, 2026-11-10: "sit on top will do").
+ *  Every other role keeps Schedule | Completed. */
+export function switchSegments(role: Role): Array<{ key: SwitchKey; href: string; labelKey: 'installerMyJobs' | 'schedule' | 'allJobs' | 'completed' }> {
+  const live = liveHrefFor(role)
+  return live === '/installer'
+    ? [
+        { key: 'live',      href: '/installer',     labelKey: 'installerMyJobs' },
+        { key: 'all',       href: '/installer/all', labelKey: 'allJobs' },
+        { key: 'completed', href: '/completed',     labelKey: 'completed' },
+      ]
+    : [
+        { key: 'live',      href: '/schedule',  labelKey: 'schedule' },
+        { key: 'completed', href: '/completed', labelKey: 'completed' },
+      ]
+}

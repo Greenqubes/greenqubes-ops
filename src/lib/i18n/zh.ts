@@ -720,4 +720,11 @@ export const zh: Partial<Translations> = {
   teamSupportCrew: '协助人员',
   teamExternal: '外包',
   noDriverYet: '暂无司机',
+
+  // ── Installer All Jobs (Nic, 2026-11-10) ───────────────────────────────────
+  allJobs: "全部工作",
+  youreOnThis: "你在这份工作上",
+  allJobsOne: "1 份工作",
+  allJobsMany: "份工作",
+  allJobsNone: "这天没有已确认的工作。",
 }

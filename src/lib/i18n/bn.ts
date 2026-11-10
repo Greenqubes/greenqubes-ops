@@ -299,4 +299,12 @@ export const bn: Partial<Translations> = {
   teamSupportCrew: 'Support Crew',
   teamExternal: 'External',
   noDriverYet: 'No driver yet',  // English on purpose — no new Bengali translations (boss, 2026-08-03)
+
+  // ── Installer All Jobs (Nic, 2026-11-10) ───────────────────────────────────
+  // English on purpose — no new Bengali translations (boss, 2026-08-03)
+  allJobs: "All Jobs",
+  youreOnThis: "You’re on this",
+  allJobsOne: "1 job",
+  allJobsMany: "jobs",
+  allJobsNone: "No confirmed jobs on this day.",
 }

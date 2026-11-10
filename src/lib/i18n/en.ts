@@ -829,6 +829,13 @@ export const en = {
   teamSupportCrew: 'Support Crew',
   teamExternal: 'External',
   noDriverYet: 'No driver yet',
+
+  // ── Installer All Jobs (Nic, 2026-11-10) ───────────────────────────────────
+  allJobs: "All Jobs",
+  youreOnThis: "You’re on this",
+  allJobsOne: "1 job",
+  allJobsMany: "jobs",
+  allJobsNone: "No confirmed jobs on this day.",
 }
 
 export type Translations = typeof en
