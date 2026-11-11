@@ -1,6 +1,26 @@
 import { canManageJobFiles, canDeleteJobFile } from './job-file-permissions'
+import { stageOf } from '@/lib/utils/job-stage'
+import { canEditAtStage, pendingLocks, type StageJob4Rules } from '@/lib/utils/job-stage-rules'
+import { designBriefEditable } from '@/lib/utils/job-form-rules'
+import { isReadOnlyOfficeRole } from '@/lib/auth/capabilities'
 import type { GallerySource } from '@/lib/utils/gallery'
 import type { Role } from '@/lib/supabase/types'
+
+/** The two page gates the delete rule needs, worked out exactly as
+ *  JobDetailShell does (readOnly = completed; formReadOnly adds the read-only
+ *  role and the Ongoing lock) — so the server can ask the same questions the
+ *  page answered without a page. */
+export function pageFileGates(input: {
+  role: Role; isAdmin: boolean; viewerId: string; job: StageJob4Rules
+}): { filesLocked: boolean; designBriefEditable: boolean } {
+  const { role, isAdmin, viewerId, job } = input
+  const stage = stageOf(job.status)
+  const lock = pendingLocks({
+    stage, canEdit: canEditAtStage({ id: viewerId, role, isAdmin }, job), isDesigner: role === 'designer',
+  })
+  const formReadOnly = stage === 'completed' || isReadOnlyOfficeRole(role) || lock.form
+  return { filesLocked: lock.files, designBriefEditable: designBriefEditable({ status: job.status, readOnly: formReadOnly }) }
+}
 
 /**
  * Who may Delete for everyone from the job Gallery (Nic, 2026-11-11; spec

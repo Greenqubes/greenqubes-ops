@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/storage/gallery-delete.test.ts
  * Exits 1 on any failure.
  */
-import { canDeleteForEveryone, type DeleteForEveryoneInput } from './gallery-delete'
+import { canDeleteForEveryone, pageFileGates, type DeleteForEveryoneInput } from './gallery-delete'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -50,6 +50,17 @@ const brief = { source: 'design_brief' as const, fileKind: 'design_brief', byId:
 check('brief: locked page',                     can({ ...brief, designBriefEditable: false }), false)
 check('brief: installer',                       can({ ...brief, role: 'installer' }), false)
 check('brief: sales, editable',                 can({ ...brief }), true)
+
+// ── The page's own gates, shared with the server (pageFileGates) ──────────
+const job = (status: string) => ({ status, created_by: 'c1', sales_poc_id: 's1', coordinatorIds: ['k1'] })
+check('ongoing, sales non-sharer → files locked', pageFileGates({ role: 'sales', isAdmin: false, viewerId: 'x', job: job('awaiting_date') }).filesLocked, true)
+check('ongoing, sales PIC → not locked',         pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('awaiting_date') }).filesLocked, false)
+check('ongoing, any designer → not locked',      pageFileGates({ role: 'designer', isAdmin: false, viewerId: 'x', job: job('awaiting_date') }).filesLocked, false)
+check('scheduled, sales non-sharer → not locked', pageFileGates({ role: 'sales', isAdmin: false, viewerId: 'x', job: job('scheduled') }).filesLocked, false)
+check('brief editable on scheduled job',        pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('scheduled') }).designBriefEditable, true)
+check('brief locked on a draft',                pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('pending') }).designBriefEditable, false)
+check('brief locked when completed',            pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('completed') }).designBriefEditable, false)
+check('brief locked for hr',                    pageFileGates({ role: 'hr', isAdmin: false, viewerId: 'h', job: job('scheduled') }).designBriefEditable, false)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll gallery-delete checks passed')

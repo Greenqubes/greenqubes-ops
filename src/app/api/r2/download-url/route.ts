@@ -67,6 +67,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url })
   }
 
+  // ── A chat voice note? (job Gallery, Nic 2026-11-11.) Voice notes live only
+  //    in messages.voice_url — no files row — so until this branch they could
+  //    never be signed and the chat's play button did nothing. Read on the
+  //    caller's OWN session: if RLS lets them read that message, they may play it.
+  const { data: voiceMsg } = await supabase
+    .from('messages')
+    .select('id')
+    .eq('voice_url', key)
+    .limit(1)
+    .maybeSingle() as { data: { id: string } | null; error: unknown }
+  if (voiceMsg) {
+    const url = await getDownloadUrl(key, filename)
+    return NextResponse.json({ url })
+  }
+
   // No record references this key.
   return NextResponse.json({ error: 'Not found' }, { status: 404 })
 }

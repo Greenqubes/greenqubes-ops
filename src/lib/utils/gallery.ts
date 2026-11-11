@@ -60,7 +60,7 @@ export function mediaKindOf(name: string): 'image' | 'video' | 'pdf' | 'doc' {
   return 'doc'
 }
 
-function sourceOf(f: GalleryFile): GallerySource {
+export function gallerySourceOf(f: { kind: string; bucket_id: string | null }): GallerySource {
   if (f.bucket_id) return 'files'
   switch (f.kind) {
     case 'attachment':              return 'chat'
@@ -87,7 +87,7 @@ export function buildGallery(input: {
 
   for (const f of input.files) {
     if (input.hiddenFiles.has(f.id)) continue
-    const source = sourceOf(f)
+    const source = gallerySourceOf(f)
     if (!allowed(source)) continue
     const name = f.name || f.r2_key.split('/').pop() || f.r2_key
     const base = { key: `f:${f.id}`, fileId: f.id, source, fileKind: f.kind, name, byId: f.uploader_id, by: f.uploaderName, ts: f.ts }
