@@ -843,6 +843,12 @@ export const en = {
   bulkWhyChanged: "This job changed. Refresh and try again",
   bulkWhyOffline: "No connection. Try again",
   bulkWhyOther: "Couldn’t move this one",
+  bulkSelected: "{n} selected",
+  bulkBackToOngoing: "Back to Ongoing",
+  bulkBackToDrafts: "Back to Drafts",
+  bulkMovedOngoing: "{n} job(s) moved back to Ongoing.",
+  bulkMovedDrafts: "{n} job(s) moved back to Drafts.",
+  bulkMoveFailed: "{n} couldn’t move. The reason is under each one.",
 }
 
 export type Translations = typeof en

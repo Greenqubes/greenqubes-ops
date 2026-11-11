@@ -727,4 +727,17 @@ export const zh: Partial<Translations> = {
   allJobsOne: "1 份工作",
   allJobsMany: "份工作",
   allJobsNone: "这天没有已确认的工作。",
+
+  // ── Jobs tab bulk move back (Nic, 2026-11-11) ──────────────────────────────
+  bulkSelected: "已选 {n} 项",
+  bulkBackToOngoing: "退回进行中",
+  bulkBackToDrafts: "退回草稿",
+  bulkMovedOngoing: "{n} 份工作已退回进行中。",
+  bulkMovedDrafts: "{n} 份工作已退回草稿。",
+  bulkMoveFailed: "{n} 份无法移动，原因写在每份下面。",
+  bulkWhyDesigner: "这份工作还有设计师",
+  bulkWhyNotYours: "你不能移动这份工作",
+  bulkWhyChanged: "这份工作已有变动，请刷新再试",
+  bulkWhyOffline: "没有网络，请再试",
+  bulkWhyOther: "这份无法移动",
 }
