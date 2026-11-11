@@ -34,6 +34,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-11',
+    // 14:35 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1794378931237, captured the moment /api/version flipped to
+    // d512b71aad6f (commit 65b9f0c, installer Team box + All Jobs + side
+    // panel lines). Never the local clock (CLAUDE.md).
+    time: '14:35',
+    added: [
+      'Installers: **All Jobs** shows every confirmed job for any day, view only.',
+      'Installer job cards show the team: driver, support crew and external.',
+    ],
+    improved: [
+      'Installer job cards now show the full address.',
+      'The My jobs side panel shows each job\'s address and description.',
+    ],
+  },
+  {
     date: '2026-11-06',
     // 21:35 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1793972136050, captured the moment /api/version flipped to
