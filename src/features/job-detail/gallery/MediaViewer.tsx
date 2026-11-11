@@ -37,8 +37,8 @@ function whenLabel(ts: string): string {
  * The full-screen viewer for the job Gallery and the chat (Nic, 2026-11-11):
  * swipe through the job's photos, videos and voice notes, pinch to zoom, see
  * who sent each one and when, Download, Go to message (chat items), Delete.
- * The library draws above everything (z-index 9999), so BottomNav never
- * covers it. Links are fetched for the photo on screen and its neighbours
+ * It sits at z-index 85: above BottomNav and every job-page overlay, below
+ * the delete dialog and the toasts. Links are fetched for the photo on screen and its neighbours
  * only.
  */
 export function MediaViewer({ items, startKey, open, lang, onClose, onDelete, onGoToMessage }: {
@@ -89,6 +89,9 @@ export function MediaViewer({ items, startKey, open, lang, onClose, onDelete, on
       on={{ view: ({ index: i }) => setIndex(i) }}
       carousel={{ finite: true, preload: 2 }}
       controller={{ closeOnBackdropClick: false }}
+      // Above BottomNav and every job-page overlay (z-[81] at most), below the
+      // delete dialog and the toast layer (toast-layer.test.ts).
+      styles={{ root: { ['--yarl__portal_zindex' as string]: 85 } }}
       render={{
         slide: ({ slide }) => {
           if (slide.type === 'pending') {
