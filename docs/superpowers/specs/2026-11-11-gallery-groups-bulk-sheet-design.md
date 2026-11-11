@@ -81,86 +81,133 @@ today, but not twenty at once.
 
 ---
 
-## Part 2: Scheduled jobs into Nic's old Google Sheet (private link)
+## Part 2: Scheduled jobs into Nic's old Google Sheet (in-sheet script)
 
 ### Why
 During the switch-over some of the team still read, and type into, the old
-"Greenqubes Jobs" Google Sheet. Nic wants the app's scheduled jobs to show
-up there by themselves.
+"Greenqubes Jobs" Google Sheet. It has one tab per week, named like
+"9/11 to15/11", "14/9 to 20/9" or "28/12 to3/1" (spacing varies). Nic wants
+the app's scheduled jobs to show up there by themselves.
+
+Preview with real data: https://claude.ai/artifact/MZfiqDKVS4SVdjFDvTU24L
+(option 2 is the one chosen).
 
 ### What Nic decided
 - **One way only:** app → sheet. Jobs typed into the old sheet stay there.
-  The app never reads them, and the link never overwrites them.
-- **Private link plus Google Sheets' own `IMPORTDATA` formula.** Considered
-  and rejected:
-  - A Claude-run copy through a Google connector: costs usage, updates less
-    often, is less exact.
-  - The app writing into the sheet through Google's API: a new vendor, and
-    the most work.
-- **The data goes into its own new tab**, "From the app". Nic's weekly tabs
-  are never touched.
-- **Contact numbers are included.** The sheet already shows them to anyone
-  who can open it.
+  The app never reads them, and nothing ever overwrites them.
+- **An Apps Script inside his Google Sheet does the writing**
+  (Extensions → Apps Script, Google's own tool, running as Nic). It fetches
+  from a private app link.
+  - Considered and rejected:
+    - A Claude-run copy through a Google connector: costs usage, updates less
+      often, is less exact.
+    - The app writing through Google's API: a new vendor and service account.
+    - A plain `IMPORTDATA` formula in one "From the app" tab with a week box:
+      it can't create tabs, and means two places to look each week.
+  - The app itself never talks to Google. The script pulls.
+- **Each weekly tab gets the app's jobs in a block at the bottom,** under a
+  yellow bar reading "FROM THE APP · fills itself every hour · don't type
+  below this line". Rows typed above the bar are never touched.
+- **Next week's tab is created automatically,** with his naming pattern.
+- **Contact numbers are included.**
 - Files and photos do not come across. Only text.
-- The layout may differ from the hand-built weekly tabs. Nic accepted this.
+- The layout follows his columns. App jobs sit in their own block, not mixed
+  into his day sections. Mixing would risk moving rows people are typing.
 
-### The link
-- An unauthenticated GET route returns CSV (UTF-8; job text contains Chinese
-  characters), protected by a long random secret in the URL.
-  `src/middleware.ts` already skips `/api/*`, so the route checks the secret
-  itself. Compare it in constant time. A wrong or missing secret gets a
-  plain 404.
-- **My call:** the secret is stored in `app_settings` (migration 0063 table),
-  not in an environment variable. Admin → Settings shows the full link with
-  a copy button and a **Change link** button. Changing the link makes a new
-  secret and kills the old link at once, without a redeploy (env vars only
-  apply on the next deploy). Admin only, because the link reveals job and
-  client details.
-- It reads with the service key. Nothing about this route is per-user, so
-  the secret is the whole gate. Read only what the CSV needs.
+### The app side: a private JSON link
+- `GET` route, unauthenticated, protected by a long random secret
+  (`?key=`). `src/middleware.ts` already skips `/api/*`, so the route checks
+  the secret itself. Compare it in constant time. A wrong or missing secret
+  gets a plain 404. It takes `?week=YYYY-MM-DD` (a Monday) and returns that
+  week, Monday to Sunday.
+- **My call:** the secret lives in `app_settings` (migration 0063 table), not
+  an env var. **Admin → Settings** shows the link with a copy button and a
+  **Change link** button: a new secret, and the old one dies at once, with no
+  redeploy. Admin only. After changing it, the new link is pasted into the
+  script's settings (setup guide below).
+- It reads with the service key. The secret is the whole gate. Read only
+  what the rows need.
+- **It returns rows ready to write,** so the layout logic lives in the repo
+  as a pure, tested function and the script stays thin:
+  - shape: `{ week, rows: [{ type: 'gap' | 'day' | 'leave' | 'job', cells: string[12], punctuality?: 'strict' | 'flexible' }] }`
+  - for each day, in order: a grey `gap` row, a `day` row, then an optional
+    `leave` row, then that day's `job` rows
 
-### What the CSV contains
+  All seven days are listed, even with no jobs.
 - **Which jobs:** `status = 'scheduled'` only (never drafts, ongoing or
-  completed), from today (Singapore date) onwards. A multi-day job
-  (`date_end`) gets one row on each day it covers, as the schedule shows it.
-- **Columns, in the old sheet's order** (Nic's sheet: Date, Day, Production,
-  Contact Person, Punctuality, Time, Jobs Description, Location / Sites, DO,
-  PIC, Remarks, Job Time):
-  - **Date:** "11-Nov", the old sheet's style.
-  - **Day:** "Wed".
-  - **Production:** left blank. My guess; Nic's sheet uses it loosely.
-  - **Contact Person:** client contact name and number.
-  - **Punctuality:** "Strict" or "Flexible".
-  - **Time:** "11:00 AM - 6:00 PM", or the start time alone.
-  - **Jobs Description:** title, then the description.
-  - **Location / Sites:** the full address.
-  - **DO:** left blank.
-  - **PIC:** the sales person in charge. My guess from his dropdown names;
-    Nic checks it on the preview.
-  - **Remarks:** the crew, drivers first, then support crew, then externals,
-    joined with "+" the way the sheet writes them ("Yi+Xing+Long").
-  - **Job Time:** left blank.
+  completed). A multi-day job (`date_end`) gets a row on each day it covers.
+  Within a day, jobs are sorted by start time, untimed first (matching the
+  installer lists).
+- **The 12 columns, in the sheet's order:**
+  1. **Date:** "11-Nov".
+  2. **Day:** "Wed".
+  3. **Production:** blank.
+  4. **Contact Person:** client contact name and number.
+  5. **Punctuality:** "Strict" or "Flexible".
+  6. **Time:** "11:00 AM - 6:00 PM", or the start time alone.
+  7. **Jobs Description:** title, a line break, then the description.
+  8. **Location / Sites:** the full address.
+  9. **DO:** blank.
+  10. **PIC:** the job's sales person. Checked against real data on
+      2026-11-11: his PIC names (Nicholas, Charles, Vinz, Daniel, Wei Qing)
+      are the app's sales people.
+  11. **Remarks:** crew, drivers then support then externals, joined with
+      "+" ("CK+Razu").
+  12. **Job Time:** blank.
 - Dates and day names are always English (hard rule).
-- **My call:** a header row, then the jobs sorted by date then start time
-  (untimed first, matching the installer lists). A blank row separates days.
-  Under each day, one "On leave: A, B" line if anyone is on leave that day.
-  Names only, never the leave type or note, which are RLS-locked to HR/admin
-  (0058). Leave is already shown to every role, so this reveals nothing new.
-- Crew names come from the existing `getCrewForJobs` in
-  `src/lib/supabase/queries/crew-names.ts`. Suggestions are already dropped
-  there.
+- **Leave line (my call):** "On leave: A, B", names only, never the type or
+  note (RLS-locked to HR/admin, 0058). Leave is already shown to every role.
+  A half day counts as on leave for that day.
+- Crew names come from `getCrewForJobs`
+  (`src/lib/supabase/queries/crew-names.ts`).
+
+### The script (a deliverable kept in the repo)
+- **Where it lives:** a plain-text `.gs` file in the repo, under a folder
+  such as `scripts/google-sheet/`. It is the source of truth: Nic pastes it
+  into Extensions → Apps Script once, and again if it changes.
+- **The link lives in the script's own settings** (Script Properties), never
+  in a cell. People who only view the sheet can't see it.
+- **Hourly trigger:** for every weekly tab whose week ends today or later
+  (Singapore date):
+  1. Find the marker bar.
+  2. Clear everything below it.
+  3. Write that week's rows and apply formatting:
+     - grey gap rows
+     - red text on leave rows
+     - red fill for Strict, blue for Flexible in the Punctuality cell
+
+  Past weeks are no longer refreshed, so they keep their last state as a
+  record.
+- **First time on a tab with no marker:** put the bar two rows below the
+  last used row.
+- **Weekly trigger (Monday):** if next week's tab doesn't exist, create it.
+  Name it with the newest tab's pattern, copy only the header rows from the
+  newest weekly tab, then add the bar and the rows.
+- **Reading tab names:** parse the start "D/M" from names like
+  "9/11 to15/11", "14/9 to 20/9" and "28/12 to3/1". Infer the year as the one
+  that puts the date nearest today, which handles the December–January turn.
+  Ignore tabs that don't match the pattern.
+- **Safety:**
+  - The script only ever writes below its own marker, or into a tab it
+    created.
+  - If a tab has more than one marker, or the fetch fails, it changes
+    nothing on that tab. A failed hour just leaves the last good data.
+- Built and tested on **a copy of Nic's sheet** (File → Make a copy) before
+  it goes near the real one.
 
 ### Setup guide for Nic (deliverable)
-A short plain-language note on the Admin → Settings card:
-1. Make a tab called "From the app".
-2. Put `=IMPORTDATA("<link>")` in A1.
-3. Optionally, add a colour rule that turns "Strict" red and "Flexible" blue.
-
-Google refreshes `IMPORTDATA` roughly hourly. Say so.
+A short plain-language guide, linked from the Admin → Settings card:
+1. Open the sheet and go to Extensions → Apps Script.
+2. Paste the script in.
+3. Paste the link into its settings.
+4. Run "Set up" once. Google asks him to allow it; the guide explains that
+   screen.
+5. To change the link later: press Change link in the app, then paste the
+   new one into the script's settings.
 
 ### Anti-goals
-- Never write to Google.
-- Never read from the sheet.
+- The app never calls Google.
+- Nothing reads typed rows, and nothing writes above the marker.
 - Never include prices.
 - Never include drafts. Pending privacy (0062) must not leak through this
   side door.
@@ -422,11 +469,15 @@ design.**
   - album grouping
   - Media / Doc classification
   - group-name auto-fill
-  - CSV row building
+  - sheet row building, and the script's tab-name parsing (the parser is
+    pure enough to test in the repo too)
   - bulk-move result sorting
-- **Verify with real data, not fixtures:** run the CSV route against the real
-  schedule before shipping, and open the gallery on a real job with chat
-  photos, voice notes, PDFs and completion video.
+- **Verify with real data, not fixtures:**
+  - Run the sheet link against the real schedule, then the script on a copy
+    of Nic's real sheet, before shipping.
+  - Open the gallery on a real job with chat photos, PDFs and completion
+    video. The live database has no voice notes yet, so record one on the
+    preview.
 
 ## Left to the builder
 - Swipe and zoom: a small lightbox library or hand-built. Any library must
