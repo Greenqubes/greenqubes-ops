@@ -50,13 +50,19 @@ export function SettingsTab() {
   }
 
   if (!data) {
-    return <p className="text-sm text-muted">{error ?? 'Loading…'}</p>
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted">{error ?? 'Loading…'}</p>
+        <JobsheetCard />
+      </div>
+    )
   }
 
   const shown = pending ?? data.retention
   const warnCount = pending ? data.expiringByOption[pending] : 0
 
   return (
+    <div className="space-y-4">
     <Card className="p-4">
       <p className="text-[11px] uppercase tracking-widest text-muted font-medium mb-3">Bin</p>
       <label className="block text-sm text-ink2 mb-2" htmlFor="bin-retention">
@@ -84,6 +90,119 @@ export function SettingsTab() {
         </div>
       )}
       {error && <p className="text-xs text-bad mt-2">{error}</p>}
+    </Card>
+    <JobsheetCard />
+    </div>
+  )
+}
+
+const SCRIPT_URL = 'https://github.com/Greenqubes/greenqubes-ops/blob/main/scripts/google-sheet/jobsheet-sync.gs'
+
+// Admin → Settings → Old jobsheet (Nic, 2026-11-11; spec Part 2). The private
+// link the script inside the old "Greenqubes Jobs" Google Sheet reads, so the
+// app's scheduled jobs fill each weekly tab below a yellow bar. Anyone with
+// the link can read those jobs, so only admin sees it, and Change link kills
+// the old one at once. English only, like the rest of this tab.
+function JobsheetCard() {
+  const [link, setLink]         = useState<string | null | undefined>(undefined)
+  const [busy, setBusy]         = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [note, setNote]         = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/jobsheet-link')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((d: { link: string | null }) => setLink(d.link))
+      .catch(() => setNote('Could not load the link.'))
+  }, [])
+
+  async function makeLink() {
+    setBusy(true)
+    setNote(null)
+    try {
+      const res = await fetch('/api/admin/jobsheet-link', { method: 'POST' })
+      if (!res.ok) { setNote('Could not make a new link. The old one still works.'); return }
+      const d = await res.json() as { link: string }
+      setLink(d.link)
+      setConfirming(false)
+      setNote(link ? 'New link made. Paste it into the sheet (Greenqubes menu → Set app link).' : 'Link made.')
+    } catch {
+      setNote('No connection. Nothing changed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copy() {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      setNote('Copied.')
+    } catch {
+      // Clipboard refused (older browsers, some app views): select the text instead.
+      const el = document.getElementById('jobsheet-link')
+      if (el) { const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s?.removeAllRanges(); s?.addRange(r) }
+      setNote('Selected. Press copy on your keyboard.')
+    }
+  }
+
+  return (
+    <Card className="p-4 space-y-3">
+      <p className="text-[11px] uppercase tracking-widest text-muted font-medium">Old jobsheet (Google Sheet)</p>
+      <p className="text-sm text-ink2">
+        A private link that fills each weekly tab of the old &ldquo;Greenqubes Jobs&rdquo; sheet with the app&rsquo;s
+        scheduled jobs, below a yellow bar. Rows people type above the bar are never touched.
+      </p>
+
+      {link === undefined && !note && <p className="text-sm text-muted">Loading…</p>}
+
+      {link === null && (
+        <Btn size="sm" onClick={makeLink} disabled={busy}>{busy ? 'Making…' : 'Make link'}</Btn>
+      )}
+
+      {link && (
+        <>
+          <p id="jobsheet-link" className="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-xs text-ink break-all select-all">{link}</p>
+          {!confirming ? (
+            <div className="flex flex-wrap gap-2">
+              <Btn size="sm" onClick={copy}>Copy</Btn>
+              <Btn size="sm" variant="secondary" onClick={() => { setConfirming(true); setNote(null) }} disabled={busy}>Change link</Btn>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-bad">
+                The old link stops working straight away. Paste the new one into the sheet&rsquo;s script
+                (Greenqubes menu → Set app link).
+              </p>
+              <div className="flex gap-2">
+                <Btn size="sm" onClick={makeLink} disabled={busy}>{busy ? 'Changing…' : 'Change'}</Btn>
+                <Btn size="sm" variant="secondary" onClick={() => setConfirming(false)} disabled={busy}>Cancel</Btn>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {note && <p className="text-xs text-ink2">{note}</p>}
+
+      <details className="text-sm text-ink2">
+        <summary className="cursor-pointer text-ink font-medium">How to set it up</summary>
+        <ol className="mt-2 list-decimal pl-5 space-y-1">
+          <li>Open the sheet, then <b>Extensions → Apps Script</b>.</li>
+          <li>
+            Delete what&rsquo;s there and paste in the script from{' '}
+            <a href={SCRIPT_URL} target="_blank" rel="noopener noreferrer" className="text-terracotta underline break-all">{SCRIPT_URL}</a>
+            , then press Save.
+          </li>
+          <li>Reload the sheet. A <b>Greenqubes</b> menu appears. Choose <b>Set app link</b> and paste the link above.</li>
+          <li>
+            Choose <b>Refresh now</b>. Google asks you to allow it: press Continue. If it says &ldquo;Google hasn&rsquo;t
+            verified this app&rdquo;, that&rsquo;s normal for your own script: press Advanced, then Go to the project.
+          </li>
+          <li>Choose <b>Set up hourly refresh</b>. From then on it updates itself every hour and makes next week&rsquo;s tab.</li>
+        </ol>
+        <p className="mt-2">Don&rsquo;t type below the yellow bar: the next refresh replaces everything under it. Try it on a copy of the sheet first (File → Make a copy).</p>
+      </details>
     </Card>
   )
 }
