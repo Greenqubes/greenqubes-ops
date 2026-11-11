@@ -62,7 +62,7 @@ const stateChanged = () => fail(409, 'state_changed')
 
 const todaySG = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })
 const nowISO = () => new Date().toISOString()
-const titleOf = (j: ArrangeJobRow) => j.project_title || j.client
+export const titleOf = (j: ArrangeJobRow) => j.project_title || j.client
 const jobUrl = (j: ArrangeJobRow) => `${APP_URL}/jobs/${j.id}`
 const slotOf = (j: ArrangeJobRow): Slot =>
   ({ date: j.date, dateEnd: j.date_end, timeStart: hhmm(j.time_start), timeEnd: hhmm(j.time_end) })
@@ -208,8 +208,11 @@ async function sendBack(
 
 // ── Sales: not ready after all ──────────────────────────────────────────────
 
-async function pullBack(ctx: ArrangeCtx): Promise<ArrangeResult> {
+async function pullBack(ctx: ArrangeCtx, quiet = false): Promise<ArrangeResult> {
   if (!(await writeIf(ctx, arrangeClearPatch()))) return stateChanged()
+  // A bulk pull back (/api/arrange/pull-back-bulk) stays quiet per job and
+  // sends ONE card for the whole batch instead (Nic, 2026-11-11).
+  if (quiet) return ok(null)
   // Bell only — it simply leaves the scheduler's list; no need to buzz him.
   await alertSchedulers(ctx.job.id,
     { type: 'arrange_pulled_back', title: `Back to Ongoing: ${titleOf(ctx.job)}`, body: `Not ready yet — ${ctx.viewer.name}` },
@@ -353,6 +356,7 @@ async function clientOk(ctx: ArrangeCtx): Promise<ArrangeResult> {
 
 export async function runArrangeAction(
   ctx: ArrangeCtx, action: ArrangeAction, body: Record<string, unknown>,
+  opts: { quiet?: boolean } = {},
 ): Promise<ArrangeResult> {
   switch (action) {
     case 'ready':     return ready(ctx, body)
@@ -361,6 +365,6 @@ export async function runArrangeAction(
     case 'withdraw':  return sendBack(ctx, body, 'withdrawn', 'needs_date', false)
     case 'client_no': return sendBack(ctx, body, 'client_no', 'needs_date', true)
     case 'client_ok': return clientOk(ctx)
-    case 'pull_back': return pullBack(ctx)
+    case 'pull_back': return pullBack(ctx, opts.quiet === true)
   }
 }

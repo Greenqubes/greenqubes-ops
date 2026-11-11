@@ -836,6 +836,19 @@ export const en = {
   allJobsOne: "1 job",
   allJobsMany: "jobs",
   allJobsNone: "No confirmed jobs on this day.",
+
+  // ── Jobs tab bulk move back (Nic, 2026-11-11): why a ticked job didn't move ─
+  bulkWhyDesigner: "A designer is still on this job",
+  bulkWhyNotYours: "Not yours to move",
+  bulkWhyChanged: "This job changed. Refresh and try again",
+  bulkWhyOffline: "No connection. Try again",
+  bulkWhyOther: "Couldn’t move this one",
+  bulkSelected: "{n} selected",
+  bulkBackToOngoing: "Back to Ongoing",
+  bulkBackToDrafts: "Back to Drafts",
+  bulkMovedOngoing: "{n} job(s) moved back to Ongoing.",
+  bulkMovedDrafts: "{n} job(s) moved back to Drafts.",
+  bulkMoveFailed: "{n} couldn’t move. The reason is under each one.",
 }
 
 export type Translations = typeof en

@@ -20,7 +20,7 @@ export type ArrangeBell = {
   body:  string
 }
 
-async function deliver(jobId: string, userIds: string[], bell: ArrangeBell, telegram: string | null): Promise<void> {
+async function deliver(jobId: string | null, userIds: string[], bell: ArrangeBell, telegram: string | null): Promise<void> {
   const ids = [...new Set(userIds)]
   if (ids.length === 0) {
     console.warn('[arrange/notify] nobody to tell', { jobId, type: bell.type })
@@ -51,7 +51,8 @@ async function deliver(jobId: string, userIds: string[], bell: ArrangeBell, tele
   }
 }
 
-export async function alertSchedulers(jobId: string, bell: ArrangeBell, telegram: string | null): Promise<void> {
+/** jobId null = a card about several jobs (a bulk pull back): it opens no job. */
+export async function alertSchedulers(jobId: string | null, bell: ArrangeBell, telegram: string | null): Promise<void> {
   try {
     const schedulers = await getSchedulers()
     await deliver(jobId, schedulers.map(s => s.id), bell, telegram)

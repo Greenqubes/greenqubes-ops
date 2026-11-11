@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils/cn'
 import { t as tr, type LangCode } from '@/lib/i18n'
 import { groupArrangeJobs, arrangeCta, arrangeCardHref, isArrangeSalesSide, isArrangeSchedulerSide, type ArrangeCta } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel, daysWaiting } from '@/lib/utils/arrange-labels'
+import { BULK_REASON_KEY, type BulkFailReason } from '@/lib/utils/bulk-move'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { StageViewer } from '@/lib/utils/job-stage-rules'
 
@@ -13,13 +14,21 @@ import type { StageViewer } from '@/lib/utils/job-stage-rules'
  * Ongoing job sales has marked ready, split by whose turn it is. "Needs a
  * date" — the scheduler's turn — on top; "Waiting on sales" below and quieter.
  * Each card opens the job, where the buttons are.
+ *
+ * `selectable` (bulk Back to Ongoing, Nic 2026-11-11) adds a tick box to the
+ * left of each card; a job that could not move shows its reason underneath.
+ * Without it the cards render exactly as before.
  */
-export function ArrangeList({ jobs, viewer, lang, todayISO }: {
+export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, selected, onToggle, reasons }: {
   jobs:     StageJob[]
   viewer:   StageViewer
   lang:     LangCode
   /** Singapore date, read after mount by the shell — never during render. */
   todayISO: string | null
+  selectable?: boolean
+  selected?:   Set<string>
+  onToggle?:   (id: string) => void
+  reasons?:    Map<string, BulkFailReason>
 }) {
   const { needsDate, withSales } = groupArrangeJobs(jobs)
   const schedulerSide = isArrangeSchedulerSide(viewer)
@@ -60,10 +69,16 @@ export function ArrangeList({ jobs, viewer, lang, todayISO }: {
     const waited = a && todayISO ? daysWaiting(a.readyAt, todayISO) : null
     const reason = a?.lastReturn && (j.arrange_state === 'needs_date' || j.arrange_state === 'no_fit' || j.arrange_state === 'clash')
       ? a.lastReturn.text : null
+    const why = reasons?.get(j.id)
     return (
       <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
-        className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70')}>
-        <Link href={arrangeCardHref(j.id, ctaKind)} className="block px-4 py-3 space-y-1.5">
+        className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70', selectable && 'flex items-start gap-3 pl-4')}>
+        {selectable && (
+          <input type="checkbox" className="mt-4 shrink-0" checked={selected?.has(j.id) ?? false} aria-label="Select"
+            onChange={() => onToggle?.(j.id)} />
+        )}
+        <div className={cn(selectable && 'flex-1 min-w-0')}>
+        <Link href={arrangeCardHref(j.id, ctaKind)} className={cn('block py-3 space-y-1.5', selectable ? 'pr-4' : 'px-4')}>
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-sm font-semibold text-ink min-w-0 truncate">{j.project_title || j.client || 'Untitled job'}</p>
             {c && <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', c.cls)}>{c.text}</span>}
@@ -91,6 +106,8 @@ export function ArrangeList({ jobs, viewer, lang, todayISO }: {
             </div>
           )}
         </Link>
+        {why && <p className={cn('pb-3 text-[11px] text-bad', selectable ? 'pr-4' : 'px-4')}>{tr(lang, BULK_REASON_KEY[why])}</p>}
+        </div>
       </li>
     )
   }

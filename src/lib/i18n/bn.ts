@@ -307,4 +307,18 @@ export const bn: Partial<Translations> = {
   allJobsOne: "1 job",
   allJobsMany: "jobs",
   allJobsNone: "No confirmed jobs on this day.",
+
+  // ── Jobs tab bulk move back (Nic, 2026-11-11) ──────────────────────────────
+  // English on purpose — no new Bengali translations (boss, 2026-08-03)
+  bulkSelected: "{n} selected",
+  bulkBackToOngoing: "Back to Ongoing",
+  bulkBackToDrafts: "Back to Drafts",
+  bulkMovedOngoing: "{n} job(s) moved back to Ongoing.",
+  bulkMovedDrafts: "{n} job(s) moved back to Drafts.",
+  bulkMoveFailed: "{n} couldn’t move. The reason is under each one.",
+  bulkWhyDesigner: "A designer is still on this job",
+  bulkWhyNotYours: "Not yours to move",
+  bulkWhyChanged: "This job changed. Refresh and try again",
+  bulkWhyOffline: "No connection. Try again",
+  bulkWhyOther: "Couldn’t move this one",
 }

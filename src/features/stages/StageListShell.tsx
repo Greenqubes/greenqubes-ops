@@ -13,6 +13,8 @@ import { blinkJobCards } from '@/features/schedule/job-jump'
 import { resolveStageView, jobListHref, defaultStageView, type StageView } from './stage-view'
 import { ArrangeList } from './ArrangeList'
 import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
+import { arrangeSeen } from '@/lib/utils/arrange-rules'
+import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
@@ -64,9 +66,11 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
   const highlight = params.get('highlight')
   const view: StageView = resolveStageView(params.get('view'), drafts !== null, defaultStageView(role))
   const jobs = view === 'drafts' ? (drafts ?? []) : view === 'arrange' ? arrange : ongoing
-  const { error: showError } = useToast()
+  const { error: showError, success: showSuccess } = useToast()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Why a ticked job could not move in the last bulk move (Nic, 2026-11-11).
+  const [reasons, setReasons] = useState<Map<string, BulkFailReason>>(new Map())
   const [busy, setBusy] = useState(false)
   // On a PC the open My Jobs panel takes the right edge; the list makes room.
   const [panelOpen, setPanelOpen] = useState(false)
@@ -79,6 +83,11 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
   // their drafts, schedulers anywhere. Deletes go to the Bin. Not on To
   // arrange — those cards carry the round trip, not tick boxes.
   const canBulkDelete = view !== 'arrange' && (role === 'scheduler' || (view === 'drafts' && (role === 'sales' || role === 'coordinator')))
+  // Moving several jobs back one stage (Nic, 2026-11-11): Back to Ongoing on
+  // To arrange, Back to Drafts on Ongoing. Each job still passes its own
+  // one-at-a-time rules on the server; failures stay ticked with a reason.
+  const acts = bulkActionsFor(view, role, isAdmin)
+  const canTick = canBulkDelete || acts.toOngoing || acts.toDraft
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -99,7 +108,14 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
   // list change — the switch, the My Jobs panel, the back button — because
   // a search-param change keeps this component's state, and ticks carried
   // over were invisible yet still counted by Delete (review #1, 2026-10-19).
-  useEffect(() => { setSelected(new Set()) }, [view])
+  useEffect(() => { setSelected(new Set()); setReasons(new Map()) }, [view])
+  // …and after any refresh, a ticked job that has left this list (moved by
+  // someone else, or moved by a bulk move whose answer never arrived) is
+  // dropped — never counted out of sight by Delete (final review #1).
+  useEffect(() => {
+    const kept = keepOnList(selected, reasons, jobs.map(j => j.id))
+    if (kept.changed) { setSelected(kept.selected); setReasons(kept.reasons) }
+  }, [jobs])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchTo = (next: StageView) => {
     if (next === view) return
@@ -118,16 +134,83 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
     } finally { setBusy(false) }
   }
 
-  const toggle = (id: string) => setSelected(s => {
-    const n = new Set(s)
-    if (n.has(id)) n.delete(id); else n.add(id)
-    return n
-  })
+  const toggle = (id: string) => {
+    if (selected.has(id)) setReasons(r => { if (!r.has(id)) return r; const n = new Map(r); n.delete(id); return n })
+    setSelected(s => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+
+  // What a bulk move does with its results: moved jobs leave the list on the
+  // refresh, the rest stay ticked with their reason under them.
+  function settle(outcomes: BulkOutcome[], movedKey: 'bulkMovedOngoing' | 'bulkMovedDrafts') {
+    const { moved, failed } = splitBulk(outcomes)
+    setSelected(new Set(failed.map(f => f.id)))
+    setReasons(new Map(failed.map(f => [f.id, f.reason])))
+    if (moved.length) showSuccess(tr(lang, movedKey).replace('{n}', String(moved.length)))
+    if (failed.length) showError(tr(lang, 'bulkMoveFailed').replace('{n}', String(failed.length)))
+    router.refresh()
+  }
+
+  async function bulkToOngoing() {
+    setBusy(true)
+    try {
+      const ids = [...selected]
+      const byId = new Map(jobs.map(j => [j.id, j]))
+      let outcomes: BulkOutcome[]
+      try {
+        const res = await fetch('/api/arrange/pull-back-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobs: ids.map(id => {
+            const j = byId.get(id)
+            return { id, seen: j ? arrangeSeen(j.arrange_state, j.arrangement) : null }
+          }) }),
+        })
+        const data = await res.json().catch(() => null) as { results?: Array<{ id: string; ok: boolean; status: number; error?: string }> } | null
+        if (!res.ok || !data?.results) {
+          outcomes = ids.map(id => ({ id, ok: false, reason: bulkFailReason(res.status, undefined) }))
+        } else {
+          const got = new Map(data.results.map(r => [r.id, r]))
+          outcomes = ids.map((id): BulkOutcome => {
+            const r = got.get(id)
+            return r?.ok ? { id, ok: true } : { id, ok: false, reason: r ? bulkFailReason(r.status, r.error) : 'other' }
+          })
+        }
+      } catch {
+        outcomes = ids.map(id => ({ id, ok: false, reason: bulkFailReason(0, undefined) }))
+      }
+      settle(outcomes, 'bulkMovedOngoing')
+    } finally { setBusy(false) }
+  }
+
+  async function bulkToDraft() {
+    setBusy(true)
+    try {
+      const outcomes = await Promise.all([...selected].map(async (id): Promise<BulkOutcome> => {
+        try {
+          const res = await fetch(`/api/jobs/${id}/stage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'draft' }),
+          })
+          if (res.ok) return { id, ok: true }
+          const data = await res.json().catch(() => null) as { error?: string } | null
+          return { id, ok: false, reason: bulkFailReason(res.status, data?.error) }
+        } catch {
+          return { id, ok: false, reason: bulkFailReason(0, undefined) }
+        }
+      }))
+      settle(outcomes, 'bulkMovedDrafts')
+    } finally { setBusy(false) }
+  }
 
   const row = (j: StageJob) => (
     <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
       className="scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4 py-3">
-      {canBulkDelete && (
+      {canTick && (
         <input type="checkbox" checked={selected.has(j.id)} aria-label="Select" onChange={() => toggle(j.id)} />
       )}
       <Link href={`/jobs/${j.id}`} className="flex-1 min-w-0">
@@ -136,6 +219,7 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
         {view === 'ongoing' && j.designerNames.length > 0 && (
           <p className="text-[11px] text-ink2 truncate">{tr(lang, 'stageDesigner')}: {j.designerNames.join(', ')}</p>
         )}
+        {reasons.has(j.id) && <p className="text-[11px] text-bad">{tr(lang, BULK_REASON_KEY[reasons.get(j.id)!])}</p>}
       </Link>
       <span className="shrink-0 text-xs text-ink2">{j.date ? dayLabel(j.date) : tr(lang, 'dateTbc')}</span>
     </li>
@@ -181,14 +265,32 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
           <input value={query} onChange={e => setQuery(e.target.value)}
             className="flex-1 min-w-0 bg-transparent text-sm outline-none" placeholder={tr(lang, 'stageSearch')} />
         </label>
-        {canBulkDelete && selected.size > 0 && (
-          <button onClick={bulkDelete} disabled={busy}
-            className="px-3 py-1.5 text-xs font-medium text-white rounded-lg bg-bad disabled:opacity-50">
-            Delete {selected.size}
-          </button>
+        {canTick && selected.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-[12px] bg-ink px-3 py-2 text-paper">
+            <span className="flex-1 min-w-[80px] text-xs font-semibold">{tr(lang, 'bulkSelected').replace('{n}', String(selected.size))}</span>
+            {acts.toOngoing && (
+              <button type="button" onClick={bulkToOngoing} disabled={busy}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-paper text-ink disabled:opacity-50">
+                {tr(lang, 'bulkBackToOngoing')}
+              </button>
+            )}
+            {acts.toDraft && (
+              <button type="button" onClick={bulkToDraft} disabled={busy}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-paper text-ink disabled:opacity-50">
+                {tr(lang, 'bulkBackToDrafts')}
+              </button>
+            )}
+            {canBulkDelete && (
+              <button type="button" onClick={bulkDelete} disabled={busy}
+                className="px-3 py-1.5 text-xs font-medium text-white rounded-lg bg-bad disabled:opacity-50">
+                Delete {selected.size}
+              </button>
+            )}
+          </div>
         )}
         {view === 'arrange' ? (
-          <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO} />
+          <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO}
+            selectable={acts.toOngoing} selected={selected} onToggle={toggle} reasons={reasons} />
         ) : (
           <>
             {filtered.length === 0 && <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>}
