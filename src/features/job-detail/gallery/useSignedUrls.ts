@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { visibleKeysToSign } from '@/lib/utils/gallery'
 
 /**
@@ -55,17 +55,21 @@ export function useSignedUrls(): { urls: Record<string, string>; sign: (keys: st
   return { urls, sign }
 }
 
-/** Tells `onVisible` when an element scrolls into view (once). */
+/** Tells `onVisible` when an element scrolls into view (once). The latest
+ *  callback is kept in a ref, so a new function each render doesn't
+ *  re-create the observer. */
 export function useOnVisible(onVisible: () => void): (el: Element | null) => void {
   const [el, setEl] = useState<Element | null>(null)
+  const cb = useRef(onVisible)
+  cb.current = onVisible
   useEffect(() => {
     if (!el) return
     const io = new IntersectionObserver(entries => {
-      if (entries.some(e => e.isIntersecting)) { onVisible(); io.disconnect() }
+      if (entries.some(e => e.isIntersecting)) { cb.current(); io.disconnect() }
     }, { rootMargin: '200px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [el, onVisible])
+  }, [el])
   return setEl
 }
 

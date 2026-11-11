@@ -29,6 +29,7 @@ import { designBriefEditable, pendingPicHandover, toDbDate } from '@/lib/utils/j
 import { rememberPreviousLocation, readPreviousLocation, forgetPreviousLocation } from './previous-location'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import { ChatSection } from './ChatSection'
+import { GallerySection } from './gallery/GallerySection'
 import { ProductionReadySection } from './ProductionReadySection'
 import { InstallerGrid, type InstallerCardState } from './InstallerGrid'
 import { DesignerGrid } from './DesignerGrid'
@@ -1902,6 +1903,19 @@ export function JobDetailShell({
             preScheduleLocked={stage === 'draft' || stage === 'ongoing'}
           />
         )}
+        // The job Gallery (Nic, 2026-11-11): only what this page shows this
+        // person — HR gets no chat items, installers no design-brief files.
+        gallery={
+          <GallerySection
+            jobId={job.id}
+            userId={userId}
+            role={role}
+            isAdmin={isAdmin}
+            lang={lang}
+            job={{ ...stageRulesJob, completed_at: job.completed_at }}
+            show={{ chat: !isReadOnlyRole, designBrief: !isInstaller }}
+          />
+        }
       />
 
       {/* ── Action bar (sticky bottom) ─────────────────────────────

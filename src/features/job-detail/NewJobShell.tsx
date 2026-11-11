@@ -448,7 +448,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
         lang={lang}
         /* Files is no longer locked: attachments upload to a holding area
            before the job exists (Nic, 2026-09-15). Chat still needs a job. */
-        lockedTabs={['chat']}
+        lockedTabs={['chat', 'gallery']}
         jumpToDetails={revealDetails}
         details={
           <div className="flex flex-col gap-4">

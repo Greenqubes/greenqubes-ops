@@ -6,14 +6,15 @@ import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils/cn'
 import type { LangCode } from '@/lib/i18n'
 
-export type JobTab = 'details' | 'team' | 'files' | 'chat'
+export type JobTab = 'details' | 'team' | 'files' | 'chat' | 'gallery'
 
-const TABS: JobTab[] = ['details', 'team', 'files', 'chat']
+const TABS: JobTab[] = ['details', 'team', 'files', 'chat', 'gallery']
 const TAB_LABEL_KEY = {
   details: 'tabDetails',
   team:    'tabTeam',
   files:   'tabFiles',
   chat:    'tabChat',
+  gallery: 'tabGallery',
 } as const
 
 interface Props {
@@ -32,6 +33,9 @@ interface Props {
   team:        React.ReactNode
   files:       React.ReactNode
   chat:        React.ReactNode
+  /** The job Gallery (Nic, 2026-11-11): a fifth tab on phone, under the chat
+   *  on a computer. Not passed (New Job) = no slot; lock it via lockedTabs. */
+  gallery?:    React.ReactNode
 }
 
 // The responsive job-form shell. Below lg: a sticky tab bar shows one group
@@ -39,7 +43,7 @@ interface Props {
 // Every group stays mounted at all times; tabs only toggle CSS visibility,
 // so form state, chat realtime, and uploads survive tab switches.
 export function JobFormLayout({
-  lang, initialTab = 'details', lockedTabs = [], hiddenTabs = [], jumpToDetails, details, team, files, chat,
+  lang, initialTab = 'details', lockedTabs = [], hiddenTabs = [], jumpToDetails, details, team, files, chat, gallery,
 }: Props) {
   const [active, setActive] = useState<JobTab>(
     lockedTabs.includes(initialTab) || hiddenTabs.includes(initialTab) ? 'details' : initialTab,
@@ -56,13 +60,23 @@ export function JobFormLayout({
     return () => window.removeEventListener('tour:job-tab-team', onTeamTab)
   }, [])
 
+  // The Gallery's "Go to message" switches the phone tab to Chat.
+  useEffect(() => {
+    function onTab(e: Event) {
+      const tab = (e as CustomEvent<JobTab>).detail
+      if (TABS.includes(tab)) setActive(tab)
+    }
+    window.addEventListener('job:tab', onTab)
+    return () => window.removeEventListener('job:tab', onTab)
+  }, [])
+
   const groupCn = (tab: JobTab) => cn(tab !== active && 'hidden', 'lg:block')
 
   return (
     <>
       {/* Tab bar — phone/narrow only; sticks below the CompanyBar (45px) */}
       <div data-tour="job-tabs" className="lg:hidden sticky top-[45px] z-20 bg-bg border-b border-line flex">
-        {TABS.filter(tab => !hiddenTabs.includes(tab)).map(tab => {
+        {TABS.filter(tab => !hiddenTabs.includes(tab) && (tab !== 'gallery' || gallery != null || lockedTabs.includes('gallery'))).map(tab => {
           const locked = lockedTabs.includes(tab)
           return (
             <button
@@ -95,6 +109,7 @@ export function JobFormLayout({
         <div className="lg:flex-1 lg:min-w-0 flex flex-col gap-4">
           {!hiddenTabs.includes('files') && <div className={groupCn('files')}>{files}</div>}
           {!hiddenTabs.includes('chat')  && <div className={groupCn('chat')}>{chat}</div>}
+          {gallery != null && !hiddenTabs.includes('gallery') && <div className={groupCn('gallery')}>{gallery}</div>}
         </div>
       </div>
     </>
