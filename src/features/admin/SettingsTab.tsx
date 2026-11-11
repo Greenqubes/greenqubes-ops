@@ -96,8 +96,6 @@ export function SettingsTab() {
   )
 }
 
-const SCRIPT_URL = 'https://github.com/Greenqubes/greenqubes-ops/blob/main/scripts/google-sheet/jobsheet-sync.gs'
-
 // Admin → Settings → Old jobsheet (Nic, 2026-11-11; spec Part 2). The private
 // link the script inside the old "Greenqubes Jobs" Google Sheet reads, so the
 // app's scheduled jobs fill each weekly tab below a yellow bar. Anyone with
@@ -108,12 +106,19 @@ function JobsheetCard() {
   const [busy, setBusy]         = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [note, setNote]         = useState<string | null>(null)
+  // The script to paste into the sheet, fetched up front so Copy script can
+  // write it inside the tap itself (phones refuse a copy after a wait).
+  const [script, setScript]     = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/jobsheet-link')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((d: { link: string | null }) => setLink(d.link))
       .catch(() => setNote('Could not load the link.'))
+    fetch('/api/admin/jobsheet-script')
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(setScript)
+      .catch(() => { /* the button says so if pressed */ })
   }, [])
 
   async function makeLink() {
@@ -137,12 +142,22 @@ function JobsheetCard() {
     if (!link) return
     try {
       await navigator.clipboard.writeText(link)
-      setNote('Copied.')
+      setNote('Link copied.')
     } catch {
       // Clipboard refused (older browsers, some app views): select the text instead.
       const el = document.getElementById('jobsheet-link')
       if (el) { const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s?.removeAllRanges(); s?.addRange(r) }
-      setNote('Selected. Press copy on your keyboard.')
+      setNote('Selected. Copy it from here.')
+    }
+  }
+
+  async function copyScript() {
+    if (!script) { setNote('Could not load the script. Reload the page and try again.'); return }
+    try {
+      await navigator.clipboard.writeText(script)
+      setNote('Script copied. Paste it into the sheet (step 2 below).')
+    } catch {
+      setNote('Your browser blocked copying. Try again on a computer.')
     }
   }
 
@@ -165,7 +180,8 @@ function JobsheetCard() {
           <p id="jobsheet-link" className="rounded-lg border border-line bg-bg px-3 py-2 font-mono text-xs text-ink break-all select-all">{link}</p>
           {!confirming ? (
             <div className="flex flex-wrap gap-2">
-              <Btn size="sm" onClick={copy}>Copy</Btn>
+              <Btn size="sm" onClick={copy}>Copy link</Btn>
+              <Btn size="sm" variant="secondary" onClick={copyScript}>Copy script</Btn>
               <Btn size="sm" variant="secondary" onClick={() => { setConfirming(true); setNote(null) }} disabled={busy}>Change link</Btn>
             </div>
           ) : (
@@ -188,11 +204,10 @@ function JobsheetCard() {
       <details className="text-sm text-ink2">
         <summary className="cursor-pointer text-ink font-medium">How to set it up</summary>
         <ol className="mt-2 list-decimal pl-5 space-y-1">
-          <li>Open the sheet, then <b>Extensions → Apps Script</b>.</li>
+          <li>Press <b>Copy script</b> above. In the sheet, open <b>Extensions → Apps Script</b>.</li>
           <li>
-            Delete what&rsquo;s there and paste in the script from{' '}
-            <a href={SCRIPT_URL} target="_blank" rel="noopener noreferrer" className="text-terracotta underline break-all">{SCRIPT_URL}</a>
-            , then press Save.
+            If the editor only shows an empty <code>function myFunction() {'{}'}</code>, replace it with the script. If there
+            is other code there, leave it and add a new file instead (<b>+ → Script</b>) and paste into that. Press Save.
           </li>
           <li>Reload the sheet. A <b>Greenqubes</b> menu appears. Choose <b>Set app link</b> and paste the link above.</li>
           <li>
@@ -201,7 +216,10 @@ function JobsheetCard() {
           </li>
           <li>Choose <b>Set up hourly refresh</b>. From then on it updates itself every hour and makes next week&rsquo;s tab.</li>
         </ol>
-        <p className="mt-2">Don&rsquo;t type below the yellow bar: the next refresh replaces everything under it. Try it on a copy of the sheet first (File → Make a copy).</p>
+        <p className="mt-2">
+          Don&rsquo;t type below the yellow bar, and don&rsquo;t delete it: the next refresh replaces everything under it.
+          To add a job, insert a row <b>above</b> the bar. Try it all on a copy of the sheet first (File → Make a copy).
+        </p>
       </details>
     </Card>
   )
