@@ -1,5 +1,6 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import { t, type LangCode } from '@/lib/i18n'
 
 /**
@@ -18,8 +19,11 @@ export function DeleteDialog({ count, everyoneCount, open, busy, lang, onMe, onE
   onEveryone: () => void
   onClose: () => void
 }) {
-  if (!open) return null
-  return (
+  if (!open || typeof document === 'undefined') return null
+  // Drawn on the page body: the Gallery tab is display:none while another
+  // phone tab is showing, and a dialog inside it would never appear
+  // (final review I1 — Delete from a chat photo showed nothing).
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}
         className="w-full max-w-sm rounded-2xl bg-paper p-5 space-y-4 shadow-xl">
@@ -44,6 +48,7 @@ export function DeleteDialog({ count, everyoneCount, open, busy, lang, onMe, onE
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -1,7 +1,7 @@
 -- 0070_gallery_hides_and_chat_deletions.sql
 -- The job Gallery (Nic, 2026-11-11; spec 2026-11-11-gallery-groups-bulk-sheet-design.md
--- Part 3; plan 2026-11-11-job-gallery.md Task 3). Additive only: two new tables,
--- nothing existing changes.
+-- Part 3; plan 2026-11-11-job-gallery.md Task 3). Additive only: two new tables
+-- and one index; nothing existing changes.
 --
 -- Number claimed 2026-11-11: live DB (migration list --linked) and every branch
 -- top out at 0069.
@@ -14,11 +14,17 @@
 --                     everyone. The item itself is removed as before (row + R2
 --                     object), so every existing reader of files/messages is
 --                     untouched. Written only by the server (service key).
+--
+-- Policies use the auth.uid() EXISTS form, not get_my_*(): 0008/0023 record
+-- that get_my_*() policies dropped realtime events in this project, and both
+-- tables are watched live (final review, 2026-11-11).
 
 -- ── Delete for me ────────────────────────────────────────────────────────────
 create table public.job_item_hides (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.users(id) on delete cascade,
+  -- Scoped to a job so a job page loads only that job's hides (review I7).
+  job_id      uuid not null references public.jobs(id) on delete cascade,
   file_id     uuid references public.files(id) on delete cascade,
   message_id  uuid references public.messages(id) on delete cascade,
   created_at  timestamptz not null default now(),
@@ -27,21 +33,24 @@ create table public.job_item_hides (
   unique (user_id, message_id)
 );
 
-create index job_item_hides_user_idx on public.job_item_hides (user_id);
+create index job_item_hides_user_job_idx on public.job_item_hides (user_id, job_id);
+-- The cascades from files/messages look rows up by these.
+create index job_item_hides_file_idx    on public.job_item_hides (file_id)    where file_id is not null;
+create index job_item_hides_message_idx on public.job_item_hides (message_id) where message_id is not null;
 
 alter table public.job_item_hides enable row level security;
 
 create policy "item hides: own rows read"
   on public.job_item_hides for select to authenticated
-  using (user_id = get_my_id());
+  using (exists (select 1 from public.users u where u.auth_id = auth.uid() and u.id = job_item_hides.user_id));
 
 create policy "item hides: own rows add"
   on public.job_item_hides for insert to authenticated
-  with check (user_id = get_my_id());
+  with check (exists (select 1 from public.users u where u.auth_id = auth.uid() and u.id = job_item_hides.user_id));
 
 create policy "item hides: own rows remove"
   on public.job_item_hides for delete to authenticated
-  using (user_id = get_my_id());
+  using (exists (select 1 from public.users u where u.auth_id = auth.uid() and u.id = job_item_hides.user_id));
 
 grant select, insert, update, delete on public.job_item_hides to authenticated;
 grant select, insert, update, delete on public.job_item_hides to service_role;
@@ -62,20 +71,29 @@ create index chat_deletions_job_ts_idx on public.chat_deletions (job_id, item_ts
 
 alter table public.chat_deletions enable row level security;
 
--- Read exactly as the chat's own messages are read (0008 "select by role or
--- assignment" + 0053 installers on completed jobs), so no one sees a line in a
--- chat they could not see. No insert/update/delete policy: the server writes
--- these with the service key after its own checks.
-create policy "chat deletions: select by role or assignment"
+-- Read exactly as the chat's own messages are read TODAY — 0024's two
+-- policies (sales / scheduler / admin, or assigned to the job) and 0053's
+-- installers on completed jobs — so no one sees a line in a chat they could
+-- not see. No insert/update/delete policy: the server writes these with the
+-- service key after its own checks.
+create policy "chat deletions: select by role"
   on public.chat_deletions for select to authenticated
   using (
-    auth.uid() in (
-      select u.auth_id from public.users u
-      where u.role in ('sales', 'scheduler')
-      union
-      select u.auth_id from public.users u
+    exists (
+      select 1 from public.users u
+      where u.auth_id = auth.uid()
+        and u.role::text in ('sales', 'scheduler', 'admin')
+    )
+  );
+
+create policy "chat deletions: select by assignment"
+  on public.chat_deletions for select to authenticated
+  using (
+    exists (
+      select 1 from public.users u
       join public.job_assignees ja on ja.user_id = u.id
-      where ja.job_id = chat_deletions.job_id
+      where u.auth_id = auth.uid()
+        and ja.job_id = chat_deletions.job_id
     )
   );
 
@@ -112,3 +130,8 @@ end $$;
 
 alter table public.chat_deletions replica identity full;
 alter table public.job_item_hides replica identity full;
+
+-- ── Voice notes can now be signed and deleted by their key ──────────────────
+-- /api/r2/download-url and the voice delete route look a message up by
+-- voice_url; without this every lookup scans the messages table.
+create index if not exists messages_voice_url_idx on public.messages (voice_url) where voice_url is not null;

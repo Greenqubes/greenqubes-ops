@@ -13,7 +13,9 @@ import { visibleKeysToSign } from '@/lib/utils/gallery'
 
 const TTL_MS = 10 * 60_000
 const cache = new Map<string, { url: string; at: number }>()
-const inFlight = new Set<string>()
+// One request per key at a time, SHARED: a tile and the viewer asking for the
+// same photo both get the link (final review I3 — one used to wait forever).
+const inFlight = new Map<string, Promise<string | null>>()
 
 async function signOne(key: string): Promise<string | null> {
   try {
@@ -38,17 +40,19 @@ export function useSignedUrls(): { urls: Record<string, string>; sign: (keys: st
     for (const k of keys) {
       const hit = cache.get(k)
       if (hit && now - hit.at < TTL_MS) { fresh[k] = hit.url; done.add(k) }
-      if (inFlight.has(k)) done.add(k)
     }
     if (Object.keys(fresh).length) setUrls(u => ({ ...u, ...fresh }))
     for (const k of visibleKeysToSign(keys, done)) {
-      inFlight.add(k)
-      void signOne(k).then(url => {
-        inFlight.delete(k)
-        if (!url) return
-        cache.set(k, { url, at: Date.now() })
-        setUrls(u => ({ ...u, [k]: url }))
-      })
+      let p = inFlight.get(k)
+      if (!p) {
+        p = signOne(k).then(url => {
+          inFlight.delete(k)
+          if (url) cache.set(k, { url, at: Date.now() })
+          return url
+        })
+        inFlight.set(k, p)
+      }
+      void p.then(url => { if (url) setUrls(u => ({ ...u, [k]: url })) })
     }
   }, [])
 

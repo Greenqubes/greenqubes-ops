@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getEffectiveRole } from '@/lib/utils/role-override'
 import { deleteObject } from '@/lib/storage/r2'
-import { canDeleteForEveryone, pageFileGates } from '@/lib/storage/gallery-delete'
+import { canDeleteForEveryone, pageFileGates, voiceKeyBelongsToJob } from '@/lib/storage/gallery-delete'
 import { loadDeleteContext, recordChatDeletion } from '@/lib/supabase/queries/gallery'
 import type { Role } from '@/lib/supabase/types'
 
@@ -50,7 +50,9 @@ export async function DELETE(
   })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (msg.voice_url) {
+  // voice_url is free text from the browser: only a key inside THIS job's
+  // voice folder is ever removed from storage (final review I9).
+  if (msg.voice_url && voiceKeyBelongsToJob(msg.voice_url, job.r2_folder, jobId)) {
     try {
       await deleteObject(msg.voice_url)
     } catch (e) {

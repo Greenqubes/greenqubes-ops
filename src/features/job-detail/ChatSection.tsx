@@ -448,39 +448,57 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     const loadExtras = async () => {
       // Before migration 0070 is applied these tables don't exist: both read as empty.
       const [h, d] = await Promise.all([
-        supabase.from('job_item_hides' as never).select('file_id, message_id') as unknown as
-          Promise<{ data: Array<{ file_id: string | null; message_id: string | null }> | null }>,
+        supabase.from('job_item_hides' as never).select('file_id, message_id').eq('job_id', jobId) as unknown as
+          Promise<{ data: Array<{ file_id: string | null; message_id: string | null }> | null; error: unknown }>,
         supabase.from('chat_deletions' as never).select('id, item_kind, item_ts, deleted_by_name').eq('job_id', jobId) as unknown as
-          Promise<{ data: ChatDeletion[] | null }>,
+          Promise<{ data: ChatDeletion[] | null; error: unknown }>,
       ])
       if (!active) return
-      setHiddenFiles(new Set((h.data ?? []).map(r => r.file_id).filter((x): x is string => !!x)))
-      setHiddenMsgs(new Set((h.data ?? []).map(r => r.message_id).filter((x): x is string => !!x)))
-      setDeletions(d.data ?? [])
+      // A failed read keeps what's shown (hidden items must not reappear).
+      if (!h.error) {
+        setHiddenFiles(new Set((h.data ?? []).map(r => r.file_id).filter((x): x is string => !!x)))
+        setHiddenMsgs(new Set((h.data ?? []).map(r => r.message_id).filter((x): x is string => !!x)))
+      }
+      if (!d.error) setDeletions(d.data ?? [])
     }
     void loadExtras()
-    let channel: ReturnType<typeof supabase.channel> | null = null
+    let gone: ReturnType<typeof supabase.channel> | null = null
+    let extras: ReturnType<typeof supabase.channel> | null = null
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return
       if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+      // Unchanged list when the id isn't there: a new array would scroll the
+      // chat (and the page) to the bottom on every delete (final review I6).
       const dropFile = (p: { old: Record<string, unknown> }) => {
         if (p.old?.job_id && p.old.job_id !== jobId) return
         const id = p.old?.id as string | undefined
-        if (id) setFiles(fs => fs.filter(x => x.id !== id))
+        if (id) setFiles(fs => fs.some(x => x.id === id) ? fs.filter(x => x.id !== id) : fs)
       }
       const dropMsg = (p: { old: Record<string, unknown> }) => {
         if (p.old?.job_id && p.old.job_id !== jobId) return
         const id = p.old?.id as string | undefined
-        if (id) setMessages(ms => ms.filter(x => x.id !== id))
+        if (id) setMessages(ms => ms.some(x => x.id === id) ? ms.filter(x => x.id !== id) : ms)
       }
-      channel = supabase.channel(`job-chat-gallery-${jobId}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_deletions', filter: `job_id=eq.${jobId}` }, () => void loadExtras())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'job_item_hides', filter: `user_id=eq.${userId}` }, () => void loadExtras())
+      // Two channels: the new tables (migration 0070) may not exist yet, and
+      // that must not stop deleted photos leaving the chat (final review I8).
+      gone = supabase.channel(`job-chat-gone-${jobId}`)
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` }, dropFile)
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` }, dropMsg)
         .subscribe()
+      extras = supabase.channel(`job-chat-gallery-${jobId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_deletions', filter: `job_id=eq.${jobId}` }, () => void loadExtras())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'job_item_hides', filter: `user_id=eq.${userId}` }, () => void loadExtras())
+        .subscribe()
     })
-    return () => { active = false; if (channel) void supabase.removeChannel(channel) }
+    // A hide or delete in the Gallery on this device shows here at once.
+    const onChanged = () => void loadExtras()
+    window.addEventListener('gallery:changed', onChanged)
+    return () => {
+      active = false
+      window.removeEventListener('gallery:changed', onChanged)
+      if (gone) void supabase.removeChannel(gone)
+      if (extras) void supabase.removeChannel(extras)
+    }
   }, [supabase, jobId, userId])
 
   // The Gallery's "Go to message": scroll to it and flash it.

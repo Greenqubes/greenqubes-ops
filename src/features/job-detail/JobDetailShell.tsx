@@ -1383,10 +1383,20 @@ export function JobDetailShell({
   // section data (files, tasks, team) applies silently — it never collides
   // with typing; a jobs-row change only applies silently when the form has
   // no unsaved edits, otherwise the amber banner offers an explicit reload.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleLiveEvent = (payload: LivePayload) => {
     if (Date.now() < suppressUntilRef.current) return
     const row = (payload.new ?? payload.old) as { kind?: string; bucket_id?: string | null } | null
     if (payload.table === 'files') {
+      // A DELETE event carries only the id (no kind, no bucket): it could be
+      // any of them — e.g. deleted from the Gallery — so refresh the folders
+      // and, once, the page (a bulk delete of 40 is one refresh, not 40).
+      if (!row?.kind) {
+        setBucketsRefreshKey(k => k + 1)
+        if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = setTimeout(() => router.refresh(), 800)
+        return
+      }
       if (row?.kind === 'attachment' && !row?.bucket_id) return   // chat's domain (ChatSection handles)
       if (row?.bucket_id) { setBucketsRefreshKey(k => k + 1); return }
       router.refresh()                                            // production / DO / completion photos (prop-driven)

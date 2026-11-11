@@ -4,7 +4,7 @@
  * Exits 1 on any failure.
  */
 import {
-  mediaKindOf, buildGallery, chipsFor, dayLabel, groupByDay, chatAlbums, clampIndex, visibleKeysToSign,
+  mediaKindOf, buildGallery, chipsFor, dayLabel, groupByDay, chatAlbums, clampIndex, visibleKeysToSign, followIndex,
   type GalleryFile, type GalleryVoice,
 } from './gallery'
 
@@ -70,6 +70,12 @@ check('clamp past end', clampIndex(5, 5), 4)
 check('clamp empty', clampIndex(2, 0), 0)
 check('clamp negative', clampIndex(-1, 3), 0)
 check('sign only what is new', visibleKeysToSign(['a', 'b', 'c'], new Set(['b'])), ['a', 'c'])
+
+// ── The viewer follows its photo when the list changes (final review I4) ────
+check('same photo, list grew in front', followIndex('b', 1, ['new', 'a', 'b', 'c']), 2)
+check('its photo deleted → next one',   followIndex('b', 1, ['a', 'c']), 1)
+check('last photo deleted → new last',  followIndex('c', 2, ['a', 'b']), 1)
+check('everything gone',               followIndex('a', 0, []), 0)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll gallery checks passed')

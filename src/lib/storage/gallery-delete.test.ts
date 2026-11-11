@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/storage/gallery-delete.test.ts
  * Exits 1 on any failure.
  */
-import { canDeleteForEveryone, pageFileGates, type DeleteForEveryoneInput } from './gallery-delete'
+import { canDeleteForEveryone, pageFileGates, everyoneBatch, voiceKeyBelongsToJob, type DeleteForEveryoneInput } from './gallery-delete'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -61,6 +61,22 @@ check('brief editable on scheduled job',        pageFileGates({ role: 'sales', i
 check('brief locked on a draft',                pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('pending') }).designBriefEditable, false)
 check('brief locked when completed',            pageFileGates({ role: 'sales', isAdmin: false, viewerId: 's1', job: job('completed') }).designBriefEditable, false)
 check('brief locked for hr',                    pageFileGates({ role: 'hr', isAdmin: false, viewerId: 'h', job: job('scheduled') }).designBriefEditable, false)
+
+// ── A batch never deletes the last completion photo (final review C1) ───────
+const c = (key: string, kind = 'completion', allowed = true) => ({ key, fileKind: kind, allowed })
+check('completed job: 3 of 3 completion ticked → 2 go', [...everyoneBatch([c('a'), c('b'), c('c')], 3, true)], ['a', 'b'])
+check('completed job: 1 of 1 → none',                [...everyoneBatch([c('a')], 1, true)], [])
+check('completed job: 2 of 4 → both go',              [...everyoneBatch([c('a'), c('b')], 4, true)], ['a', 'b'])
+check('open job: all 3 go',                          [...everyoneBatch([c('a'), c('b'), c('c')], 3, false)], ['a', 'b', 'c'])
+check('other kinds untouched, not-allowed left out',  [...everyoneBatch([c('x', 'attachment'), c('a'), c('n', 'attachment', false)], 1, true)], ['x'])
+
+// ── Voice keys must live in THIS job's voice folder (final review I9) ────────
+check('own job folder',          voiceKeyBelongsToJob('jobs/2026-11-11_owl_ab12cd34/voice/x.webm', '2026-11-11_owl_ab12cd34', 'j1'), true)
+check('old job (id folder)',      voiceKeyBelongsToJob('jobs/j1/voice/x.webm', null, 'j1'), true)
+check('another job',             voiceKeyBelongsToJob('jobs/other/voice/x.webm', '2026-11-11_owl_ab12cd34', 'j1'), false)
+check('not the voice folder',    voiceKeyBelongsToJob('jobs/j1/completion/x.jpg', null, 'j1'), false)
+check('no climbing out',         voiceKeyBelongsToJob('jobs/j1/voice/../completion/x.jpg', null, 'j1'), false)
+check('bug screenshot',          voiceKeyBelongsToJob('bugs/x.png', null, 'j1'), false)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll gallery-delete checks passed')

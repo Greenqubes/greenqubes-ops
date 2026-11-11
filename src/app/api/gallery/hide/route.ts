@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { callerCanSeeJob } from '@/lib/supabase/queries/job-visibility'
 
 /**
  * POST /api/gallery/hide — WhatsApp's "Delete for me" (the job Gallery, Nic
@@ -8,7 +9,9 @@ import { createClient } from '@/lib/supabase/server'
  * (migration 0070) allows only their own rows — the user id comes from their
  * profile, never from the request. Hiding something twice is not an error.
  *
- * Body: { items: Array<{ fileId: string } | { messageId: string }> }, ≤ 200.
+ * Body: { jobId: string, items: Array<{ fileId: string } | { messageId: string }> }, ≤ 200.
+ * Hides are per job (final review I7): only items that really belong to that
+ * job — read on the caller's own session — are hidden.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -18,9 +21,11 @@ export async function POST(req: NextRequest) {
     .eq('auth_id', user.id).maybeSingle() as { data: { id: string } | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json().catch(() => null) as { items?: unknown } | null
+  const body = await req.json().catch(() => null) as { jobId?: unknown; items?: unknown } | null
+  const jobId = typeof body?.jobId === 'string' ? body.jobId : null
   const items = Array.isArray(body?.items) ? body!.items : null
-  if (!items || items.length === 0 || items.length > 200) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
+  if (!jobId || !items || items.length === 0 || items.length > 200) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
+  if (!(await callerCanSeeJob(supabase, jobId))) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const fileIds: string[] = [], messageIds: string[] = []
   for (const it of items) {
@@ -30,9 +35,18 @@ export async function POST(req: NextRequest) {
     else return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   }
 
+  // Keep only items of THIS job that the caller can read.
+  const [{ data: okFiles }, { data: okMsgs }] = await Promise.all([
+    fileIds.length
+      ? supabase.from('files').select('id').eq('job_id', jobId).in('id', [...new Set(fileIds)]) as unknown as Promise<{ data: Array<{ id: string }> | null }>
+      : Promise.resolve({ data: [] as Array<{ id: string }> }),
+    messageIds.length
+      ? supabase.from('messages').select('id').eq('job_id', jobId).in('id', [...new Set(messageIds)]) as unknown as Promise<{ data: Array<{ id: string }> | null }>
+      : Promise.resolve({ data: [] as Array<{ id: string }> }),
+  ])
   const rows = [
-    ...[...new Set(fileIds)].map(file_id => ({ user_id: profile.id, file_id })),
-    ...[...new Set(messageIds)].map(message_id => ({ user_id: profile.id, message_id })),
+    ...(okFiles ?? []).map(r => ({ user_id: profile.id, job_id: jobId, file_id: r.id })),
+    ...(okMsgs ?? []).map(r => ({ user_id: profile.id, job_id: jobId, message_id: r.id })),
   ]
   // Two inserts, one per unique constraint, so ignoreDuplicates knows which to use.
   for (const [conflict, batch] of [

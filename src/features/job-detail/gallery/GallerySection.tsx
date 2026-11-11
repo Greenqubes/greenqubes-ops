@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast'
 import {
   buildGallery, chipsFor, groupByDay, type GalleryChip, type GalleryFile, type GalleryItem, type GallerySource, type GalleryVoice,
 } from '@/lib/utils/gallery'
-import { canDeleteForEveryone, pageFileGates } from '@/lib/storage/gallery-delete'
+import { canDeleteForEveryone, pageFileGates, everyoneBatch } from '@/lib/storage/gallery-delete'
 import type { StageJob4Rules } from '@/lib/utils/job-stage-rules'
 import type { Role } from '@/lib/supabase/types'
 import { useSignedUrls, useOnVisible, downloadFile } from './useSignedUrls'
@@ -78,6 +78,9 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [viewerKey, setViewerKey] = useState<string | null>(null)
+  // Opened from the chat → swipe through everything; from a filtered grid →
+  // through that filter. Fixed at opening, so a delete can't swap the list.
+  const [viewerAll, setViewerAll] = useState(true)
   const [pdf, setPdf] = useState<GalleryItem | null>(null)
   const [deleting, setDeleting] = useState<GalleryItem[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -88,19 +91,23 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
     type MsgRow = { id: string; author_id: string | null; voice_url: string | null; ts: string; users: { name: string } | null }
     const [f, m, h] = await Promise.all([
       supabase.from('files').select('id, job_id, kind, bucket_id, r2_key, name, url_text, uploader_id, ts, users!files_uploader_id_fkey ( name )')
-        .eq('job_id', jobId) as unknown as Promise<{ data: FileRow[] | null }>,
+        .eq('job_id', jobId) as unknown as Promise<{ data: FileRow[] | null; error: unknown }>,
       supabase.from('messages').select('id, author_id, voice_url, ts, users!messages_author_id_fkey ( name )')
-        .eq('job_id', jobId).eq('kind', 'voice') as unknown as Promise<{ data: MsgRow[] | null }>,
+        .eq('job_id', jobId).eq('kind', 'voice') as unknown as Promise<{ data: MsgRow[] | null; error: unknown }>,
       // Missing table (before migration 0070 is applied) reads as "nothing hidden".
-      supabase.from('job_item_hides' as never).select('file_id, message_id') as unknown as
-        Promise<{ data: Array<{ file_id: string | null; message_id: string | null }> | null }>,
+      supabase.from('job_item_hides' as never).select('file_id, message_id').eq('job_id', jobId) as unknown as
+        Promise<{ data: Array<{ file_id: string | null; message_id: string | null }> | null; error: unknown }>,
     ])
-    setFiles((f.data ?? []).map(({ users, ...r }) => ({ ...r, uploaderName: users?.name ?? null })))
-    setVoices((m.data ?? []).filter(r => r.voice_url).map(r => ({
+    // A failed read (flaky mobile data) keeps what's on screen rather than
+    // showing an empty gallery and closing an open viewer (final review).
+    if (!f.error) setFiles((f.data ?? []).map(({ users, ...r }) => ({ ...r, uploaderName: users?.name ?? null })))
+    if (!m.error) setVoices((m.data ?? []).filter(r => r.voice_url).map(r => ({
       id: r.id, author_id: r.author_id, authorName: r.users?.name ?? null, voice_url: r.voice_url!, ts: r.ts,
     })))
-    setHiddenFiles(new Set((h.data ?? []).map(r => r.file_id).filter((x): x is string => !!x)))
-    setHiddenMessages(new Set((h.data ?? []).map(r => r.message_id).filter((x): x is string => !!x)))
+    if (!h.error) {
+      setHiddenFiles(new Set((h.data ?? []).map(r => r.file_id).filter((x): x is string => !!x)))
+      setHiddenMessages(new Set((h.data ?? []).map(r => r.message_id).filter((x): x is string => !!x)))
+    }
     setLoaded(true)
   }, [supabase, jobId])
 
@@ -114,6 +121,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
       reloadTimer.current = setTimeout(() => void load(), 400)
     }
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let hidesChannel: ReturnType<typeof supabase.channel> | null = null
     let active = true
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return
@@ -121,13 +129,22 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
       channel = supabase.channel(`job-gallery-${jobId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` }, soon)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` }, soon)
+        .subscribe()
+      // Its own channel: a table the database doesn't have yet (before 0070)
+      // must not stop the files/messages updates (final review I8).
+      hidesChannel = supabase.channel(`job-gallery-hides-${jobId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'job_item_hides', filter: `user_id=eq.${userId}` }, soon)
         .subscribe()
     })
+    // Same-device changes (a hide or delete here or in the chat) don't wait
+    // for the live event.
+    window.addEventListener('gallery:changed', soon)
     return () => {
       active = false
       if (reloadTimer.current) clearTimeout(reloadTimer.current)
+      window.removeEventListener('gallery:changed', soon)
       if (channel) void supabase.removeChannel(channel)
+      if (hidesChannel) void supabase.removeChannel(hidesChannel)
     }
   }, [supabase, jobId, userId, load])
 
@@ -145,7 +162,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
   useEffect(() => {
     function onOpen(e: Event) {
       const key = (e as CustomEvent<{ key: string }>).detail?.key
-      if (key && gallery.media.some(i => i.key === key)) setViewerKey(key)
+      if (key && gallery.media.some(i => i.key === key)) { setViewerAll(true); setViewerKey(key) }
     }
     window.addEventListener('gallery:open', onOpen)
     return () => window.removeEventListener('gallery:open', onOpen)
@@ -164,25 +181,41 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
   async function hideForMe(items: GalleryItem[]) {
     const res = await fetch('/api/gallery/hide', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items.map(i => i.fileId ? { fileId: i.fileId } : { messageId: i.messageId }) }),
+      body: JSON.stringify({ jobId, items: items.map(i => i.fileId ? { fileId: i.fileId } : { messageId: i.messageId }) }),
     }).catch(() => null)
     if (!res?.ok) showError(t(lang, 'galleryDeleteFailed').replace('{n}', String(items.length)))
+    else window.dispatchEvent(new Event('gallery:changed'))
   }
 
+  // One after another, never all at once: each delete is checked against the
+  // job as it is after the previous one (final review C1).
   async function deleteForEveryone(items: GalleryItem[]): Promise<number> {
-    const results = await Promise.all(items.map(it => fetch(
-      it.fileId ? `/api/files/${it.fileId}` : `/api/jobs/${jobId}/messages/${it.messageId}`, { method: 'DELETE' },
-    ).then(r => r.ok).catch(() => false)))
-    return results.filter(ok => !ok).length
+    let failed = 0
+    for (const it of items) {
+      const ok = await fetch(
+        it.fileId ? `/api/files/${it.fileId}` : `/api/jobs/${jobId}/messages/${it.messageId}`, { method: 'DELETE' },
+      ).then(r => r.ok).catch(() => false)
+      if (!ok) failed++
+    }
+    if (failed < items.length) window.dispatchEvent(new Event('gallery:changed'))
+    return failed
   }
+
+  // Which of a batch really go for everyone: each item's own rule, and on a
+  // completed job never the last completion photo (final review C1).
+  const everyoneKeys = (items: GalleryItem[]) => everyoneBatch(
+    items.map(i => ({ key: i.key, fileKind: i.fileKind, allowed: canEveryone(i) })),
+    completionCount, job.status === 'completed',
+  )
 
   async function confirmDelete(everyone: boolean) {
     if (!deleting) return
     setBusy(true)
     try {
       if (everyone) {
-        const allowed = deleting.filter(canEveryone)
-        const rest = deleting.filter(i => !canEveryone(i))
+        const ok = everyoneKeys(deleting)
+        const allowed = deleting.filter(i => ok.has(i.key))
+        const rest = deleting.filter(i => !ok.has(i.key))
         const failed = await deleteForEveryone(allowed)
         if (rest.length) await hideForMe(rest)
         if (failed) showError(t(lang, 'galleryDeleteFailed').replace('{n}', String(failed)))
@@ -274,7 +307,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
               {g.items.map(it => (
                 <MediaTile key={it.key} item={it} url={it.r2Key ? urls[it.r2Key] : undefined} onVisible={() => it.r2Key && sign([it.r2Key])}
                   selecting={selecting} selected={selected.has(it.key)}
-                  onTap={() => selecting ? toggle(it.key) : setViewerKey(it.key)} />
+                  onTap={() => { if (selecting) { toggle(it.key); return } setViewerAll(chip === 'all'); setViewerKey(it.key) }} />
               ))}
             </div>
           ) : (
@@ -292,14 +325,14 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
         </div>
       ))}
 
-      <MediaViewer items={media.length && viewerKey && media.some(i => i.key === viewerKey) ? media : gallery.media}
+      <MediaViewer items={viewerAll ? gallery.media : media}
         startKey={viewerKey} open={!!viewerKey} lang={lang}
         onClose={() => setViewerKey(null)}
         onDelete={it => setDeleting([it])}
         onGoToMessage={show.chat ? goToMessage : undefined} />
       <PdfViewer item={pdf} url={pdf?.r2Key ? urls[pdf.r2Key] ?? null : null} open={!!pdf} lang={lang} onClose={() => setPdf(null)} />
       <DeleteDialog open={!!deleting} busy={busy} lang={lang}
-        count={deleting?.length ?? 0} everyoneCount={deleting?.filter(canEveryone).length ?? 0}
+        count={deleting?.length ?? 0} everyoneCount={deleting ? everyoneKeys(deleting).size : 0}
         onMe={() => void confirmDelete(false)} onEveryone={() => void confirmDelete(true)} onClose={() => setDeleting(null)} />
     </div>
   )

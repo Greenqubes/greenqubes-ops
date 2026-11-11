@@ -185,3 +185,11 @@ export function clampIndex(index: number, length: number): number {
 export function visibleKeysToSign(visible: string[], signed: Set<string>): string[] {
   return visible.filter(k => !signed.has(k))
 }
+
+/** Where the viewer should be after its list changes: on the same photo if
+ *  it's still there (new uploads or deletes elsewhere shift positions), else
+ *  on whatever now sits where it was — the next one (final review I4). */
+export function followIndex(currentKey: string | null, currentIndex: number, keys: string[]): number {
+  const at = currentKey ? keys.indexOf(currentKey) : -1
+  return at >= 0 ? at : clampIndex(currentIndex, keys.length)
+}

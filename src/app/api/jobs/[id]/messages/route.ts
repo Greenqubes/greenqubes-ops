@@ -4,6 +4,8 @@ import { getJobById, insertMessage, insertVoiceMessage } from '@/lib/supabase/qu
 import { getJobRecipients, getJobNotifData, getJobChatState, countUnseenMessages, upsertJobChatNotified } from '@/lib/supabase/queries/notifications'
 import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplJobChatBatch } from '@/lib/telegram/templates'
+import { createServiceClient } from '@/lib/supabase/service'
+import { voiceKeyBelongsToJob } from '@/lib/storage/gallery-delete'
 
 const CHAT_OPEN_DAYS = 7
 const THROTTLE_MS    = 1 * 60 * 1000
@@ -93,6 +95,14 @@ export async function POST(
   if (isVoice) {
     const voiceUrl = body.voice_url?.trim()
     if (!voiceUrl) return NextResponse.json({ error: 'voice_url required' }, { status: 400 })
+    // The key comes from the browser: it must be a recording in THIS job's
+    // voice folder, or the message could point at any stored file and later
+    // sign or delete it (gallery final review I9).
+    const { data: folderRow } = await createServiceClient().from('jobs').select('r2_folder').eq('id', jobId)
+      .maybeSingle() as { data: { r2_folder: string | null } | null; error: unknown }
+    if (!voiceKeyBelongsToJob(voiceUrl, folderRow?.r2_folder ?? null, jobId)) {
+      return NextResponse.json({ error: 'bad_voice_url' }, { status: 400 })
+    }
     const message = await insertVoiceMessage(jobId, authorId, voiceUrl)
     await notifyParticipantsThrottled()
     return NextResponse.json({ message })

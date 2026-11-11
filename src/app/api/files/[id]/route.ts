@@ -143,6 +143,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     const job = await loadDeleteContext(service, file.job_id)
+    // The caller can see the job (checked just above), so a failed read is a
+    // hiccup — refuse rather than skip the rules (e.g. the last completion photo).
+    if (!job) return NextResponse.json({ error: 'Could not check this file — try again' }, { status: 503 })
 
     // Only matters for the last completion photo on a completed job.
     let otherCompletionFiles = 0

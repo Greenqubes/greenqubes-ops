@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Download, ExternalLink } from 'lucide-react'
 import { t, type LangCode } from '@/lib/i18n'
 import { downloadFile } from './useSignedUrls'
@@ -58,8 +59,9 @@ export function PdfViewer({ item, url, open, lang, onClose }: {
     return () => { cancelled = true }
   }, [open, url])
 
-  if (!open || !item) return null
-  return (
+  if (!open || !item || typeof document === 'undefined') return null
+  // On the page body, like the delete dialog (final review I1).
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex flex-col bg-black/90">
       <div className="flex items-center gap-2 px-3 py-2 text-white">
         <p className="flex-1 min-w-0 truncate text-sm font-medium">{item.name}</p>
@@ -85,6 +87,7 @@ export function PdfViewer({ item, url, open, lang, onClose }: {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

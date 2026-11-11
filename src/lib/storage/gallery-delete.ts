@@ -77,3 +77,36 @@ export function canDeleteForEveryone(i: DeleteForEveryoneInput): boolean {
       }).allowed
   }
 }
+
+/** Which of a ticked batch may really be deleted for everyone. Each item's
+ *  own rule (`allowed`) looks at the job as it is NOW, so on a completed job
+ *  ticking every completion photo would pass item by item and leave none
+ *  (final review C1): at most completionCount − 1 completion photos go; the
+ *  rest are only hidden for the person. Keeps the given order. */
+export function everyoneBatch(
+  items: Array<{ key: string; fileKind: string | null; allowed: boolean }>,
+  completionCount: number,
+  jobCompleted: boolean,
+): Set<string> {
+  const out = new Set<string>()
+  let completionLeft = jobCompleted ? Math.max(0, completionCount - 1) : Infinity
+  for (const it of items) {
+    if (!it.allowed) continue
+    if (it.fileKind === 'completion') {
+      if (completionLeft <= 0) continue
+      completionLeft--
+    }
+    out.add(it.key)
+  }
+  return out
+}
+
+/** A voice note's stored key must sit in THIS job's voice folder
+ *  (jobs/<r2_folder or job id>/voice/…), with no "..". voice_url is free text
+ *  sent by the browser, so without this a message could name any stored file
+ *  — and signing or deleting it would act on that file (final review I9). */
+export function voiceKeyBelongsToJob(key: string, r2Folder: string | null, jobId: string): boolean {
+  if (key.includes('..') || key.includes('\\')) return false
+  return [r2Folder, jobId].filter((x): x is string => !!x)
+    .some(folder => key.startsWith(`jobs/${folder}/voice/`) && key.length > `jobs/${folder}/voice/`.length)
+}

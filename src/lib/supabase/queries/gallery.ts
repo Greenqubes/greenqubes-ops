@@ -16,22 +16,25 @@ export type DeleteJobContext = {
   created_by: string | null
   sales_poc_id: string | null
   coordinatorIds: string[]
+  /** The job's storage folder (jobs/<r2_folder>/…); null on jobs from before 0042. */
+  r2_folder: string | null
 }
 
 /** What the delete rule needs to know about the job. null = no such job. */
 export async function loadDeleteContext(svc: Svc, jobId: string): Promise<DeleteJobContext | null> {
   const { data } = await svc.from('jobs')
-    .select('status, completed_at, created_by, sales_poc_id, job_coordinators(user_id)')
+    .select('status, completed_at, created_by, sales_poc_id, r2_folder, job_coordinators(user_id)')
     .eq('id', jobId)
     .maybeSingle() as {
       data: { status: string; completed_at: string | null; created_by: string | null; sales_poc_id: string | null
-        job_coordinators: Array<{ user_id: string }> } | null
+        r2_folder: string | null; job_coordinators: Array<{ user_id: string }> } | null
       error: unknown
     }
   if (!data) return null
   return {
     status: data.status, completed_at: data.completed_at, created_by: data.created_by,
     sales_poc_id: data.sales_poc_id, coordinatorIds: (data.job_coordinators ?? []).map(c => c.user_id),
+    r2_folder: data.r2_folder,
   }
 }
 

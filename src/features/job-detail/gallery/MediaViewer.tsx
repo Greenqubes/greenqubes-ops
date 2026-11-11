@@ -7,7 +7,7 @@ import Video from 'yet-another-react-lightbox/plugins/video'
 import 'yet-another-react-lightbox/styles.css'
 import { Download, MessageSquare, Trash2, Mic, Loader2 } from 'lucide-react'
 import { t, type LangCode } from '@/lib/i18n'
-import { clampIndex, type GalleryItem, type GallerySource } from '@/lib/utils/gallery'
+import { followIndex, type GalleryItem, type GallerySource } from '@/lib/utils/gallery'
 import { useSignedUrls, downloadFile } from './useSignedUrls'
 
 // Two slide kinds of our own: a voice note, and a photo whose link is still
@@ -51,13 +51,27 @@ export function MediaViewer({ items, startKey, open, lang, onClose, onDelete, on
   onGoToMessage?: (item: GalleryItem) => void
 }) {
   const { urls, sign } = useSignedUrls()
-  const startIndex = Math.max(0, items.findIndex(i => i.key === startKey))
-  const [index, setIndex] = useState(startIndex)
-  useEffect(() => { if (open) setIndex(startIndex) }, [open, startIndex])
+  // The viewer follows the photo it is ON, by key (final review I4): set once
+  // when it opens; a new upload or a delete elsewhere shifts positions but
+  // not what's on screen; if that photo itself goes, the next one shows.
+  const [curKey, setCurKey] = useState<string | null>(startKey)
+  const [lastIndex, setLastIndex] = useState(0)
+  useEffect(() => {
+    if (!open) return
+    setCurKey(startKey)
+    setLastIndex(Math.max(0, items.findIndex(i => i.key === startKey)))
+  }, [open, startKey])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Items can vanish while open (deleted elsewhere): stay on a real one.
-  const safe = clampIndex(index, items.length)
+  const safe = followIndex(curKey, lastIndex, items.map(i => i.key))
   const current = items[safe] ?? null
+  // Remember where it is, so a vanished photo hands over to its neighbour.
+  useEffect(() => {
+    if (!open || !current) return
+    if (current.key !== curKey) setCurKey(current.key)
+    if (safe !== lastIndex) setLastIndex(safe)
+  }, [open, current, curKey, safe, lastIndex])
+  // Everything gone (all deleted while open): close, never reopen by itself.
+  useEffect(() => { if (open && items.length === 0) onClose() }, [open, items.length, onClose])
 
   useEffect(() => {
     if (!open) return
@@ -86,7 +100,7 @@ export function MediaViewer({ items, startKey, open, lang, onClose, onDelete, on
       index={safe}
       slides={slides}
       plugins={[Zoom, Video]}
-      on={{ view: ({ index: i }) => setIndex(i) }}
+      on={{ view: ({ index: i }) => { setLastIndex(i); setCurKey(items[i]?.key ?? null) } }}
       carousel={{ finite: true, preload: 2 }}
       controller={{ closeOnBackdropClick: false }}
       // Above BottomNav and every job-page overlay (z-[81] at most), below the

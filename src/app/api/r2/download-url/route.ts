@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getDownloadUrl } from '@/lib/storage/r2'
+import { voiceKeyBelongsToJob } from '@/lib/storage/gallery-delete'
 
 // Signs a short-lived download URL for an R2 object, but ONLY after checking the
 // caller is allowed to see it (audit 2026-08-13, finding #3). Previously any
@@ -73,11 +74,15 @@ export async function POST(req: NextRequest) {
   //    caller's OWN session: if RLS lets them read that message, they may play it.
   const { data: voiceMsg } = await supabase
     .from('messages')
-    .select('id')
+    .select('id, job_id')
     .eq('voice_url', key)
     .limit(1)
-    .maybeSingle() as { data: { id: string } | null; error: unknown }
-  if (voiceMsg) {
+    .maybeSingle() as { data: { id: string; job_id: string } | null; error: unknown }
+  const { data: voiceJob } = voiceMsg
+    ? await service.from('jobs').select('r2_folder').eq('id', voiceMsg.job_id).maybeSingle() as
+        { data: { r2_folder: string | null } | null; error: unknown }
+    : { data: null }
+  if (voiceMsg && voiceKeyBelongsToJob(key, voiceJob?.r2_folder ?? null, voiceMsg.job_id)) {
     const url = await getDownloadUrl(key, filename)
     return NextResponse.json({ url })
   }
