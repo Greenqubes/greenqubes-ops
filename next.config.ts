@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.r2.dev' },
     ],
   },
+  // The old-jobsheet script is served to admins by /api/admin/jobsheet-script
+  // (Copy script); the file must ship with that route on Vercel.
+  outputFileTracingIncludes: {
+    '/api/admin/jobsheet-script': ['./scripts/google-sheet/jobsheet-sync.gs'],
+  },
 }
 
 export default nextConfig
