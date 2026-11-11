@@ -3,7 +3,7 @@
  * Run: npx tsx src/lib/utils/bulk-move.test.ts
  * Exits 1 on any failure.
  */
-import { bulkFailReason, splitBulk, bulkActionsFor, batchBellText, parseBulkBody, BULK_MAX, BULK_REASON_KEY } from './bulk-move'
+import { bulkFailReason, splitBulk, bulkActionsFor, batchBellText, parseBulkBody, keepOnList, BULK_MAX, BULK_REASON_KEY } from './bulk-move'
 import { en } from '../i18n/en'
 
 let failures = 0
@@ -55,6 +55,18 @@ check('body empty → null',         parseBulkBody({ jobs: [] }), null)
 check('body non-string id → null', parseBulkBody({ jobs: [{ id: 5 }] }), null)
 check('body not object → null',    parseBulkBody('nope'), null)
 check('body over max → null', parseBulkBody({ jobs: Array.from({ length: BULK_MAX + 1 }, (_, i) => ({ id: `j${i}` })) }), null)
+
+// ── Ticks only ever count jobs still on the list (review #1, 2026-11-11) ───
+{
+  const sel = new Set(['a', 'gone', 'b'])
+  const why = new Map([['gone', 'changed'], ['b', 'no_connection']] as const)
+  const kept = keepOnList(sel, new Map(why), ['a', 'b', 'c'])
+  check('drops a ticked job that left the list', [...kept.selected], ['a', 'b'])
+  check('drops its reason too', [...kept.reasons.keys()], ['b'])
+  check('reports a change', kept.changed, true)
+  const same = keepOnList(new Set(['a']), new Map(), ['a', 'z'])
+  check('nothing left the list → unchanged', same.changed, false)
+}
 
 // ── Every reason has an English line ────────────────────────────────────────
 for (const [reason, key] of Object.entries(BULK_REASON_KEY)) {

@@ -14,7 +14,7 @@ import { resolveStageView, jobListHref, defaultStageView, type StageView } from 
 import { ArrangeList } from './ArrangeList'
 import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
 import { arrangeSeen } from '@/lib/utils/arrange-rules'
-import { bulkActionsFor, bulkFailReason, splitBulk, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
+import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
@@ -109,6 +109,13 @@ export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs,
   // a search-param change keeps this component's state, and ticks carried
   // over were invisible yet still counted by Delete (review #1, 2026-10-19).
   useEffect(() => { setSelected(new Set()); setReasons(new Map()) }, [view])
+  // …and after any refresh, a ticked job that has left this list (moved by
+  // someone else, or moved by a bulk move whose answer never arrived) is
+  // dropped — never counted out of sight by Delete (final review #1).
+  useEffect(() => {
+    const kept = keepOnList(selected, reasons, jobs.map(j => j.id))
+    if (kept.changed) { setSelected(kept.selected); setReasons(kept.reasons) }
+  }, [jobs])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const switchTo = (next: StageView) => {
     if (next === view) return

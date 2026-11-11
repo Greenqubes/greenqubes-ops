@@ -70,6 +70,20 @@ export function batchBellText(titles: string[], salesName: string): { title: str
   }
 }
 
+/** Ticks and reasons only ever count jobs still on the list. After a bulk
+ *  move's refresh, a job someone else moved meanwhile has left the list; kept
+ *  ticked, it would stay counted out of sight and the bar's Delete would bin
+ *  a job the person can no longer see (final review #1, 2026-11-11 — the same
+ *  hole the 2026-10-19 review closed for list switches). */
+export function keepOnList<R>(
+  selected: Set<string>, reasons: Map<string, R>, onList: Iterable<string>,
+): { selected: Set<string>; reasons: Map<string, R>; changed: boolean } {
+  const here = new Set(onList)
+  const keptSel = new Set([...selected].filter(id => here.has(id)))
+  const keptWhy = new Map([...reasons].filter(([id]) => here.has(id)))
+  return { selected: keptSel, reasons: keptWhy, changed: keptSel.size !== selected.size || keptWhy.size !== reasons.size }
+}
+
 /** The bulk route's body: { jobs: [{ id, seen }] }. null when unusable.
  *  Duplicate ids collapse (first wins). A missing `seen` is kept as
  *  undefined — the per-job check then refuses it as a stale screen. */
