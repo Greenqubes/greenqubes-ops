@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getEffectiveRole } from '@/lib/utils/role-override'
-import { stageOf } from '@/lib/utils/job-stage'
-import {
-  canArrange, nextArrangeState, parseArrangeAction, parseArrangeState, parseArrangement, seenMatches,
-} from '@/lib/utils/arrange-rules'
-import { runArrangeAction, ARRANGE_JOB_SELECT, type ArrangeJobRow } from '@/lib/arrange/actions'
+import { parseArrangeAction } from '@/lib/utils/arrange-rules'
+import { runArrangeAction } from '@/lib/arrange/actions'
+import { loadArrangeRequest } from '@/lib/arrange/check-request'
 import type { Role } from '@/lib/supabase/types'
 
 /**
@@ -17,8 +14,10 @@ import type { Role } from '@/lib/supabase/types'
  * their own session, so 0062 pending privacy still decides) → it is Ongoing →
  * they are on the right side for this action (the REAL admin role counts,
  * since getEffectiveRole answers 'scheduler' for a plain admin) → the move is
- * valid from the state just read. The writes then happen on the service key
- * in src/lib/arrange/actions.ts, each conditional on that same state.
+ * valid from the state just read. Those checks live in loadArrangeRequest
+ * (src/lib/arrange/check-request.ts), shared with the bulk pull back. The
+ * writes then happen on the service key in src/lib/arrange/actions.ts, each
+ * conditional on that same state.
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: jobId } = await params
@@ -30,36 +29,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: profile } = await supabase.from('users').select('id, name, role')
     .eq('auth_id', user.id).maybeSingle() as { data: ProfileRow | null; error: unknown }
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const role = await getEffectiveRole(profile.role)
 
   const raw = await req.json().catch(() => null)
   const body = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
   const action = parseArrangeAction(body.action)
   if (!action) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
 
-  const { data: job } = await supabase.from('jobs').select(ARRANGE_JOB_SELECT)
-    .eq('id', jobId).maybeSingle() as { data: ArrangeJobRow | null; error: unknown }
-  if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (stageOf(job.status) !== 'ongoing') return NextResponse.json({ error: 'not_ongoing' }, { status: 409 })
+  const check = await loadArrangeRequest(supabase, profile, jobId, action, body)
+  if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status })
 
-  const viewer = { id: profile.id, role, isAdmin: profile.role === 'admin' }
-  const rulesJob = {
-    status: job.status, created_by: job.created_by, sales_poc_id: job.sales_poc_id,
-    coordinatorIds: job.job_coordinators.map(c => c.user_id),
-  }
-  if (!canArrange(viewer, rulesJob, action)) return NextResponse.json({ error: 'not_permitted' }, { status: 403 })
-
-  const state = parseArrangeState(job.arrange_state)
-  const arrangement = parseArrangement(job.arrangement)
-  if (nextArrangeState(state, action) === 'invalid') return NextResponse.json({ error: 'invalid_move' }, { status: 409 })
-  // The screen says what it saw. A withdraw + re-offer leaves the state
-  // 'offered' again, so without this a stale screen could answer an offer
-  // it never showed (review fix, 2026-11-04).
-  if (!seenMatches(state, arrangement, body.seen)) return NextResponse.json({ error: 'state_changed' }, { status: 409 })
-
-  const result = await runArrangeAction(
-    { job, state, arrangement, viewer: { id: profile.id, name: profile.name } },
-    action, body,
-  )
+  const result = await runArrangeAction(check.ctx, action, body)
   return NextResponse.json(result.body, { status: result.status })
 }
