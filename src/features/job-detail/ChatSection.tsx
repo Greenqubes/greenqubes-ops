@@ -12,6 +12,7 @@ import {
   FileSpreadsheet, FileArchive,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { chatAlbums } from '@/lib/utils/gallery'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
@@ -134,8 +135,10 @@ function toItems(messages: JobMessage[], files: JobFile[]): ChatItem[] {
   return items.sort((a, b) => a.ts.localeCompare(b.ts))
 }
 
-function FileAttachment({ r2Key, filename, lang, isMine = false }: {
+function FileAttachment({ r2Key, filename, lang, isMine = false, onOpen }: {
   r2Key: string; filename: string; lang: LangCode; isMine?: boolean
+  /** Opens the photo full screen in the job Gallery's viewer (Nic, 2026-11-11). */
+  onOpen?: () => void
 }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [dlLoading, setDlLoading] = useState(false)
@@ -178,11 +181,12 @@ function FileAttachment({ r2Key, filename, lang, isMine = false }: {
   if (kind === 'image') {
     return (
       <div className={cn('overflow-hidden border border-line bg-paper w-[220px]', radius)}>
-        <div className="h-[160px] bg-line flex items-center justify-center">
+        <button type="button" onClick={onOpen} disabled={!onOpen}
+          className="h-[160px] w-full bg-line flex items-center justify-center disabled:cursor-default">
           {signedUrl
             ? <img src={signedUrl} alt={filename} className="w-full h-full object-cover" />
             : <ImageIcon size={24} className="text-muted" />}
-        </div>
+        </button>
         <div className={cn('flex items-center gap-2 px-3 py-2', isMine ? 'bg-terracotta' : 'bg-paper')}>
           <ImageIcon size={13} className={cn('shrink-0', isMine ? 'text-white/70' : 'text-muted')} />
           <span className={cn('flex-1 text-xs truncate min-w-0', isMine ? 'text-white' : 'text-ink2')}>
@@ -234,6 +238,49 @@ function FileAttachment({ r2Key, filename, lang, isMine = false }: {
     </button>
   )
 }
+
+// Chat albums (Nic, 2026-11-11): 4+ photos sent together stack into one
+// 2×2 block, the 4th tile showing "+N" when there are more — like WhatsApp.
+function ChatAlbum({ photos, isMine, onOpen }: {
+  photos: Array<{ id: string; r2Key: string }>; isMine: boolean; onOpen: (id: string) => void
+}) {
+  const shown = photos.slice(0, 4), more = photos.length - 4
+  return (
+    <div className={cn('grid grid-cols-2 gap-0.5 w-[220px] overflow-hidden border border-line bg-paper',
+      isMine ? 'rounded-[14px_14px_3px_14px]' : 'rounded-[14px_14px_14px_3px]')}>
+      {shown.map((p, i) => (
+        <AlbumTile key={p.id} r2Key={p.r2Key} more={i === 3 && more > 0 ? more : 0} onOpen={() => onOpen(p.id)} />
+      ))}
+    </div>
+  )
+}
+
+function AlbumTile({ r2Key, more, onOpen }: { r2Key: string; more: number; onOpen: () => void }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    fetch('/api/r2/download-url', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: r2Key }),
+    })
+      .then(r => r.json())
+      .then((d: { url?: string }) => setUrl(d.url ?? null))
+      .catch(() => { /* tile stays as placeholder */ })
+  }, [r2Key])
+  return (
+    <button type="button" onClick={onOpen} className="relative aspect-square bg-line flex items-center justify-center">
+      {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={18} className="text-muted" />}
+      {more > 0 && (
+        <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-lg font-semibold text-white">+{more}</span>
+      )}
+    </button>
+  )
+}
+
+/** A chat photo, file or voice note deleted for everyone leaves this line
+ *  where it was (migration 0070 chat_deletions). */
+type ChatDeletion = { id: string; item_kind: 'photo' | 'video' | 'file' | 'voice'; item_ts: string; deleted_by_name: string }
+const DELETED_KEY = {
+  photo: 'chatDeletedPhoto', video: 'chatDeletedVideo', file: 'chatDeletedFile', voice: 'chatDeletedVoice',
+} as const
 
 function VoicePlayer({ voiceKey, isMine = false }: {
   voiceKey: string; isMine?: boolean
@@ -389,6 +436,87 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
 
   const [messages,       setMessages]       = useState<JobMessage[]>(initialMessages)
   const [files,          setFiles]          = useState<JobFile[]>(chatFiles)
+  // The job Gallery (Nic, 2026-11-11): what this person hid for themselves
+  // (Delete for me) and the grey lines left by Delete for everyone.
+  const [hiddenFiles,    setHiddenFiles]    = useState<Set<string>>(new Set())
+  const [hiddenMsgs,     setHiddenMsgs]     = useState<Set<string>>(new Set())
+  const [deletions,      setDeletions]      = useState<ChatDeletion[]>([])
+  const albumOfRef = useRef<Map<string, string>>(new Map())
+
+  useEffect(() => {
+    let active = true
+    const loadExtras = async () => {
+      // Before migration 0070 is applied these tables don't exist: both read as empty.
+      const [h, d] = await Promise.all([
+        supabase.from('job_item_hides' as never).select('file_id, message_id').eq('job_id', jobId) as unknown as
+          Promise<{ data: Array<{ file_id: string | null; message_id: string | null }> | null; error: unknown }>,
+        supabase.from('chat_deletions' as never).select('id, item_kind, item_ts, deleted_by_name').eq('job_id', jobId) as unknown as
+          Promise<{ data: ChatDeletion[] | null; error: unknown }>,
+      ])
+      if (!active) return
+      // A failed read keeps what's shown (hidden items must not reappear).
+      if (!h.error) {
+        setHiddenFiles(new Set((h.data ?? []).map(r => r.file_id).filter((x): x is string => !!x)))
+        setHiddenMsgs(new Set((h.data ?? []).map(r => r.message_id).filter((x): x is string => !!x)))
+      }
+      if (!d.error) setDeletions(d.data ?? [])
+    }
+    void loadExtras()
+    let gone: ReturnType<typeof supabase.channel> | null = null
+    let extras: ReturnType<typeof supabase.channel> | null = null
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return
+      if (session?.access_token) supabase.realtime.setAuth(session.access_token)
+      // Unchanged list when the id isn't there: a new array would scroll the
+      // chat (and the page) to the bottom on every delete (final review I6).
+      const dropFile = (p: { old: Record<string, unknown> }) => {
+        if (p.old?.job_id && p.old.job_id !== jobId) return
+        const id = p.old?.id as string | undefined
+        if (id) setFiles(fs => fs.some(x => x.id === id) ? fs.filter(x => x.id !== id) : fs)
+      }
+      const dropMsg = (p: { old: Record<string, unknown> }) => {
+        if (p.old?.job_id && p.old.job_id !== jobId) return
+        const id = p.old?.id as string | undefined
+        if (id) setMessages(ms => ms.some(x => x.id === id) ? ms.filter(x => x.id !== id) : ms)
+      }
+      // Two channels: the new tables (migration 0070) may not exist yet, and
+      // that must not stop deleted photos leaving the chat (final review I8).
+      gone = supabase.channel(`job-chat-gone-${jobId}`)
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'files', filter: `job_id=eq.${jobId}` }, dropFile)
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` }, dropMsg)
+        .subscribe()
+      extras = supabase.channel(`job-chat-gallery-${jobId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_deletions', filter: `job_id=eq.${jobId}` }, () => void loadExtras())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'job_item_hides', filter: `user_id=eq.${userId}` }, () => void loadExtras())
+        .subscribe()
+    })
+    // A hide or delete in the Gallery on this device shows here at once.
+    const onChanged = () => void loadExtras()
+    window.addEventListener('gallery:changed', onChanged)
+    return () => {
+      active = false
+      window.removeEventListener('gallery:changed', onChanged)
+      if (gone) void supabase.removeChannel(gone)
+      if (extras) void supabase.removeChannel(extras)
+    }
+  }, [supabase, jobId, userId])
+
+  // The Gallery's "Go to message": scroll to it and flash it.
+  useEffect(() => {
+    function onGoto(e: Event) {
+      const key = (e as CustomEvent<{ key: string }>).detail?.key
+      if (!key) return
+      setTimeout(() => {
+        const el = document.getElementById('chat-item-' + (albumOfRef.current.get(key) ?? key))
+        if (!el) return
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        el.classList.add('bg-brand-amber-soft')
+        setTimeout(() => el.classList.remove('bg-brand-amber-soft'), 1600)
+      }, 150)
+    }
+    window.addEventListener('chat:goto', onGoto)
+    return () => window.removeEventListener('chat:goto', onGoto)
+  }, [])
   const [text,           setText]           = useState('')
   const [sending,        setSending]        = useState(false)
   const [uploading,      setUploading]      = useState(false)
@@ -731,7 +859,22 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     }
   }
 
-  const items = toItems(messages, files)
+  const items = toItems(messages.filter(m => !hiddenMsgs.has(m.id)), files.filter(f => !hiddenFiles.has(f.id)))
+  type Entry = { kind: 'item'; ts: string; item: ChatItem } | { kind: 'deleted'; ts: string; d: ChatDeletion }
+  const entries: Entry[] = [
+    ...items.map(i => ({ kind: 'item' as const, ts: i.ts, item: i })),
+    ...deletions.map(d => ({ kind: 'deleted' as const, ts: d.item_ts, d })),
+  ].sort((a, b) => a.ts.localeCompare(b.ts))
+  const keyOf = (i: ChatItem) => (i.kind === 'file' ? 'f:' : 'm:') + i.id
+  const isImage = (i: ChatItem) => i.kind === 'file' && fileKind(i.filename) === 'image'
+  const albums = chatAlbums(entries.map(e => e.kind === 'item'
+    ? { key: keyOf(e.item), isImage: isImage(e.item), byId: e.item.authorId, ts: e.ts }
+    : { key: 'd:' + e.d.id, isImage: false, byId: null, ts: e.ts }))
+  const albumAt = new Map(albums.map(a => [a[0], a]))
+  const albumOf = new Map<string, string>()
+  albums.forEach(a => a.forEach(k => albumOf.set(k, a[0])))
+  albumOfRef.current = albumOf
+  const openInGallery = (key: string) => window.dispatchEvent(new CustomEvent('gallery:open', { detail: { key } }))
 
   return (
     <Card className={cn(
@@ -784,13 +927,25 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         'flex-1 overflow-y-auto px-5 py-4 space-y-3',
         fullscreen ? 'min-h-0' : 'min-h-[280px] max-h-[520px]',
       )}>
-        {items.length === 0 ? (
+        {entries.length === 0 ? (
           <p className="text-sm text-muted text-center py-6">{t(lang, 'noMessages')}</p>
         ) : (
-          items.map(item => {
+          entries.map(entry => {
+            if (entry.kind === 'deleted') {
+              return (
+                <p key={'d:' + entry.d.id} className="text-center text-[11px] italic text-muted">
+                  {t(lang, DELETED_KEY[entry.d.item_kind]).replace('{name}', entry.d.deleted_by_name)}
+                </p>
+              )
+            }
+            const item = entry.item
+            const key = keyOf(item)
+            const album = albumAt.get(key)
+            if (albumOf.has(key) && !album) return null   // drawn inside its album
             const isMine = item.authorId === userId
             return (
-              <div key={item.id} className={cn('flex items-end gap-2', isMine && 'flex-row-reverse')}>
+              <div key={item.id} id={'chat-item-' + key}
+                className={cn('flex items-end gap-2 rounded-xl transition-colors', isMine && 'flex-row-reverse')}>
                 {/* Avatar — others only */}
                 {!isMine && (
                   <div className={cn(
@@ -817,8 +972,16 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
                     </p>
                   ) : item.kind === 'voice' ? (
                     <VoicePlayer voiceKey={item.voiceKey} isMine={isMine} />
+                  ) : album ? (
+                    <ChatAlbum
+                      isMine={isMine}
+                      photos={album.map(k => files.find(f => 'f:' + f.id === k)).filter((f): f is JobFile => !!f)
+                        .map(f => ({ id: f.id, r2Key: f.r2_key }))}
+                      onOpen={id => openInGallery('f:' + id)}
+                    />
                   ) : (
-                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} isMine={isMine} />
+                    <FileAttachment r2Key={item.r2Key} filename={item.filename} lang={lang} isMine={isMine}
+                      onOpen={isImage(item) ? () => openInGallery(key) : undefined} />
                   )}
                   <p className="text-[10px] text-muted" suppressHydrationWarning>
                     {new Date(item.ts).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' })}
