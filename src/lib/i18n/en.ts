@@ -910,6 +910,11 @@ export const en = {
   groupRemoved: "Took {n} jobs out of their group",
   groupRenamed: "Group renamed",
   groupUngrouped: "Group removed. The jobs are back in the list.",
+  groupJobsCountOne: "1 job",
+  groupAddTitleOne: "Add 1 job to a group",
+  groupUngroupBodyOne: "The job stays as it is. Only the group goes.",
+  groupAddedOne: "Added 1 job to the group",
+  groupRemovedOne: "Took 1 job out of its group",
   groupFailed: "Couldn’t change the group. Try again.",
 }
 

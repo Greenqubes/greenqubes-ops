@@ -801,5 +801,10 @@ export const zh: Partial<Translations> = {
   groupRemoved: "已把 {n} 份工作移出分组",
   groupRenamed: "分组已重命名",
   groupUngrouped: "分组已解散，工作已回到列表。",
+  groupJobsCountOne: "1 份工作",
+  groupAddTitleOne: "把 1 份工作加入分组",
+  groupUngroupBodyOne: "这份工作保持不变，只解散分组。",
+  groupAddedOne: "已把 1 份工作加入分组",
+  groupRemovedOne: "已把 1 份工作移出分组",
   groupFailed: "无法更改分组，请再试。",
 }

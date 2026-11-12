@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Folder } from 'lucide-react'
 import { Modal } from '@/components/Modal'
 import { t as tr, type LangCode } from '@/lib/i18n'
-import { GROUP_NAME_MAX, type JobGroup } from '@/lib/utils/job-groups'
+import { GROUP_NAME_MAX, countKey, type JobGroup } from '@/lib/utils/job-groups'
 
 export type GroupDialogMode = 'create' | 'add' | 'rename' | 'ungroup'
 
@@ -37,7 +37,7 @@ export function GroupDialog({ mode, count, initialName, existing, busy, lang, on
   useEffect(() => { if (mode) setName(initialName) }, [mode, initialName])
   const n = String(count)
   const title = mode === 'create' ? tr(lang, 'groupCreateTitle').replace('{n}', n)
-    : mode === 'add' ? tr(lang, 'groupAddTitle').replace('{n}', n)
+    : mode === 'add' ? tr(lang, countKey(count, 'groupAddTitleOne', 'groupAddTitle')).replace('{n}', n)
     : mode === 'rename' ? tr(lang, 'groupRenameTitle')
     : tr(lang, 'groupUngroupTitle')
   const named = name.trim().length > 0
@@ -50,7 +50,7 @@ export function GroupDialog({ mode, count, initialName, existing, busy, lang, on
             className="flex w-full items-center gap-2 rounded-[10px] border border-line px-3 py-2 text-left text-sm hover:bg-bg disabled:opacity-50">
             <Folder size={14} className="shrink-0 text-brand-green" />
             <span className="flex-1 min-w-0 truncate text-ink">{g.name}</span>
-            <span className="shrink-0 text-xs text-muted">{tr(lang, 'groupJobsCount').replace('{n}', String(g.count))}</span>
+            <span className="shrink-0 text-xs text-muted">{tr(lang, countKey(g.count, 'groupJobsCountOne', 'groupJobsCount')).replace('{n}', String(g.count))}</span>
           </button>
         </li>
       ))}
@@ -81,7 +81,7 @@ export function GroupDialog({ mode, count, initialName, existing, busy, lang, on
           </div>
         )}
         {mode === 'add' && picker}
-        {mode === 'ungroup' && <p className="text-sm text-ink2">{tr(lang, 'groupUngroupBody').replace('{n}', n)}</p>}
+        {mode === 'ungroup' && <p className="text-sm text-ink2">{tr(lang, countKey(count, 'groupUngroupBodyOne', 'groupUngroupBody')).replace('{n}', n)}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={`${BTN} border border-line text-ink2`}>{tr(lang, 'groupCancel')}</button>
           {mode === 'create' && <button type="submit" disabled={busy || !named} className={`${BTN} bg-brand-green text-white`}>{tr(lang, 'groupAction')}</button>}

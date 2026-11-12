@@ -167,3 +167,8 @@ export function parseGroupBody(raw: unknown): GroupBody | null {
     default: return null
   }
 }
+
+/** "1 job" vs "3 jobs": the text key for a count (one-job texts end in One). */
+export function countKey<K extends string>(n: number, one: K, many: K): K {
+  return n === 1 ? one : many
+}

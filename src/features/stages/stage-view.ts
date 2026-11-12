@@ -32,3 +32,16 @@ export function jobListHref(view: StageView, highlightId?: string): string {
   if (highlightId) q.set('highlight', highlightId)
   return `/job-list?${q.toString()}`
 }
+
+/** The My Jobs jump (scroll the row into view, blink it twice) runs once per
+ *  job per list. `last` is the "view:job" it last ran for; it is forgotten
+ *  when the highlight goes away, so tapping the same job again jumps again.
+ *  `ready` = the row exists (its group, if any, is open). */
+export function nextBlink(
+  last: string | null, highlight: string | null, view: string, ready: boolean,
+): { blink: boolean; last: string | null } {
+  if (!highlight) return { blink: false, last: null }
+  if (!ready) return { blink: false, last }
+  const key = `${view}:${highlight}`
+  return key === last ? { blink: false, last } : { blink: true, last: key }
+}

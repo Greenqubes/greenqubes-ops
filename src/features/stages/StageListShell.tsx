@@ -10,7 +10,7 @@ import { CompanyBar } from '@/components/CompanyBar'
 import { BottomNav } from '@/components/BottomNav'
 import { useToast } from '@/components/Toast'
 import { blinkJobCards } from '@/features/schedule/job-jump'
-import { resolveStageView, jobListHref, defaultStageView, type StageView } from './stage-view'
+import { resolveStageView, jobListHref, defaultStageView, nextBlink, type StageView } from './stage-view'
 import { ArrangeList } from './ArrangeList'
 import { GroupBlock } from './GroupBlock'
 import { GroupDialog, type GroupDialogMode } from './GroupDialog'
@@ -21,7 +21,7 @@ import { arrangeSeen } from '@/lib/utils/arrange-rules'
 import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
-import { canChangeGroups, filterWithGroups, foldGroups, openOnLoad, pickerGroups, suggestGroupName, tickAll, tickState, type GroupBody, type JobGroup } from '@/lib/utils/job-groups'
+import { canChangeGroups, countKey, filterWithGroups, foldGroups, openOnLoad, pickerGroups, suggestGroupName, tickAll, tickState, type GroupBody, type JobGroup } from '@/lib/utils/job-groups'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -131,11 +131,9 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
   const hlReady = !hlGroup || searching || openGroups.has(hlGroup)
   const blinked = useRef<string | null>(null)
   useEffect(() => {
-    if (!highlight || !hlReady) return
-    const k = `${view}:${highlight}`
-    if (blinked.current === k) return
-    blinked.current = k
-    blinkJobCards(document, highlight)
+    const next = nextBlink(blinked.current, highlight, view, hlReady)
+    blinked.current = next.last
+    if (next.blink && highlight) blinkJobCards(document, highlight)
   }, [highlight, view, hlReady])
 
   // A tick on one list must never delete from the other. Cleared on EVERY
@@ -275,7 +273,11 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
       router.refresh()
     } finally { setBusy(false) }
   }
-  const nText = (key: 'groupMade' | 'groupAdded' | 'groupRemoved', n: number) => tr(lang, key).replace('{n}', String(n))
+  // Grouping needs 2+ jobs, so groupMade is always plural; add/remove can be 1.
+  const nText = (key: 'groupMade' | 'groupAdded' | 'groupRemoved', n: number) => tr(lang,
+    key === 'groupAdded' ? countKey(n, 'groupAddedOne', 'groupAdded')
+      : key === 'groupRemoved' ? countKey(n, 'groupRemovedOne', 'groupRemoved') : key,
+  ).replace('{n}', String(n))
   const drag = useJobDrag({
     enabled:  canGroup && !busy,
     onAdd:    (id, groupId) => void runGroup({ action: 'add', groupId, jobIds: [id] }, nText('groupAdded', 1), true),
@@ -404,8 +406,9 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
         )}
         {/* Drag a grouped job here (computer) to take it out of its group. */}
         <div {...drag.listDrop} className="space-y-2">
+        {/* Floats (fixed, no layout shift): a drag cancels if rows move under it. */}
         {drag.dragOut && (
-          <p className="rounded-[10px] border-2 border-dashed border-line px-3 py-2 text-xs font-semibold text-ink2">{tr(lang, 'groupDropOut')}</p>
+          <p className="pointer-events-none fixed left-1/2 top-24 z-[60] -translate-x-1/2 rounded-full border-2 border-dashed border-brand-green bg-paper px-4 py-2 text-xs font-semibold text-ink shadow-lg">{tr(lang, 'groupDropOut')}</p>
         )}
         {view === 'arrange' ? (
           <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO}

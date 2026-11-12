@@ -5,7 +5,7 @@
  */
 import {
   canChangeGroups, suggestGroupName, titleInGroup, foldGroups, groupSummary, filterWithGroups,
-  pickerGroups, tickState, tickAll, openOnLoad, parseGroupBody, GROUP_NAME_MAX, type JobGroup,
+  pickerGroups, tickState, tickAll, openOnLoad, parseGroupBody, countKey, GROUP_NAME_MAX, type JobGroup,
 } from './job-groups'
 import type { Role } from '@/lib/supabase/types'
 
@@ -82,6 +82,10 @@ check('tick group: all → none of them', [...tickAll(new Set(['a', 'c', 'x']), 
 console.log('Open on load')
 check('highlighted job inside a group opens it', openOnLoad('c', [a, b, c]) === 'g1')
 check('highlighted plain job / none → null', openOnLoad('b', [a, b]) === null && openOnLoad(null, [a]) === null)
+
+console.log('One job or many')
+check('1 → the singular text', countKey(1, 'groupAddedOne', 'groupAdded') === 'groupAddedOne')
+check('0 and 2+ → the plural text', countKey(0, 'a', 'b') === 'b' && countKey(2, 'a', 'b') === 'b' && countKey(20, 'a', 'b') === 'b')
 
 console.log('Request shape')
 const created = parseGroupBody({ action: 'create', name: '  Oakley ', jobIds: ['a', 'a', 'b'] })
