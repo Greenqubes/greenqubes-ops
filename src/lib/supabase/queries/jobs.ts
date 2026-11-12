@@ -539,6 +539,8 @@ export type StageJob = {
   arrangement:    Arrangement | null
   /** The sales PIC's name, for the To arrange cards. */
   salesName:      string | null
+  /** Jobs tab groups (0072) — null when not grouped. */
+  group_id:       string | null
 }
 
 // The date may be null here, which is why this is its own type rather than
@@ -554,7 +556,7 @@ export async function getStageJobs(statuses: JobStatus[]): Promise<StageJob[]> {
     job_designers:    Array<{ user_id: string }>
   }
   const { data, error } = await supabase.from('jobs')
-    .select('id, status, date, date_end, project_title, client, client_poc_name, location, description, created_by, sales_poc_id, created_at, arrange_state, arrangement, job_coordinators(user_id), job_designers(user_id)')
+    .select('id, status, date, date_end, project_title, client, client_poc_name, location, description, created_by, sales_poc_id, created_at, arrange_state, arrangement, group_id, job_coordinators(user_id), job_designers(user_id)')
     .in('status', statuses) // raw status — see job-stage.ts
     .order('created_at', { ascending: false })
   if (error) throw error

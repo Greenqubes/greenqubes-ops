@@ -62,12 +62,16 @@ export function snapshotR2Keys(s: JobSnapshot): string[] {
 
 export function prepareRestore(
   s: JobSnapshot, existingUserIds: Set<string>, existingContactIds: Set<string>,
+  /** Job groups (0072) that still exist: a group ungrouped while the job sat
+   *  in the Bin is dropped, so the restore never fails on it. */
+  existingGroupIds: Set<string>,
 ): { snapshot: JobSnapshot; leftOff: string[] } {
   const leftOff = new Set<string>()
   const gone = (v: unknown) => isId(v) && !existingUserIds.has(v)
 
   const job: Row = { ...s.job }
   for (const c of OPTIONAL_USER_JOB) if (gone(job[c])) job[c] = null
+  if (isId(job.group_id) && !existingGroupIds.has(job.group_id)) job.group_id = null
 
   const children = {} as Record<ChildTable, Row[]>
   for (const t of BIN_CHILD_TABLES) {

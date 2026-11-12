@@ -40,7 +40,7 @@ check('every referenced person', snapshotUserIds(snap).sort(), ['u-ck', 'u-coord
 check('only real R2 keys', snapshotR2Keys(snap), ['a/b.jpg'])
 
 console.log('prepareRestore — someone on the job has since been removed:')
-const { snapshot: out, leftOff } = prepareRestore(snap, users, contacts)
+const { snapshot: out, leftOff } = prepareRestore(snap, users, contacts, new Set())
 check('their crew row is left off', out.children.job_assignees.map(r => r.user_id), ['u-ck'])
 check('they are named in the result', leftOff, ['Ali Ramjan'])
 check('a removed outside contractor is left off', out.children.job_external_contacts.map(r => r.contact_id), ['c-alive'])
@@ -49,7 +49,14 @@ check('optional links to them are blanked, the row kept (message)', out.children
 check('approved_by on the job is blanked', out.job.approved_by, null)
 check('people still here are untouched', out.job.sales_poc_id, 'u-nic')
 check('the input snapshot is not mutated', snap.children.job_assignees.length, 2)
-check('nobody removed → nothing left off', prepareRestore(snap, new Set([...users, 'u-gone']), new Set(['c-alive', 'c-gone'])).leftOff, [])
+check('nobody removed → nothing left off', prepareRestore(snap, new Set([...users, 'u-gone']), new Set(['c-alive', 'c-gone']), new Set()).leftOff, [])
+
+// Job groups (0072): a group ungrouped while the job sat in the Bin must not
+// make the restore fail on the missing group — the job comes back ungrouped.
+const grouped = (g: string) => ({ ...snap, job: { ...snap.job, group_id: g } })
+check('restore keeps a group that still exists', prepareRestore(grouped('g1'), users, contacts, new Set(['g1'])).snapshot.job.group_id, 'g1')
+check('restore drops a group that is gone',       prepareRestore(grouped('g9'), users, contacts, new Set(['g1'])).snapshot.job.group_id, null)
+check('a dropped group is not a person left off', prepareRestore(grouped('g9'), new Set([...users, 'u-gone']), new Set(['c-alive', 'c-gone']), new Set()).leftOff, [])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall bin-snapshot checks passed')

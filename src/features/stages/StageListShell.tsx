@@ -17,6 +17,7 @@ import { arrangeSeen } from '@/lib/utils/arrange-rules'
 import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
+import type { JobGroup } from '@/lib/utils/job-groups'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -45,11 +46,13 @@ function dayLabel(iso: string): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-export function StageListShell({ ongoing, drafts, arrange, canCreate, panelJobs, panelMode, userId, isAdmin, lang, role, navRole }: {
+export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, panelJobs, panelMode, userId, isAdmin, lang, role, navRole }: {
   ongoing:   StageJob[]
   drafts:    StageJob[] | null
   /** Ongoing jobs in To arrange (arrange_state set). */
   arrange:   StageJob[]
+  /** Job groups (0072) holding a job on this tab. */
+  groups:    JobGroup[]
   canCreate: boolean
   /** The REAL admin role — `role` reads 'scheduler' for a plain admin. */
   isAdmin:   boolean

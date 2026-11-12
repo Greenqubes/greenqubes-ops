@@ -50,10 +50,11 @@ export async function POST(
     production_instructions: string | null
     design_brief: string | null
     location: string
+    group_id: string | null
   }
   const { data: source } = await service
     .from('jobs')
-    .select('project_title, date, date_end, time_start, time_end, client, location, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions, design_brief')
+    .select('project_title, date, date_end, time_start, time_end, client, location, description, client_poc_name, client_poc_phone, production_ready, do_issued, punctuality, production_instructions, design_brief, group_id')
     .eq('id', jobId)
     .maybeSingle() as { data: SourceJob | null; error: unknown }
   if (!source) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -88,6 +89,9 @@ export async function POST(
       production_instructions: source.production_instructions,
       notes:                   null,
       design_brief:            source.design_brief,
+      // Jobs tab groups (Nic, 2026-11-11): the copy joins the same group. It
+      // is still the duplicator's private draft, so others don't see it there.
+      group_id:                source.group_id,
       // design_due_date / design_due_manual and every design_* score,
       // completion, and rating column deliberately stay at their column
       // defaults (null / false) — never copied. Designers (job_designers)
