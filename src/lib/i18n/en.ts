@@ -885,6 +885,32 @@ export const en = {
   chatDeletedVideo: "Video deleted by {name}",
   chatDeletedFile: "File deleted by {name}",
   chatDeletedVoice: "Voice note deleted by {name}",
+
+  // ── Jobs tab groups (Nic, 2026-11-11) ──────────────────────────────────────
+  groupRename: "Rename",
+  groupUngroup: "Ungroup",
+  groupJobsCount: "{n} jobs",
+  groupAction: "Group",
+  groupAddTo: "Add to group",
+  groupRemoveFrom: "Remove from group",
+  groupCreateTitle: "Group {n} jobs",
+  groupNameLabel: "Group name",
+  groupNameHint: "Filled in from the start the titles share. Change it if you like.",
+  groupOrExisting: "or add them to an existing group",
+  groupAddTitle: "Add {n} jobs to a group",
+  groupRenameTitle: "Rename group",
+  groupUngroupTitle: "Ungroup?",
+  groupUngroupBody: "The {n} jobs stay as they are. Only the group goes.",
+  groupSave: "Save",
+  groupCancel: "Cancel",
+  groupDropIn: "Let go to add to this group",
+  groupDropOut: "Let go to take it out of the group",
+  groupMade: "Grouped {n} jobs",
+  groupAdded: "Added {n} jobs to the group",
+  groupRemoved: "Took {n} jobs out of their group",
+  groupRenamed: "Group renamed",
+  groupUngrouped: "Group removed. The jobs are back in the list.",
+  groupFailed: "Couldn’t change the group. Try again.",
 }
 
 export type Translations = typeof en

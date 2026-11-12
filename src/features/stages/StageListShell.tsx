@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Plus } from 'lucide-react'
@@ -12,12 +12,13 @@ import { useToast } from '@/components/Toast'
 import { blinkJobCards } from '@/features/schedule/job-jump'
 import { resolveStageView, jobListHref, defaultStageView, type StageView } from './stage-view'
 import { ArrangeList } from './ArrangeList'
+import { GroupBlock } from './GroupBlock'
 import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
 import { arrangeSeen } from '@/lib/utils/arrange-rules'
 import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
-import type { JobGroup } from '@/lib/utils/job-groups'
+import { canChangeGroups, filterWithGroups, foldGroups, openOnLoad, tickAll, tickState, type JobGroup } from '@/lib/utils/job-groups'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -38,6 +39,10 @@ import type { Role } from '@/lib/supabase/types'
  * ready, after Drafts and Ongoing — the order follows a job's life. Those jobs
  * leave the Ongoing list, so a job is only ever in one place. A bare
  * /job-list opens on the role's default (defaultStageView).
+ *
+ * Job groups (Nic, 2026-11-11; migration 0072): grouped jobs fold into one
+ * shared row in every list section, holding only that section's jobs. Open
+ * state is each person's own; the folding is everyone's.
  */
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -90,22 +95,40 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
   // To arrange, Back to Drafts on Ongoing. Each job still passes its own
   // one-at-a-time rules on the server; failures stay ticked with a reason.
   const acts = bulkActionsFor(view, role, isAdmin)
-  const canTick = canBulkDelete || acts.toOngoing || acts.toDraft
+  // Sales, coordinator, scheduler and admin make and change groups.
+  const canGroup = canChangeGroups(role, isAdmin)
+  const canTick = canBulkDelete || acts.toOngoing || acts.toDraft || canGroup
+  const groupsById = useMemo(() => new Map(groups.map(g => [g.id, g])), [groups])
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return q ? jobs.filter(j => [j.project_title ?? '', j.client, j.location].join(' ').toLowerCase().includes(q)) : jobs
-  }, [jobs, query])
+  // A word matching a group's name brings the whole group (filterWithGroups).
+  const filtered = useMemo(() => filterWithGroups(jobs, groupsById, query), [jobs, groupsById, query])
 
   const dated   = view === 'ongoing' ? filtered.filter(j => j.date).sort((a, b) => a.date!.localeCompare(b.date!)) : filtered
   const undated = view === 'ongoing' ? filtered.filter(j => !j.date) : []
 
   // From the My Jobs panel: scroll only if the row is off screen, then blink
   // it twice — the same as on the schedule (Nic, 2026-10-14).
+  //
+  // A highlighted job inside a group opens that group first, so the row
+  // exists to scroll to and blink. Searching opens every group.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const g = openOnLoad(highlight, jobs)
+    return g ? new Set([g]) : new Set()
+  })
+  const hlGroup = openOnLoad(highlight, jobs)
   useEffect(() => {
-    if (!highlight) return
+    if (hlGroup) setOpenGroups(s => s.has(hlGroup) ? s : new Set(s).add(hlGroup))
+  }, [highlight, view])  // eslint-disable-line react-hooks/exhaustive-deps
+  const searching = query.trim() !== ''
+  const hlReady = !hlGroup || searching || openGroups.has(hlGroup)
+  const blinked = useRef<string | null>(null)
+  useEffect(() => {
+    if (!highlight || !hlReady) return
+    const k = `${view}:${highlight}`
+    if (blinked.current === k) return
+    blinked.current = k
     blinkJobCards(document, highlight)
-  }, [highlight, view])
+  }, [highlight, view, hlReady])
 
   // A tick on one list must never delete from the other. Cleared on EVERY
   // list change — the switch, the My Jobs panel, the back button — because
@@ -210,14 +233,15 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
     } finally { setBusy(false) }
   }
 
-  const row = (j: StageJob) => (
+  // shortTitle: inside an open group, only the rest of the title shows.
+  const row = (j: StageJob, shortTitle?: string) => (
     <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
-      className="scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4 py-3">
+      className={cn('scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4', shortTitle ? 'py-2.5' : 'py-3')}>
       {canTick && (
         <input type="checkbox" checked={selected.has(j.id)} aria-label="Select" onChange={() => toggle(j.id)} />
       )}
       <Link href={`/jobs/${j.id}`} className="flex-1 min-w-0">
-        <p className="font-display text-sm font-semibold text-ink truncate">{j.project_title || j.client || 'Untitled job'}</p>
+        <p className={cn('font-display font-semibold text-ink truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || 'Untitled job')}</p>
         <p className="text-xs text-muted truncate">{j.client}</p>
         {view === 'ongoing' && j.designerNames.length > 0 && (
           <p className="text-[11px] text-ink2 truncate">{tr(lang, 'stageDesigner')}: {j.designerNames.join(', ')}</p>
@@ -227,6 +251,39 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
       <span className="shrink-0 text-xs text-ink2">{j.date ? dayLabel(j.date) : tr(lang, 'dateTbc')}</span>
     </li>
   )
+
+  // ── Groups ──────────────────────────────────────────────────────────────
+  const toggleGroup = (id: string) => setOpenGroups(s => {
+    const n = new Set(s)
+    if (n.has(id)) n.delete(id); else n.add(id)
+    return n
+  })
+  // To arrange shows tick boxes only to people with something to do there.
+  const groupTickable = view === 'arrange' ? acts.toOngoing || canGroup : canTick
+  const renderGroup = (group: JobGroup, sectionJobs: StageJob[], renderJob: (j: StageJob, short: string) => ReactNode) => {
+    const ids = sectionJobs.map(j => j.id)
+    return (
+      <GroupBlock key={group.id} group={group} jobs={sectionJobs} lang={lang}
+        open={searching || openGroups.has(group.id)} onToggleOpen={() => toggleGroup(group.id)}
+        tick={groupTickable ? tickState(selected, ids) : null}
+        onTickAll={() => {
+          const next = tickAll(selected, ids)
+          setReasons(r => {
+            const n = new Map(r)
+            let changed = false
+            for (const id of ids) if (!next.has(id) && n.delete(id)) changed = true
+            return changed ? n : r
+          })
+          setSelected(next)
+        }}
+        canChange={canGroup} onRename={() => {}} onUngroup={() => {}}
+        renderJob={renderJob} />
+    )
+  }
+  // One list section → plain rows and group rows (a group sits where its
+  // first job would). Each section folds on its own.
+  const fold = (list: StageJob[]) => foldGroups(list, groupsById)
+    .map(it => it.kind === 'job' ? row(it.job) : renderGroup(it.group, it.jobs, row))
 
   const tabBtn = (v: StageView, label: string, count: number) => (
     <button type="button" onClick={() => switchTo(v)} aria-pressed={view === v}
@@ -293,15 +350,16 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
         )}
         {view === 'arrange' ? (
           <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO}
-            selectable={acts.toOngoing} selected={selected} onToggle={toggle} reasons={reasons} />
+            selectable={acts.toOngoing || canGroup} selected={selected} onToggle={toggle} reasons={reasons}
+            groups={groupsById} renderGroup={renderGroup} />
         ) : (
           <>
             {filtered.length === 0 && <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>}
-            <ul className="space-y-2">{dated.map(row)}</ul>
+            <ul className="space-y-2">{fold(dated)}</ul>
             {undated.length > 0 && (
               <>
                 <h2 className="pt-2 text-[11px] uppercase tracking-widest text-muted">{tr(lang, 'dateTbcHeading')}</h2>
-                <ul className="space-y-2">{undated.map(row)}</ul>
+                <ul className="space-y-2">{fold(undated)}</ul>
               </>
             )}
           </>
