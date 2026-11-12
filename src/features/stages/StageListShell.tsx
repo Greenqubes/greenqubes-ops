@@ -13,12 +13,15 @@ import { blinkJobCards } from '@/features/schedule/job-jump'
 import { resolveStageView, jobListHref, defaultStageView, type StageView } from './stage-view'
 import { ArrangeList } from './ArrangeList'
 import { GroupBlock } from './GroupBlock'
+import { GroupDialog, type GroupDialogMode } from './GroupDialog'
+import { useJobDrag } from './useJobDrag'
+import { postGroupChange } from './group-api'
 import { MyJobsPanel } from '@/features/schedule/MyJobsPanel'
 import { arrangeSeen } from '@/lib/utils/arrange-rules'
 import { bulkActionsFor, bulkFailReason, splitBulk, keepOnList, BULK_REASON_KEY, type BulkFailReason, type BulkOutcome } from '@/lib/utils/bulk-move'
 import type { MyJobsMode } from '@/lib/utils/my-jobs'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
-import { canChangeGroups, filterWithGroups, foldGroups, openOnLoad, tickAll, tickState, type JobGroup } from '@/lib/utils/job-groups'
+import { canChangeGroups, filterWithGroups, foldGroups, openOnLoad, pickerGroups, suggestGroupName, tickAll, tickState, type GroupBody, type JobGroup } from '@/lib/utils/job-groups'
 import type { LangCode } from '@/lib/i18n'
 import type { Role } from '@/lib/supabase/types'
 
@@ -99,6 +102,11 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
   const canGroup = canChangeGroups(role, isAdmin)
   const canTick = canBulkDelete || acts.toOngoing || acts.toDraft || canGroup
   const groupsById = useMemo(() => new Map(groups.map(g => [g.id, g])), [groups])
+  // Every job on the tab (all three lists) — for the "existing group" picker
+  // and the Ungroup count.
+  const tabJobs = useMemo(() => [...(drafts ?? []), ...ongoing, ...arrange], [drafts, ongoing, arrange])
+  const picker = useMemo(() => pickerGroups(tabJobs, groupsById), [tabJobs, groupsById])
+  const [dialog, setDialog] = useState<{ mode: GroupDialogMode; groupId?: string; count: number; initialName: string } | null>(null)
 
   // A word matching a group's name brings the whole group (filterWithGroups).
   const filtered = useMemo(() => filterWithGroups(jobs, groupsById, query), [jobs, groupsById, query])
@@ -236,6 +244,7 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
   // shortTitle: inside an open group, only the rest of the title shows.
   const row = (j: StageJob, shortTitle?: string) => (
     <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
+      {...drag.dragProps(j)}
       className={cn('scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4', shortTitle ? 'py-2.5' : 'py-3')}>
       {canTick && (
         <input type="checkbox" checked={selected.has(j.id)} aria-label="Select" onChange={() => toggle(j.id)} />
@@ -253,6 +262,27 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
   )
 
   // ── Groups ──────────────────────────────────────────────────────────────
+  // One change through /api/job-groups. Buttons clear the ticks on success;
+  // a drag, a rename or an ungroup keeps them (they never used them).
+  async function runGroup(body: GroupBody, okText: string, keepTicks = false) {
+    setBusy(true)
+    try {
+      const r = await postGroupChange(body)
+      if (!r.ok) { showError(tr(lang, 'groupFailed')); return }
+      if (!keepTicks) { setSelected(new Set()); setReasons(new Map()) }
+      setDialog(null)
+      showSuccess(okText)
+      router.refresh()
+    } finally { setBusy(false) }
+  }
+  const nText = (key: 'groupMade' | 'groupAdded' | 'groupRemoved', n: number) => tr(lang, key).replace('{n}', String(n))
+  const drag = useJobDrag({
+    enabled:  canGroup && !busy,
+    onAdd:    (id, groupId) => void runGroup({ action: 'add', groupId, jobIds: [id] }, nText('groupAdded', 1), true),
+    onRemove: id => void runGroup({ action: 'remove', jobIds: [id] }, nText('groupRemoved', 1), true),
+  })
+  const tickedJobs = jobs.filter(j => selected.has(j.id))
+  const tickedGrouped = tickedJobs.filter(j => j.group_id)
   const toggleGroup = (id: string) => setOpenGroups(s => {
     const n = new Set(s)
     if (n.has(id)) n.delete(id); else n.add(id)
@@ -276,7 +306,10 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
           })
           setSelected(next)
         }}
-        canChange={canGroup} onRename={() => {}} onUngroup={() => {}}
+        canChange={canGroup}
+        onRename={() => setDialog({ mode: 'rename', groupId: group.id, count: 0, initialName: group.name })}
+        onUngroup={() => setDialog({ mode: 'ungroup', groupId: group.id, count: tabJobs.filter(j => j.group_id === group.id).length, initialName: '' })}
+        drop={{ ...drag.groupDrop(group.id), hint: tr(lang, 'groupDropIn') }}
         renderJob={renderJob} />
     )
   }
@@ -340,6 +373,27 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
                 {tr(lang, 'bulkBackToDrafts')}
               </button>
             )}
+            {canGroup && selected.size >= 2 && (
+              <button type="button" disabled={busy}
+                onClick={() => setDialog({ mode: 'create', count: selected.size, initialName: suggestGroupName(tickedJobs.map(j => j.project_title || j.client || '')) })}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-paper text-paper disabled:opacity-50">
+                {tr(lang, 'groupAction')}
+              </button>
+            )}
+            {canGroup && picker.length > 0 && (
+              <button type="button" disabled={busy}
+                onClick={() => setDialog({ mode: 'add', count: selected.size, initialName: '' })}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-paper text-paper disabled:opacity-50">
+                {tr(lang, 'groupAddTo')}
+              </button>
+            )}
+            {canGroup && tickedGrouped.length > 0 && (
+              <button type="button" disabled={busy}
+                onClick={() => void runGroup({ action: 'remove', jobIds: tickedGrouped.map(j => j.id) }, nText('groupRemoved', tickedGrouped.length))}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-paper text-paper disabled:opacity-50">
+                {tr(lang, 'groupRemoveFrom')}
+              </button>
+            )}
             {canBulkDelete && (
               <button type="button" onClick={bulkDelete} disabled={busy}
                 className="px-3 py-1.5 text-xs font-medium text-white rounded-lg bg-bad disabled:opacity-50">
@@ -348,10 +402,15 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
             )}
           </div>
         )}
+        {/* Drag a grouped job here (computer) to take it out of its group. */}
+        <div {...drag.listDrop} className="space-y-2">
+        {drag.dragOut && (
+          <p className="rounded-[10px] border-2 border-dashed border-line px-3 py-2 text-xs font-semibold text-ink2">{tr(lang, 'groupDropOut')}</p>
+        )}
         {view === 'arrange' ? (
           <ArrangeList jobs={filtered} viewer={{ id: userId, role, isAdmin }} lang={lang} todayISO={todayISO}
             selectable={acts.toOngoing || canGroup} selected={selected} onToggle={toggle} reasons={reasons}
-            groups={groupsById} renderGroup={renderGroup} />
+            groups={groupsById} renderGroup={renderGroup} dragProps={drag.dragProps} />
         ) : (
           <>
             {filtered.length === 0 && <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>}
@@ -364,8 +423,16 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
             )}
           </>
         )}
+        </div>
       </div>
       </div>
+
+      <GroupDialog mode={dialog?.mode ?? null} count={dialog?.count ?? 0} initialName={dialog?.initialName ?? ''}
+        existing={picker} busy={busy} lang={lang} onClose={() => setDialog(null)}
+        onCreate={name => void runGroup({ action: 'create', name, jobIds: [...selected] }, nText('groupMade', selected.size))}
+        onAdd={groupId => void runGroup({ action: 'add', groupId, jobIds: [...selected] }, nText('groupAdded', selected.size))}
+        onRename={name => { if (dialog?.groupId) void runGroup({ action: 'rename', groupId: dialog.groupId, name }, tr(lang, 'groupRenamed'), true) }}
+        onUngroup={() => { if (dialog?.groupId) void runGroup({ action: 'ungroup', groupId: dialog.groupId }, tr(lang, 'groupUngrouped'), true) }} />
 
       {/* Tapping a Draft or Ongoing job switches the list here; a Scheduled
           one opens the Schedule page on its date (no onPickJob). */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type HTMLAttributes, type ReactNode } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr, type LangCode } from '@/lib/i18n'
@@ -26,7 +26,7 @@ import type { StageViewer } from '@/lib/utils/job-stage-rules'
  * holding only that section's jobs). The shell renders the group row; this
  * list hands it its own card for the jobs inside.
  */
-export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, selected, onToggle, reasons, groups, renderGroup }: {
+export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, selected, onToggle, reasons, groups, renderGroup, dragProps }: {
   jobs:     StageJob[]
   viewer:   StageViewer
   lang:     LangCode
@@ -38,6 +38,8 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
   reasons?:    Map<string, BulkFailReason>
   groups?:      Map<string, JobGroup>
   renderGroup?: (group: JobGroup, sectionJobs: StageJob[], renderCard: (job: StageJob, shortTitle: string) => ReactNode) => ReactNode
+  /** Drag into / out of a group on a computer (useJobDrag). */
+  dragProps?:   (job: StageJob) => HTMLAttributes<HTMLLIElement>
 }) {
   const { needsDate, withSales } = groupArrangeJobs(jobs)
   const schedulerSide = isArrangeSchedulerSide(viewer)
@@ -80,7 +82,7 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
       ? a.lastReturn.text : null
     const why = reasons?.get(j.id)
     return (
-      <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
+      <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id} {...dragProps?.(j)}
         className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70', selectable && 'flex items-start gap-3 pl-4')}>
         {selectable && (
           <input type="checkbox" className="mt-4 shrink-0" checked={selected?.has(j.id) ?? false} aria-label="Select"
