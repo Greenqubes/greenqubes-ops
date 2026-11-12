@@ -46,7 +46,7 @@ export async function DELETE(
   const allowed = canDeleteForEveryone({
     role, isAdmin, viewerId: profile.id, source: 'voice', fileKind: null, byId: msg.author_id,
     jobStatus: job.status, completedAt: job.completed_at, otherCompletionFiles: 0,
-    filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable,
+    filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable, sentAt: msg.ts,
   })
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

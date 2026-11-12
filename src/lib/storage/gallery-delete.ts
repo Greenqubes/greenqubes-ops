@@ -32,7 +32,9 @@ export function pageFileGates(input: {
  * designers are view-only on the production / signed DO / completion photos,
  * and a sales or coordinator who doesn't share an Ongoing job has the Files
  * locked. Chat items are new: the person who sent it, schedulers and admin
- * (WhatsApp's "group admins"), and never once the job is completed.
+ * (WhatsApp's "group admins"), and never once the job is completed. The
+ * sender's own right lasts 24 hours from sending (Nic, 2026-11-12); after
+ * that they only get Delete for me. Schedulers and admin keep it.
  *
  * Delete for ME is not decided here — anyone may hide anything they can see.
  */
@@ -55,7 +57,17 @@ export type DeleteForEveryoneInput = {
   filesLocked: boolean
   /** designBriefEditable({ status, readOnly: formReadOnly }), as the page passes it. */
   designBriefEditable: boolean
+  /** When the item was sent or uploaded (files.ts / messages.ts). */
+  sentAt: string | null
   now?: number
+}
+
+/** How long the sender may Delete for everyone (Nic, 2026-11-12). */
+export const OWN_DELETE_WINDOW_MS = 24 * 60 * 60 * 1000
+
+function withinOwnWindow(sentAt: string | null, now: number): boolean {
+  const sent = sentAt ? Date.parse(sentAt) : NaN
+  return Number.isFinite(sent) && now - sent < OWN_DELETE_WINDOW_MS
 }
 
 export function canDeleteForEveryone(i: DeleteForEveryoneInput): boolean {
@@ -63,7 +75,8 @@ export function canDeleteForEveryone(i: DeleteForEveryoneInput): boolean {
     case 'chat':
     case 'voice':
       return i.jobStatus !== 'completed'
-        && ((!!i.byId && i.byId === i.viewerId) || i.role === 'scheduler' || i.isAdmin)
+        && (i.role === 'scheduler' || i.isAdmin
+          || (!!i.byId && i.byId === i.viewerId && withinOwnWindow(i.sentAt, i.now ?? Date.now())))
     case 'files':
       return canManageJobFiles(i.role, i.jobStatus).allowed && i.role !== 'production' && !i.filesLocked
     case 'design_brief':

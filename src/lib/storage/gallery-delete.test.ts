@@ -15,6 +15,8 @@ function check(name: string, actual: unknown, expected: unknown) {
 const base: DeleteForEveryoneInput = {
   role: 'sales', isAdmin: false, viewerId: 'u1', source: 'chat', fileKind: 'attachment', byId: 'u1',
   jobStatus: 'scheduled', completedAt: null, otherCompletionFiles: 0, filesLocked: false, designBriefEditable: true,
+  // Sent an hour before 'now' — inside the sender's 24-hour window.
+  sentAt: '2026-11-10T23:00:00Z', now: Date.parse('2026-11-11T00:00:00Z'),
 }
 const can = (over: Partial<DeleteForEveryoneInput>) => canDeleteForEveryone({ ...base, ...over })
 const done = { jobStatus: 'completed', completedAt: '2026-11-01T00:00:00Z', now: Date.parse('2026-11-11T00:00:00Z') }
@@ -27,6 +29,19 @@ check('chat: someone else\'s, as admin',         can({ byId: 'u2', role: 'schedu
 check('chat: own photo, completed job',         can({ ...done }), false)
 check('chat: installer\'s own photo',            can({ role: 'installer', viewerId: 'u3', byId: 'u3' }), true)
 check('voice: own',                             can({ source: 'voice', fileKind: null }), true)
+
+// The sender's own Delete for everyone lasts 24 hours (Nic, 2026-11-12);
+// after that they only get Delete for me. Schedulers and admin keep it.
+const old = { sentAt: '2026-11-09T23:00:00Z' }  // 25 hours before now
+check('chat: own photo after 24 hours',         can({ ...old }), false)
+check('chat: own photo at exactly 24 hours',    can({ sentAt: '2026-11-10T00:00:00Z' }), false)
+check('chat: own photo at 23h59',               can({ sentAt: '2026-11-10T00:01:00Z' }), true)
+check('voice: own after 24 hours',              can({ ...old, source: 'voice', fileKind: null }), false)
+check('chat: own photo, no sent time',          can({ sentAt: null }), false)
+check('chat: after 24h, as scheduler',          can({ ...old, byId: 'u2', role: 'scheduler' }), true)
+check('chat: after 24h, own, as scheduler',     can({ ...old, role: 'scheduler' }), true)
+check('chat: after 24h, as admin',              can({ ...old, byId: 'u2', role: 'scheduler', isAdmin: true }), true)
+check('folder: uploader after 24h (Files rules)', can({ ...old, source: 'files', fileKind: 'attachment' }), true)
 
 // Files folders: the office rule, minus production and the Ongoing lock.
 const folder = { source: 'files' as const, fileKind: 'attachment', byId: 'u9' }

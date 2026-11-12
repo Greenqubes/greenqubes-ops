@@ -175,7 +175,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
     role, isAdmin, viewerId: userId, source: it.source, fileKind: it.fileKind, byId: it.byId,
     jobStatus: job.status, completedAt: job.completed_at,
     otherCompletionFiles: it.fileKind === 'completion' ? completionCount - 1 : completionCount,
-    filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable,
+    filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable, sentAt: it.ts,
   }), [role, isAdmin, userId, job, completionCount, gates])
 
   async function hideForMe(items: GalleryItem[]) {

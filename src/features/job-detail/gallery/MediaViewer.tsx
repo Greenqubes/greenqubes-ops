@@ -131,22 +131,24 @@ export function MediaViewer({ items, startKey, open, lang, onClose, onDelete, on
                 {t(lang, SOURCE_KEY[current.source])} · {whenLabel(current.ts)} · {t(lang, 'galleryOf').replace('{i}', String(safe + 1)).replace('{n}', String(items.length))}
               </p>
             </div>
-            <div className="absolute inset-x-0 bottom-0 flex gap-2 px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-2 bg-gradient-to-t from-black/70 to-transparent">
+            {/* Big, thumb-sized buttons (Nic, 2026-11-12): icon over label so three
+                fit side by side on a narrow phone. */}
+            <div className="absolute inset-x-0 bottom-0 flex gap-3 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-8 bg-gradient-to-t from-black/80 to-transparent">
               {current.r2Key && (
                 <button type="button" onClick={() => void downloadFile(current.r2Key!, current.name)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-medium text-white">
-                  <Download size={15} /> {t(lang, 'galleryDownload')}
+                  className="flex flex-1 min-w-0 min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl bg-white/20 px-1 py-2.5 text-[13px] font-semibold leading-tight text-white active:bg-white/30">
+                  <Download size={24} /> {t(lang, 'galleryDownload')}
                 </button>
               )}
               {onGoToMessage && (current.source === 'chat' || current.source === 'voice') && (
                 <button type="button" onClick={() => onGoToMessage(current)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-medium text-white">
-                  <MessageSquare size={15} /> {t(lang, 'galleryGoToMessage')}
+                  className="flex flex-1 min-w-0 min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl bg-white/20 px-1 py-2.5 text-[13px] font-semibold leading-tight text-white active:bg-white/30">
+                  <MessageSquare size={24} /> {t(lang, 'galleryGoToMessage')}
                 </button>
               )}
               <button type="button" onClick={() => onDelete(current)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/15 py-2 text-xs font-medium text-[#F2A6A6]">
-                <Trash2 size={15} /> {t(lang, 'galleryDelete')}
+                className="flex flex-1 min-w-0 min-h-[64px] flex-col items-center justify-center gap-1 rounded-xl bg-white/20 px-1 py-2.5 text-[13px] font-semibold leading-tight text-[#F2A6A6] active:bg-white/30">
+                <Trash2 size={24} /> {t(lang, 'galleryDelete')}
               </button>
             </div>
           </>

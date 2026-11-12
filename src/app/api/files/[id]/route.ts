@@ -166,7 +166,7 @@ export async function DELETE(
     allowed = canDeleteForEveryone({
       role, isAdmin, viewerId: profile.id, source, fileKind: file.kind, byId: file.uploader_id,
       jobStatus: job?.status ?? null, completedAt: job?.completed_at ?? null, otherCompletionFiles,
-      filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable,
+      filesLocked: gates.filesLocked, designBriefEditable: gates.designBriefEditable, sentAt: file.ts,
     })
     if (!allowed) {
       // Keep the old, specific wording where the photo-section rule applies.

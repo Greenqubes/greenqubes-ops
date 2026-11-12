@@ -67,10 +67,10 @@ export function PdfViewer({ item, url, open, lang, onClose }: {
         <p className="flex-1 min-w-0 truncate text-sm font-medium">{item.name}</p>
         {item.r2Key && (
           <button type="button" aria-label={t(lang, 'galleryDownload')} onClick={() => void downloadFile(item.r2Key!, item.name)}
-            className="rounded-full bg-white/10 p-2 hover:bg-white/20"><Download size={16} /></button>
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:bg-white/30"><Download size={22} /></button>
         )}
         <button type="button" aria-label={t(lang, 'close')} onClick={onClose}
-          className="rounded-full bg-white/10 p-2 hover:bg-white/20"><X size={16} /></button>
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 active:bg-white/30"><X size={22} /></button>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-6">
         <div ref={box} className="mx-auto max-w-[1000px]" />
