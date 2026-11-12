@@ -1,36 +1,48 @@
 /**
- * Greenqubes: fill the old "Greenqubes Jobs" sheet from the app.
+ * Greenqubes: the "Greenqubes Jobs" sheet, filled entirely by the app.
  *
  * Setup (once): in the app, Admin -> Settings -> Old jobsheet: Make link, then
  * Copy script. In the sheet: Extensions -> Apps Script. If the editor only
  * shows an empty "function myFunction() {}", replace it with this script;
  * if there is other code there, add a NEW file (+ -> Script) for this one.
+ * (Updating from the older "yellow bar" version: paste this over it.)
  * Save, reload the sheet, then use the Greenqubes menu: Set app link,
  * Refresh now, Set up hourly refresh. The full guide is on that Admin card
  * and in the repo at docs/google-sheet-jobsheet-setup.md.
  *
- * What it does, every hour:
- *   - makes next week's tab if it doesn't exist yet (copies the header rows
- *     of the newest weekly tab, names it like "30/11 to6/12");
+ * What it does, every hour (Nic, 2026-11-12: full automation, view only):
  *   - for this week and the weeks ahead (up to 10), asks the app for that
- *     week's scheduled jobs and writes them BELOW a yellow bar. Rows typed
- *     above the bar are never touched. Past weeks are left as they were.
- * If anything looks wrong — the app doesn't answer, a tab has two yellow
- * bars, two tabs claim the same week, a merged cell crosses the bar — that
- * tab is left exactly as it was, and the bar's "updated" time shows how old
- * its jobs are.
+ *     week's scheduled jobs and REWRITES the week's tab from row 1: a title
+ *     row, the column names, then each day's date and that day's jobs.
+ *     Everything that was on the tab — typed rows, colours, merged cells —
+ *     is replaced. Nobody types in this sheet any more; share it as Viewer.
+ *   - makes the tab when it is missing: always for this week and next week,
+ *     and for a later week once it has a job. Named like "16/11 to22/11".
+ *   - past weeks are never touched: they stay as the record. Tabs that aren't
+ *     week tabs (no "d/m to d/m" name) are never touched either.
+ * If the app doesn't answer, or two tabs are named for the same week, that
+ * week's tab is left exactly as it was; its title row shows when it last
+ * updated.
  *
  * Source of truth: scripts/google-sheet/jobsheet-sync.gs in the
- * greenqubes-ops repo (Nic, 2026-11-11). Its pure helpers are tested there
- * by scripts/google-sheet/jobsheet-sync.test.ts, which loads THIS file — so
- * nothing at the top level may touch SpreadsheetApp; only define things.
+ * greenqubes-ops repo (Nic, 2026-11-11; full automation 2026-11-12). Its pure
+ * helpers are tested there by scripts/google-sheet/jobsheet-sync.test.ts,
+ * which loads THIS file — so nothing at the top level may touch
+ * SpreadsheetApp; only define things.
  */
 
-const MARKER_PREFIX = 'FROM THE APP ·'
 const WIDTH = 12              // Date … Job Time, the sheet's 12 columns
+const HEADER_ROWS = 2         // the title row and the column names
 const MAX_WEEKS_AHEAD = 10    // weeks further out are not filled yet
-const ROOM_ABOVE_BAR = 10     // empty rows left for typing when a bar is first placed
-const NEW_TAB_BAR_ROW = 45    // a brand-new tab's bar starts no higher than this
+
+/** The column names, in case the app's answer ever lacks them. Must match
+ *  SHEET_COLUMNS in src/lib/utils/jobsheet-rows.ts (tested). */
+const DEFAULT_COLUMNS = [
+  'Date', 'Day', 'Production', 'Contact Person', 'Punctuality', 'Time',
+  'Jobs Description', 'Location / Sites', 'DO', 'PIC', 'Remarks', 'Job Time',
+]
+/** Column widths in pixels, set on every rewrite. */
+const COLUMN_WIDTHS = [70, 50, 90, 150, 90, 140, 300, 220, 60, 100, 160, 90]
 
 // ── Pure helpers (tested in the repo) ────────────────────────────────────────
 
@@ -50,8 +62,8 @@ function realDate(y, m, d) {
  * the WEEKDAY: Nic's weeks start on a Monday (a Sunday start like
  * "22/11 to29/11" is a known typo and still counts), and a date's weekday
  * shifts from one year to the next — so last year's tabs can never be read as
- * this year's or next year's (final review #1). Among the years that fit, the
- * nearest to today wins, ignoring any more than 10 weeks ahead.
+ * this year's or next year's, and are never rewritten. Among the years that
+ * fit, the nearest to today wins, ignoring any more than 10 weeks ahead.
  */
 function weekOfTab(name, todayISO) {
   const m = /^\s*(\d{1,2})\/(\d{1,2})\s*to\s*(\d{1,2})\/(\d{1,2})\s*$/i.exec(String(name))
@@ -83,7 +95,7 @@ function isRefreshable(monday, todayISO) {
 }
 
 /** Week → the tab names that read as that week. Two tabs on one week means
- *  neither is touched (final review #1). Returned as a plain object. */
+ *  neither is touched. Returned as a plain object. */
 function weeksOfTabs(names, todayISO) {
   const out = {}
   names.forEach(function (n) {
@@ -95,6 +107,28 @@ function weeksOfTabs(names, todayISO) {
   return out
 }
 
+/** A missing week tab is made for this week and next week always, and for a
+ *  later week once the app has a job in it. */
+function needsTab(monday, todayISO, rows) {
+  if (daysBetween(mondayOfISO(todayISO), monday) <= 7) return true
+  return rows.some(function (r) { return r && r.type === 'job' })
+}
+
+/** Where a new week tab goes (insertSheet's 0-based position), keeping the
+ *  week tabs in date order: right after the latest earlier week, else right
+ *  before the earliest later week, else at the end. `existing` holds each
+ *  week tab's Monday and its 1-based getIndex(). */
+function insertAt(existing, monday, total) {
+  let before = null, after = null
+  existing.forEach(function (e) {
+    if (e.monday < monday && (!before || e.monday > before.monday)) before = e
+    if (e.monday > monday && (!after || e.monday < after.monday)) after = e
+  })
+  if (before) return before.index
+  if (after) return after.index - 1
+  return total
+}
+
 /** The tab name for the week starting `monday`, in Nic's style. */
 function tabNameFor(monday, spaced) {
   const s = utcOf(monday), e = utcOf(addDaysISO(monday, 6))
@@ -104,25 +138,18 @@ function tabNameFor(monday, spaced) {
 /** Does this tab name write "to 6/12" (spaced) or "to6/12"? */
 function isSpaced(name) { return /to\s+\d/i.test(String(name)) }
 
-/** The bar's words, with when it last filled — stale data shows its age. */
-function barText(updated) {
-  return MARKER_PREFIX + ' updated ' + updated + " · don't type below this line"
+/** Row 1 of every tab: the week, when it last filled (stale data shows its
+ *  age), and that the app owns it. */
+function headerTitle(monday, updated) {
+  return 'Greenqubes jobs · ' + tabNameFor(monday, true) + ' · updated ' + updated + ' · filled by the app every hour, view only'
 }
 
-/** 0-based row of the one yellow bar in column A; -1 none, -2 more than one.
- *  Only a cell that STARTS with the bar's words counts, so a typed note that
- *  mentions it can never be taken for the bar (final review #7). */
-function findMarker(colA) {
-  const hits = []
-  colA.forEach(function (v, i) { if (String(v).trim().indexOf(MARKER_PREFIX) === 0) hits.push(i) })
-  if (hits.length === 0) return -1
-  return hits.length > 1 ? -2 : hits[0]
-}
-
-/** Where a tab's first bar goes: room to type under the last used row, and
- *  never cramped against the header of a new tab (final review #3). 1-based. */
-function markerRowFor(lastUsedRow) {
-  return Math.max(lastUsedRow + ROOM_ABOVE_BAR, NEW_TAB_BAR_ROW)
+/** Row 2: the app's column names, or the built-in ones if they're missing. */
+function headerCells(columns) {
+  const ok = Array.isArray(columns) && columns.length > 0 && columns.every(function (c) { return typeof c === 'string' })
+  const cells = (ok ? columns : DEFAULT_COLUMNS).slice(0, WIDTH)
+  while (cells.length < WIDTH) cells.push('')
+  return cells
 }
 
 /** Google turns text starting = + - @ into a formula ("+65 9123 4567"
@@ -130,6 +157,28 @@ function markerRowFor(lastUsedRow) {
 function safeCell(v) {
   const s = v == null ? '' : String(v)
   return /^[=+\-@]/.test(s) ? "'" + s : s
+}
+
+/** The app's rows → the cell values and their look: grey gap rows, bold
+ *  date rows, red "On leave" rows, and Punctuality (column E) red for Strict,
+ *  blue for Flexible. */
+function paintRows(rows) {
+  const values = [], backgrounds = [], fonts = [], weights = []
+  rows.forEach(function (r) {
+    const cells = (r.cells || []).slice(0, WIDTH).map(safeCell)
+    while (cells.length < WIDTH) cells.push('')
+    const bg = [], fc = [], fw = []
+    for (let i = 0; i < WIDTH; i++) { bg.push(null); fc.push('#000000'); fw.push('normal') }
+    if (r.type === 'gap') for (let i = 0; i < WIDTH; i++) bg[i] = '#cfcfcf'
+    if (r.type === 'day') for (let i = 0; i < WIDTH; i++) fw[i] = 'bold'
+    if (r.type === 'leave') for (let i = 0; i < WIDTH; i++) fc[i] = '#cc0000'
+    if (r.type === 'job') {
+      if (r.punctuality === 'strict') { bg[4] = '#f4cccc'; fc[4] = '#990000' }
+      else { bg[4] = '#cfe2f3'; fc[4] = '#0b5394' }
+    }
+    values.push(cells); backgrounds.push(bg); fonts.push(fc); weights.push(fw)
+  })
+  return { values: values, backgrounds: backgrounds, fonts: fonts, weights: weights }
 }
 
 // ── The sheet side (runs inside Google) ──────────────────────────────────────
@@ -156,7 +205,7 @@ function setAppLink() {
 }
 
 /** Replaces only THIS script's hourly timer, so running it twice never
- *  doubles up and other timers in the project are left alone (review #6). */
+ *  doubles up and other timers in the project are left alone. */
 function setUpHourly() {
   ScriptApp.getProjectTriggers()
     .filter(function (t) { return t.getHandlerFunction() === 'refreshAll' })
@@ -173,7 +222,7 @@ function notify_(ss, msg) {
 function refreshAll() {
   const ss = SpreadsheetApp.getActiveSpreadsheet()
   // One run at a time: a manual refresh overlapping the hourly one would
-  // interleave clears and writes (review #10).
+  // interleave wipes and writes.
   const lock = LockService.getScriptLock()
   if (!lock.tryLock(30000)) { notify_(ss, 'Another refresh is running — try again in a minute.'); return }
   try {
@@ -181,142 +230,121 @@ function refreshAll() {
     if (!link) { notify_(ss, 'No app link yet: Greenqubes → Set app link.'); return }
     const today = Utilities.formatDate(new Date(), 'Asia/Singapore', 'yyyy-MM-dd')
     const updated = Utilities.formatDate(new Date(), 'Asia/Singapore', 'd MMM h:mm a')
+    const thisMonday = mondayOfISO(today)
 
-    try { ensureNextWeekTab_(ss, today) } catch (e) { console.log('Could not make next week\'s tab: ' + e) }
-
-    const sheets = ss.getSheets()
-    const byWeek = weeksOfTabs(sheets.map(function (s) { return s.getName() }), today)
-    let done = 0, skipped = 0
-    sheets.forEach(function (sheet) {
-      const monday = weekOfTab(sheet.getName(), today)
-      if (!monday || !isRefreshable(monday, today)) return
-      if (byWeek[monday].length > 1) {
+    let done = 0, made = 0, skipped = 0
+    for (let k = 0; k <= MAX_WEEKS_AHEAD; k++) {
+      const monday = addDaysISO(thisMonday, 7 * k)
+      const byWeek = weeksOfTabs(ss.getSheets().map(function (s) { return s.getName() }), today)
+      const names = byWeek[monday] || []
+      if (names.length > 1) {
         skipped++
-        console.log('Two tabs for the week of ' + monday + ' (' + byWeek[monday].join(', ') + ') — both left alone')
-        return
+        console.log('Two tabs for the week of ' + monday + ' (' + names.join(', ') + ') — both left alone')
+        continue
+      }
+      // Ask the app first: if it doesn't answer, the tab keeps what it had.
+      const data = fetchWeek_(link, monday)
+      if (!data) { if (names.length) skipped++; continue }
+
+      let sheet = names.length ? ss.getSheetByName(names[0]) : null
+      let fresh = false
+      if (!sheet) {
+        if (!needsTab(monday, today, data.rows)) continue
+        try { sheet = makeTab_(ss, monday, today); fresh = true; made++ }
+        catch (e) { skipped++; console.log('Could not make the tab for ' + monday + ': ' + e); continue }
       }
       try {
-        if (refreshTab_(sheet, link, monday, updated)) done++
-        else skipped++
+        writeTab_(sheet, monday, data, updated)
+        done++
       } catch (e) {
         skipped++
         console.log('Tab "' + sheet.getName() + '" failed: ' + e)
+        if (fresh) { try { ss.deleteSheet(sheet) } catch (e2) { /* leave the empty tab */ } }
       }
-    })
-    notify_(ss, 'Updated ' + done + ' tab(s)' + (skipped ? ', left ' + skipped + ' unchanged' : '') + '.')
+    }
+    notify_(ss, 'Updated ' + done + ' tab(s)' + (made ? ', ' + made + ' new' : '') + (skipped ? ', left ' + skipped + ' unchanged' : '') + '.')
   } finally {
     lock.releaseLock()
   }
 }
 
-/** Next week's tab: a blank tab with the newest weekly tab's header rows
- *  (1–2), column widths and frozen rows copied across. Nothing else is
- *  copied, so last week's jobs can never appear under next week's name. If
- *  anything fails part-way, the half-made tab is removed (review #2). */
-function ensureNextWeekTab_(ss, today) {
-  const nextMonday = addDaysISO(mondayOfISO(today), 7)
-  const byWeek = weeksOfTabs(ss.getSheets().map(function (s) { return s.getName() }), today)
-  if (byWeek[nextMonday]) return
-  let newest = null, newestWeek = ''
-  ss.getSheets().forEach(function (s) {
-    const w = weekOfTab(s.getName(), today)
-    if (w && w <= nextMonday && w > newestWeek) { newestWeek = w; newest = s }
-  })
-  if (!newest) return   // no weekly tab to copy the header from
-
-  const was = ss.getActiveSheet()
-  const tab = ss.insertSheet(tabNameFor(nextMonday, isSpaced(newest.getName())), newest.getIndex())
-  try {
-    const cols = Math.max(newest.getMaxColumns(), WIDTH)
-    if (tab.getMaxColumns() < cols) tab.insertColumnsAfter(tab.getMaxColumns(), cols - tab.getMaxColumns())
-    newest.getRange(1, 1, 2, cols).copyTo(tab.getRange(1, 1))
-    for (let c = 1; c <= cols; c++) tab.setColumnWidth(c, newest.getColumnWidth(c))
-    for (let r = 1; r <= 2; r++) tab.setRowHeight(r, newest.getRowHeight(r))
-    tab.setFrozenRows(Math.min(newest.getFrozenRows(), 2))
-  } catch (e) {
-    ss.deleteSheet(tab)
-    throw e
-  } finally {
-    if (was) ss.setActiveSheet(was)
-  }
+/** One week from the app, checked; null when the answer can't be used. */
+function fetchWeek_(link, monday) {
+  const res = UrlFetchApp.fetch(link + '&week=' + monday, { muteHttpExceptions: true })
+  if (res.getResponseCode() !== 200) { console.log('App answered ' + res.getResponseCode() + ' for ' + monday); return null }
+  let data
+  try { data = JSON.parse(res.getContentText()) } catch (e) { return null }
+  if (!data || !Array.isArray(data.rows)) return null
+  if (!data.rows.every(function (r) { return r && Array.isArray(r.cells) && typeof r.type === 'string' })) return null
+  return data
 }
 
-/** One weekly tab: everything below the yellow bar is replaced by the app's
- *  rows for that week. Every check runs BEFORE anything is changed, so a tab
- *  that is left alone keeps its last good jobs (review #4, #11). */
-function refreshTab_(sheet, link, monday, updated) {
-  const res = UrlFetchApp.fetch(link + '&week=' + monday, { muteHttpExceptions: true })
-  if (res.getResponseCode() !== 200) { console.log('App answered ' + res.getResponseCode() + ' for ' + monday); return false }
-  let data
-  try { data = JSON.parse(res.getContentText()) } catch (e) { return false }
-  if (!data || !Array.isArray(data.rows)) return false
-  if (!data.rows.every(function (r) { return r && Array.isArray(r.cells) && typeof r.type === 'string' })) return false
-
-  const name = sheet.getName()
-  const lastRow = sheet.getLastRow()
-  const maxCols = sheet.getMaxColumns()
-  const colA = lastRow > 0 ? sheet.getRange(1, 1, lastRow, 1).getDisplayValues().map(function (r) { return r[0] }) : []
-  const found = findMarker(colA)
-  if (found === -2) { console.log('Two yellow bars on "' + name + '" — left alone'); return false }
-
-  // Merged cells: getLastRow ignores the empty lower part of a merge, so the
-  // first bar goes below the bottom of any merge; and a merge that crosses
-  // the bar means the tab is left alone rather than unmerging Nic's cells.
-  const merges = lastRow > 0 ? sheet.getRange(1, 1, sheet.getMaxRows(), maxCols).getMergedRanges() : []
-  let lastUsed = lastRow
-  merges.forEach(function (m) { if (m.getRow() <= lastRow) lastUsed = Math.max(lastUsed, m.getLastRow()) })
-  const markerRow = found === -1 ? markerRowFor(lastUsed) : found + 1   // 1-based
-  const crosses = merges.some(function (m) { return m.getRow() < markerRow && m.getLastRow() >= markerRow })
-  if (crosses) { console.log('A merged cell crosses the bar on "' + name + '" — left alone'); return false }
-
-  // Room to write.
-  if (maxCols < WIDTH) sheet.insertColumnsAfter(maxCols, WIDTH - maxCols)
-  const need = markerRow + Math.max(1, data.rows.length)
-  if (sheet.getMaxRows() < need) sheet.insertRowsAfter(sheet.getMaxRows(), need - sheet.getMaxRows())
-
-  // From here on the tab changes. Everything below the bar is the app's
-  // block from the last hour; merges there are the app's own (none) or ones
-  // made below the bar, which the bar says not to do.
-  const width = sheet.getMaxColumns()
-  const below = sheet.getMaxRows() - markerRow
-  if (below > 0) {
-    const old = sheet.getRange(markerRow + 1, 1, below, width)
-    old.breakApart()
-    old.clear()
-  }
-
-  // The yellow bar: one coloured row with the words in column A — not merged,
-  // so a frozen column can never make it fail.
-  sheet.getRange(markerRow, 1, 1, width).clearContent()
-  sheet.getRange(markerRow, 1, 1, WIDTH).setBackground('#fff2cc').setFontColor('#7a5f1e').setFontWeight('bold')
-  sheet.getRange(markerRow, 1).setValue(barText(updated)).setWrap(false)
-
-  if (data.rows.length === 0) return true
-
-  const values = [], backgrounds = [], fonts = []
-  data.rows.forEach(function (r) {
-    const cells = r.cells.slice(0, WIDTH).map(safeCell)
-    while (cells.length < WIDTH) cells.push('')
-    values.push(cells)
-    const bg = new Array(WIDTH).fill(null), fc = new Array(WIDTH).fill('#000000')
-    if (r.type === 'gap') bg.fill('#cfcfcf')
-    if (r.type === 'leave') fc.fill('#cc0000')
-    if (r.type === 'job') {
-      // Column E, Punctuality: red for Strict, blue for Flexible.
-      if (r.punctuality === 'strict') { bg[4] = '#f4cccc'; fc[4] = '#990000' }
-      else { bg[4] = '#cfe2f3'; fc[4] = '#0b5394' }
-    }
-    backgrounds.push(bg)
-    fonts.push(fc)
+/** A new, empty week tab, in date order among the week tabs, named in the
+ *  style of the newest week tab ("16/11 to22/11" or "16/11 to 22/11"). */
+function makeTab_(ss, monday, today) {
+  const existing = []
+  let newest = null
+  ss.getSheets().forEach(function (s) {
+    const w = weekOfTab(s.getName(), today)
+    if (!w) return
+    existing.push({ monday: w, index: s.getIndex() })
+    if (!newest || w > newest.monday) newest = { monday: w, name: s.getName() }
   })
+  const was = ss.getActiveSheet()
+  const tab = ss.insertSheet(tabNameFor(monday, newest ? isSpaced(newest.name) : false), insertAt(existing, monday, ss.getSheets().length))
+  if (was) ss.setActiveSheet(was)
+  return tab
+}
 
-  const block = sheet.getRange(markerRow + 1, 1, values.length, WIDTH)
+/** One week tab, rewritten whole: everything on it is wiped — values,
+ *  colours, merged cells, notes, filters, hidden rows — then the header and
+ *  the app's rows are written from row 1. The app's answer was checked
+ *  before this is called, so a tab is only ever wiped when there is
+ *  something good to write. */
+function writeTab_(sheet, monday, data, updated) {
+  const painted = paintRows(data.rows)
+  const header = headerCells(data.columns)
+
+  const maxRows = sheet.getMaxRows(), maxCols = sheet.getMaxColumns()
+  sheet.setFrozenRows(0)
+  sheet.setFrozenColumns(0)
+  const all = sheet.getRange(1, 1, maxRows, maxCols)
+  all.breakApart()
+  sheet.clear()
+  all.clearDataValidations()
+  all.clearNote()
+  sheet.clearConditionalFormatRules()
+  const filter = sheet.getFilter()
+  if (filter) filter.remove()
+  sheet.getBandings().forEach(function (b) { b.remove() })
+  sheet.showRows(1, maxRows)
+  sheet.showColumns(1, maxCols)
+
+  const need = HEADER_ROWS + Math.max(1, painted.values.length)
+  if (maxCols < WIDTH) sheet.insertColumnsAfter(maxCols, WIDTH - maxCols)
+  if (maxRows < need) sheet.insertRowsAfter(maxRows, need - maxRows)
+  COLUMN_WIDTHS.forEach(function (w, i) { sheet.setColumnWidth(i + 1, w) })
+
+  // Row 1: the title. Not merged: it simply runs across the empty cells.
+  const title = sheet.getRange(1, 1, 1, WIDTH)
+  title.setBackground('#1f3d3b').setFontColor('#ffffff').setFontWeight('bold').setFontSize(11)
+  sheet.getRange(1, 1).setValue(safeCell(headerTitle(monday, updated))).setWrap(false)
+
+  // Row 2: the column names.
+  const names = sheet.getRange(2, 1, 1, WIDTH)
+  names.setNumberFormat('@')
+  names.setValues([header])
+  names.setBackground('#d9e7e6').setFontWeight('bold').setWrap(true).setVerticalAlignment('middle')
+  sheet.setFrozenRows(HEADER_ROWS)
+
+  if (painted.values.length === 0) return
+  const block = sheet.getRange(HEADER_ROWS + 1, 1, painted.values.length, WIDTH)
   // Plain text, or Google turns "11-Nov" into a date and "4:00 PM" into a time.
   block.setNumberFormat('@')
-  block.setValues(values)
-  block.setBackgrounds(backgrounds)
-  block.setFontColors(fonts)
+  block.setValues(painted.values)
+  block.setBackgrounds(painted.backgrounds)
+  block.setFontColors(painted.fonts)
+  block.setFontWeights(painted.weights)
   block.setWrap(true)
   block.setVerticalAlignment('middle')
-  return true
 }

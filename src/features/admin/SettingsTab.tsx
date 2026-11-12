@@ -165,8 +165,8 @@ function JobsheetCard() {
     <Card className="p-4 space-y-3">
       <p className="text-[11px] uppercase tracking-widest text-muted font-medium">Old jobsheet (Google Sheet)</p>
       <p className="text-sm text-ink2">
-        A private link that fills each weekly tab of the old &ldquo;Greenqubes Jobs&rdquo; sheet with the app&rsquo;s
-        scheduled jobs, below a yellow bar. Rows people type above the bar are never touched.
+        A private link that fills the &ldquo;Greenqubes Jobs&rdquo; sheet with the app&rsquo;s scheduled jobs. Every hour,
+        this week&rsquo;s and future weeks&rsquo; tabs are rewritten whole by the app. Past weeks are left as the record.
       </p>
 
       {link === undefined && !note && <p className="text-sm text-muted">Loading…</p>}
@@ -214,11 +214,12 @@ function JobsheetCard() {
             Choose <b>Refresh now</b>. Google asks you to allow it: press Continue. If it says &ldquo;Google hasn&rsquo;t
             verified this app&rdquo;, that&rsquo;s normal for your own script: press Advanced, then Go to the project.
           </li>
-          <li>Choose <b>Set up hourly refresh</b>. From then on it updates itself every hour and makes next week&rsquo;s tab.</li>
+          <li>Choose <b>Set up hourly refresh</b>. From then on it rewrites the weekly tabs every hour and makes the new ones.</li>
         </ol>
         <p className="mt-2">
-          Don&rsquo;t type below the yellow bar, and don&rsquo;t delete it: the next refresh replaces everything under it.
-          To add a job, insert a row <b>above</b> the bar. Try it all on a copy of the sheet first (File → Make a copy).
+          The app owns this week&rsquo;s and future weeks&rsquo; tabs: anything typed there is replaced on the next refresh,
+          so add jobs in the app and share the sheet as Viewer. Updating from the older version: press <b>Copy script</b>
+          and paste it over the old one. Try it on a copy of the sheet first (File → Make a copy).
         </p>
       </details>
     </Card>

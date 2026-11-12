@@ -3,8 +3,8 @@ import type { Crew } from './installer-crew'
 /**
  * The old "Greenqubes Jobs" Google Sheet, filled from the app (Nic,
  * 2026-11-11; spec 2026-11-11-gallery-groups-bulk-sheet-design.md Part 2).
- * A script inside the sheet asks /api/sheet/jobs for one week and writes the
- * rows below its yellow marker bar. All layout decisions live HERE, tested,
+ * A script inside the sheet asks /api/sheet/jobs for one week and rewrites
+ * that week's tab with these rows. All layout decisions live HERE, tested,
  * so the script stays thin: it only writes cells and colours rows by `type`.
  *
  * The sheet's 12 columns, in Nic's order. Production, DO and Job Time stay

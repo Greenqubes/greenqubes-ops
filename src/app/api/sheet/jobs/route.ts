@@ -8,7 +8,8 @@ import { buildWeekRows, parseWeek, SHEET_COLUMNS } from '@/lib/utils/jobsheet-ro
  * GET /api/sheet/jobs?key=…&week=YYYY-MM-DD — one week of scheduled jobs for
  * Nic's old "Greenqubes Jobs" Google Sheet (spec 2026-11-11 Part 2). Read by
  * the Apps Script inside that sheet (scripts/google-sheet/jobsheet-sync.gs),
- * which writes the rows below its yellow marker bar.
+ * which rewrites each week's tab whole with these rows (full automation,
+ * Nic 2026-11-12).
  *
  * No login: src/middleware.ts skips /api/*, and Google calls this from its
  * own servers. The secret key (Admin → Settings) is the whole gate, so it is
