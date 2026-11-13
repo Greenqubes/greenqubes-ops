@@ -53,11 +53,20 @@ _Last updated: 2026-11-04 (feat-files — **you can now fix a finished job's pho
 
 _Last updated: 2026-11-05 (feat-bugs — **the auto-fixer is live.** Every night at 2am, if anything new came into the Bug or Crashes tab, Claude sorts it and prepares small fixes. You get one Telegram with a test link per fix. You try it, then tell the bug bot "put fix 3 live" (or "try again: …", or "drop fix 3"). Wishes come to you as a ping and are never built. Fixes 3 and 4 went live through the bot on the first night. This morning: the fixer's key was changed, a small hiccup in how it pushes was fixed, and the bot can no longer say it started a run when it didn't.)_
 
-_Last updated: 2026-11-06 (feat-jobs — **To arrange is live at 1:07pm.** The Jobs tab now has a third list: Drafts · Ongoing · To arrange. When a job is ready, sales taps **Ready to install** and says roughly when (between two days, a fixed day, or any day) and what time. The scheduler gets a Telegram, picks a date, time and crew, and offers it back. Sales checks with the client: **Client OK** puts it on the schedule with that crew confirmed; **Client said no** sends it back with the reason. Nothing goes on the schedule until the client agrees. Your call: a proposed date never moves the designers' due date. Today's "What's new" popup tells the team.)_
+_Last updated: 2026-11-13 (feat-jobs — **six things went live over four days.** Installers have All Jobs and a Team box (11 Nov). Every job has a Gallery; you can tick jobs and move them back a stage together; the job chat is open to the whole office (12 Nov). Jobs can be grouped on the Jobs tab, and the Greenqubes Jobs sheet now fills itself from the app every hour, view only (13 Nov). The six small things the groups review left were fixed the same evening. "What's new" tells the team about all of it.)_
 
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Gallery, groups, jobsheet, installer All Jobs — ✅ LIVE on production 2026-11-11 → 13
+_You tried groups on the test site ("dragging works so far") and the sheet script on a copy before they went live._
+- [ ] **Tell the team:** the Greenqubes Jobs sheet is view only now — add jobs in the app, never in the sheet. Jobs can be grouped on the Jobs tab. Every job has a Gallery tab. "What's new" says so, but a word in the group chat helps.
+- [ ] **The real sheet (6pm, 13 Nov):** paste the script, Refresh now, Set up hourly refresh, share as Viewer. Next morning, check a week tab's top row says it updated within the hour.
+- [ ] **Delete the test copy of the sheet** — it keeps filling itself every hour until it's gone.
+- [ ] **As an installer:** All Jobs shows the day's confirmed jobs (look only), and job cards show the team (driver, support crew, external).
+- [ ] **Gallery, as the sender of a chat photo:** Delete for everyone is offered for 24 hours, then only Delete for me.
+- [ ] **Groups in real use:** if a suggested name comes out odd, or a job lands in the wrong group, tell Claude which.
 
 ### To arrange — ✅ LIVE on production 2026-11-06
 _You tried it on the test site before it went live. These are the checks worth one go with real logins. Title any test job "TEST" and delete it after (it goes to the Bin)._
@@ -134,6 +143,8 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - [x] **[Nic] Test external contacts — nothing left to delete.** Only two contacts remain, CK and Fu, both real contractors on real completed jobs (Fossil Westgate 4 Sept, Sunglass Hut Tangs 17 Sept).
 
 ### To build
+- [ ] **"Client approved: go ahead" button for sales on the Design brief card** (raised this session, not yet answered) — sends a Telegram to the designers on the job. Today sales has to message designers outside the app, and the "Design completed" tick tells nobody. Kept separate from "Design completed", since "the designer finished" and "the client said yes, make it" are different moments.
+  - Settle first: should production (e.g. Printing) get the message too? Does the wording change between print and fabricate?
 - [ ] **Auto-fixer page in Admin** (asked 2026-11-04) — see the fixer's work without reading anything technical
   - The latest run: started, running, done or failed, with a link to its log
   - Each bug and crash with its verdict in plain words: fix ready to try (with its test link), wish, junk, needs a session, live
@@ -182,6 +193,18 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-11-10 → 13, feat-jobs — Gallery, Job Groups, Bulk Move Back, Jobsheet Automation, Installer All Jobs, LIVE)
+
+- [x] **[Nic] Installers: All Jobs** (every confirmed job for a day, look only), a **Team box** on their cards (driver, support crew, external) and the full address. My jobs side panel shows each job's address and description. Live 11 Nov, 2:35pm.
+- [x] **[Nic] Bulk move back:** tick jobs and send them To arrange → Ongoing, or Ongoing → Drafts, in one go. Jobs that can't move stay ticked with the reason.
+- [x] **[Nic] Job Gallery:** every photo, video, voice note, file and link on a job in one place (a tab after Chat on a phone, below the chat on a computer). Delete for me, and Delete for everyone — the sender's only within 24 hours (your call). Bigger Download and Delete buttons in the full-screen viewer.
+- [x] **[Nic] Job chat open to the whole office** (your call: "installer only can see the job chat they are assigned on anyways").
+- [x] **[Nic] Old Greenqubes Jobs sheet filled by the app:** first below a yellow bar, then full automation at your ask — each week's tab rewritten whole every hour, header included, past weeks left alone, view only. Setup guide page: https://claude.ai/artifact/UCbTw5uY9eSrNPBBedNPXF. Tested by you on a copy.
+- [x] **[Nic] Job groups on the Jobs tab:** tick → Group (name fills itself in), Add to group / Remove from group, drag in and out on a computer, Rename and Ungroup. Shared, same for everyone. Live 13 Nov, 4:23pm.
+- [x] **[Nic] The six small things the groups review left — all fixed at your ask** ("fix those"): no empty group left by a failed save, no job lost when two people change a group at once (database change 0073), the Jobs tab survives a failed group read, no flash of the old name in the rename box, bad requests answered properly, labels translated, the whole row shown when dragging. Live 6:55pm.
+- [x] **[Nic] Database changes 0070, 0071, 0072, 0073 applied** (each on your "apply"), always before the code that needed them.
+- [x] **[Nic] "What's new"** entries for 11, 12 and 13 Nov, timed from the live site's own clock.
 
 ## Done This Session ✓ (2026-11-04 → 06, feat-jobs — To Arrange, LIVE)
 
