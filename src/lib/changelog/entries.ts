@@ -34,6 +34,40 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-13',
+    // 16:23 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1794558227053, captured the moment /api/version flipped to
+    // 93aec50d674d (commit 5de80ba, job groups + the sheet's full
+    // automation). Never the local clock (CLAUDE.md).
+    time: '16:23',
+    headsUp: [
+      'From tonight, the Greenqubes Jobs sheet fills itself from the app every hour. Don\'t type in it: add jobs in the app.',
+    ],
+    added: [
+      'Jobs tab: tick jobs and tap **Group** to fold them into one named row.',
+      'Use **Add to group** and **Remove from group**, or drag jobs in and out on a computer.',
+      'Open a group to **Rename** or **Ungroup** it.',
+    ],
+  },
+  {
+    date: '2026-11-12',
+    // 20:08 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1794485335055, captured the moment /api/version flipped to
+    // a222744d13f8 (commit f6ffbb6, gallery + bulk move back + chat open to
+    // the office). Never the local clock (CLAUDE.md).
+    time: '20:08',
+    added: [
+      'Every job has a **Gallery** (below the chat on a computer): all its photos, files and links.',
+      'Gallery: **Delete for me** hides a photo or file just for you.',
+      'Your own chat photos can be deleted for everyone within 24 hours of sending.',
+      'Jobs tab: tick several jobs to move them back a stage at once.',
+    ],
+    improved: [
+      'Office staff can now open and post in any job\'s chat.',
+      'The full-screen photo viewer has bigger Download and Delete buttons.',
+    ],
+  },
+  {
     date: '2026-11-11',
     // 14:35 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1794378931237, captured the moment /api/version flipped to
