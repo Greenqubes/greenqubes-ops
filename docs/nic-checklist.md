@@ -163,6 +163,11 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
   - Option A: Supabase Branching — a fresh test database per branch; needs the Pro plan + a small hourly charge per branch
   - Option B: a second free Supabase project kept as "staging"; changes applied to it by hand
   - Both start EMPTY (no real jobs or users) and need Google sign-in + test accounts set up — check current pricing first
+- [ ] **Change history (changelog) on every job** (asked 2026-11-13) — a record of every change to every job: who, when, which field, and old → new. Today a job keeps only its created time and its last-changed time, so "entered wrong, or did the system move it?" needs a dig through the database's request log. The 13 Nov "Nex event" check took that dig: Wei Qing entered it at 9:48am, nobody touched it again until your 7:33pm fix.
+  - Records every way a job changes, not just the job form: stage buttons, schedule drags, crew changes, the assistant
+  - Shows as a History list on the job — settle: who can see it (everyone who can see the job, or office only)?
+  - Records from the day it goes live; changes before that cannot be recovered
+  - Not the same as the "What's new" popup changelog — that one is app updates for the team
 
 ### Quiet-session cleanups
 - [ ] Remove unused database columns: `job_external_contacts.status`, `users.years_experience`, `users.skills`
