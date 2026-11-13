@@ -782,6 +782,8 @@ export const zh: Partial<Translations> = {
   groupUngroup: "解散分组",
   groupJobsCount: "{n} 份工作",
   groupAction: "分组",
+  groupSelect: "选择分组",
+  stageSelectJob: "选择工作",
   groupAddTo: "加入分组",
   groupRemoveFrom: "移出分组",
   groupCreateTitle: "把 {n} 份工作分组",

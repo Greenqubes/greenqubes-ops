@@ -88,17 +88,29 @@ check('1 → the singular text', countKey(1, 'groupAddedOne', 'groupAdded') === 
 check('0 and 2+ → the plural text', countKey(0, 'a', 'b') === 'b' && countKey(2, 'a', 'b') === 'b' && countKey(20, 'a', 'b') === 'b')
 
 console.log('Request shape')
-const created = parseGroupBody({ action: 'create', name: '  Oakley ', jobIds: ['a', 'a', 'b'] })
-check('body: create trims, dedupes', JSON.stringify(created) === JSON.stringify({ action: 'create', name: 'Oakley', jobIds: ['a', 'b'] }))
+// Ids are uuids, as the database's are.
+const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+const JA = uid(1), JB = uid(2), GX = uid(9), LX = 'abcdef01-2345-4678-9abc-def012345678'
+const created = parseGroupBody({ action: 'create', name: '  Oakley ', jobIds: [JA, JA, JB] })
+check('body: create trims, dedupes', JSON.stringify(created) === JSON.stringify({ action: 'create', name: 'Oakley', jobIds: [JA, JB] }))
 check('body: add / remove / rename / ungroup accepted',
-  parseGroupBody({ action: 'add', groupId: 'g', jobIds: ['a'] }) !== null
-  && parseGroupBody({ action: 'remove', jobIds: ['a'] }) !== null
-  && parseGroupBody({ action: 'rename', groupId: 'g', name: 'N' }) !== null
-  && parseGroupBody({ action: 'ungroup', groupId: 'g' }) !== null)
+  parseGroupBody({ action: 'add', groupId: GX, jobIds: [JA] }) !== null
+  && parseGroupBody({ action: 'remove', jobIds: [JA] }) !== null
+  && parseGroupBody({ action: 'rename', groupId: GX, name: 'N' }) !== null
+  && parseGroupBody({ action: 'ungroup', groupId: GX }) !== null)
+check('body: an upper-case uuid is accepted', parseGroupBody({ action: 'ungroup', groupId: LX.toUpperCase() }) !== null)
+check('body: the same job in two cases counts once', JSON.stringify(parseGroupBody({ action: 'remove', jobIds: [LX, LX.toUpperCase()] })) === JSON.stringify({ action: 'remove', jobIds: [LX] }))
 check('body: refused', [
-  { action: 'create', name: '   ', jobIds: ['a'] }, { action: 'create', name: 'x'.repeat(121), jobIds: ['a'] },
-  { action: 'add', groupId: 'g', jobIds: [] }, { action: 'add', groupId: 'g', jobIds: Array(201).fill(0).map((_, i) => 'j' + i) },
+  { action: 'create', name: '   ', jobIds: [JA] }, { action: 'create', name: 'x'.repeat(121), jobIds: [JA] },
+  { action: 'add', groupId: GX, jobIds: [] }, { action: 'add', groupId: GX, jobIds: Array(201).fill(0).map((_, i) => uid(i)) },
   { action: 'remove', jobIds: [5] }, { action: 'rename', groupId: '', name: 'N' }, { action: 'explode' }, null, 'x',
+].every(raw => parseGroupBody(raw) === null))
+// Final review minor (Nic, 2026-11-13: fix): a non-uuid id reached the
+// database, which answered with an error the route turned into a 500.
+check('body: a non-uuid job id is refused (400, not 500)', parseGroupBody({ action: 'remove', jobIds: [JA, 'abc'] }) === null)
+check('body: a non-uuid group id is refused', [
+  { action: 'add', groupId: 'g', jobIds: [JA] }, { action: 'rename', groupId: 'not-a-uuid', name: 'N' },
+  { action: 'ungroup', groupId: `${GX}x` }, { action: 'ungroup', groupId: ` ${GX}` },
 ].every(raw => parseGroupBody(raw) === null))
 
 if (failures) { console.error(`\n${failures} group check(s) failed`); process.exit(1) }

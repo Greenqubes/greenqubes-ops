@@ -245,10 +245,10 @@ export function StageListShell({ ongoing, drafts, arrange, groups, canCreate, pa
       {...drag.dragProps(j)}
       className={cn('scroll-mt-20 scroll-mb-24 flex items-center gap-3 rounded-[14px] border border-line bg-paper px-4', shortTitle ? 'py-2.5' : 'py-3')}>
       {canTick && (
-        <input type="checkbox" checked={selected.has(j.id)} aria-label="Select" onChange={() => toggle(j.id)} />
+        <input type="checkbox" checked={selected.has(j.id)} aria-label={tr(lang, 'stageSelectJob')} onChange={() => toggle(j.id)} />
       )}
       <Link href={`/jobs/${j.id}`} className="flex-1 min-w-0">
-        <p className={cn('font-display font-semibold text-ink truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || 'Untitled job')}</p>
+        <p className={cn('font-display font-semibold text-ink truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || tr(lang, 'untitledJob'))}</p>
         <p className="text-xs text-muted truncate">{j.client}</p>
         {view === 'ongoing' && j.designerNames.length > 0 && (
           <p className="text-[11px] text-ink2 truncate">{tr(lang, 'stageDesigner')}: {j.designerNames.join(', ')}</p>

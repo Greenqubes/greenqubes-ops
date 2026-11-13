@@ -85,13 +85,13 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
       <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id} {...dragProps?.(j)}
         className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70', selectable && 'flex items-start gap-3 pl-4')}>
         {selectable && (
-          <input type="checkbox" className="mt-4 shrink-0" checked={selected?.has(j.id) ?? false} aria-label="Select"
+          <input type="checkbox" className="mt-4 shrink-0" checked={selected?.has(j.id) ?? false} aria-label={tr(lang, 'stageSelectJob')}
             onChange={() => onToggle?.(j.id)} />
         )}
         <div className={cn(selectable && 'flex-1 min-w-0')}>
         <Link href={arrangeCardHref(j.id, ctaKind)} className={cn('block py-3 space-y-1.5', selectable ? 'pr-4' : 'px-4')}>
           <div className="flex items-start justify-between gap-2">
-            <p className={cn('font-display font-semibold text-ink min-w-0 truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || 'Untitled job')}</p>
+            <p className={cn('font-display font-semibold text-ink min-w-0 truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || tr(lang, 'untitledJob'))}</p>
             {c && <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', c.cls)}>{c.text}</span>}
           </div>
           <p className="text-xs text-muted truncate">

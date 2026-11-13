@@ -891,6 +891,8 @@ export const en = {
   groupUngroup: "Ungroup",
   groupJobsCount: "{n} jobs",
   groupAction: "Group",
+  groupSelect: "Select group",
+  stageSelectJob: "Select job",
   groupAddTo: "Add to group",
   groupRemoveFrom: "Remove from group",
   groupCreateTitle: "Group {n} jobs",

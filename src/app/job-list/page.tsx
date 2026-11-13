@@ -42,19 +42,24 @@ export default async function JobListPage() {
   // My Jobs panel here too (Nic, 2026-10-19): the same as on the Schedule page
   // for the roles with drafts, and a designer's assigned jobs for designers.
   const isDesigner = effectiveRole === 'designer'
-  const [allOngoing, drafts, scheduledJobs] = await Promise.all([
-    getStageJobs(['awaiting_date']),                                         // raw status — see job-stage.ts
-    hasDrafts ? getStageJobs(['pending', 'awaiting_approval']) : Promise.resolve(null), // DRAFTS; RLS (0062) keeps them private
+  const ongoingP = getStageJobs(['awaiting_date'])                                           // raw status — see job-stage.ts
+  const draftsP  = hasDrafts ? getStageJobs(['pending', 'awaiting_approval']) : Promise.resolve(null) // DRAFTS; RLS (0062) keeps them private
+  // Job groups (0072) shown on this tab — Drafts, Ongoing, To arrange only.
+  // Read as soon as those two lists are in, alongside the panel's scheduled
+  // jobs rather than after them (final review, Nic 2026-11-13).
+  const groupsP  = Promise.all([ongoingP, draftsP]).then(([o, d]) =>
+    getJobGroups([...new Set([...o, ...(d ?? [])].map(j => j.group_id).filter((g): g is string => !!g))]))
+  const [allOngoing, drafts, scheduledJobs, groups] = await Promise.all([
+    ongoingP,
+    draftsP,
     hasDrafts || isDesigner ? getStageJobs(['scheduled']) : Promise.resolve(null),     // for the panel only
+    groupsP,
   ])
   // To arrange (2026-11-04): Ongoing jobs sales has marked ready live in their
   // own list, never in both.
   const ongoing = allOngoing.filter(j => !j.arrange_state)
   const arrange = allOngoing.filter(j => j.arrange_state)
   const panelJobs = scheduledJobs ? [...allOngoing, ...(drafts ?? []), ...scheduledJobs] : null
-  // Job groups (0072) shown on this tab — Drafts, Ongoing, To arrange only.
-  const groupIds = [...new Set([...allOngoing, ...(drafts ?? [])].map(j => j.group_id).filter((g): g is string => !!g))]
-  const groups = await getJobGroups(groupIds)
 
   return (
     <Suspense>

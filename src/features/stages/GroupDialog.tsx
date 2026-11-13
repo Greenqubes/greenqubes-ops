@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Folder } from 'lucide-react'
 import { Modal } from '@/components/Modal'
 import { t as tr, type LangCode } from '@/lib/i18n'
@@ -34,7 +34,14 @@ export function GroupDialog({ mode, count, initialName, existing, busy, lang, on
   onUngroup:   () => void
 }) {
   const [name, setName] = useState(initialName)
-  useEffect(() => { if (mode) setName(initialName) }, [mode, initialName])
+  // Each opening starts from its own name. Reset while rendering, not in an
+  // effect: an effect runs after the screen paints, so the previous opening's
+  // name showed for a frame (final review, Nic 2026-11-13).
+  const [openedFor, setOpenedFor] = useState({ mode, initialName })
+  if (openedFor.mode !== mode || openedFor.initialName !== initialName) {
+    setOpenedFor({ mode, initialName })
+    if (mode) setName(initialName)
+  }
   const n = String(count)
   const title = mode === 'create' ? tr(lang, 'groupCreateTitle').replace('{n}', n)
     : mode === 'add' ? tr(lang, countKey(count, 'groupAddTitleOne', 'groupAddTitle')).replace('{n}', n)

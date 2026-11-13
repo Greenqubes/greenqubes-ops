@@ -44,6 +44,11 @@ export function useJobDrag({ enabled, onAdd, onRemove }: {
     onDragStart: (e: DragEvent<HTMLLIElement>) => {
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('text/plain', job.id)
+      // A drag that starts on the title starts on its link, and the browser's
+      // picture would be just the link. Picture the whole row, held where the
+      // pointer took it (final review, Nic 2026-11-13).
+      const row = e.currentTarget.getBoundingClientRect()
+      e.dataTransfer.setDragImage(e.currentTarget, e.clientX - row.left, e.clientY - row.top)
       const started = { id: job.id, groupId: job.group_id }
       const no = ++dragNo.current
       setTimeout(() => { if (dragNo.current === no) setDrag(started) }, 0)

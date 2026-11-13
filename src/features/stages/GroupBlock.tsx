@@ -25,8 +25,6 @@ export type GroupBlockProps = {
   lang:         LangCode
 }
 
-const titleOf = (j: StageJob) => j.project_title || j.client || 'Untitled job'
-
 /**
  * One Jobs tab group (Nic, 2026-11-11; approved mockup): folded, a single row
  * with the name, the company and sales person when every job shares them, and
@@ -35,6 +33,7 @@ const titleOf = (j: StageJob) => j.project_title || j.client || 'Untitled job'
  */
 export function GroupBlock({ group, jobs, open, onToggleOpen, tick, onTickAll, canChange, onRename, onUngroup, renderJob, drop, lang }: GroupBlockProps) {
   const sum = groupSummary(jobs)
+  const titleOf = (j: StageJob) => j.project_title || j.client || tr(lang, 'untitledJob')
   const line = [sum.client, sum.salesName && `${tr(lang, 'arrangeSales')}: ${sum.salesName}`].filter(Boolean).join(' · ')
   return (
     <li data-group-card={group.id} {...drop?.props}
@@ -42,7 +41,7 @@ export function GroupBlock({ group, jobs, open, onToggleOpen, tick, onTickAll, c
         drop?.active && 'border-2 border-dashed border-brand-green bg-brand-green-soft')}>
       <div className="flex items-center gap-3 px-4 py-3">
         {tick !== null && (
-          <input type="checkbox" checked={tick === 'all'} aria-label="Select group"
+          <input type="checkbox" checked={tick === 'all'} aria-label={tr(lang, 'groupSelect')}
             ref={el => { if (el) el.indeterminate = tick === 'some' }}
             onChange={onTickAll} />
         )}

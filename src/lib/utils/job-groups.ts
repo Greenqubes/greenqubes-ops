@@ -144,6 +144,8 @@ export type GroupBody =
   | { action: 'ungroup'; groupId: string }
 
 /** The /api/job-groups request, or null when it isn't one. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function parseGroupBody(raw: unknown): GroupBody | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
@@ -152,11 +154,14 @@ export function parseGroupBody(raw: unknown): GroupBody | null {
     const n = r.name.trim()
     return n.length >= 1 && n.length <= GROUP_NAME_MAX ? n : null
   }
-  const id = (v: unknown): string | null => typeof v === 'string' && v.length > 0 ? v : null
+  // Ids are uuids: anything else is refused here (400), never sent to the
+  // database to fail there (500) — final review, Nic 2026-11-13.
+  const isId = (v: unknown): v is string => typeof v === 'string' && UUID.test(v)
+  const id = (v: unknown): string | null => isId(v) ? v.toLowerCase() : null
   const jobIds = (): string[] | null => {
     if (!Array.isArray(r.jobIds) || r.jobIds.length === 0 || r.jobIds.length > BULK_MAX) return null
-    if (!r.jobIds.every(x => typeof x === 'string' && x.length > 0)) return null
-    return [...new Set(r.jobIds as string[])]
+    if (!r.jobIds.every(isId)) return null
+    return [...new Set((r.jobIds as string[]).map(x => x.toLowerCase()))]
   }
   switch (r.action) {
     case 'create': { const n = name(), ids = jobIds(); return n && ids ? { action: 'create', name: n, jobIds: ids } : null }
