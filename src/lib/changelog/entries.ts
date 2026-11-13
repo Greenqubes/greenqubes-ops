@@ -35,11 +35,13 @@ export type ChangelogEntry = {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
-    // 16:23 SGT, decoded from the production deployment's own x-vercel-id
-    // epoch 1794558227053, captured the moment /api/version flipped to
-    // 93aec50d674d (commit 5de80ba, job groups + the sheet's full
-    // automation). Never the local clock (CLAUDE.md).
-    time: '16:23',
+    // 18:55 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1794567319662, captured the moment /api/version flipped to
+    // ddb25f175111 (commit 8b076b8, groups fixes). The 16:23 release
+    // (5de80ba, job groups + the sheet's full automation, epoch
+    // 1794558227053) is folded into this same entry. Never the local clock
+    // (CLAUDE.md).
+    time: '18:55',
     headsUp: [
       'From tonight, the Greenqubes Jobs sheet fills itself from the app every hour. Don\'t type in it: add jobs in the app.',
     ],
@@ -47,6 +49,10 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Jobs tab: tick jobs and tap **Group** to fold them into one named row.',
       'Use **Add to group** and **Remove from group**, or drag jobs in and out on a computer.',
       'Open a group to **Rename** or **Ungroup** it.',
+    ],
+    fixed: [
+      'Dragging a job into a group now shows the whole row, not just its title.',
+      'Renaming a group no longer flashes the previous name.',
     ],
   },
   {
