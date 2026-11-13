@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStageJobs } from '@/lib/supabase/queries/jobs'
+import { getJobGroups } from '@/lib/supabase/queries/job-groups'
 import { StageListShell } from '@/features/stages/StageListShell'
 import { getEffectiveRole, getNavRole } from '@/lib/utils/role-override'
 import type { LangCode } from '@/lib/i18n'
@@ -51,10 +52,13 @@ export default async function JobListPage() {
   const ongoing = allOngoing.filter(j => !j.arrange_state)
   const arrange = allOngoing.filter(j => j.arrange_state)
   const panelJobs = scheduledJobs ? [...allOngoing, ...(drafts ?? []), ...scheduledJobs] : null
+  // Job groups (0072) shown on this tab — Drafts, Ongoing, To arrange only.
+  const groupIds = [...new Set([...allOngoing, ...(drafts ?? [])].map(j => j.group_id).filter((g): g is string => !!g))]
+  const groups = await getJobGroups(groupIds)
 
   return (
     <Suspense>
-      <StageListShell ongoing={ongoing} drafts={drafts} arrange={arrange} canCreate={hasDrafts}
+      <StageListShell ongoing={ongoing} drafts={drafts} arrange={arrange} groups={groups} canCreate={hasDrafts}
         panelJobs={panelJobs} panelMode={isDesigner ? 'designer' : effectiveRole === 'scheduler' ? 'scheduler' : 'mine'} userId={profile.id}
         isAdmin={profile.role === 'admin'}
         lang={(profile.lang as LangCode) ?? 'en'} role={effectiveRole} navRole={navRole} />

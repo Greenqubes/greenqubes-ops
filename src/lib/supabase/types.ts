@@ -93,13 +93,15 @@ export interface Database {
           // `arrangement`: src/lib/utils/arrange-rules.ts (parseArrangement).
           arrange_state:           string | null
           arrangement:             Json | null
+          // Jobs tab groups (migration 0072). null = not grouped.
+          group_id:                string | null
           visibility:              string[]
           created_at:              string
           updated_at:              string
         }
         Insert: Omit<
           Database['public']['Tables']['jobs']['Row'],
-          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'lat' | 'lng' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution' | 'arrange_state' | 'arrangement'
+          'id' | 'created_at' | 'updated_at' | 'created_by' | 'scheduled_at' | 'project_title' | 'date_end' | 'r2_folder' | 'lat' | 'lng' | 'design_brief' | 'design_due_date' | 'design_due_manual' | 'design_complexity' | 'design_confidence' | 'design_score_reason' | 'design_scored_at' | 'design_completed_at' | 'design_completed_by' | 'design_rated_complexity' | 'design_rating_suspect' | 'design_rating_resolution' | 'arrange_state' | 'arrangement' | 'group_id'
         > & {
           id?:                     string
           created_at?:             string
@@ -125,6 +127,7 @@ export interface Database {
           design_rating_resolution?: 'kept' | 'discarded' | null
           arrange_state?:          string | null
           arrangement?:            Json | null
+          group_id?:               string | null
         }
         Update: Partial<Database['public']['Tables']['jobs']['Insert']>
         Relationships: []

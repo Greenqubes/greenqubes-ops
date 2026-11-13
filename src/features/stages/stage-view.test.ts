@@ -3,7 +3,7 @@
  * Run: npx tsx src/features/stages/stage-view.test.ts
  * Exits 1 on any failure.
  */
-import { resolveStageView, jobListHref, defaultStageView } from './stage-view'
+import { resolveStageView, jobListHref, defaultStageView, nextBlink } from './stage-view'
 
 let failures = 0
 function check(name: string, actual: unknown, expected: unknown) {
@@ -17,6 +17,14 @@ function check(name: string, actual: unknown, expected: unknown) {
 // reads Drafts · Ongoing · To arrange. The scheduler opens on To arrange (it
 // is his inbox); everyone else still opens on Ongoing.
 console.log('the role default:')
+// The My Jobs jump (scroll + blink) runs once per job per list, and again
+// after the highlight was dropped (final review, 2026-11-12).
+check('new highlight → blink', nextBlink(null, 'x', 'ongoing', true), { blink: true, last: 'ongoing:x' })
+check('same highlight again → no second blink', nextBlink('ongoing:x', 'x', 'ongoing', true), { blink: false, last: 'ongoing:x' })
+check('group not open yet → wait', nextBlink(null, 'x', 'ongoing', false), { blink: false, last: null })
+check('highlight dropped → forget, so the same job blinks next time', nextBlink('ongoing:x', null, 'drafts', true), { blink: false, last: null })
+check('same job on another list → blink', nextBlink('ongoing:x', 'x', 'drafts', true), { blink: true, last: 'drafts:x' })
+
 check('scheduler opens on To arrange', defaultStageView('scheduler'), 'arrange')
 check('sales opens on Ongoing', defaultStageView('sales'), 'ongoing')
 check('designer opens on Ongoing', defaultStageView('designer'), 'ongoing')

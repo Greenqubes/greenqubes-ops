@@ -24,14 +24,20 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const [{ data: users }, { data: contacts }] = await Promise.all([
+  // The job's group (0072), if it had one and it still exists.
+  const snapGroup = typeof entry.snapshot.job?.group_id === 'string' ? entry.snapshot.job.group_id : null
+  const [{ data: users }, { data: contacts }, { data: groups }] = await Promise.all([
     svc.from('users').select('id'),
     svc.from('external_contacts').select('id'),
+    snapGroup
+      ? svc.from('job_groups' as never).select('id').eq('id', snapGroup)
+      : Promise.resolve({ data: [] as { id: string }[] }),
   ])
   const { snapshot, leftOff } = prepareRestore(
     entry.snapshot,
     new Set(((users ?? []) as { id: string }[]).map(u => u.id)),
     new Set(((contacts ?? []) as { id: string }[]).map(c => c.id)),
+    new Set(((groups ?? []) as { id: string }[]).map(g => g.id)),
   )
 
   const { error } = await svc.rpc('restore_job_snapshot' as never, { p_bin_id: entry.id, p_snapshot: snapshot } as never)

@@ -1,11 +1,13 @@
 'use client'
 
+import { Fragment, type HTMLAttributes, type ReactNode } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils/cn'
 import { t as tr, type LangCode } from '@/lib/i18n'
 import { groupArrangeJobs, arrangeCta, arrangeCardHref, isArrangeSalesSide, isArrangeSchedulerSide, type ArrangeCta } from '@/lib/utils/arrange-rules'
 import { guideLabel, slotLabel, daysWaiting } from '@/lib/utils/arrange-labels'
 import { BULK_REASON_KEY, type BulkFailReason } from '@/lib/utils/bulk-move'
+import { foldGroups, type JobGroup } from '@/lib/utils/job-groups'
 import type { StageJob } from '@/lib/supabase/queries/jobs'
 import type { StageViewer } from '@/lib/utils/job-stage-rules'
 
@@ -18,8 +20,13 @@ import type { StageViewer } from '@/lib/utils/job-stage-rules'
  * `selectable` (bulk Back to Ongoing, Nic 2026-11-11) adds a tick box to the
  * left of each card; a job that could not move shows its reason underneath.
  * Without it the cards render exactly as before.
+ *
+ * Job groups (Nic, 2026-11-11): with `groups` and `renderGroup`, each section
+ * folds its own grouped jobs into one row (a group shows in every section,
+ * holding only that section's jobs). The shell renders the group row; this
+ * list hands it its own card for the jobs inside.
  */
-export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, selected, onToggle, reasons }: {
+export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, selected, onToggle, reasons, groups, renderGroup, dragProps }: {
   jobs:     StageJob[]
   viewer:   StageViewer
   lang:     LangCode
@@ -29,6 +36,10 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
   selected?:   Set<string>
   onToggle?:   (id: string) => void
   reasons?:    Map<string, BulkFailReason>
+  groups?:      Map<string, JobGroup>
+  renderGroup?: (group: JobGroup, sectionJobs: StageJob[], renderCard: (job: StageJob, shortTitle: string) => ReactNode) => ReactNode
+  /** Drag into / out of a group on a computer (useJobDrag). */
+  dragProps?:   (job: StageJob) => HTMLAttributes<HTMLLIElement>
 }) {
   const { needsDate, withSales } = groupArrangeJobs(jobs)
   const schedulerSide = isArrangeSchedulerSide(viewer)
@@ -61,7 +72,7 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
   }
   const CTA_KEY = { offer: 'arrangeOfferCta', answer: 'arrangeAnswerCta', change: 'arrangeChangeCta' } as const
 
-  const card = (j: StageJob, quiet: boolean) => {
+  const card = (j: StageJob, quiet: boolean, shortTitle?: string) => {
     const a = j.arrangement
     const c = chip(j)
     const ctaKind = ctaOf(j)
@@ -71,7 +82,7 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
       ? a.lastReturn.text : null
     const why = reasons?.get(j.id)
     return (
-      <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id}
+      <li key={j.id} id={`stage-row-${j.id}`} data-job-card={j.id} {...dragProps?.(j)}
         className={cn('scroll-mt-20 scroll-mb-24 rounded-[14px] border border-line bg-paper', quiet && 'opacity-70', selectable && 'flex items-start gap-3 pl-4')}>
         {selectable && (
           <input type="checkbox" className="mt-4 shrink-0" checked={selected?.has(j.id) ?? false} aria-label="Select"
@@ -80,7 +91,7 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
         <div className={cn(selectable && 'flex-1 min-w-0')}>
         <Link href={arrangeCardHref(j.id, ctaKind)} className={cn('block py-3 space-y-1.5', selectable ? 'pr-4' : 'px-4')}>
           <div className="flex items-start justify-between gap-2">
-            <p className="font-display text-sm font-semibold text-ink min-w-0 truncate">{j.project_title || j.client || 'Untitled job'}</p>
+            <p className={cn('font-display font-semibold text-ink min-w-0 truncate', shortTitle ? 'text-[13px]' : 'text-sm')}>{shortTitle ?? (j.project_title || j.client || 'Untitled job')}</p>
             {c && <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', c.cls)}>{c.text}</span>}
           </div>
           <p className="text-xs text-muted truncate">
@@ -112,19 +123,26 @@ export function ArrangeList({ jobs, viewer, lang, todayISO, selectable = false, 
     )
   }
 
+  // One section → its cards, with grouped jobs folded into their group row.
+  const section = (list: StageJob[], quiet: boolean) => groups && renderGroup
+    ? foldGroups(list, groups).map(it => it.kind === 'job'
+      ? card(it.job, quiet)
+      : <Fragment key={it.group.id}>{renderGroup(it.group, it.jobs, (j, short) => card(j, quiet, short))}</Fragment>)
+    : list.map(j => card(j, quiet))
+
   if (jobs.length === 0) return <p className="text-sm text-muted py-8 text-center">{tr(lang, 'stageListEmpty')}</p>
   return (
     <div className="space-y-2">
       {needsDate.length > 0 && (
         <>
           <h2 className="text-[11px] uppercase tracking-widest text-muted">{tr(lang, 'arrangeGroupNeedsDate')} · {needsDate.length}</h2>
-          <ul className="space-y-2">{needsDate.map(j => card(j, false))}</ul>
+          <ul className="space-y-2">{section(needsDate, false)}</ul>
         </>
       )}
       {withSales.length > 0 && (
         <>
           <h2 className="pt-2 text-[11px] uppercase tracking-widest text-muted">{tr(lang, 'arrangeGroupWithSales')} · {withSales.length}</h2>
-          <ul className="space-y-2">{withSales.map(j => card(j, true))}</ul>
+          <ul className="space-y-2">{section(withSales, true)}</ul>
         </>
       )}
     </div>
