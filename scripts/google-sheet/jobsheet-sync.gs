@@ -25,7 +25,8 @@
  *     week tabs (no "d/m to d/m" name) are never touched either.
  * If the app doesn't answer, sends something incomplete, or two tabs are
  * named for the same week, that week's tab is left exactly as it was; its
- * title row shows when it last updated.
+ * title row shows when it last updated. (If Google itself stops part-way
+ * through a write, the next hourly run fills the tab again.)
  *
  * Source of truth: scripts/google-sheet/jobsheet-sync.gs in the
  * greenqubes-ops repo. Its pure helpers are tested there by
@@ -138,25 +139,29 @@ function safeCell(v) {
 }
 
 function sized_(a, n, ok) { return Array.isArray(a) && a.length === n && a.every(ok) }
+function isColour_(v) { return typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v) }
 
 /** Is the app's answer whole? Checked BEFORE a tab is wiped, so a bad or
- *  half answer can never leave a tab empty. Every row must carry exactly one
- *  value, fill, text colour, weight and alignment per column. */
+ *  half answer never leaves a tab empty. Every row must carry exactly one
+ *  value, fill, text colour, weight and alignment per column, and nothing
+ *  Google would refuse part-way through writing: colours as #RRGGBB, whole
+ *  pixel widths, at least one row left unpinned, no cell over Google's
+ *  50,000-character limit. */
 function usableWeek(data) {
   if (!data || data.layout !== LAYOUT || typeof data.hasJobs !== 'boolean') return false
   const widths = data.widths, rows = data.rows
   if (!Array.isArray(widths) || widths.length < 1 || widths.length > 26) return false
-  if (!widths.every(function (w) { return typeof w === 'number' && w > 0 && w <= 1000 })) return false
+  if (!widths.every(function (w) { return Number.isInteger(w) && w > 0 && w <= 1000 })) return false
   if (!Array.isArray(rows) || rows.length === 0) return false
   const f = data.frozen
-  if (typeof f !== 'number' || Math.floor(f) !== f || f < 0 || f > rows.length) return false
+  if (!Number.isInteger(f) || f < 0 || f >= rows.length) return false
   const n = widths.length
-  const isText = function (v) { return typeof v === 'string' }
+  const isText = function (v) { return typeof v === 'string' && v.length <= 50000 }
   return rows.every(function (r) {
     return !!r && typeof r.wrap === 'boolean'
       && sized_(r.values, n, isText)
-      && sized_(r.bg, n, function (v) { return v === null || typeof v === 'string' })
-      && sized_(r.fg, n, isText)
+      && sized_(r.bg, n, function (v) { return v === null || isColour_(v) })
+      && sized_(r.fg, n, isColour_)
       && sized_(r.weights, n, function (v) { return v === 'bold' || v === 'normal' })
       && sized_(r.aligns, n, function (v) { return v === 'left' || v === 'center' })
   })
@@ -278,8 +283,9 @@ function makeTab_(ss, monday, today) {
 /** One week tab, rewritten whole: everything on it is wiped — values,
  *  colours, merged cells, notes, filters, hidden rows — then the app's rows
  *  are written from row 1 exactly as sent. The answer was checked before
- *  this is called, so a tab is only ever wiped when there is something good
- *  to write. */
+ *  this is called, so a tab is only wiped when there is something good to
+ *  write. If Google itself fails part-way (a quota or time limit), the tab
+ *  can be left blank until the next hourly run fills it again. */
 function writeTab_(sheet, data) {
   const rows = data.rows
   const width = data.widths.length, height = rows.length
@@ -313,5 +319,8 @@ function writeTab_(sheet, data) {
   block.setHorizontalAlignments(rows.map(function (r) { return r.aligns }))
   block.setVerticalAlignment('middle')
   block.setWraps(rows.map(function (r) { return r.values.map(function () { return r.wrap }) }))
+  // Rows sized by hand on the old tabs keep their height through clear();
+  // fit every written row to its text instead.
+  sheet.autoResizeRows(1, height)
   sheet.setFrozenRows(data.frozen)
 }

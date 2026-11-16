@@ -1,6 +1,6 @@
 import type { createServiceClient } from '@/lib/supabase/service'
 import { getCrewForJobs } from './crew-names'
-import { TRIP_SELECT, mapTripRows, type TripRow } from './away'
+import { mapTripRows, type TripRow } from './away'
 import { SHEET_KEY_SETTING } from '@/lib/utils/jobsheet-key'
 import type { LayoutInput, LayoutJob, LayoutLeave, LayoutHoliday } from '@/lib/utils/jobsheet-layout'
 
@@ -69,8 +69,10 @@ export async function getWeekSheet(svc: Svc, monday: string): Promise<Omit<Layou
       .lte('date_start', sunday)
       .gte('date_end', monday)
       .order('date_start'),
+    // Only what the sheet prints — a trip's note, business and address are
+    // never read here.
     svc.from('away_trips')
-      .select(TRIP_SELECT)
+      .select('id, title, start_date, start_time, end_date, end_time, away_trip_people(user_id, users(name))')
       .lte('start_date', sunday)
       .gte('end_date', monday)
       .order('start_date')
@@ -112,7 +114,8 @@ export async function getWeekSheet(svc: Svc, monday: string): Promise<Omit<Layou
   return {
     jobs,
     leaves,
-    trips: mapTripRows((tripRes.data ?? []) as unknown as TripRow[]),
+    trips: mapTripRows(((tripRes.data ?? []) as unknown as Array<Omit<TripRow, 'business' | 'location' | 'note'>>)
+      .map(t => ({ ...t, business: null, location: null, note: null }))),
     holidays: (holidayRes.data ?? []) as LayoutHoliday[],
     drivers: ((driverRes.data ?? []) as Array<{ name: string }>).map(u => u.name),
   }

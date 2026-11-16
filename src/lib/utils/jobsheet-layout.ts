@@ -140,7 +140,8 @@ function jobRow(j: LayoutJob, tint: string | null): PaintedRow {
   cells[C.crew]    = crewLine(j.crew)
   const r = row(cells, tint)
   for (const i of [C.prod, C.do]) { r.aligns[i] = 'center'; r.weights[i] = 'bold' }
-  if (j.punctuality === 'strict') {
+  // Only a real time turns red — an empty red cell would say nothing.
+  if (j.punctuality === 'strict' && cells[C.time]) {
     r.bg[C.time] = HARD_RED; r.fg[C.time] = ON_RED; r.weights[C.time] = 'bold'
   }
   return r
@@ -155,7 +156,10 @@ function blockOf(c: Crew): string {
   return c.externals.length > 0 ? 'contractor' : 'none'
 }
 
-const byStart = (a: LayoutJob, b: LayoutJob) => (a.time_start ?? '').localeCompare(b.time_start ?? '')
+/** No time first, then by start time; ties by id, so rows don't swap places
+ *  from one hourly refresh to the next (the database sends no fixed order). */
+const byStart = (a: LayoutJob, b: LayoutJob) =>
+  (a.time_start ?? '').localeCompare(b.time_start ?? '') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
 function leaveSuffix(l: LayoutLeave, day: string): string {
   const win = leaveWindowOnDate({ ...l, id: '', user_id: '' }, day)

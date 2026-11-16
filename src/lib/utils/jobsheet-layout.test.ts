@@ -146,6 +146,15 @@ check('strict time: red, white, bold', [rowFor('CK-14').bg[5], rowFor('CK-14').f
 check('strict row keeps its colour elsewhere', [rowFor('CK-14').bg[0], rowFor('CK-14').bg[4]], [CK, CK])
 check('strict on a mixed job',     rowFor('MIXED').bg[5], RED)
 check('flexible time: the row colour', [rowFor('CK-9').bg[5], rowFor('CK-9').fg[5], rowFor('CK-9').weights[5]], [CK, '#000000', 'normal'])
+const strictNoTime = dayRows(buildPaintedWeek({ ...input, jobs: [job({ time_start: null, punctuality: 'strict' })], leaves: [], trips: [], holidays: [] }), '23-Dec')[0]
+check('strict with no time: no empty red cell', strictNoTime.bg[5], CK)
+
+console.log('steady order between refreshes:')
+const tied = buildPaintedWeek({ ...input, leaves: [], trips: [], holidays: [], jobs: [
+  job({ id: 'b', project_title: 'SECOND', time_start: null }),
+  job({ id: 'a', project_title: 'FIRST',  time_start: null }),
+] })
+check('same time → by id, whatever order the database sends', desc(dayRows(tied, '23-Dec')), ['FIRST', 'SECOND'])
 
 console.log('cells:')
 const ck9 = rowFor('CK-9')

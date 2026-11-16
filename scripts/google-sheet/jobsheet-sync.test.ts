@@ -109,6 +109,17 @@ check('more rows pinned than sent → refused', g.usableWeek(pinned), false)
 check('no rows → refused', g.usableWeek({ ...copy(), rows: [] }), false)
 const numeric = copy(); numeric.rows[3].values[3] = 42
 check('a value that is not text → refused', g.usableWeek(numeric), false)
+// Things Google would reject AFTER the tab is wiped (final review, 2026-11-16).
+const named = copy(); named.rows[3].bg[0] = 'red'
+check('a fill that is not #RRGGBB → refused', g.usableWeek(named), false)
+const ink = copy(); ink.rows[3].fg[0] = '#000'
+check('a text colour that is not #RRGGBB → refused', g.usableWeek(ink), false)
+const half = copy(); half.widths[0] = 70.5
+check('a fractional width → refused', g.usableWeek(half), false)
+const allPinned = copy(); allPinned.frozen = allPinned.rows.length
+check('every row pinned → refused', g.usableWeek(allPinned), false)
+const huge = copy(); huge.rows[3].values[6] = 'x'.repeat(50001)
+check('a cell over 50,000 characters → refused', g.usableWeek(huge), false)
 
 // ── Cells that Google would turn into formulas ─────────────────────────────
 check('+65 number kept as text', g.safeCell('+65 9123 4567'), "'+65 9123 4567")
