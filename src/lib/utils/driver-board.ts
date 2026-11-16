@@ -383,13 +383,35 @@ export function planDrag(job: BoardJob, targetBand: string, _drivers: DriverRef[
  *
  * The values live in globals.css so dark mode can swap them; the light
  * pastels would glare against a dark page.
+ *
+ * The old Google jobsheet colours each driver's rows the same way (Nic,
+ * 2026-11-16), so who gets which colour stays HERE, once, for both.
  */
-const DRIVER_TINTS: Record<string, string> = {
-  'ck':      'var(--driver-tint-purple)',
-  'xiao yi': 'var(--driver-tint-beige)',
-  'rintu':   'var(--driver-tint-green)',
+type TintKey = 'purple' | 'beige' | 'green'
+
+const DRIVER_TINTS: Record<string, TintKey> = {
+  'ck':      'purple',
+  'xiao yi': 'beige',
+  'rintu':   'green',
 }
 
+/** The light-theme values of --driver-tint-* in globals.css, for the sheet
+ *  (a Google Sheet can't read CSS). driver-board.test.ts fails if they drift. */
+const TINT_HEX: Record<TintKey, string> = {
+  purple: '#D9D2E9',
+  beige:  '#FFF2CC',
+  green:  '#D9EAD3',
+}
+
+const tintKey = (name: string): TintKey | null =>
+  DRIVER_TINTS[name.trim().toLowerCase().replace(/\s+/g, ' ')] ?? null
+
 export function driverTint(name: string): string | null {
-  return DRIVER_TINTS[name.trim().toLowerCase().replace(/\s+/g, ' ')] ?? null
+  const key = tintKey(name)
+  return key ? `var(--driver-tint-${key})` : null
+}
+
+export function driverTintHex(name: string): string | null {
+  const key = tintKey(name)
+  return key ? TINT_HEX[key] : null
 }

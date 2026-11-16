@@ -4,10 +4,12 @@
  * Exits 1 on any failure.
  */
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   MIXED, UNASSIGNED, driverBandId, externalBandId,
   mainCrew, primaryBand, mirrorBands, isMirror, isMirrorCard, buildBands, countRealJobs,
-  sortByStartTime, planDrag, driverTint,
+  sortByStartTime, planDrag, driverTint, driverTintHex,
   type BoardJob, type DriverRef,
 } from './driver-board'
 
@@ -329,6 +331,25 @@ check('a double space still works', driverTint('Xiao  Yi'),  'var(--driver-tint-
 // A fourth driver degrades quietly to the neutral board background rather
 // than being handed an arbitrary colour.
 check('an unlisted driver has no tint', driverTint('Ali Ramjan'), null)
+
+console.log('driverTintHex — the old jobsheet uses the same colours as the board (Nic, 2026-11-16):')
+check('CK hex',               driverTintHex('CK'),         '#D9D2E9')
+check('Xiao Yi hex, loosely', driverTintHex(' xiao  yi '), '#FFF2CC')
+check('Rintu hex',            driverTintHex('Rintu'),      '#D9EAD3')
+check('unlisted → no hex',    driverTintHex('Ali Ramjan'), null)
+
+// The hexes must stay equal to the light-theme values in globals.css, or the
+// sheet and the board drift apart. Only the first :root block is read (the
+// dark-theme blocks redefine the same names).
+function cssTint(key: string): string | null {
+  const css = readFileSync(join(__dirname, '..', '..', 'app', 'globals.css'), 'utf8')
+  const light = css.split(/@media|\[data-theme/)[0]
+  const m = new RegExp(`--driver-tint-${key}:\\s*(#[0-9A-Fa-f]{6})`).exec(light)
+  return m ? m[1].toUpperCase() : null
+}
+check('hex matches globals.css purple', cssTint('purple'), '#D9D2E9')
+check('hex matches globals.css beige',  cssTint('beige'),  '#FFF2CC')
+check('hex matches globals.css green',  cssTint('green'),  '#D9EAD3')
 
 console.log(failures === 0 ? '\nAll driver-board checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)
