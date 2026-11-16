@@ -1,16 +1,19 @@
 # Filling the jobsheet from the app: setup guide
 
-_For Nic. Written 2026-11-11; full automation 2026-11-12. The same steps are in the app under Admin → Settings → Old jobsheet, and as a page: https://claude.ai/artifact/UCbTw5uY9eSrNPBBedNPXF_
+_For Nic. Written 2026-11-11; full automation 2026-11-12; the scheduler's layout (script version 2) 2026-11-16. The same steps are in the app under Admin → Settings → Old jobsheet, and as a page: https://claude.ai/artifact/UCbTw5uY9eSrNPBBedNPXF. The layout's mockup: https://claude.ai/artifact/9CHHtNRpAS27rJvDCEDH9s_
 
 ## What it does
 
 The **Greenqubes Jobs** Google Sheet is filled entirely by the app. Nobody types in it any more; share it with the team as **Viewer**.
 
 - **Every hour, each week's tab is rewritten whole**, from row 1:
-  - row 1: the week and when it last updated ("Greenqubes jobs · 9/11 to 15/11 · updated 12 Nov 9:00 PM …");
-  - row 2: the column names (Date, Day, Production, Contact Person, Punctuality, Time, Jobs Description, Location / Sites, DO, PIC, Remarks, Job Time), pinned at the top;
-  - then each day's date and that day's jobs.
+  - row 1: the week and when it last updated ("Greenqubes jobs · 16/11 to 22/11 · updated 16 Nov 3:00 PM …");
+  - row 2: the column names (Date, Day, Production, Company, Client Name & Contact, Time & Punctuality, Jobs Description, Address, DO, Sales PIC, Driver & Installer), pinned at the top;
+  - then each day, top to bottom: a grey gap; the date; jobs with two or more drivers; each driver's jobs in their colour (CK purple, Rintu green, Xiao Yi yellow), a white gap between drivers; jobs with only an outside installer; jobs with no driver yet; then in red text MC, On leave, courses and the public holiday;
+  - a strict time is a solid red cell; Production and DO show a ✓ when ticked on the job;
+  - the job's title is the first line of Jobs Description.
   - Everything that was on the tab (typed rows, colours, merged cells) is replaced.
+- **The app decides the whole look.** The script only copies it, so a layout change later is made in the app and needs no new paste.
 - **Which weeks.** This week and up to 10 weeks ahead.
   - This week's and next week's tabs are made by the app if they're missing.
   - A later week gets a tab once it has a job.
@@ -30,7 +33,7 @@ The **Greenqubes Jobs** Google Sheet is filled entirely by the app. Nobody types
 
 1. **Make the link and copy the script.** In the app, go to Admin → Settings → Old jobsheet. Press **Make link** (skip this if you already have one), then **Copy script**.
 2. **Add the script.** In the Google Sheet, open **Extensions → Apps Script**.
-   - Updating from the older "yellow bar" version: select all of the old script and paste the new one over it.
+   - Updating from an earlier version: select all of the old script and paste the new one over it. The app link is kept.
    - If the editor only shows an empty `function myFunction() {}`, replace it with the script.
    - If there's other code there, leave it alone. Add a new file instead (**+ → Script**) and paste into that.
    - Press **Save**.

@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getSheetKey, getWeekSheet } from '@/lib/supabase/queries/jobsheet'
 import { keysMatch } from '@/lib/utils/jobsheet-key'
 import { buildWeekRows, parseWeek, SHEET_COLUMNS } from '@/lib/utils/jobsheet-rows'
+import { buildPaintedWeek } from '@/lib/utils/jobsheet-layout'
 
 /**
  * GET /api/sheet/jobs?key=…&week=YYYY-MM-DD — one week of scheduled jobs for
@@ -26,9 +27,18 @@ export async function GET(req: NextRequest) {
   const week = parseWeek(params.get('week'))
   if (!week) return NextResponse.json({ error: 'bad_week' }, { status: 400 })
 
-  const { jobs, leaves } = await getWeekSheet(svc, week)
+  const data = await getWeekSheet(svc, week)
+  const headers = { 'Cache-Control': 'no-store' }
+
+  // Script v2 (the scheduler's layout, Nic 2026-11-16) asks for layout=2 and
+  // gets every cell painted. Anything else — the script already in the sheet —
+  // gets the earlier answer unchanged, so the live sheet only changes once
+  // Nic pastes v2. Delete this older path once the real sheet runs v2.
+  if (params.get('layout') === '2') {
+    return NextResponse.json(buildPaintedWeek({ monday: week, now: new Date(), ...data }), { headers })
+  }
   return NextResponse.json(
-    { week, columns: SHEET_COLUMNS, rows: buildWeekRows(week, jobs, leaves) },
-    { headers: { 'Cache-Control': 'no-store' } },
+    { week, columns: SHEET_COLUMNS, rows: buildWeekRows(week, data.jobs, data.leaves) },
+    { headers },
   )
 }
