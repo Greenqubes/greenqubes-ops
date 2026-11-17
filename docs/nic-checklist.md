@@ -55,9 +55,18 @@ _Last updated: 2026-11-05 (feat-bugs — **the auto-fixer is live.** Every night
 
 _Last updated: 2026-11-13 (feat-jobs — **six things went live over four days.** Installers have All Jobs and a Team box (11 Nov). Every job has a Gallery; you can tick jobs and move them back a stage together; the job chat is open to the whole office (12 Nov). Jobs can be grouped on the Jobs tab, and the Greenqubes Jobs sheet now fills itself from the app every hour, view only (13 Nov). The six small things the groups review left were fixed the same evening. "What's new" tells the team about all of it.)_
 
+_Last updated: 2026-11-17 (feat-jobs — **the Greenqubes Jobs sheet now comes out in your scheduler's layout.** Each day: jobs with two or more drivers first, then each driver's jobs in their colour, outside installers, jobs with no driver yet, then MC / On leave / On course / PH in red. Strict times are a red cell; Production and DO get a ✓. Column K is wider and the year sits in L2. Live 16 Nov 7:56 PM and 17 Nov 7:24 PM. It shows on the sheet once you paste the new script.)_
+
 ## Pending — Next Session
 
 _Tidied with Nic 2026-09-28: ~85 items went through one by one and came down to about 25 plus a Someday list. Dropped items and the full reasoning behind every kept one are in [nic-checklist-archive-20260928.md](nic-checklist-archive-20260928.md)._
+
+### Old jobsheet in the scheduler's layout — ✅ LIVE on production 2026-11-16 → 17
+_Nothing changes on the sheet until you paste the new script._
+- [ ] **Paste the new script into the real sheet:** Admin → Settings → Old jobsheet → Copy script. In the sheet: Extensions → Apps Script, select all, paste over, Save, then Greenqubes → Refresh now. Your app link and hourly refresh stay as they are.
+- [ ] **Check this week's tab:** drivers in their colours, strict times red, ✓ in Production and DO, the year in L2. If something looks off, tell Claude which row.
+- [ ] **Tell the team (your call):** the bottom of each day now names who is on MC, on leave or on course, and anyone with the sheet can see it.
+- [ ] **Once the real sheet runs the new script, tell Claude** — the app still keeps the old layout for the old script, and that can then be removed.
 
 ### Gallery, groups, jobsheet, installer All Jobs — ✅ LIVE on production 2026-11-11 → 13
 _You tried groups on the test site ("dragging works so far") and the sheet script on a copy before they went live._
@@ -198,6 +207,14 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - FCFS extra views (Week / Month / By Project / By Installer)
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
+
+## Done This Session ✓ (2026-11-16 → 17, feat-jobs — Old Jobsheet in the Scheduler's Layout, LIVE)
+
+- [x] **[Nic] The Greenqubes Jobs sheet in your scheduler's layout:** 11 columns (no Project Title: it's the first line of Jobs Description), a dark title row and the column names pinned on top, a grey gap between days, two-or-more-driver jobs first, each driver's jobs in their colour (CK purple, Rintu green, Xiao Yi yellow) with white gaps between, outside-installer jobs, jobs with no driver yet, then MC / On leave / On course / PH in red text. Strict time = a solid red cell; ✓ for Production ready and DO issued. Mockup: https://claude.ai/artifact/9CHHtNRpAS27rJvDCEDH9s. Live 16 Nov 7:56 PM.
+- [x] **[Nic] Leave type shown on the sheet** (your call, knowing the whole team sees it): medical shows as MC, everything else as On leave. HR's note is never shown.
+- [x] **[Nic] Column K 245 wide and the year in L2 (Arial 20, bold).** Live 17 Nov 7:24 PM.
+- [x] **[Nic] dev brought level with main.**
+- [x] **[Nic] "What's new"** for 17 Nov, timed from the live site's own clock.
 
 ## Done This Session ✓ (2026-11-10 → 13, feat-jobs — Gallery, Job Groups, Bulk Move Back, Jobsheet Automation, Installer All Jobs, LIVE)
 
