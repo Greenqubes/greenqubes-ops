@@ -8,7 +8,7 @@ The **Greenqubes Jobs** Google Sheet is filled entirely by the app. Nobody types
 
 - **Every hour, each week's tab is rewritten whole**, from row 1:
   - row 1: the week and when it last updated ("Greenqubes jobs · 16/11 to 22/11 · updated 16 Nov 3:00 PM …");
-  - row 2: the column names (Date, Day, Production, Company, Client Name & Contact, Time & Punctuality, Jobs Description, Address, DO, Sales PIC, Driver & Installer), pinned at the top;
+  - row 2: the column names (Date, Day, Production, Company, Client Name & Contact, Time & Punctuality, Jobs Description, Address, DO, Sales PIC, Driver & Installer), pinned at the top, with the week's year beside them in L2 (Arial 20, bold);
   - then each day, top to bottom: a grey gap; the date; jobs with two or more drivers; each driver's jobs in their colour (CK purple, Rintu green, Xiao Yi yellow), a white gap between drivers; jobs with only an outside installer; jobs with no driver yet; then in red text MC, On leave, courses and the public holiday;
   - a strict time is a solid red cell; Production and DO show a ✓ when ticked on the job;
   - the job's title is the first line of Jobs Description.

@@ -17,6 +17,7 @@ The "Greenqubes Jobs" Google Sheet is filled hourly by the app (2026-11-11 → 1
 - **Leave at the bottom of the day, red text (#FF0000, bold), no fill:** a row for MC, a row for On leave, a row per course, then PH (public holiday).
 - **Leave type shown (privacy call, Nic 2026-11-16).** Until now the reason for an absence was HR/admin only. Nic was told the sheet is shared with the whole team and chose to show MC vs On leave anyway. HR's free-text note is never shown.
 - **Title row on top** (dark, "Greenqubes jobs · 21/12 to 27/12 · updated 23 Dec 3:00 PM · filled by the app every hour, view only"), then the column names; both pinned. Date header grey like the others.
+- **Added 2026-11-17 (Nic):** column K (Driver & Installer) 245 wide; the year in L2, Arial 20 bold. Claude's calls: it is the year the week starts in (a January tab made in December shows the new year), and column L sits beside the table — no fill, the grey and dark bands stop at K. The answer gains a font size and font per cell (null = the sheet's own font), so the script was pasted again (v2.1); the layout number stays 2, and a v2 script still paints everything except the year's font.
 
 ## Claude's calls (shown in the mockup, accepted with it)
 

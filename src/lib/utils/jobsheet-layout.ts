@@ -19,6 +19,9 @@ import { driverTintHex } from './driver-board'
  * the single driver · contractor-only jobs · jobs with no driver yet · then,
  * in red text: MC, On leave, each course, PH. White gaps between blocks.
  *
+ * Column L sits just beside the table: empty, except the week's year in L2,
+ * Arial 20 bold (Nic, 2026-11-17) — the tab names carry no year.
+ *
  * Leave TYPE is shown (MC vs On leave) on Nic's explicit call, knowing the
  * sheet is shared with the whole team. HR's note is never read or sent.
  * Dates and day names are always English (hard rule).
@@ -35,10 +38,13 @@ export const LAYOUT_COLUMNS: ReadonlyArray<{ name: string; width: number }> = [
   { name: 'Address',                       width: 260 },
   { name: 'DO',                            width: 50 },
   { name: 'Sales PIC',                     width: 100 },
-  { name: 'Driver & Installer',            width: 130 },
+  { name: 'Driver & Installer',            width: 245 },
 ]
-const W = LAYOUT_COLUMNS.length
-const C = { date: 0, day: 1, prod: 2, company: 3, client: 4, time: 5, desc: 6, address: 7, do: 8, pic: 9, crew: 10 } as const
+const T = LAYOUT_COLUMNS.length              // the table: columns A–K
+const W = T + 1                              // the tab: the table, then column L
+const C = { date: 0, day: 1, prod: 2, company: 3, client: 4, time: 5, desc: 6, address: 7, do: 8, pic: 9, crew: 10, year: 11 } as const
+const YEAR_WIDTH = 90, YEAR_FONT = 'Arial', YEAR_SIZE = 20
+const SIZE = 10                              // Google Sheets' own default
 
 const TITLE_BG = '#1F3D3B', TITLE_FG = '#FFFFFF'
 const HEADER_BG = '#B7B7B7'
@@ -52,6 +58,8 @@ export type PaintedRow = {
   fg:      string[]
   weights: ('bold' | 'normal')[]
   aligns:  ('left' | 'center')[]
+  sizes:   number[]                   // font size, points
+  fonts:   (string | null)[]          // null = the sheet's own font
   wrap:    boolean
 }
 
@@ -110,10 +118,13 @@ function row(values: string[] = [], bg: string | null = null): PaintedRow {
   return {
     // Callers fill cells by index, leaving holes; every cell must be a string.
     values: Array.from({ length: W }, (_, i) => values[i] ?? ''),
-    bg: Array(W).fill(bg),
+    // Fills stop at the table's edge: column L is never filled.
+    bg: Array.from({ length: W }, (_, i) => (i < T ? bg : null)),
     fg: Array(W).fill(INK),
     weights: Array(W).fill('normal'),
     aligns: Array(W).fill('left'),
+    sizes: Array(W).fill(SIZE),
+    fonts: Array(W).fill(null),
     wrap: true,
   }
 }
@@ -195,8 +206,9 @@ export function buildPaintedWeek(input: LayoutInput): PaintedWeek {
 
   const title = row([`Greenqubes jobs · ${dm(days[0])} to ${dm(days[6])} · updated ${sgtStamp(input.now)} · filled by the app every hour, view only`], TITLE_BG)
   title.fg.fill(TITLE_FG); title.weights.fill('bold'); title.wrap = false
-  const header = row(LAYOUT_COLUMNS.map(c => c.name), HEADER_BG)
+  const header = row([...LAYOUT_COLUMNS.map(c => c.name), String(start.getUTCFullYear())], HEADER_BG)
   header.weights.fill('bold'); header.aligns.fill('center')
+  header.fonts[C.year] = YEAR_FONT; header.sizes[C.year] = YEAR_SIZE
   const rows: PaintedRow[] = [title, header]
 
   for (const dt of days) {
@@ -232,7 +244,7 @@ export function buildPaintedWeek(input: LayoutInput): PaintedWeek {
   return {
     layout: 2,
     week: input.monday,
-    widths: LAYOUT_COLUMNS.map(c => c.width),
+    widths: [...LAYOUT_COLUMNS.map(c => c.width), YEAR_WIDTH],
     frozen: 2,
     hasJobs: input.jobs.some(j => weekDays.some(d => covers(j, d))),
     rows,

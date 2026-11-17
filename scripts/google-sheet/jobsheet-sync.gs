@@ -1,6 +1,7 @@
 /**
  * Greenqubes: the "Greenqubes Jobs" sheet, filled entirely by the app.
- * Version 2 — the scheduler's layout (Nic, 2026-11-16).
+ * Version 2.1 — the scheduler's layout (Nic, 2026-11-16), plus each cell's
+ * font and size (2026-11-17: the year in L2, Arial 20 bold).
  *
  * Setup (once): in the app, Admin -> Settings -> Old jobsheet: Make link, then
  * Copy script. In the sheet: Extensions -> Apps Script. If the editor only
@@ -15,8 +16,8 @@
  * What it does, every hour (full automation, view only):
  *   - for this week and the weeks ahead (up to 10), asks the app for that
  *     week and REWRITES the week's tab from row 1 exactly as the app sends
- *     it: every cell's text, colour and boldness, the column widths and the
- *     pinned rows. The layout itself (driver blocks in driver colours, red
+ *     it: every cell's text, colour, font, size and boldness, the column
+ *     widths and the pinned rows. The layout itself (driver blocks in driver colours, red
  *     strict times, leave at the bottom of each day) is decided by the app,
  *     so changing it never needs this script pasted again.
  *   - makes the tab when it is missing: always for this week and next week,
@@ -140,13 +141,14 @@ function safeCell(v) {
 
 function sized_(a, n, ok) { return Array.isArray(a) && a.length === n && a.every(ok) }
 function isColour_(v) { return typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v) }
+function isFont_(v) { return typeof v === 'string' && /^[A-Za-z][A-Za-z0-9 ]{0,39}$/.test(v) }
 
 /** Is the app's answer whole? Checked BEFORE a tab is wiped, so a bad or
  *  half answer never leaves a tab empty. Every row must carry exactly one
- *  value, fill, text colour, weight and alignment per column, and nothing
- *  Google would refuse part-way through writing: colours as #RRGGBB, whole
- *  pixel widths, at least one row left unpinned, no cell over Google's
- *  50,000-character limit. */
+ *  value, fill, text colour, weight, alignment, font size and font (null =
+ *  the sheet's own font) per column, and nothing Google would refuse part-way
+ *  through writing: colours as #RRGGBB, whole pixel widths and font sizes, at
+ *  least one row left unpinned, no cell over Google's 50,000-character limit. */
 function usableWeek(data) {
   if (!data || data.layout !== LAYOUT || typeof data.hasJobs !== 'boolean') return false
   const widths = data.widths, rows = data.rows
@@ -164,6 +166,8 @@ function usableWeek(data) {
       && sized_(r.fg, n, isColour_)
       && sized_(r.weights, n, function (v) { return v === 'bold' || v === 'normal' })
       && sized_(r.aligns, n, function (v) { return v === 'left' || v === 'center' })
+      && sized_(r.sizes, n, function (v) { return Number.isInteger(v) && v >= 6 && v <= 72 })
+      && sized_(r.fonts, n, function (v) { return v === null || isFont_(v) })
   })
 }
 
@@ -317,6 +321,8 @@ function writeTab_(sheet, data) {
   block.setFontColors(rows.map(function (r) { return r.fg }))
   block.setFontWeights(rows.map(function (r) { return r.weights }))
   block.setHorizontalAlignments(rows.map(function (r) { return r.aligns }))
+  block.setFontFamilies(rows.map(function (r) { return r.fonts }))   // null = the sheet's own font
+  block.setFontSizes(rows.map(function (r) { return r.sizes }))
   block.setVerticalAlignment('middle')
   block.setWraps(rows.map(function (r) { return r.values.map(function () { return r.wrap }) }))
   // Rows sized by hand on the old tabs keep their height through clear();

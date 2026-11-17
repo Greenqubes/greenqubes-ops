@@ -120,6 +120,22 @@ const allPinned = copy(); allPinned.frozen = allPinned.rows.length
 check('every row pinned → refused', g.usableWeek(allPinned), false)
 const huge = copy(); huge.rows[3].values[6] = 'x'.repeat(50001)
 check('a cell over 50,000 characters → refused', g.usableWeek(huge), false)
+// Font and size per cell (the year in L2, Nic 2026-11-17).
+check('the year cell comes through', [painted.rows[1].fonts[11], painted.rows[1].sizes[11]], ['Arial', 20])
+const noSizes = copy(); delete noSizes.rows[3].sizes
+check('a row without sizes → refused', g.usableWeek(noSizes), false)
+const tiny = copy(); tiny.rows[3].sizes[0] = 0
+check('a size of 0 → refused', g.usableWeek(tiny), false)
+const halfPt = copy(); halfPt.rows[3].sizes[0] = 10.5
+check('a fractional size → refused', g.usableWeek(halfPt), false)
+const sizeText = copy(); sizeText.rows[3].sizes[0] = '10'
+check('a size sent as text → refused', g.usableWeek(sizeText), false)
+const noFonts = copy(); delete noFonts.rows[3].fonts
+check('a row without fonts → refused', g.usableWeek(noFonts), false)
+const oddFont = copy(); oddFont.rows[3].fonts[0] = 'Arial;bold'
+check('a font name with odd characters → refused', g.usableWeek(oddFont), false)
+const numFont = copy(); numFont.rows[3].fonts[0] = 42
+check('a font that is not text → refused', g.usableWeek(numFont), false)
 
 // ── Cells that Google would turn into formulas ─────────────────────────────
 check('+65 number kept as text', g.safeCell('+65 9123 4567'), "'+65 9123 4567")

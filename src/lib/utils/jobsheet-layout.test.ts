@@ -84,6 +84,8 @@ function dayRows(w: PaintedWeek, label: string): PaintedRow[] {
 const desc = (rs: PaintedRow[]) => rs.map(r => r.values[6])
 const rowFor = (title: string) => rows.find(r => r.values[6] === title)!
 const all = <T>(xs: T[], v: T) => xs.every(x => x === v)
+/** Columns A–K, the table itself — column L sits beside it. */
+const table = <T>(xs: T[]) => xs.slice(0, 11)
 
 console.log('time stamps and labels:')
 check('3:00 PM in Singapore',         sgtStamp(NOW), '23 Dec 3:00 PM')
@@ -98,19 +100,32 @@ check('missing type → On leave',      leaveLabel(null), 'On leave')
 console.log('the top of the tab:')
 check('title row', rows[0].values[0],
   'Greenqubes jobs · 21/12 to 27/12 · updated 23 Dec 3:00 PM · filled by the app every hour, view only')
-check('title row dark across',  all(rows[0].bg, '#1F3D3B'), true)
+check('title row dark across',  all(table(rows[0].bg), '#1F3D3B'), true)
 check('title text white bold',  [rows[0].fg[0], rows[0].weights[0]], ['#FFFFFF', 'bold'])
 check('title row does not wrap', rows[0].wrap, false)
-check('column names', rows[1].values, [
+check('column names', table(rows[1].values), [
   'Date', 'Day', 'Production (生产)', 'Company', 'Client Name & Contact', 'Time & Punctuality (时间)',
   'Jobs Description （工作说明）', 'Address', 'DO', 'Sales PIC', 'Driver & Installer'])
-check('header grey, bold, centred', [all(rows[1].bg, '#B7B7B7'), all(rows[1].weights, 'bold'), all(rows[1].aligns, 'center')], [true, true, true])
+check('header grey, bold, centred', [all(table(rows[1].bg), '#B7B7B7'), all(rows[1].weights, 'bold'), all(rows[1].aligns, 'center')], [true, true, true])
 check('two rows pinned', week.frozen, 2)
-check('widths', week.widths, [70, 45, 80, 130, 150, 130, 320, 260, 50, 100, 130])
-check('widths follow the columns', LAYOUT_COLUMNS.map(c => c.width), week.widths)
-check('every row has 11 of everything',
-  rows.every(r => [r.values, r.bg, r.fg, r.weights, r.aligns].every(a => a.length === 11)), true)
+check('widths (K is 245, L is the year)', week.widths, [70, 45, 80, 130, 150, 130, 320, 260, 50, 100, 245, 90])
+check('widths follow the columns', LAYOUT_COLUMNS.map(c => c.width), table(week.widths))
+check('every row has 12 of everything',
+  rows.every(r => [r.values, r.bg, r.fg, r.weights, r.aligns, r.sizes, r.fonts].every(a => a.length === 12)), true)
 check('layout version', week.layout, 2)
+
+console.log('the year in L2 (Nic, 2026-11-17):')
+check('L2 is the year',                 rows[1].values[11], '2026')
+check('L2 Arial 20 bold, no fill',      [rows[1].fonts[11], rows[1].sizes[11], rows[1].weights[11], rows[1].bg[11]], ['Arial', 20, 'bold', null])
+check('column L empty and unfilled on every other row',
+  rows.every((r, i) => i === 1 || (r.values[11] === '' && r.bg[11] === null)), true)
+check("everything else: size 10, the sheet's own font",
+  rows.every((r, i) => r.sizes.every((v, c) => (i === 1 && c === 11) || v === 10)
+    && r.fonts.every((v, c) => (i === 1 && c === 11) || v === null)), true)
+check('a week across New Year: the year it starts in',
+  buildPaintedWeek({ ...input, monday: '2026-12-28' }).rows[1].values[11], '2026')
+check('the first week of a new year',
+  buildPaintedWeek({ ...input, monday: '2027-01-04' }).rows[1].values[11], '2027')
 
 console.log('the order of a day:')
 check('Wednesday, top to bottom', desc(dayRows(week, '23-Dec')), [
@@ -127,17 +142,17 @@ check('Wednesday, top to bottom', desc(dayRows(week, '23-Dec')), [
 ])
 const wedAt = rows.findIndex(r => r.values[0] === '23-Dec')
 check('date row',                  [rows[wedAt].values[0], rows[wedAt].values[1], rows[wedAt].weights[0]], ['23-Dec', 'Wed', 'bold'])
-check('grey gap before each day',  all(rows[wedAt - 1].bg, GREY), true)
+check('grey gap before each day',  all(table(rows[wedAt - 1].bg), GREY), true)
 check('white gap between blocks',  [all(dayRows(week, '23-Dec')[1].bg, null), all(dayRows(week, '23-Dec')[1].values, '')], [true, true])
-check('a grey gap closes the week', all(rows[rows.length - 1].bg, GREY), true)
+check('a grey gap closes the week', all(table(rows[rows.length - 1].bg), GREY), true)
 check('every day of the week has a date row',
   rows.filter(r => /^\d{1,2}-[A-Z][a-z]{2}$/.test(r.values[0])).map(r => r.values[1]),
   ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
 check('an empty day is just its date row', dayRows(week, '21-Dec').length, 0)
 
 console.log('colours:')
-check('CK row purple across',      all(rowFor('CK-9').bg, CK), true)
-check('Xiao Yi row yellow across', all(rowFor('XY').bg, XY), true)
+check('CK row purple across',      all(table(rowFor('CK-9').bg), CK), true)
+check('Xiao Yi row yellow across', all(table(rowFor('XY').bg), XY), true)
 check('mixed row white',           rowFor('MIXED').bg.filter((_, i) => i !== 5).every(b => b === null), true)
 check('stray driver row white',    all(rowFor('STRAY').bg, null), true)
 check('contractor row white',      all(rowFor('EXT').bg, null), true)
