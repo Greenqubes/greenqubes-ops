@@ -34,6 +34,23 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-17',
+    // 19:24 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1794914668463, captured the moment /api/version flipped to
+    // 4bbcde0661e2 (commit d12a1d9, column K + the year in L2). The 16 Nov
+    // release (bc5d191, 19:56, epoch 1794830185272) is folded in here: the
+    // sheet only changes once Nic pastes the new script, after this release.
+    // Never the local clock (CLAUDE.md).
+    time: '19:24',
+    improved: [
+      'The Greenqubes Jobs sheet now follows the scheduler\'s layout, each day grouped by driver.',
+      'Each driver\'s jobs show in their colour: CK purple, Rintu green, Xiao Yi yellow.',
+      'Strict times are a red cell; Production and DO get a tick when done.',
+      'Each day ends with who\'s on MC, leave or a course, and any holiday.',
+      'The week\'s year now shows at the top of each tab.',
+    ],
+  },
+  {
     date: '2026-11-13',
     // 18:55 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1794567319662, captured the moment /api/version flipped to
