@@ -93,3 +93,29 @@ export async function downloadFile(key: string, filename: string): Promise<boole
     return false
   }
 }
+
+/** For a ticked batch (Nic, 2026-11-18). `downloadFile` opens a tab, and a
+ *  browser blocks every tab after the first one that isn't a direct tap — so
+ *  a batch fetches each file's bytes and saves them as a same-page download
+ *  instead (R2 allows browser reads from the app, as the scanner relies on).
+ *  The browser may ask once to allow several downloads. Throws the reason. */
+export async function saveFileToDevice(key: string, filename: string): Promise<void> {
+  const res = await fetch('/api/r2/download-url', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, filename }),
+  })
+  if (!res.ok) throw new Error(`${res.status}`)
+  const { url } = await res.json() as { url: string }
+  const file = await fetch(url)
+  if (!file.ok) throw new Error(`storage ${file.status}`)
+  const href = URL.createObjectURL(await file.blob())
+  try {
+    const a = document.createElement('a')
+    a.href = href; a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    // Long enough for the browser to have started writing the file.
+    setTimeout(() => URL.revokeObjectURL(href), 60_000)
+  }
+}

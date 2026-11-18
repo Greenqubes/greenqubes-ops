@@ -5,6 +5,7 @@
  */
 import {
   mediaKindOf, buildGallery, chipsFor, dayLabel, groupByDay, chatAlbums, clampIndex, visibleKeysToSign, followIndex,
+  galleryDownloads,
   type GalleryFile, type GalleryVoice,
 } from './gallery'
 
@@ -76,6 +77,27 @@ check('same photo, list grew in front', followIndex('b', 1, ['new', 'a', 'b', 'c
 check('its photo deleted → next one',   followIndex('b', 1, ['a', 'c']), 1)
 check('last photo deleted → new last',  followIndex('c', 2, ['a', 'b']), 1)
 check('everything gone',               followIndex('a', 0, []), 0)
+
+// ── Batch download (Nic, 2026-11-18: tick several, download them all) ──────
+const dl = (p: { name: string; r2Key: string | null }) => ({
+  key: 'f:x', source: 'chat' as const, kind: 'image' as const, fileKind: 'attachment', url: null, byId: null, by: null,
+  ts: '2026-11-18T02:00:00Z', ...p,
+})
+check('a named file keeps its own name',
+  galleryDownloads([dl({ name: 'IMG_4021.JPG', r2Key: 'jobs/a/IMG_4021.JPG' })]),
+  [{ r2Key: 'jobs/a/IMG_4021.JPG', filename: 'IMG_4021.JPG' }])
+check('a voice note gains its recording ending so it opens',
+  galleryDownloads([dl({ name: 'Voice note', r2Key: 'jobs/a/voice/Nic 18 Nov.webm' })]),
+  [{ r2Key: 'jobs/a/voice/Nic 18 Nov.webm', filename: 'Voice note.webm' }])
+check('links have nothing to download and are skipped',
+  galleryDownloads([dl({ name: 'https://x.com', r2Key: null }), dl({ name: 'a.pdf', r2Key: 'k/a.pdf' })]),
+  [{ r2Key: 'k/a.pdf', filename: 'a.pdf' }])
+check('no ending on either side: the name is left alone',
+  galleryDownloads([dl({ name: 'scan', r2Key: 'k/scan' })]),
+  [{ r2Key: 'k/scan', filename: 'scan' }])
+check('a dot in a folder name is not an ending',
+  galleryDownloads([dl({ name: 'Voice note', r2Key: 'jobs/2026.11_x/voice/abc' })]),
+  [{ r2Key: 'jobs/2026.11_x/voice/abc', filename: 'Voice note' }])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll gallery checks passed')

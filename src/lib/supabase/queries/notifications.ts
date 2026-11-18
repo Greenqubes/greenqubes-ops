@@ -83,6 +83,7 @@ export type OverdueJob = {
   client_poc_name:  string | null
   client_poc_phone: string | null
   date:             string
+  date_end:         string | null
   time_start:       string | null
   time_end:         string | null
   location:         string
@@ -93,8 +94,10 @@ export type OverdueJob = {
   }>
 }
 
-// Jobs older than this are considered abandoned rather than overdue — alerting
-// on them forever just trains people to ignore the bot.
+// Jobs that ENDED longer ago than this are considered abandoned rather than
+// overdue — alerting on them forever just trains people to ignore the bot.
+// Counted from the last day, so a long job that just ended is still chased.
+// Whether a returned job is overdue yet is the caller's call (isOverdue).
 const OVERDUE_LOOKBACK_DAYS = 3
 
 export async function getOverdueJobs(): Promise<OverdueJob[]> {
@@ -110,13 +113,13 @@ export async function getOverdueJobs(): Promise<OverdueJob[]> {
     .from('jobs')
     .select(`
       id, project_title, client, client_poc_name, client_poc_phone,
-      date, time_start, time_end, location,
+      date, date_end, time_start, time_end, location,
       sales_poc:users!jobs_sales_poc_id_fkey ( id, telegram_chat_id ),
       job_assignees ( is_suggestion, users ( id, telegram_chat_id ) )
     `)
     .eq('status', 'scheduled')
     .lte('date', todaySGT)
-    .gte('date', cutoffSGT)
+    .or(`date.gte.${cutoffSGT},date_end.gte.${cutoffSGT}`)
 
   if (error) throw error
   // Suggested installers are not on the job yet — don't send them overdue alerts.

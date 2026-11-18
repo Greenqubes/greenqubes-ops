@@ -14,6 +14,8 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { chatAlbums } from '@/lib/utils/gallery'
 import { useUnsavedWork } from '@/features/app-version/unsaved-work'
+import { batchSummary, type BatchFailure } from '@/lib/utils/batch-summary'
+import { uploadJobFile } from './upload-job-file'
 import type { JobFile, JobMessage } from '@/lib/supabase/queries/jobs'
 import type { LangCode } from '@/lib/i18n'
 
@@ -408,10 +410,10 @@ interface Props {
   completedAt:        string | null
   initialMessages:    JobMessage[]
   chatFiles:          JobFile[]
-  preScheduleLocked?: boolean
+  draftLocked?:       boolean
 }
 
-export function ChatSection({ jobId, userId, userName, lang, completedAt, initialMessages, chatFiles, preScheduleLocked = false }: Props) {
+export function ChatSection({ jobId, userId, userName, lang, completedAt, initialMessages, chatFiles, draftLocked = false }: Props) {
   const { success: showSuccess, error: showError } = useToast()
   const supabase = useMemo(() => createClient(), [])
   const bottomRef        = useRef<HTMLDivElement>(null)
@@ -541,7 +543,7 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     fetch(`/api/jobs/${jobId}/chat-read`, { method: 'POST' }).catch(() => {})
   }, [jobId])
 
-  const inputDisabled = preScheduleLocked || chatLocked || sending || uploading || recordState !== 'idle'
+  const inputDisabled = draftLocked || chatLocked || sending || uploading || recordState !== 'idle'
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -770,47 +772,49 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     }
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-
+  // Picked files and camera shots both land here. One file at a time through
+  // the shared checked upload; a failure never stops the rest, and the person
+  // is told exactly which files did not go (Nic, 2026-11-18: several files
+  // per pick). Before this, a refused upload could still post a chat entry.
+  const sendChatFiles = async (batch: { file: File; filename: string; contentType: string }[]) => {
+    if (batch.length === 0) return
     setUploading(true)
+    const failed: BatchFailure[] = []
     try {
-      const urlRes = await fetch('/api/r2/upload-url', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ jobId, kind: 'attachment', filename: file.name, contentType: file.type || 'application/octet-stream' }),
-      })
-      const { url, key } = await urlRes.json() as { url: string; key: string }
-
-      await fetch(url, {
-        method:  'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body:    file,
-      })
-
-      await supabase.from('files').insert({
-        job_id:      jobId,
-        kind:        'attachment',
-        r2_key:      key,
-        name:        file.name,
-        uploader_id: userId,
-        visibility:  ['public-internal'],
-      } as never).throwOnError()
-
-      await fetch(`/api/jobs/${jobId}/messages`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ kind: 'attachment', filename: file.name }),
-      })
-
-      showSuccess(t(lang, 'savedSuccessfully'))
-    } catch {
-      showError(t(lang, 'saveError'))
+      for (const { file, filename, contentType } of batch) {
+        try {
+          await uploadJobFile({ supabase, jobId, userId, kind: 'attachment', body: file, filename, contentType })
+        } catch (err) {
+          failed.push({ name: filename, reason: err instanceof Error ? err.message : '' })
+        }
+      }
+      const sent = batch.length - failed.length
+      if (sent > 0) {
+        // One Telegram nudge for the whole batch, carrying its size. Best-effort:
+        // the files are already saved, so a failed nudge is not a failed send.
+        const res = await fetch(`/api/jobs/${jobId}/messages`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ kind: 'attachment', count: sent }),
+        }).catch(() => null)
+        if (!res?.ok) console.warn('[chat] files saved, Telegram nudge failed', res?.status)
+      }
     } finally {
       setUploading(false)
     }
+    const summary = batchSummary(batch.length, failed)
+    if (summary.kind === 'all') showSuccess(t(lang, 'savedSuccessfully'))
+    else if (summary.kind === 'some') showError(t(lang, 'chatUploadPartial')
+      .replace('{sent}', String(summary.sent)).replace('{total}', String(summary.total)).replace('{names}', summary.names))
+    else showError(summary.reason ? t(lang, 'uploadFailed').replace('{reason}', summary.reason) : t(lang, 'saveError'))
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    await sendChatFiles(picked.map(file => ({
+      file, filename: file.name, contentType: file.type || 'application/octet-stream',
+    })))
   }
 
   const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -818,45 +822,8 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
     if (!file) return
     e.target.value = ''
 
-    const ext      = file.name.split('.').pop() ?? 'jpg'
-    const filename = uploadName(userName, ext)
-
-    setUploading(true)
-    try {
-      const urlRes = await fetch('/api/r2/upload-url', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ jobId, kind: 'attachment', filename, contentType: file.type || 'image/jpeg' }),
-      })
-      const { url, key } = await urlRes.json() as { url: string; key: string }
-
-      await fetch(url, {
-        method:  'PUT',
-        headers: { 'Content-Type': file.type || 'image/jpeg' },
-        body:    file,
-      })
-
-      await supabase.from('files').insert({
-        job_id:      jobId,
-        kind:        'attachment',
-        r2_key:      key,
-        name:        filename,
-        uploader_id: userId,
-        visibility:  ['public-internal'],
-      } as never).throwOnError()
-
-      await fetch(`/api/jobs/${jobId}/messages`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ kind: 'attachment', filename }),
-      })
-
-      showSuccess(t(lang, 'savedSuccessfully'))
-    } catch {
-      showError(t(lang, 'saveError'))
-    } finally {
-      setUploading(false)
-    }
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    await sendChatFiles([{ file, filename: uploadName(userName, ext), contentType: file.type || 'image/jpeg' }])
   }
 
   const items = toItems(messages.filter(m => !hiddenMsgs.has(m.id)), files.filter(f => !hiddenFiles.has(f.id)))
@@ -994,27 +961,28 @@ export function ChatSection({ jobId, userId, userName, lang, completedAt, initia
         <div ref={bottomRef} />
       </div>
 
-      {/* pre-schedule locked banner */}
-      {preScheduleLocked && (
+      {/* Draft locked banner — chat opens from Ongoing (chatOpenAtStage) */}
+      {draftLocked && (
         <div className="px-5 py-3 bg-bg border-t border-line text-sm text-muted text-center">
-          {t(lang, 'chatPreScheduleMessage')}
+          {t(lang, 'chatDraftMessage')}
         </div>
       )}
 
       {/* post-completion locked banner */}
-      {!preScheduleLocked && chatLocked && (
+      {!draftLocked && chatLocked && (
         <div className="px-5 py-3 bg-bg border-t border-line text-sm text-muted text-center">
           {t(lang, 'chatLockedMessage')}
         </div>
       )}
 
       {/* input bar */}
-      {!preScheduleLocked && !chatLocked && (
+      {!draftLocked && !chatLocked && (
         <div className="px-4 py-3 border-t border-line flex items-center gap-4">
           <input
             type="file"
             ref={fileRef}
             onChange={handleFileChange}
+            multiple
             className="hidden"
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
           />

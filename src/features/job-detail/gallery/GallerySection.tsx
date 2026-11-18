@@ -3,18 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   MessageSquare, Mic, Folder, PenLine, Factory, CheckCircle2, FileText, Play, Link2, Check, FileSpreadsheet, File as FileIcon,
+  Download, Loader2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils/cn'
 import { t, type LangCode } from '@/lib/i18n'
 import { useToast } from '@/components/Toast'
 import {
-  buildGallery, chipsFor, groupByDay, type GalleryChip, type GalleryFile, type GalleryItem, type GallerySource, type GalleryVoice,
+  buildGallery, chipsFor, groupByDay, galleryDownloads, type GalleryChip, type GalleryFile, type GalleryItem, type GallerySource, type GalleryVoice,
 } from '@/lib/utils/gallery'
 import { canDeleteForEveryone, pageFileGates, everyoneBatch } from '@/lib/storage/gallery-delete'
 import type { StageJob4Rules } from '@/lib/utils/job-stage-rules'
 import type { Role } from '@/lib/supabase/types'
-import { useSignedUrls, useOnVisible, downloadFile } from './useSignedUrls'
+import { useSignedUrls, useOnVisible, downloadFile, saveFileToDevice } from './useSignedUrls'
+import { batchSummary, type BatchFailure } from '@/lib/utils/batch-summary'
 import { MediaViewer } from './MediaViewer'
 import { PdfViewer } from './PdfViewer'
 import { DeleteDialog } from './DeleteDialog'
@@ -67,7 +69,7 @@ const shortTime = (ts: string) => {
 
 export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }: Props) {
   const supabase = useMemo(() => createClient(), [])
-  const { error: showError } = useToast()
+  const { error: showError, success: showSuccess } = useToast()
   const [files, setFiles] = useState<GalleryFile[]>([])
   const [voices, setVoices] = useState<GalleryVoice[]>([])
   const [hiddenFiles, setHiddenFiles] = useState<Set<string>>(new Set())
@@ -84,6 +86,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
   const [pdf, setPdf] = useState<GalleryItem | null>(null)
   const [deleting, setDeleting] = useState<GalleryItem[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const { urls, sign } = useSignedUrls()
 
   const load = useCallback(async () => {
@@ -231,6 +234,34 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
     }
   }
 
+  // Ticked items, one after another (Nic, 2026-11-18). A failed file never
+  // stops the rest; the toast names what did not download.
+  async function downloadSelected(items: GalleryItem[]) {
+    const batch = galleryDownloads(items)
+    if (batch.length === 0) return
+    setDownloading(true)
+    const failed: BatchFailure[] = []
+    try {
+      for (const { r2Key, filename } of batch) {
+        try { await saveFileToDevice(r2Key, filename) }
+        catch (err) { failed.push({ name: filename, reason: err instanceof Error ? err.message : '' }) }
+      }
+    } finally {
+      setDownloading(false)
+    }
+    const summary = batchSummary(batch.length, failed)
+    if (summary.kind === 'all') {
+      showSuccess(t(lang, 'galleryDownloaded').replace('{n}', String(batch.length)))
+      setSelected(new Set())
+      setSelecting(false)
+    } else if (summary.kind === 'some') {
+      showError(t(lang, 'galleryDownloadPartial')
+        .replace('{sent}', String(summary.sent)).replace('{total}', String(summary.total)).replace('{names}', summary.names))
+    } else {
+      showError(t(lang, 'galleryDownloadFailed'))
+    }
+  }
+
   function goToMessage(it: GalleryItem) {
     setViewerKey(null)
     window.dispatchEvent(new CustomEvent('job:tab', { detail: 'chat' }))
@@ -286,8 +317,15 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
       {selecting && selected.size > 0 && (
         <div className="flex items-center justify-between rounded-[10px] bg-ink px-3 py-2 text-paper">
           <span className="text-xs font-semibold">{t(lang, 'gallerySelected').replace('{n}', String(selected.size))}</span>
-          <button type="button" onClick={() => setDeleting(selectedItems)}
-            className="rounded-lg bg-bad px-3 py-1 text-xs font-semibold text-white">{t(lang, 'galleryDelete')}</button>
+          <span className="flex items-center gap-2">
+            <button type="button" onClick={() => void downloadSelected(selectedItems)} disabled={downloading}
+              className="flex items-center gap-1 rounded-lg bg-paper px-3 py-1 text-xs font-semibold text-ink disabled:opacity-60">
+              {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {downloading ? t(lang, 'galleryDownloading') : t(lang, 'galleryDownload')}
+            </button>
+            <button type="button" onClick={() => setDeleting(selectedItems)} disabled={downloading}
+              className="rounded-lg bg-bad px-3 py-1 text-xs font-semibold text-white disabled:opacity-60">{t(lang, 'galleryDelete')}</button>
+          </span>
         </div>
       )}
 

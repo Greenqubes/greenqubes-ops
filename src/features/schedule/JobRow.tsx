@@ -48,7 +48,7 @@ function daysBetween(a: string, b: string): number {
 }
 
 export function JobRow({ job, currentDate, selectable, selected, onToggle, onDragHandle, dragging }: JobRowProps) {
-  const overdue       = isOverdue(job.status, job.date)
+  const overdue       = isOverdue(job)
   const isDraft       = job.status === 'pending' || job.status === 'awaiting_approval'
   const isCompleted   = job.status === 'completed'
 

@@ -51,7 +51,7 @@ import type { LangCode } from '@/lib/i18n'
 import { ArrowLeft, Bell, Trash2, CheckCircle, Copy, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { stageOf, type Stage } from '@/lib/utils/job-stage'
-import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush, formalCrewAllowed, pushCrewPlan } from '@/lib/utils/job-stage-rules'
+import { canMoveStage, canEditAtStage, pendingLocks, canDeleteAtStage, schedulerCanPush, formalCrewAllowed, pushCrewPlan, chatOpenAtStage } from '@/lib/utils/job-stage-rules'
 import { StageActions } from './StageActions'
 import { canAttachFiles } from '@/lib/storage/job-file-permissions'
 import {
@@ -1910,7 +1910,7 @@ export function JobDetailShell({
             completedAt={job.completed_at}
             initialMessages={initialMessages}
             chatFiles={job.files.filter(f => f.kind === 'attachment' && !f.bucket_id)}
-            preScheduleLocked={stage === 'draft' || stage === 'ongoing'}
+            draftLocked={!chatOpenAtStage(stage)}
           />
         )}
         // The job Gallery (Nic, 2026-11-11): only what this page shows this

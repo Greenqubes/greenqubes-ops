@@ -625,7 +625,7 @@ export function NewJobShell({ userId, lang, salesPocOptions, allInstallers, supp
             <h3 className="text-sm font-medium text-ink">{t(lang, 'jobChatTitle')}</h3>
             <div className="flex items-center justify-center gap-2 py-6 text-muted text-sm">
               <Lock size={14} />
-              {t(lang, 'chatPreScheduleMessage')}
+              {t(lang, 'chatDraftMessage')}
             </div>
           </Card>
         }

@@ -193,3 +193,17 @@ export function followIndex(currentKey: string | null, currentIndex: number, key
   const at = currentKey ? keys.indexOf(currentKey) : -1
   return at >= 0 ? at : clampIndex(currentIndex, keys.length)
 }
+
+/** What a ticked batch downloads (Nic, 2026-11-18). Links have no stored file
+ *  and are skipped. A name with no ending (every voice note is "Voice note")
+ *  borrows the stored file's ending, or the saved copy would not open. Only
+ *  the last path segment counts — job folders can contain dots. */
+export function galleryDownloads(items: GalleryItem[]): Array<{ r2Key: string; filename: string }> {
+  const ending = (s: string) => /\.[A-Za-z0-9]{1,5}$/.exec(s)?.[0] ?? ''
+  return items.flatMap(it => {
+    if (!it.r2Key) return []
+    const keyEnding = ending(it.r2Key.split('/').pop() ?? '')
+    const filename = ending(it.name) || !keyEnding ? it.name : it.name + keyEnding
+    return [{ r2Key: it.r2Key, filename }]
+  })
+}

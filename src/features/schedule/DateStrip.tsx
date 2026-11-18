@@ -132,7 +132,7 @@ export function DateStrip({
           const dateJobs    = jobsByDate[d] ?? []
           const active      = d === selectedDate
           const isToday     = d === today
-          const hasOverdue  = dateJobs.some(j => isOverdue(j.status, j.date))
+          const hasOverdue  = dateJobs.some(j => isOverdue(j))
           const hasStrict   = dateJobs.some(j => j.punctuality === 'strict')
           const hasFlexible = dateJobs.some(j => j.punctuality !== 'strict')
 

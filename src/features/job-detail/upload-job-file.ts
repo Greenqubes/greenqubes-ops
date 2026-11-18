@@ -1,7 +1,8 @@
 'use client'
-// The one way a photo-section file reaches a job from the job form: signed
-// URL → R2 PUT → files row. Shared by Attach Files and Scan so both take the
-// same checked path.
+// The one way a photo-section or chat file reaches a job from the job form:
+// signed URL → R2 PUT → files row. Shared by Attach Files, Scan and job chat
+// (since 2026-11-18 — chat used to skip these checks) so all take the same
+// checked path.
 //
 // Every step's failure throws with the real reason. History (Nic, 2026-09-14):
 // a refused URL request used to be read straight through as { url, key },
@@ -15,7 +16,8 @@ export async function uploadJobFile({ supabase, jobId, userId, kind, body, filen
   supabase: ReturnType<typeof createClient>
   jobId: string
   userId: string
-  kind: 'production_instructions' | 'do' | 'completion'
+  /** `attachment` with no bucket is a chat file. */
+  kind: 'production_instructions' | 'do' | 'completion' | 'attachment'
   body: Blob
   filename: string
   contentType: string

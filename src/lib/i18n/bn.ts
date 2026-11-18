@@ -81,7 +81,6 @@ export const bn: Partial<Translations> = {
   statusOverride: 'স্ট্যাটাস ওভাররাইড',
   chatLockedTitle: 'চ্যাট বন্ধ',
   chatLockedMessage:      'এই কাজটি সম্পন্ন হওয়ার ৭ দিনের বেশি হয়ে গেছে।',
-  chatPreScheduleMessage: 'কাজটি শিডিউল হলে চ্যাট পাওয়া যাবে।',
   chatOpenUntil: 'চ্যাট খোলা থাকবে',
   attachFile: 'ফাইল সংযুক্ত করুন',
   messagePlaceholder: 'বার্তা লিখুন…',

@@ -6,6 +6,7 @@ import { sendTelegramWithKeyboard } from '@/lib/telegram/bot'
 import { tplJobChatBatch } from '@/lib/telegram/templates'
 import { createServiceClient } from '@/lib/supabase/service'
 import { voiceKeyBelongsToJob } from '@/lib/storage/gallery-delete'
+import { attachmentNotifyCount } from '@/lib/utils/chat-attachments'
 
 const CHAT_OPEN_DAYS = 7
 const THROTTLE_MS    = 1 * 60 * 1000
@@ -42,7 +43,7 @@ export async function POST(
     }
   }
 
-  const body = await req.json() as { content?: string; kind?: string; voice_url?: string; filename?: string }
+  const body = await req.json() as { content?: string; kind?: string; voice_url?: string; filename?: string; count?: unknown }
   const isVoice      = body.kind === 'voice'
   const isAttachment = body.kind === 'attachment'
 
@@ -51,7 +52,9 @@ export async function POST(
   const jobUrl    = `${APP_URL}/jobs/${jobId}?tab=chat`
 
   // ── Throttled Telegram notifications ─────────────────────────────────────────
-  async function notifyParticipantsThrottled(isAttachmentMsg = false) {
+  // `newFiles`: chat files just added. They live in `files`, which the unseen
+  // count (messages only) does not see, so the caller says how many.
+  async function notifyParticipantsThrottled(newFiles = 0) {
     if (!notifData) return
     const { salesPoc, installers } = await getJobRecipients(jobId)
     const recipients = [salesPoc, ...installers].filter(
@@ -68,7 +71,7 @@ export async function POST(
         if (Date.now() - lastMs < THROTTLE_MS) return
 
         const unseenInDb = await countUnseenMessages(jobId, r.id, state)
-        count = Math.max(1, unseenInDb + (isAttachmentMsg ? 1 : 0))
+        count = Math.max(1, unseenInDb + newFiles)
       } catch (err) {
         console.error('[chat-notif] state/count lookup failed, sending with count=1', err)
       }
@@ -109,8 +112,9 @@ export async function POST(
   }
 
   // ── File attachment (notification only — file record already inserted client-side) ──
+  // One call per batch; `count` = files in it (untrusted, clamped).
   if (isAttachment) {
-    await notifyParticipantsThrottled(true)
+    await notifyParticipantsThrottled(attachmentNotifyCount(body.count))
     return NextResponse.json({ ok: true })
   }
 

@@ -9,6 +9,7 @@ import {
   designersAllowed, formalCrewAllowed, postponeNotifyNow,
   pendingLocks, canDeleteAtStage, stageWriteVia, stageMoveBlocked, newJobPlan,
   schedulerCanPush, pushCrewPlan, externalLinkMode, externalSuggestionTap,
+  chatOpenAtStage,
 } from './job-stage-rules'
 
 let failures = 0
@@ -190,6 +191,16 @@ check('no picks: the push keeps its own clash step',
   pushCrewPlan({ ...picks, installerDirty: false }), { confirmCrew: false, checkPicks: false })
 check('sales picks stay suggestions',
   pushCrewPlan({ ...picks, assignsCrew: false }), { confirmCrew: false, checkPicks: false })
+
+// ── Job chat opens on Ongoing (Nic, 2026-11-18) ─────────────────────────────
+// The old rule, kept so the test shows it would have caught the change: the
+// job page locked chat on Drafts AND Ongoing.
+const oldChatOpen = (s: string) => s !== 'draft' && s !== 'ongoing'
+check('old rule: Ongoing chat was locked (the reported gap)', oldChatOpen('ongoing'), false)
+check('chat open on an Ongoing job', chatOpenAtStage('ongoing'), true)
+check('chat stays locked on a Draft (private notepad)', chatOpenAtStage('draft'), false)
+check('chat open on a Scheduled job', chatOpenAtStage('scheduled'), true)
+check('chat open on a Completed job (the 7-day close is separate)', chatOpenAtStage('completed'), true)
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nall job-stage-rules checks passed')

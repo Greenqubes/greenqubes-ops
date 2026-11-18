@@ -125,6 +125,16 @@ export function externalSuggestionTap(o: {
   return o.sales ? 'remove' : null
 }
 
+/** Whether the job page offers chat at this stage. Drafts stay closed — a
+ *  Draft is a private notepad. Ongoing opens it (Nic, 2026-11-18: until then
+ *  the office had to talk about a confirmed job outside the app). Nothing
+ *  on the server checks the stage: RLS (0071) and /messages never did, so
+ *  this is the screen's rule alone. The 7-day close after completion is
+ *  separate (ChatSection + /messages). */
+export function chatOpenAtStage(stage: Stage): boolean {
+  return stage !== 'draft'
+}
+
 /** Scheduled → Ongoing: crew hear immediately only for a job dated today;
  *  otherwise the 6pm summary tells them (same split as a board drag). */
 export function postponeNotifyNow(jobDate: string | null, todayISO: string): boolean {

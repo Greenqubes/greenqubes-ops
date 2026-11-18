@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { DesignRatingSlider } from '@/features/job-detail/DesignRatingSlider'
 import { formatDate } from '@/lib/telegram/templates'
+import { isOverdue } from '@/lib/utils/overdue'
 import type { LangCode } from '@/lib/i18n'
 import {
   parseAssignedBody, parseDueShiftBody, parseInstallShiftBody, parseDueRemovedBody, parseDueSetBody,
@@ -138,31 +139,30 @@ export function NotificationDrawer({ lang }: Props) {
         seesAll = me?.role === 'scheduler' || me?.role === 'admin'
       }
 
-      const today = new Date().toISOString().split('T')[0]
+      // The device's own date, matching nowMins below (toISOString is UTC,
+      // which in Singapore is still yesterday until 8am).
       const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
       const nowMins = now.getHours() * 60 + now.getMinutes()
 
       type JobRow = {
-        id: string; client: string; project_title: string | null; date: string
+        id: string; client: string; project_title: string | null; date: string; date_end: string | null
         time_end: string | null; location: string | null; sales_poc_id: string | null
         job_assignees: Array<{ user_id: string; is_suggestion: boolean }> | null
         job_coordinators: Array<{ user_id: string; users: { name: string } | null }> | null
       }
       const { data } = await (supabase
         .from('jobs')
-        .select('id, client, project_title, date, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id, users(name))')
+        .select('id, client, project_title, date, date_end, time_end, location, sales_poc_id, job_assignees(user_id, is_suggestion), job_coordinators(user_id, users(name))')
         .eq('status', 'scheduled')
         .lte('date', today) as unknown as Promise<{ data: JobRow[] | null }>)
 
       if (!data) return
 
+      // Past the job's LAST day, or past its end time on that day — a
+      // multi-day job is not overdue while it runs (Nic, 2026-11-18).
       const overdue = data.filter(j => {
-        let isOverdue = j.date < today
-        if (!isOverdue && j.date === today && j.time_end) {
-          const [h, m] = j.time_end.split(':').map(Number)
-          isOverdue = nowMins > h * 60 + m
-        }
-        if (!isOverdue) return false
+        if (!isOverdue({ ...j, status: 'scheduled' }, today, nowMins)) return false
         if (seesAll) return true
         if (!myId) return false
         return j.sales_poc_id === myId

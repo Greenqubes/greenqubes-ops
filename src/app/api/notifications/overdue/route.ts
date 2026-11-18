@@ -7,6 +7,7 @@ import {
   recordOverdueNotification,
 } from '@/lib/supabase/queries/notifications'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isOverdue } from '@/lib/utils/overdue'
 
 // Called by Vercel cron twice daily, 09:00 and 18:00 SGT (see vercel.json).
 // Also callable manually: GET /api/notifications/overdue
@@ -31,19 +32,13 @@ export async function GET(req: NextRequest) {
   const results = { sent: 0, skipped: 0 }
 
   for (const job of jobs) {
-    // For today's jobs, only fire if past time_end
-    if (job.date === todaySGT) {
-      if (!job.time_end) {
-        results.skipped++
-        continue
-      }
-      const [h, m] = job.time_end.split(':').map(Number)
-      if (nowMinutesSGT < h * 60 + m) {
-        results.skipped++
-        continue
-      }
+    // Past its LAST day, or past its end time on that day. A multi-day job
+    // is not chased while it runs (Nic, 2026-11-18); a job with no end time
+    // waits for the next day. One rule app-wide: src/lib/utils/overdue.ts.
+    if (!isOverdue({ ...job, status: 'scheduled' }, todaySGT, nowMinutesSGT)) {
+      results.skipped++
+      continue
     }
-    // Jobs from earlier dates are always overdue
 
     if (await wasRecentlyNotified(job.id)) {
       results.skipped++

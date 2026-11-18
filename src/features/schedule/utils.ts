@@ -1,3 +1,5 @@
+import { isOverdue as overdueRule } from '@/lib/utils/overdue'
+
 export function timeToMinutes(t: string | null): number | null {
   if (!t) return null
   const [h, m] = t.split(':').map(Number)
@@ -19,8 +21,12 @@ export function fmtTime(t: string | null): string {
   return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`
 }
 
-export function isOverdue(status: string, date: string): boolean {
-  return status === 'scheduled' && date < toISO(new Date())
+/** Schedule card + date strip: red once the job's LAST day has passed and it
+ *  is still not completed — a multi-day job stays plain while it runs (Nic,
+ *  2026-11-18). One rule app-wide: src/lib/utils/overdue.ts. No clock is
+ *  given, so a job dated today turns red tomorrow, as it always has. */
+export function isOverdue(job: { status: string; date: string; date_end: string | null }): boolean {
+  return overdueRule(job, toISO(new Date()))
 }
 
 export function getWeekDays(anchor: string): string[] {
