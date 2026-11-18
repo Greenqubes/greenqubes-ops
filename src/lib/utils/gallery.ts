@@ -197,13 +197,42 @@ export function followIndex(currentKey: string | null, currentIndex: number, key
 /** What a ticked batch downloads (Nic, 2026-11-18). Links have no stored file
  *  and are skipped. A name with no ending (every voice note is "Voice note")
  *  borrows the stored file's ending, or the saved copy would not open. Only
- *  the last path segment counts — job folders can contain dots. */
-export function galleryDownloads(items: GalleryItem[]): Array<{ r2Key: string; filename: string }> {
+ *  the last path segment counts — job folders can contain dots.
+ *
+ *  Two different files with one name made the phone offer to replace the
+ *  first (Nic, 2026-11-18): camera photos are named to the minute and every
+ *  voice note is "Voice note". The oldest keeps the name; later ones get
+ *  " (2)", " (3)"… before the ending. Counted over `all` — the whole gallery —
+ *  so a photo is saved under one name whichever batch it is ticked in.
+ *  Capitals are ignored when comparing: phones treat IMG_1.JPG and img_1.jpg
+ *  as the same file. */
+export function galleryDownloads(
+  items: GalleryItem[],
+  all: GalleryItem[] = items,
+): Array<{ r2Key: string; filename: string }> {
   const ending = (s: string) => /\.[A-Za-z0-9]{1,5}$/.exec(s)?.[0] ?? ''
-  return items.flatMap(it => {
-    if (!it.r2Key) return []
+  const fileName = (it: GalleryItem & { r2Key: string }) => {
     const keyEnding = ending(it.r2Key.split('/').pop() ?? '')
-    const filename = ending(it.name) || !keyEnding ? it.name : it.name + keyEnding
-    return [{ r2Key: it.r2Key, filename }]
+    return ending(it.name) || !keyEnding ? it.name : it.name + keyEnding
+  }
+  const stored = (it: GalleryItem): it is GalleryItem & { r2Key: string } => !!it.r2Key
+
+  // Everything that could share a name, each item once, oldest first.
+  const pool = [...new Map([...all, ...items].filter(stored).map(it => [it.key, it])).values()]
+    .sort((a, b) => a.ts.localeCompare(b.ts) || a.key.localeCompare(b.key))
+  const place = new Map<string, number>()   // item key → 1 for the oldest of its name, 2, 3…
+  const seen = new Map<string, number>()    // name, ignoring capitals → how many so far
+  for (const it of pool) {
+    const n = (seen.get(fileName(it).toLowerCase()) ?? 0) + 1
+    seen.set(fileName(it).toLowerCase(), n)
+    place.set(it.key, n)
+  }
+
+  return items.filter(stored).map(it => {
+    const name = fileName(it)
+    const n = place.get(it.key) ?? 1
+    if (n === 1) return { r2Key: it.r2Key, filename: name }
+    const end = ending(name)
+    return { r2Key: it.r2Key, filename: `${name.slice(0, name.length - end.length)} (${n})${end}` }
   })
 }

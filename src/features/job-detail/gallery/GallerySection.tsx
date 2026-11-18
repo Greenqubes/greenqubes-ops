@@ -237,7 +237,7 @@ export function GallerySection({ jobId, userId, role, isAdmin, lang, job, show }
   // Ticked items, one after another (Nic, 2026-11-18). A failed file never
   // stops the rest; the toast names what did not download.
   async function downloadSelected(items: GalleryItem[]) {
-    const batch = galleryDownloads(items)
+    const batch = galleryDownloads(items, [...gallery.media, ...gallery.docs])
     if (batch.length === 0) return
     setDownloading(true)
     const failed: BatchFailure[] = []

@@ -79,7 +79,7 @@ check('last photo deleted → new last',  followIndex('c', 2, ['a', 'b']), 1)
 check('everything gone',               followIndex('a', 0, []), 0)
 
 // ── Batch download (Nic, 2026-11-18: tick several, download them all) ──────
-const dl = (p: { name: string; r2Key: string | null }) => ({
+const dl = (p: { name: string; r2Key: string | null; key?: string; ts?: string }) => ({
   key: 'f:x', source: 'chat' as const, kind: 'image' as const, fileKind: 'attachment', url: null, byId: null, by: null,
   ts: '2026-11-18T02:00:00Z', ...p,
 })
@@ -98,6 +98,47 @@ check('no ending on either side: the name is left alone',
 check('a dot in a folder name is not an ending',
   galleryDownloads([dl({ name: 'Voice note', r2Key: 'jobs/2026.11_x/voice/abc' })]),
   [{ r2Key: 'jobs/2026.11_x/voice/abc', filename: 'Voice note' }])
+
+// Same name, different photo (Nic, 2026-11-18): the phone asked to replace the
+// first one. Camera photos are named to the minute, and every voice note is
+// "Voice note". Oldest keeps the name; later ones get (2), (3)… counted over
+// the WHOLE gallery, so a photo has one name whichever batch it is in.
+const p1 = dl({ key: 'f:1', name: 'Nicholas 18 Nov 2026 12:53.jpeg', r2Key: 'k/1.jpeg', ts: '2026-11-18T04:53:01Z' })
+const p2 = dl({ key: 'f:2', name: 'Nicholas 18 Nov 2026 12:53.jpeg', r2Key: 'k/2.jpeg', ts: '2026-11-18T04:53:20Z' })
+const p3 = dl({ key: 'f:3', name: 'Nicholas 18 Nov 2026 12:53.jpeg', r2Key: 'k/3.jpeg', ts: '2026-11-18T04:53:40Z' })
+check('same name twice in one batch: the newer one is numbered',
+  galleryDownloads([p2, p1]).map(d => d.filename),
+  ['Nicholas 18 Nov 2026 12:53 (2).jpeg', 'Nicholas 18 Nov 2026 12:53.jpeg'])
+check('numbered over the whole gallery, not the batch: ticking only the third gives (3)',
+  galleryDownloads([p3], [p3, p1, p2]).map(d => d.filename),
+  ['Nicholas 18 Nov 2026 12:53 (3).jpeg'])
+check('two voice notes no longer clash',
+  galleryDownloads([
+    dl({ key: 'm:1', name: 'Voice note', r2Key: 'v/a.webm', ts: '2026-11-18T01:00:00Z' }),
+    dl({ key: 'm:2', name: 'Voice note', r2Key: 'v/b.webm', ts: '2026-11-18T02:00:00Z' }),
+  ]).map(d => d.filename),
+  ['Voice note.webm', 'Voice note (2).webm'])
+check('names differing only in capitals still clash on a phone, so are numbered',
+  galleryDownloads([
+    dl({ key: 'f:a', name: 'IMG_1.JPG', r2Key: 'k/a', ts: '2026-11-18T01:00:00Z' }),
+    dl({ key: 'f:b', name: 'img_1.jpg', r2Key: 'k/b', ts: '2026-11-18T02:00:00Z' }),
+  ]).map(d => d.filename),
+  ['IMG_1.JPG', 'img_1 (2).jpg'])
+check('same name AND same second: the order still never changes',
+  galleryDownloads([
+    dl({ key: 'f:b', name: 'x.jpg', r2Key: 'k/b' }),
+    dl({ key: 'f:a', name: 'x.jpg', r2Key: 'k/a' }),
+  ]).map(d => d.filename),
+  ['x (2).jpg', 'x.jpg'])
+check('a name with no ending is numbered at the end',
+  galleryDownloads([
+    dl({ key: 'f:a', name: 'scan', r2Key: 'k/a', ts: '2026-11-18T01:00:00Z' }),
+    dl({ key: 'f:b', name: 'scan', r2Key: 'k/b', ts: '2026-11-18T02:00:00Z' }),
+  ]).map(d => d.filename),
+  ['scan', 'scan (2)'])
+check('a ticked item missing from the gallery list is still kept apart',
+  galleryDownloads([p1, p2], []).map(d => d.filename),
+  ['Nicholas 18 Nov 2026 12:53.jpeg', 'Nicholas 18 Nov 2026 12:53 (2).jpeg'])
 
 if (failures) { console.error(`\n${failures} failure(s)`); process.exit(1) }
 console.log('\nAll gallery checks passed')
