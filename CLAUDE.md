@@ -68,6 +68,25 @@ The `feat-job-form-redesign`, `feat-workflow-v2`, and `feat-live-updates` branch
 
 ---
 
+## When to suggest ultracode
+
+`ultracode` is a word Nic can type into a message to switch on multi-agent mode: Claude splits a big job across several helpers that build and check parts side by side. It is more thorough but uses several times more usage than a normal session, so **Claude suggests it and Nic decides.** (Nic, 2026-11-18.)
+
+**Suggest it before starting any code when the task hits two or more of these:**
+- It changes **three or more separate features or screens** (e.g. schedule + job form + notifications).
+- It needs a **new migration and** changes to both the server side (API routes, crons, Telegram) **and** the screens.
+- The plan has **independent parts** that could be built at the same time, or will likely touch **15+ files**.
+- It is a **sweep across the whole app**: every screen, every role or every API route (a permission change for one role everywhere, a translation pass, a rename used in many places).
+- It changes **who can see or do what** (roles, RLS) in more than one feature. Mistakes there are costly, so the extra checking is worth it.
+
+**Don't suggest it for:** a single bug fix, one screen's tweak, docs or changelog edits, anything around five files or fewer, or the overnight auto-fixer (`GQ_AUTOFIX=1` never asks anyone). When unsure, don't. A normal session handles most work.
+
+**How to suggest it:** one short line before any work starts, saying what makes the task big, that ultracode would split it across several helpers, that it costs noticeably more, and that Nic switches it on by typing `ultracode` in the next message. Then wait. If Nic says no, carry on normally and don't raise it again for that task. Never start multi-agent work without that word; without it, the standing "no subagents" preference still applies.
+
+**Reviewing, not building:** for a big *finished* branch before it goes to `main`, the matching option is `/code-review ultra`, a deep review that runs in the cloud. It is billed and Nic launches it; Claude only suggests it, using the same "two or more" test.
+
+---
+
 ## Communication style
 
 Always explain in plain, everyday language. Avoid coding terms unless necessary. If a technical term must be used, follow it immediately with a one-sentence plain explanation. Nic is a non-technical founder — explanations should be fast to read and easy to understand without a coding background.
