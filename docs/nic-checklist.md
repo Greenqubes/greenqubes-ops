@@ -208,6 +208,15 @@ _Checklist page (your ticks and notes are saved there): https://claude.ai/artifa
 - Schedule page visual overhaul
 - Smarter automatic corner-finding for the DO scanner (only if dragging becomes a complaint)
 
+## Done This Session ✓ (2026-11-18 → 19, feat-jobs — Chat on Ongoing Jobs, Multi-File Chat, Gallery Batch Download, Multi-Day Jobs Not Red, LIVE)
+
+- [x] **[Nic] Job chat opens on Ongoing jobs.** Only Drafts stay locked ("Chat opens once this job is Ongoing.").
+- [x] **[Nic] Pick several files at once in job chat.** One that fails never stops the rest, the message names what didn't go, and the Telegram nudge counts every file. A failed upload no longer shows in chat as if it was sent.
+- [x] **[Nic] Gallery batch download:** Select, tick, Download. Photos that share a name get (2), (3)… so the phone never offers to replace one with another — your test found that (five photos all named "Nicholas 18 Nov 2026 12:53").
+- [x] **[Nic] Multi-day jobs are not red while they run** — only after their last day, if not completed. Same rule on the schedule card, the date strip, the bell and the overdue Telegram. Checked on live data: the 16–19 Nov job dropped off; the other 4 overdue jobs unchanged. The bell also stopped using yesterday's date before 8am.
+- [x] **[Nic] AI importance question skipped** this session (your call).
+- [x] **[Nic] "What's new"** for 19 Nov, timed from the live site's own clock (12:44 PM).
+
 ## Done This Session ✓ (2026-11-16 → 17, feat-jobs — Old Jobsheet in the Scheduler's Layout, LIVE)
 
 - [x] **[Nic] The Greenqubes Jobs sheet in your scheduler's layout:** 11 columns (no Project Title: it's the first line of Jobs Description), a dark title row and the column names pinned on top, a grey gap between days, two-or-more-driver jobs first, each driver's jobs in their colour (CK purple, Rintu green, Xiao Yi yellow) with white gaps between, outside-installer jobs, jobs with no driver yet, then MC / On leave / On course / PH in red text. Strict time = a solid red cell; ✓ for Production ready and DO issued. Mockup: https://claude.ai/artifact/9CHHtNRpAS27rJvDCEDH9s. Live 16 Nov 7:56 PM.

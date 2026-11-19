@@ -34,6 +34,24 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-19',
+    // 12:44 SGT, decoded from the production deployment's own x-vercel-id
+    // epoch 1795063458526, captured the moment /api/version flipped to
+    // dff12c0ffc67 (commit 3114579: chat on Ongoing jobs, multi-file chat,
+    // gallery batch download, multi-day jobs not red). Never the local clock
+    // (CLAUDE.md).
+    time: '12:44',
+    added: [
+      'Job chat now opens as soon as a job is Ongoing.',
+      'Attach several files at once in a job\'s chat.',
+      'Gallery: tick several photos or files, then tap Download to save them all.',
+    ],
+    fixed: [
+      'Jobs that run over several days no longer turn red before their last day.',
+      'A chat file that failed to upload no longer looks as if it was sent.',
+    ],
+  },
+  {
     date: '2026-11-17',
     // 19:24 SGT, decoded from the production deployment's own x-vercel-id
     // epoch 1794914668463, captured the moment /api/version flipped to
