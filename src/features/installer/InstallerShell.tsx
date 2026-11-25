@@ -25,7 +25,8 @@ import type { LeaveRecord } from '@/lib/utils/leave-overlap'
 import { buildAwayByDate, type AwayTrip } from '@/lib/utils/away-overlap'
 import type { LangCode } from '@/lib/i18n'
 
-type Tab      = 'today' | 'next' | 'week'
+// 'day' = the date tapped in the Month view (selectedDate); no chip is lit for it.
+type Tab      = 'today' | 'next' | 'week' | 'day'
 type ViewMode = 'list' | 'week' | 'month'
 
 function getWeekEnd(today: string): string {
@@ -83,6 +84,10 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
   const todayJobs = useMemo(() => scheduled.filter(j => j.date === today), [scheduled, today])
   const nextJobs  = useMemo(() => scheduled.filter(j => j.date > today).slice(0, 5), [scheduled, today])
   const weekJobs  = useMemo(() => scheduled.filter(j => j.date >= today && j.date <= weekEnd), [scheduled, today, weekEnd])
+  // Same day-coverage rule as jobsByDate below: a multi-day job counts on every day it spans.
+  const dayJobs   = useMemo(() => scheduled.filter(j =>
+    j.date === selectedDate || (!!j.date_end && j.date < selectedDate && selectedDate <= j.date_end),
+  ), [scheduled, selectedDate])
 
   const nowMins = useMemo(() => {
     const now = new Date()
@@ -104,6 +109,7 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
   const baseJobs =
     tab === 'today' ? todayJobs :
     tab === 'next'  ? nextJobs  :
+    tab === 'day'   ? dayJobs   :
                      weekJobs
 
   const visibleJobs = useMemo(() => {
@@ -181,6 +187,7 @@ export function InstallerShell({ jobs, lang, userName, leaves = [], holidays = [
   }
   function drillDown(date: string) {
     setSelectedDate(date)
+    setTab('day')
     setViewMode('list')
   }
 
